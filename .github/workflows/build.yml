@@ -239,4 +239,10 @@ jobs:
     - name: Download artifacts
       uses: actions/download-artifact@v4.3.0
     - name: Upload to GitHub Release
-      uses: s
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          **/*.tar.gz
+          **/*.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
