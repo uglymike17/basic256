@@ -1,6 +1,6 @@
-
+# Verify QT version
 lessThan(QT_MAJOR_VERSION, 5) {
-  message( FATAL_ERROR "BASIC-256 requires QT 5 or better." )
+  error( "BASIC-256 requires QT 5 or better." )
 }
 
 CONFIG(release, debug|release):message(Release build!)
@@ -11,23 +11,26 @@ CONFIG(release, debug|release):DEFINES += QT_NO_WARNING_OUTPUT
 
 TEMPLATE						=	app
 TARGET							=	basic256
-DEPENDPATH						+=	.
-INCLUDEPATH						+=	.
-QMAKE_CXXFLAGS					+=	-g
-QMAKE_CXXFLAGS					+=	-std=c++11
+# DEPENDPATH						+=	.
+# QMAKE_CXXFLAGS					+=	-g
+# QMAKE_CXXFLAGS					+=	-std=c++11
 CONFIG							+=	 qt debug_and_release
+CONFIG							+=	 c++17
 CONFIG							+=	 console
+# Output directories
 OBJECTS_DIR						=	tmp/obj
 MOC_DIR							=	tmp/moc
 
-#QT								+=	webkitwidgets
-#QT								+=	webkit
+# Qt Modules
 QT								+=	gui
 QT								+=	sql
 QT								+=	widgets
 QT								+=	printsupport
 QT								+=	serialport
+QT								+=	multimedia
 
+# Project Structure
+INCLUDEPATH						+=	.
 RESOURCES						+=	resources/resource.qrc
 TRANSLATIONS					=	Translations/basic256_en.ts \
 									Translations/basic256_de.ts \
@@ -43,68 +46,34 @@ TRANSLATIONS					=	Translations/basic256_en.ts \
 #### debugging the interpreter
 ###DEFINES += DEBUG
 
+# Windows Specific
 win32 {
 	DEFINES 					+=	WIN32
 	DEFINES 					+=	USEQMEDIAPLAYER
+	DEFINES 					+=	ESPEAK
 	RC_FILE						=	resources/windows.rc
 	LIBS						+=	-lole32 \
 									-lws2_32 \
 									-lwinmm
-
-###CONFIG += console  ## enable for printf debugging in windows
-###QMAKE_CXXFLAGS				+=-DYYDEBUG=1
+									-lespeak
+	# Only keep this if building 32-bit; remove for 64-bit
 	QMAKE_CXXFLAGS				+=	-mstackrealign
 	QMAKE_CXXFLAGS_RELEASE		+=	-mstackrealign
 
-	########
-	# TTS control - How Say statement works
-	########
-	# uncomment one of the options
-
-	## TTS Option 1 - ececute 'espak' command to speak
-	#DEFINES					+=	ESPEAK_EXECUTE
-
-	## TTS Option 2 - use the espeak library
-	DEFINES						+=	ESPEAK
-	LIBS						+=	-lespeak
-
-	########
-	# Sound class - How Sound statement works
-	########
-	QT							+=	multimedia
-	INCLUDEPATH					+=	QtMultimediaKit
-	INCLUDEPATH					+=	QtMobility
-	CONFIG						+=	mobility
-	MOBILITY					+=	multimedia
-
-	# DEFINES 					+= WIN32PORTIO
 }
 
+# Linux Specific
 unix:!macx {
 	## this is the LINUX (unix-non-mac)
-	DEFINES						+=	LINUX
+	DEFINES						+=	LINUX ESPEAK
+	LIBS						+=	-lespeak -lm
 	QMAKE_CXXFLAGS				+=	-std=c++11
-
-	########
-	# TTS control - How Say statement works
-	########
-	# uncomment one of the options
-
-	## TTS Option 1 - ececute 'espak' command to speak
-	#DEFINES					+=	ESPEAK_EXECUTE
-
-	## TTS Option 2 - use the espeak library
-	DEFINES						+=	ESPEAK
 	INCLUDEPATH					+=	/usr/include/espeak
-	LIBS						+=	-lespeak
-	LIBS						+=	-lm
 
 	########
 	# Sound class - How Sound statement works
 	########
 	QT							+=	multimedia
-	INCLUDEPATH					+=	QtMultimediaKit
-	INCLUDEPATH					+=	QtMobility
 
 
 	########
