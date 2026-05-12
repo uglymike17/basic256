@@ -151,6 +151,34 @@ RunController::RunController() {
 }
 
 RunController::~RunController() {
+	#ifdef USE_QT_TEXTTOSPEECH
+
+    tts = new QTextToSpeech(this);
+
+    QString voicename =
+        settings.value(
+            SETTINGSESPEAKVOICE,
+            SETTINGSESPEAKVOICEDEFAULT
+        ).toString();
+
+    QList<QVoice> voices = tts->availableVoices();
+
+    for (const QVoice &voice : voices) {
+
+        if (voice.name() == voicename) {
+            tts->setVoice(voice);
+            break;
+        }
+    }
+
+    connect(
+        tts,
+        &QTextToSpeech::stateChanged,
+        this,
+        &RunController::speechStateChanged
+    );
+
+    #endif
 	if(replacewin!=NULL) replacewin->close();
 	stopRun();
 	i->wait();
