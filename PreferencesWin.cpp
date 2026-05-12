@@ -381,49 +381,62 @@ PreferencesWin::PreferencesWin (QWidget * parent, bool showAdvanced)
 
 
 #ifdef USE_QT_TEXTTOSPEECH
-	r++;
-	{
-		QString setvoice;
+    r++;
+    {
+        QString setvoice;
+        voicelabel = new QLabel(tr("SAY Voice:"), this);
+        soundtablayout->addWidget(voicelabel, r, 1, 1, 1);
+        voicecombo = new QComboBox(this);
 
-		voicelabel = new QLabel(tr("SAY Voice:"), this);
-		soundtablayout->addWidget(voicelabel, r, 1, 1, 1);
+        // temporary speech engine for voice enumeration
+        QTextToSpeech *tts = new QTextToSpeech(this);
 
-		voicecombo = new QComboBox(this);
+        voicecombo->addItem(QString("default"), QString("default"));
 
-		// temporary speech engine for voice enumeration
-		QTextToSpeech *tts = new QTextToSpeech(this);
+        // Save state before probing
+        QLocale originalLocale = tts->locale();
+        QVoice  originalVoice  = tts->voice();
 
-		voicecombo->addItem(QString("default"), QString("default"));
+        const QVector<QLocale> locales = tts->availableLocales();
+        for (const QLocale &locale : locales) {
+            tts->setLocale(locale);
+            const QList<QVoice> voices = tts->availableVoices();
+            for (const QVoice &voice : voices) {
+                QString gender;
+                switch (voice.gender()) {
+                    case QVoice::Male:    gender = "Male";    break;
+                    case QVoice::Female:  gender = "Female";  break;
+                    default:              gender = "Unknown"; break;
+                }
+                QString label = voice.name()
+                                + " ("
+                                + QLocale::languageToString(locale.language())
+                                + ", "
+                                + gender
+                                + ")";
+                voicecombo->addItem(label, voice.name());
+            }
+        }
 
-		QList<QVoice> voices = tts.availableVoices();
+        // Restore engine state (probing via setLocale changed it)
+        tts->setLocale(originalLocale);
+        tts->setVoice(originalVoice);
 
-		for (const QVoice &voice : voices) {
+        delete tts;
 
-			QString label =
-				voice.name() +
-				" (" +
-				QLocale::languageToString(voice.locale().language()) +
-				")";
-
-			voicecombo->addItem(label, voice.name());
-		}
-
-		delete tts;
-
-		// restore saved setting
-		setvoice = settings.value(
-			SETTINGSTEXTTOSPEECHVOICE,
-			SETTINGSESPEAKVOICEDEFAULT
-		).toString();
-
-		int index = voicecombo->findData(setvoice);
-
-		if (index != -1) {
-			voicecombo->setCurrentIndex(index);
-		}
-
-		soundtablayout->addWidget(voicecombo, r, 2, 1, 2);
-	}
+        // restore saved setting
+        // NOTE: kept SETTINGSESPEAKVOICE key intentionally so existing
+        // saved preferences still load correctly
+        setvoice = settings.value(
+            SETTINGSESPEAKVOICE,
+            SETTINGSESPEAKVOICEDEFAULT
+        ).toString();
+        int index = voicecombo->findData(setvoice);
+        if (index != -1) {
+            voicecombo->setCurrentIndex(index);
+        }
+        soundtablayout->addWidget(voicecombo, r, 2, 1, 2);
+    }
 #endif
 
 	// *******************************************************************************************
