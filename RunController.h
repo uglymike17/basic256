@@ -24,6 +24,7 @@
 #include <QtWidgets/QTextEdit>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QStatusBar>
+#include <QTextToSpeech>
 
 #include <QLocale>
 
@@ -88,9 +89,12 @@ class RunController : public QObject
   void getClipboardString();
   void setClipboardImage(QImage);
   void setClipboardString(QString);
-  
+
+private slots:
+    void speechStateChanged(QTextToSpeech::State state);
 
  private:
+  QTextToSpeech *tts;
   Interpreter *i;
   bool paused;
   run_status oldStatus;
