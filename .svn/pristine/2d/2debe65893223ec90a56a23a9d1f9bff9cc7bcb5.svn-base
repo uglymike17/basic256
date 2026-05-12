@@ -1,0 +1,31 @@
+# instrtest.kbs 2011-01-05 j.m.reneau
+# for 0.9.6.56 and later
+a$ = "Now is the time for all good men to  come to the Aid of Their party."
+print "location of men = " + instr(a$,"men")
+print "location of aid = " + instr(a$,"aid")
+print "location of aid (ignore case) = " + instr(a$,"aid",1,true)
+#
+print "locations of all spaces"
+l = instr(a$," ")
+while l <> 0
+   print l + " ";
+   l = instr(a$," ",l+1)
+end while
+print
+#
+print "print words"
+oldl = 1
+l = instr(a$," ")
+k = 0
+while l <> 0
+   k = k + 1
+   print k + " '" + mid(a$,oldl, l-oldl) + "'"
+   oldl = l + 1
+   l = instr(a$," ",l+1)
+end while
+k = k + 1
+print k + " '" + mid(a$,oldl, 99999) + "'"
+#
+print "location of regex [Aa]id = " + instrx(a$,"[Aa]id")
+print "location of regex [Hh][Ee] starting at 50 = " + instrx(a$,"[Hh][Ee]",50)
+

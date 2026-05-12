@@ -1,0 +1,47 @@
+# explodetest.jbs 2011-01-05 j.m.reneau
+# for version 0.9.6.56
+
+# explode on spaces
+a$ = "We all live in a yellow submarine, yellow submarine, yellow, submarine."
+w$ = explode(a$," ")
+for t = 0 to w$[?]-1
+   print "w$["+t+"]=" + w$[t]
+next t
+
+# explode on A or a
+a$ = "klj;lkjalkjAlkj;al;kjAoiupAoiupouApoiupoiapoiupoaoiupoaoiupoaaaoiuAAAoiu"
+w$ = explode(a$,"A",true)
+for t = 0 to w$[?]-1
+   print "w$["+t+"]=" + w$[t]
+next t
+
+# explode on regex //[,]* //
+a$ = "We all live in a yellow submarine, yellow submarine, yellow, submarine."
+w$ = explodex(a$,"[,]* ")
+for t = 0 to w$[?]-1
+   print "w$["+t+"]=" + w$[t]
+next t
+
+# explode numbers on comma
+a$="1,2,3,4,5,6,77,,foo,888,9.987,6.45"
+n = explode(a$,",")
+for t = 0 to n[?]-1
+   print "n["+t+"]=" + n[t]
+next t
+
+# explode numbers with words
+a$="1 and 2 AND 3 and 5 aND 99 AND 8.88 aNd 6.45"
+n = explode(a$,"and",true)
+for t = 0 to n[?]-1
+   print "n["+t+"]=" + n[t]
+next t
+
+# explode on regex //[Aa][Nn][Dd]//
+a$="1 and 2 AND 3 and 5 aND 99 AND 8.88 aNd 6.45"
+n = explodex(a$,"[Aa][Nn][Dd]")
+for t = 0 to n[?]-1
+   print "n["+t+"]=" + n[t]
+next t
+
+
+

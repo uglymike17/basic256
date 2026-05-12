@@ -1,0 +1,43 @@
+rem Moving Squares thanks to Joel Kahn
+
+clg
+x1=150
+y1=150
+q=0.055
+m=0.0
+
+while 1
+   m=m+q
+   x1=x1+4.0*cos(m)
+   y1=y1+4.0*sin(m)
+   x2=300-x1
+   y2=300-y1
+   x3=x1/2.0
+   y3=y1/2.0
+   x4=300-x3
+   y4=300-y3
+   color purple
+   line x1,y1,x2,y1
+   color orange
+   line x1,y1,x1,y2
+   color darkpurple
+   line x1,y2,x2,y2
+   color darkorange
+   line x2,y1,x2,y2
+   color blue
+   line x3,y3,x1,y1
+   color darkblue
+   line x2,y2,x4,y4
+   color cyan
+   line x3,y4,x1,y2
+   color darkcyan
+   line x2,y1,x4,y3
+   color green
+   line x3,y3,x3,y4
+   color red
+   line x3,y3,x4,y3
+   color darkgreen
+   line x4,y3,x4,y4
+   color darkred
+   line x3,y4,x4,y4
+end while

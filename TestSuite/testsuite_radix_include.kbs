@@ -1,0 +1,68 @@
+# testsuite_radix_include section for BASIC256
+
+# test number formats including
+# 0b...
+# 0o...
+# 0x...
+# integer
+# and float
+ 
+# Modification History
+# date		programmer	description
+# 20140530	j.m.reneau	split from main program
+#				added octal and entry of numbers
+#				using bases directly
+# 20140813      j.m.reneau      fix to parsing of integers outside of integer range
+# 20160330 	j.m.reneau	updated to signed long integer
+
+currentsuite = "radix"
+
+call s("255 -> 11111111 bin", tobinary(255), "11111111")
+call n("11111111 bin -> 255", frombinary("11111111"), 255)
+call s("255 -> ff hex", tohex(255), "ff")
+call n("ff hex -> 255", fromhex("FF"), 255)
+call s("8 -> 10 octal", tooctal(8), "10")
+call n("377 octal -> 255", fromoctal("377"), 255)
+call s("36 -> 10 (36)", toradix(36,36), "10")
+call n("22 (36) -> 74", fromradix("22",36), 74)
+
+call n("0b10101011", 0b10101011, 171)
+call n("0xfade", 0xfade, 64222)
+call n("0O7711", 0O7711, 4041)
+
+call n("0xffffffff",0xffffffff,-1)
+call n("0x80000000",0x80000000,-2147483648)
+call n("0x7fffffff",0x7fffffff,2147483647)
+call n("0o37777777777",0o37777777777,-1)
+call n("0o20000000000",0o20000000000,-2147483648)
+call n("0o17777777777",0o17777777777,2147483647)
+call n("0b11111111111111111111111111111111",0b11111111111111111111111111111111,-1)
+call n("0b10000000000000000000000000000000",0b10000000000000000000000000000000,-2147483648)
+call n("0b01111111111111111111111111111111",0b01111111111111111111111111111111,2147483647)
+
+# check integer to/or float arround the borders
+call n("i/f0",4,40.0/10)
+call n("i/f1",3,30.0/10)
+call n("i/f2",2,20.0/10)
+call n("i/f3",1,10.0/10)
+call n("i/f4",0,00.0/10)
+call n("i/f5",-1,-10.0/10)
+call n("i/f6",-2,-20.0/10)
+call n("i/f7",-3,-30.0/10)
+call n("i/f8",-4,-40.0/10)
+call n("i/f9",2147483645,21474836450.0/10)
+call n("i/f10",2147483646,21474836460.0/10)
+call n("i/f11",2147483647,21474836470.0/10)
+call n("i/f12",2147483648,21474836480.0/10)
+call n("i/f13",2147483649,21474836490.0/10)
+call n("i/f14",2147483650,21474836500.0/10)
+call n("i/f15",-2147483645,-21474836450.0/10)
+call n("i/f16",-2147483646,-21474836460.0/10)
+call n("i/f17",-2147483647,-21474836470.0/10)
+call n("i/f18",-2147483648,-21474836480.0/10)
+call n("i/f19",-2147483649,-21474836490.0/10)
+call n("i/f20",-2147483650,-21474836500.0/10)
+
+
+
+ 

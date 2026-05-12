@@ -1,0 +1,124 @@
+# testsuite_variablewatch.kbs
+# part of the testsuite for BASIC256
+
+# This program will test the display of variables in the variable watch window.
+# MUST BE RAN AS DEBUG and Variable Waich Window should be compared to the comment
+# statements in the code below
+
+# Modification History
+# date		programmer	version        description
+# 20160215	j.m.reneau	1.99.99.18     original coding
+
+a = 99
+b = {1,2,3}
+dim c(3)
+c[0] = 10
+c[1] = 20
+c[2] = 30
+
+## right now there should be
+# 0 - a        I 99
+# 0 - b        A 3
+#   0 - b[0]   I 1
+#   0 - b[1]   I 2
+#   0 - b[2]   I 3
+# 0 - c        A 3
+#   0 - c[0]   I 10
+#   0 - c[1]   I 20
+#   0 - c[2]   I 30
+
+unassign b[2]
+unassign c
+unassign a
+
+## right now there should be
+# 0 - a        ?
+# 0 - b        A 3
+#   0 - b[0]   I 1
+#   0 - b[1]   I 2
+#   0 - b[2]   ?
+# 0 - c        ?
+
+call testlocal(4)
+subroutine testlocal(z)
+b = {1, 2 ,3, z}
+dim c(2,2)
+c[0,0]=0
+c[0,1]=1
+c[1,0]=10
+c[1,1]=11
+## right now there should be
+# 0 - a        ?
+# 0 - b        A 3
+#   0 - b[0]   I 1
+#   0 - b[1]   I 2
+#   0 - b[2]   ?
+# 0 - c        ?
+# 1 - b        A 4
+#   1 - b[0]   I 1
+#   1 - b[1]   I 2
+#   1 - b[2]   I 3
+#   1 - b[3]   I 4
+# 1 - c        A 2,2
+#   1 - c[0,0] I 0
+#   1 - c[0,1] I 1
+#   1 - c[1,0] I 10
+#   1 - c[1,1] I 11
+# 1 - z        I 4
+end subroutine
+
+# level one should have been removed and the state returned back to prior the call
+## right now there should be
+# 0 - a        ?
+# 0 - b        A 3
+#   0 - b[0]   I 1
+#   0 - b[1]   I 2
+#   0 - b[2]   ?
+# 0 - c        ?
+
+function testref(ref(n))
+n[0]=11
+c = 43
+## right now there should be
+# 0 - a        ?
+# 0 - b        A 3
+#   0 - b[0]   I 11
+#   0 - b[1]   I 2
+#   0 - b[2]   ?
+# 0 - c        ?
+# 1 - c        I 43
+# 1 - testref  I 0
+return 22
+end function
+b[1] = testref(ref(b))
+
+# level one should have been removed and the state returned back to prior the call
+## right now there should be
+# 0 - a        ?
+# 0 - b        A 3
+#   0 - b[0]   I 11
+#   0 - b[1]   I 22
+#   0 - b[2]   ?
+# 0 - c        ?
+
+global c
+subroutine testglobal(a)
+c = a
+end subroutine
+call testglobal(88)
+
+# level one should have been removed and
+## right now there should be
+# 0 - a        ?
+# 0 - b        A 3
+#   0 - b[0]   I 11
+#   0 - b[1]   I 22
+#   0 - b[2]   ?
+# 0 - c        I 88
+
+unassign b
+unassign c
+## right now there should be
+# 0 - a        ?
+# 0 - b        ?
+# 0 - c        ?

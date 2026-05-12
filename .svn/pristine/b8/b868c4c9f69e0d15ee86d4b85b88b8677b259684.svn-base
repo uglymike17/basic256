@@ -1,0 +1,6 @@
+NETCONNECT "www.google.com", 80
+print "connected"
+NETWRITE "GET HTTP/1.1" + chr(13) + chr(10) + chr(13) + chr(10)
+print "written"
+print NETREAD
+NETCLOSE

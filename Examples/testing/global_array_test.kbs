@@ -1,0 +1,42 @@
+# global_array_test.kbs - j.m.reneau 2012-10-07
+dim a(100)
+global a
+
+for t = 0  to a[?]-1
+   a[t] = t
+next t
+
+print total_a()
+call print_a(10)
+call shuffle_a
+print total_a()
+call print_a(10)
+
+
+function total_a()
+   total_a = 0
+   for b = 0  to a[?]-1
+      total_a = total_a + a[b]
+   next b
+end function
+
+subroutine print_a(n)
+   # print first n elements of a
+   for t = 0 to n-1
+      if t <> 0 then print " ";
+      print a[t];
+   next t
+   print
+end subroutine
+
+subroutine shuffle_a()
+   # shuffle the elements in a
+   # swap enough random paris to mix it up real good
+   for t = 1 to a[?] * 10
+      i = int(rand*a[?])
+      j = int(rand*a[?])
+      q = a[j]
+      a[j] = a[i]
+      a[i] = q
+   next t
+end subroutine

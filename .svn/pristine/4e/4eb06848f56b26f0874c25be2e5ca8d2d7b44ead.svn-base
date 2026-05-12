@@ -1,0 +1,129 @@
+# testsuite_graphics_include for BASIC256
+
+# Modification History
+# date		programmer	description
+# 2012????	j.m.reneau	original coding
+# 20140529	j.m.reneau	split to own include
+# 20160805	j.m.reneau	added tests to make more complete
+# 20161101  j.m.reneau  added [] to all array passing to functions
+# 20170514 j.m.reneau   removed penwidth 0 before text output
+
+currentsuite = "graphics"
+
+# test the basic graphics statements
+
+clg
+color blue
+rect 10,10,20,20
+call q("Blue rectangle")
+call n("is 20,20 blue",pixel(20,20), blue)
+call n("pen and brush blue",getcolor(), getbrushcolor())
+
+#
+clg
+color red
+call n("is current color red",getcolor, red)
+circle 30,30,10
+call q("red circle")
+#
+clg
+for t = 1 to 10
+   color rgb(rand*256,rand*256,rand*256), rgb(rand*256,rand*256,rand*256)
+   circle rand*300,rand*300,rand*10+10
+next t
+call q("10 random circles")
+#
+clg
+color black
+for t = 0 to 300 step 3
+   line 0,0,t,300
+   line 0,0,300,t
+next t
+call q("morie pattern std size")
+#
+graphsize 200,150
+clg
+color black
+for t = 0 to 1 step .01
+   line 0,0,t*graphwidth,graphheight
+   line 0,0,graphwidth,t*graphheight
+next t
+call q("morie pattern odd size")
+graphsize 300,300
+#
+clg
+color black
+for x = 0 to 10 step .1
+   y = (100- x^2)^.5
+   plot 150-x, 150-y
+   plot 150-x, 150+y
+   plot 150+x, 150-y
+   plot 150+x, 150+y
+next x
+call q("circle using x^2+y^2=r^2")
+#
+clg
+penwidth 10
+color green, blue
+redim c(1)
+c = {100, 100, 200, 200, 100, 200}
+poly c[]
+penwidth 5
+color orange, black
+poly {{100, 100}, {200, 200}, {200, 100}}
+call q("poly - orange/black and green/blue triangles with different fill and pen")
+#
+clg
+penwidth 1
+color red
+font "Times New Roman",18,50
+text 10,100,"This is Times New Roman"
+color darkgreen
+font "Tahoma",10,100
+text 10,200,"This is Tahoma!"
+call q("Font - Times and Tahoma")
+#
+clg
+dim c(6)
+c[0] = 0
+c[1] = 0
+c[2] = 20
+c[3] = 20
+c[4] = 15
+c[5] = 10
+color yellow
+for r = 0 to (2 * pi) step (pi/8)
+        stamp graphwidth/2, graphheight/2, 6, r, c[]
+next r
+c = {{0,0}, {20,20}, {15,10}}
+color darkorange
+for r = 0 to (2 * pi) step (pi/8)
+        stamp graphwidth/2, graphheight/2, 4, r, c[]
+next r
+color red
+for r = 0 to (2 * pi) step (pi/8)
+        stamp graphwidth/2, graphheight/2, 2, r, {0,0,20,20,15,10}
+next r
+color black
+for r = 0 to (2 * pi) step (pi/8)
+        stamp graphwidth/2, graphheight/2, 1, r, {{0,0}, {20,20}, {15,10}}
+next r
+call q("stamp - 16 pointed yellow to black wheel")
+
+clg
+color orange
+circle 150,150,150
+color black
+chord 70,100,60,90,1.5*PI, PI
+chord 170,100,60,90,1.5*PI, PI
+color yellow
+circle 110,140,20
+circle 210,140,20
+color black, clear
+call n("pen and brush different",getcolor() = getbrushcolor(),0)
+penwidth 10
+pie 90,120,120,120,.75*pi,.5*pi
+call n("getpenwidth - did it set to 10", getpenwidth(), 10)
+penwidth 1
+call q("chord,pie - yellow eyed monster with chevron for mouth")
+call n("getpenwidth - did it set BACK to 1", getpenwidth(), 1)

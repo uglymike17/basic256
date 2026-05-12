@@ -1,0 +1,16 @@
+#!/usr/bin/make -f
+
+# THIS IS THE RULES FILE FOR Ubuntu 13.+ (raring. saucy, trusty...)
+# using QT5
+
+# ARCH hint from https://bugs.launchpad.net/ubuntu/+source/qtchooser/+bug/1176686
+
+export DH_VERBOSE=1
+
+%:
+	dh $@ --buildsystem=qmake
+
+override_dh_auto_configure:
+	dpkg-architecture -qDEB_HOST_MULTIARCH
+	/usr/lib/$(shell dpkg-architecture -qDEB_HOST_MULTIARCH)/qt5/bin/qmake BASIC256.pro
+

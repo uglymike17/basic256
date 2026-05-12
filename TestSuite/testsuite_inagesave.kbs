@@ -1,0 +1,9 @@
+# testsuite_imagesave for BASIC256
+
+fastgraphics
+
+include "testsuite_common_include.kbs"
+
+include "testsuite_imagesave_include.kbs"
+
+print "All Done"

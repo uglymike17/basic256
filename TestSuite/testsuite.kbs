@@ -1,0 +1,347 @@
+# testsuite for BASIC256
+
+# This program will test most of the basic256 language compiler and interperter
+
+# Modification History
+# date		programmer	description
+# 20121103	j.m.reneau	added strings, file io, '' strings
+# 20121122	j.m.reneau	added freefile, freedb, freedbset, multiple db connections,
+#				and multiple db sets open on a single connection
+# 20121125	j.m.reneau	added dbnull and logic to test dbstring,
+#				dbint, dbfloat, and dbnull with column names and numbers
+# 20130102	j.m.reneau	added color with pen and fill and penwidth
+# 20130126	j.m.reneau	added alert/confirm, sprites, imgsave, and imgload
+# 20130205	j.m.reneau	added radix conversion test
+# 20130208	j.m.reneau	removed DECIMAL statement and added SCI notation
+# 20130403	j.m.reneau	added mouse test
+# 20130610	j.m.reneau	added jump around subroutines - program will not run before 0.9.9.60
+# 20130610	j.m.reneau	changed error trap test to trap 9999 (number less than 0 now untrappable)
+# 20130903	j.m.reneau	added tests for exit (do|if|for|while) and continue (do|for|while)
+# 20130906	j.m.reneau	arranged tests so that interactive tests were first for speed
+#				added tests for floating point to integer compare (epsilon)
+# 20130918	j.m.reneau	moved functions to seperate file and included them
+# 20131125	j.m.reneau	added try/catch error trapping
+# 20140103	j.m.reneau	moved to own folder and split file and database
+#				out to own include so that they can be run independently
+# 20140203	j.m.reneau	added testsuite_if_include to test new if/then/else
+#				and begin case/case/end case
+# 20140204	j.m.reneau	updated to 1.1.0.2
+# 20140416	j.m.reneau	updated to 1.1.1.3 and added WAV statements
+# 20140529	j.m.reneau	added testsuite_complete_include to report on missing statements
+#				added dir include
+#				added printer include
+#				added time include
+# 20140530	j.m.reneau	added network include
+# 20141025	j.m.reneau	added serial include
+# 20151114	j.m.reneau	added types include
+# 20151127	j.m.reneau	moved requirement to 1.99.99.2
+# 20151204	j.m.reneau	added neq preverence for VNA errors 1.99.99.6
+# 20160203      j.m.reneau      added reverse for loop testing and requirement for
+#                               system to be enabled
+# 20160327	j.m.reneau	added binaryop include
+# 20160510      j.m.reneau      moved input and key to external include
+# 20160805	j.m.reneau		move requirement to 1.99.99.53
+# 21060807	j.m.reneau		split out arrays and rewrite - updated to 1.99.99.55
+# 20160908	j.m.reneau		change sprite for new slice logic
+#							added serialize and unserialize test to arrays
+# 20161117  j.m.reneau      adjusted function calling for ref defined at call
+# 20170506  j.m.reneau      added image... test
+# 20170513  j.m.reneau      changed allow/system test to not 0
+# 20200403  j.m.reneau      added slice suite
+# 20200421  j.m.reneau      added print suite
+# 20200421  j.m.reneau      added arraybase suite
+# 20200423  j.m.reneau      added map suite
+
+include "testsuite_common_include.kbs"
+
+###################################################
+call section("Runtime Version")
+###################################################
+call versiontest(2000011)
+function versiontestgood(needed)
+   return version >= needed
+end function
+subroutine versiontest(needed)
+   if not versiontestgood(needed) then
+      print "this program requires version " + (needed\1000000) + "." + (needed\10000%100) + "." + (needed\100%100) + "." + (needed%100) + " or better"
+      end
+   end if
+end subroutine
+
+###################################################
+call section("Runtime Preferences")
+###################################################
+print "It is required for this suite to run that a few preferences be set in advance"
+print "On the 'User' tab"
+print "  'Runtime Handling of bad type conversion' must set to Warn"
+print "  'Runtime Handling of variable not assigned' must set to Warn"
+print "  'Always show decimal point on floting point numbers' must be checked"
+print "On the 'Printing' tab"
+print "  'Printer' must set to PDF File Output"
+print "  'PDF FileName' must be set to a name of a temporary file with the pdf extension"
+print "On the 'Advanced' tab"
+print "  'Allow SYSTEM statement' must be ask or allow"
+print
+call same("Float Tail", getSetting("SYSTEM","Runtime/FloatTail"),"true")
+call same("Type Conversion Setting", getSetting("SYSTEM","Runtime/TypeConv"),"1")
+call same("Variable Not Assigned", getSetting("SYSTEM","Runtime/VNA"),"1")
+# make sure printer setting are correct
+call different("Allow SYSTEM Statement", getSetting("SYSTEM","Allow/System"),0)
+call same("Printer - PDF setting", getsetting("SYSTEM","Printer/Printer"), "-1")
+call different("Printer - PDF setting", getsetting("SYSTEM","Printer/PDFFile"), "")
+
+##goto section_unattended
+
+###################################################
+###################################################
+###################################################
+## Iteractive tests follow
+###################################################
+###################################################
+###################################################
+
+editvisible 1
+graphvisible 1
+outputvisible 1
+
+###################################################
+call section("TestSuite Completeness Check")
+###################################################
+include "testsuite_complete_include.kbs"
+
+###################################################
+call section("TestSuite Arrays")
+###################################################
+include "testsuite_array_include.kbs"
+
+section_input:
+###################################################
+call section("Input, Key, and Prompt")
+###################################################
+include "testsuite_inputkey_include.kbs"
+
+section_graphics:
+###################################################
+call section("Basic Graphics")
+###################################################
+include "testsuite_graphics_include.kbs"
+
+section_slice:
+###################################################
+call section("screen slicing")
+###################################################
+include "testsuite_slice_include.kbs"
+
+section_image:
+###################################################
+call section("Image... Statements")
+###################################################
+include "testsuite_image_include.kbs"
+
+section_sound:
+###################################################
+call section("TTS and Sound")
+###################################################
+if yn("Do TTS and Sound Testing?") then
+   include "testsuite_sound_include.kbs"
+endif
+
+section_wav:
+###################################################
+call section("WAVPLAY...")
+###################################################
+if yn("Do WAVPLAY Testing?") then
+   include "testsuite_wav_include.kbs"
+endif
+
+###################################################
+call section("IMGSave, IMGLoad, Kill and Exists")
+###################################################
+include "testsuite_imagesave_include.kbs"
+
+###################################################
+call section("Poly and Stamp")
+###################################################
+include "testsuite_polystamp_include.kbs"
+
+section_mouse:
+###################################################
+call section("Mouse Functionality")
+###################################################
+include "testsuite_mouse_include.kbs"
+
+section_time:
+###################################################
+call section("Date, Time, Pause, and Durations")
+###################################################
+include "testsuite_time_include.kbs"
+
+section_printer:
+###################################################
+call section("Printing - To PDF")
+###################################################
+include "testsuite_printer_include.kbs"
+
+section_network:
+###################################################
+call section("Networking")
+###################################################
+if yn("Do Networking Testing?") then
+   include "testsuite_network_include.kbs"
+endif
+
+section_serial:
+###################################################
+call section("Serial Port")
+###################################################
+if yn("Do Serial Port Test?") then
+   include "testsuite_serialio_include.kbs"
+endif
+
+section_print:
+###################################################
+call section("Console Printing")
+###################################################
+include "testsuite_print_include.kbs"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+section_unattended:
+###################################################
+###################################################
+###################################################
+## Unattended tests follow
+###################################################
+###################################################
+###################################################
+
+section_string:
+###################################################
+call section("String Assignment/Operations/Functions")
+###################################################
+include "testsuite_string_include.kbs"
+
+section_radix:
+###################################################
+call section("RADIX Conversion")
+###################################################
+include "testsuite_radix_include.kbs"
+
+###################################################
+call section("Functions and Subroutines")
+###################################################
+include "testsuite_function_include.kbs"
+
+section_error:
+###################################################
+call section("Error Trapping - OnError and Try/Catch")
+###################################################
+include "testsuite_error_include.kbs"
+
+section_math:
+###################################################
+call section("Integer/Float/Math")
+###################################################
+include "testsuite_math_include.kbs"
+
+section_fileio:
+###################################################
+call section("File I/O")
+###################################################
+include "testsuite_fileio_include.kbs"
+
+section_database:
+###################################################
+call section("Database")
+###################################################
+include "testsuite_database_include.kbs"
+
+section_if:
+###################################################
+call section("If")
+###################################################
+include "testsuite_if_include.kbs"
+
+section_remark:
+###################################################
+call section("remark")
+###################################################
+include "testsuite_remark_include.kbs"
+
+###################################################
+call section("Test Random and fastgraphics")
+###################################################
+include "testsuite_random_include.kbs"
+
+section_loop:
+###################################################
+call section("Loops with Exit and Continue")
+###################################################
+include "testsuite_loop_include.kbs"
+
+###################################################
+call section("TestSuite FOR/NEXT")
+###################################################
+include "testsuite_fornext_include.kbs"
+
+section_sprites:
+###################################################
+call section("Sprites")
+###################################################
+include "testsuite_sprite_include.kbs"
+
+section_dir:
+###################################################
+call section("Directory and File-System Checks")
+###################################################
+include "testsuite_dir_include.kbs"
+
+section_binaryop:
+###################################################
+call section("Binary Operations and Type Conversions")
+###################################################
+include "testsuite_binaryop_include.kbs"
+
+section_types:
+###################################################
+call section("Variable and Stack Types Tests")
+###################################################
+include "testsuite_types_include.kbs"
+
+array_base:
+###################################################
+call section("Array index base (arraybase 0/1)")
+###################################################
+include "testsuite_arraybase_include.kbs"
+
+map_base:
+###################################################
+call section("Map")
+###################################################
+include "testsuite_map_include.kbs"
+
+
+
+###################################################
+###################################################
+###################################################
+print "PASSED ALL TESTS."
+alert "All tests passed"
+###################################################
+###################################################
+###################################################
+end
+
+
+

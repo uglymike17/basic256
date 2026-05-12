@@ -1,0 +1,12 @@
+# function test - calculate random integers
+# 2012-10-04 j.m.reneau
+
+for t = 1 to 100
+   print rnd(6)+" ";
+next t
+end
+
+# generate random integers from 1 to i inclusive
+function rnd(i)
+   rnd = int(rand*i)+1
+end function

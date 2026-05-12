@@ -1,0 +1,36 @@
+Source: basic256
+Section: devel
+Priority: optional
+Maintainer: James M. Reneau (renejm) <jim@renejm.com>
+Build-Depends: debhelper (>= 7.0.50~),
+ bison,
+ flex,
+ libespeak-dev,
+ qt5-default,
+ qtbase5-dev,
+ qt5-qmake,
+ qtmultimedia5-dev,
+ libqt5webkit5-dev,
+ libqt5sql5-sqlite,
+ libqt5multimedia5-plugins,
+ libsdl1.2-dev,
+ libsdl-mixer1.2-dev
+Standards-Version: 3.9.1
+Homepage: http://www.basic256.org/
+Vcs-Browser: http://git.debian.org/?p=collab-maint/basic256.git
+Vcs-Git: git://git.debian.org/collab-maint/basic256.git
+
+Package: basic256
+Architecture: any
+Depends: ${shlibs:Depends},
+ ${misc:Depends},
+ libqt5sql5-sqlite,
+ libqt5multimedia5-plugins
+Description: Educational BASIC programming environment for children
+ BASIC-256 is an easy to use version of BASIC designed to teach young
+ children the basics of computer programming. It uses traditional 
+ control structures like gosub, for/next, and goto, which helps kids
+ easily see how program flow-control works. It has a built-in graphics
+ mode which lets them draw pictures on screen in minutes, and a set 
+ of detailed, easy-to-follow tutorials that introduce programming 
+ concepts through fun exercises.

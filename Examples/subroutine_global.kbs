@@ -1,0 +1,32 @@
+# subroutine_global - test local and global variables
+# 2012-10-06 j.m.reneau
+
+# we should see the global variables change in the "changeroo" but not the others
+
+global a,b$
+a = 0
+b$ = "a's original value is zero"
+c = 1
+d$ = "c's original value is one"
+
+call display(a,b$)
+call display(c,d$)
+call changeroo()
+call display(a,b$)
+call display(c,d$)
+
+end
+
+subroutine display(c,d$)
+   # c and d$ are not global - so local to the subroutine
+   print c + " " + d$
+end subroutine
+
+subroutine changeroo()
+   # change a,b$,c,d$
+   # only the global variables should be changed
+   a = 2
+   b$ = "a's new value is two"
+   c = 3
+   d$ = "c's new value is three"
+end subroutine

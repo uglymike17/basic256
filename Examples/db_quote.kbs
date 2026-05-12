@@ -1,0 +1,8 @@
+dbfile$ = "db_quote.sqlite3"
+e = exist(dbfile$)
+dbopen dbfile$
+if not e then
+  # create table and a few entries if file does not exist
+  dbexecute "create table quote (id integer primary key, saying text, author text);"
+
+end

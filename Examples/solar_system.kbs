@@ -1,0 +1,99 @@
+# Solar System
+#
+# 2016, Open Source
+# info@gunterheim.de
+#
+# The eight planets circling the sun
+# Mercurius: 88 Tage
+# Venus: 224 days
+# Earth: 365 days
+# Mars: 687 days
+# Jupiter: 11,86 years
+# Saturnus: 29 years
+# Uranus: 84 years
+# Neptune: 164,8 years
+#
+# Initializiations
+keyboard=0
+time=0
+tick = 1/365		# speed
+#
+# Preparing graphics output
+Graphsize 300,300
+Fastgraphics
+#
+cls
+print "Roundabout position of planets"
+print "Stop with whitespace"
+
+# Simulate until whitespace is hit
+while keyboard <>32
+	keyboard=key
+	#
+	# Deleting graphcis
+	clg black
+	#
+	# years since start of simulation
+	color white
+	time = time + tick
+	text 0,0,left(time + "0000",7) + " years"
+	#
+	# Sun
+	color yellow
+	circle 150,150,4
+	#
+	# Mercurius
+	x1=10*cos(time*2*pi/88*365)+150
+	y1=10*sin(time*2*pi/88*365)+150
+	color darkyellow
+	circle x1,y1,2
+	#
+	# Venus
+	x2=20*cos(time*2*pi/224*365)+150
+	y2=20*sin(time*2*pi/224*365)+150
+	color grey
+	circle x2,y2,2
+	#
+	# Earth
+	x3=30*cos(time*2*pi)+150
+	y3=30*sin(time*2*pi)+150
+	color blue
+	circle x3,y3,2
+	#
+	# Mars
+	x4=45*cos(time*2*pi/687*365)+150
+	y4=45*sin(time*2*pi/687*365)+150
+	color red
+	circle x4,y4,2
+	#
+	# Jupiter
+	x5=70*cos(time*2*pi/4329*365)+150
+	y5=70*sin(time*2*pi/4329*365)+150
+	color orange
+	circle x5,y5,3
+	#
+	# Saturnus
+	x6=90*cos(time*2*pi/10585*365)+150
+	y6=90*sin(time*2*pi/10585*365)+150
+	color white
+	circle x6,y6,3
+	#
+	# Uranus
+	x7=110*cos(time*2*pi/30660*365)+150
+	y7=110*sin(time*2*pi/30660*365)+150
+	color darkgreen
+	circle x7,y7,3
+	#
+	# Neptunus
+	x8=130*cos(time*2*pi/60152*365)+150
+	y8=130*sin(time*2*pi/60152*365)+150
+	color darkblue
+	circle x8,y8,3
+	#
+	# Draw everything
+	refresh
+	#
+end while
+print
+print "The simulation was stopped."
+end

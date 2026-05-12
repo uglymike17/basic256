@@ -1,0 +1,31 @@
+#database foo - create a database, populate a table, open a recordset and read data from table.
+
+# create a new database file or open it
+dbopen "dbtest.sqlite3"
+
+# delete old foo table - trap error if new database
+onerror errortrap
+dbexecute "drop table foo;"
+offerror
+
+# create and populate
+dbexecute "create table foo (id integer primary key, words text, value decimal);"
+dbexecute "insert into foo values (1,'one',3.14);"
+dbexecute "insert into foo values (2,'two',6.28);"
+dbexecute "insert into foo (words, value) values ('three',9.43);"
+
+# open a recordset and loop through the rows of data
+dbopenset "select * from foo order by words;"
+while dbrow()
+   print dbint("id") +" " + dbstring("words") + " " + dbfloat("value")
+end while
+dbcloseset
+
+# wrap everything up
+dbclose
+end
+
+subroutine errortrap()
+   # display what happened - return to next statement
+   print "Error " + lasterror + " - " + lasterrormessage + " (" + lasterrorextra + ") happened on line " + lasterrorline
+end subroutine

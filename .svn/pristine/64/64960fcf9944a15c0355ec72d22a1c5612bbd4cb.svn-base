@@ -1,0 +1,14 @@
+# chord_example.kbs
+# 2012-12-29 j.m.reneau
+#
+# example of chord statement added on 0.9.9.25
+
+clg
+color black
+rect 140,50,20,150
+color blue
+chord 0,0,300,200,radians(-60), radians(120)
+chord 100,175,60,50,radians(90),radians(180)
+
+color green
+chord 200,200,25,75,0,pi*2

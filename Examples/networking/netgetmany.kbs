@@ -1,0 +1,25 @@
+# open 5 network connections at once
+dim a$(5)
+dim t$(5)
+
+a$ = { "www.google.com", "www.yahoo.com", "www.cnn.com", "www.espn.com", "www.basic256.org"}
+
+for t = 0 to 4
+   NETCONNECT t, a$[t], 80
+   print t + " connected to " + a$[t]
+next t
+for t = 0 to 4
+   NETWRITE t, "GET HTTP/1.1" + chr(13) + chr(10) + chr(13) + chr(10)
+   print t + " request written"
+next t
+for t = 0 to 4
+   t$[t] = NETREAD(t)
+   print t + " read"
+next t
+for t = 0 to 4
+   print t + " " + left(t$[t],40)
+next t
+for t = 0 to 4
+   netclose t
+   print t + " closed"
+next t

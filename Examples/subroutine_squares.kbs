@@ -1,0 +1,19 @@
+# subroutine test - Draw random squares
+# 2012-10-04 j.m.reneau
+
+clg
+for n= 1 to 10
+   call randomsquare()
+
+next n
+end
+
+subroutine randomsquare()
+   color rgb(rnd(256),rnd(256),rnd(256))
+   hw = rnd(100)
+   rect rnd(300-hw),rnd(300-hw),hw,hw
+end subroutine
+
+function rnd(n)
+   rnd = int(rand*n)
+end function

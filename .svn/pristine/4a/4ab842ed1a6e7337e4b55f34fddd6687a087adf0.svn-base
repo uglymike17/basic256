@@ -1,0 +1,84 @@
+# testmath.kbs - used to test math, comparison, and logical computation
+# tests for accuracy and order of precidence
+# 2009-12-26 j.m.reneau
+#
+countpass = 0
+countfail = 0
+#
+print "Assignment"
+a = 1 : val = 1 : stmt$ = "a = 1" : gosub testnum
+a$ = "hi" : val$ = "hi" : stmt$ = "a$ = 'hi'" : gosub teststring
+#
+print "MDAS"
+a = 1+2 : val = 3 : stmt$ = "a = 1+2" : gosub testnum
+a = 2-1 : val = 1 : stmt$ = "a = 2-1" : gosub testnum
+a = 1*2 : val = 2 : stmt$ = "a = 1*2" : gosub testnum
+a = 10/2 : val = 5 : stmt$ = "a = 10/2" : gosub testnum
+a = 1+10/2 : val = 6 : stmt$ = "a = 1+10/2" : gosub testnum
+a = (2+10)/2 : val = 6 : stmt$ = "a = (2+10)/2" : gosub testnum
+a = 1-10*2 : val = -19 : stmt$ = "a = 1-10*2" : gosub testnum
+a = (2-10)*2 : val = -16 : stmt$ = "a = (2-10)*2" : gosub testnum
+a = 1-2+3 : val = 2 : stmt$ = "a = 1-2+3" : gosub testnum
+#
+print "Simple Compare Integer"
+a = 1=1 : val = true : stmt$ = "a = 1=1" : gosub testnum
+a = 1=2 : val = false : stmt$ = "a = 1=2" : gosub testnum
+a = 1<>2 : val = true : stmt$ = "a = 1<>2" : gosub testnum
+a = 2<>2 : val = false : stmt$ = "a = 2<>2" : gosub testnum
+a = 2<3 : val = true : stmt$ = "a = 2<3" : gosub testnum
+a = 3<2 : val = false : stmt$ = "a = 3<2" : gosub testnum
+a = 3>2 : val = true : stmt$ = "a = 3>2" : gosub testnum
+a = 2>3 : val = false : stmt$ = "a = 2>3" : gosub testnum
+a = 2<=3 : val = true : stmt$ = "a = 2<=3" : gosub testnum
+a = 2<=2 : val = true : stmt$ = "a = 2<=2" : gosub testnum
+a = 3<=2 : val = false : stmt$ = "a = 3<=2" : gosub testnum
+a = 3>=2 : val = true : stmt$ = "a = 3>=2" : gosub testnum
+a = 3>=3 : val = true : stmt$ = "a = 3>=3" : gosub testnum
+a = 2>=3 : val = false : stmt$ = "a = 2>=3" : gosub testnum
+#
+print "Simple Compare Float"
+a = 1.1=1.1 : val = true : stmt$ = "a = 1.1=1.1" : gosub testnum
+a = 1.66=2.77 : val = false : stmt$ = "a = 1.66=2.77" : gosub testnum
+a = 1.99<>2.01 : val = true : stmt$ = "a = 1.99<>2.01" : gosub testnum
+a = 2.22<>2.22 : val = false : stmt$ = "a = 2.22<>2.22" : gosub testnum
+a = 2.9<3.1 : val = true : stmt$ = "a = 2.9<3.1" : gosub testnum
+a = 3.7<2.9 : val = false : stmt$ = "a = 3.7<2.9" : gosub testnum
+a = 3.1>2.9 : val = true : stmt$ = "a = 3.1>2.9" : gosub testnum
+a = 2.77>3.22 : val = false : stmt$ = "a = 2.77>3.22" : gosub testnum
+a = 2.89<=3.98 : val = true : stmt$ = "a = 2.89<=3.98" : gosub testnum
+a = 2.5<=2.5 : val = true : stmt$ = "a = 2.5<=2.5" : gosub testnum
+a = 3.4<=2.4 : val = false : stmt$ = "a = 3.4<=2.4" : gosub testnum
+a = 3.7>=2.7 : val = true : stmt$ = "a = 3.7>=2.7" : gosub testnum
+a = 3.88>=3.88 : val = true : stmt$ = "a = 3.88>=3.88" : gosub testnum
+a = 2.05>=3.05 : val = false : stmt$ = "a = 2.05>=3.05" : gosub testnum
+#
+print "Simple Compare String"
+a = "aa" = "aa" : val = true : stmt$ = "a$ = 'aa' = 'aa'" : gosub testnum
+a = "aa" <> "zz" : val = true : stmt$ = "a$ = 'aa' <> 'zz'" : gosub testnum
+
+print "passed = " + countpass
+print "failed = " + countfail
+end
+
+testnum:
+print stmt$ + " == " + val;
+if a = val then
+   print " pass"
+   countpass = countpass + 1
+else
+   print " fail"
+   countfail = countfail + 1
+end if
+return
+
+teststring:
+print stmt$ + " == '" + val$ + "'";
+if a$ = val$ then
+   print " pass"
+   countpass = countpass + 1
+else
+   print " fail"
+   countfail = countfail + 1
+end if
+return
+

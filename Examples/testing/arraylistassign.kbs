@@ -1,0 +1,19 @@
+# array list assign
+# allow assigning an array to redim or initially dim an array
+# 2011-01-03 j.m.reneau 0.9.6.55
+
+a = {1,2,3,4}
+print a[a[?]-1]
+a = {1,2,3,4,5,6,7,8}
+print a[a[?]-1]
+a = {1,2,3}
+print a[a[?]-1]
+a = 10
+print a
+
+b$ = {"a","b","c"}
+print b$[b$[?]-1]
+b$ = {"a","b","c","d","e","f"}
+print b$[b$[?]-1]
+b$ = {"a","b","c"}
+print b$[b$[?]-1]

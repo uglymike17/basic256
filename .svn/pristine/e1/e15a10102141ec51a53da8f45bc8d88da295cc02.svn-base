@@ -1,0 +1,14 @@
+i = 1
+j = 1
+if i = 1 then
+  print "i is one"
+  if j = 1 then
+     print "j is one"
+     print "j is really one"
+  endif
+  print "i really one"
+else
+  print "i is not one"
+  print "i is really not one"
+endif
+print i + " " + j

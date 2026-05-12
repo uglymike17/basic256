@@ -1,0 +1,6 @@
+To generate debian/basic256.xpm , run:
+     convert resources/images/basic256.ico debian/basic256.xpm
+You will need to install convert from the imagemagick package.
+
+  -- Ryan Kavanagh <ryanakca@kubuntu.org>  Fri 13 Aug 2010 10:46:30 -0500
+

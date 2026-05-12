@@ -1,0 +1,24 @@
+# testsuite_polystamp_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20200408	j.m.reneau  split from main testsuite
+
+currentsuite = "polystamp"
+
+refresh
+graphsize 300,300
+clg
+refresh
+
+penwidth 5
+color red, black
+poly {100,100,30,200,170,200}
+refresh
+call q("poly black triangle red border?")
+clg
+for t = 0 to 2 * pi step .1
+   stamp 150,150,t / (2*pi),t,{0,0,-70,100,70,100}
+   refresh
+next t
+call q("stamp growing and rotating black triangle red border?")

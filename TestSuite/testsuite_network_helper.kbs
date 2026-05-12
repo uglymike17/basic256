@@ -1,0 +1,35 @@
+# testsuite_network_helper section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20140530	j.m.reneau	original Coding
+
+####
+#### this program must be started in a second instance
+#### of BASIC256 on the same machine when prompted by
+#### the interactive networking test
+####
+
+# start by setting up a simple server waiting on port 9999
+# wait for a string and echo it back with ++ added
+# at the front and end
+# keep echoing until the word end is sent from other process
+
+print "wait for connection on " + netaddress()
+n = freenet
+print "network connection " + n
+netlisten n, 9999
+print "got connection"
+do
+   while not netdata(n)
+      pause .1
+      print ".";
+   end while
+   n$ = netread(n)
+   print n$
+   netwrite n, "++" + n$ + "++"
+until n$ = "end"
+netclose 
+
+print "you may now close this window"
+end

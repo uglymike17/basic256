@@ -1,0 +1,7 @@
+# testsuite_error for BASIC256
+
+include "testsuite_common_include.kbs"
+
+include "testsuite_error_include.kbs"
+
+print "All Done"

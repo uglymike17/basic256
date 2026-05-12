@@ -1,0 +1,37 @@
+# binary file test
+# 2012-11-01 j.m.reneau
+cls
+f$ = "binary.dat"
+
+print "new file"
+openb f$
+reset
+for t = 1 to 20
+   n = r()
+   print n+" ";
+   writebyte n
+next t
+print
+close
+
+print "open and read"
+openb f$
+while not eof
+   print readbyte()+" ";
+end while
+print
+
+print "position to 10 and read"
+seek 10
+while not eof
+   print readbyte()+" ";
+end while
+print
+
+close
+
+end
+
+function r()
+   r = int(rand*256)
+end function

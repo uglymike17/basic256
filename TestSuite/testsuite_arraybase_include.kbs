@@ -1,0 +1,69 @@
+# testsuite_arraybase_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20200421	j.m.reneau	original coding
+
+# test changing arrays from 0 based to 1 based
+
+currentsuite = "arraybase"
+
+arraybase 0
+a = {1,2,3,4}
+
+arraybase 1
+total = 0
+print a[4]
+a[4] = 44
+for t = 1 to a[?]
+	print t, a[t], "base1"
+		total = total + a[t]
+next t
+call n("change a value and loop through arraybase 1 1d",total,50)
+
+
+arraybase 0
+total = 0
+print a[3]
+for t = 0 to a[?]-1
+	print t, a[t], "base0"
+		total = total + a[t]
+next t
+call n("loop through arraybase 0 1d",total,50)
+
+
+
+array base 0
+total = 0
+dim b(5,5)
+for x = 0 to 4
+	for y = 0 to 4
+		b[x,y] = x*10 + y
+		total = total + b[x,y]
+	next y
+next x
+call n("build 2d array - arraybase 0",total,550)
+
+array base 1
+total = 0
+for x = 1 to 5
+	print x;'->';
+	for y = 1 to 5
+		print y;'=';b[x,y];' ';
+		total = total + b[x,y]
+	next y
+	print
+next x
+call n("read 2d array - arraybase 1",total,550)
+
+array base 0
+total = 0
+for x = 0 to b[?,]-1
+	print x;'->';
+	for y = 0 to b[,?]-1
+		print y;'=';b[x,y];' ';
+		total = total + b[x,y]
+	next y
+	print
+next x
+call n("read 2d array - arraybase 1",total,550)

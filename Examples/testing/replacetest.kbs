@@ -1,0 +1,14 @@
+# replacetest.jbs 2011-01-05 j.m.reneau
+# for version 0.9.6.56
+
+a$ = "We all live in a yellow submarine, yellow submarine, yellow, submarine."
+
+print a$
+print "Change yellow to blue."
+print Replace(a$,"yellow","blue")
+print "Change we to Aliens."
+print Replace(a$,"we","Aliens")
+print "Change we (case insensitive) to Beatles."
+print Replace(a$, "we", "Beatles", true)
+print "Change regex y.*, to regular."
+print Replacex(a$, "y.*,", "regular")

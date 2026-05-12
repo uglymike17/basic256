@@ -1,0 +1,40 @@
+# testsuite_function_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 2017????	j.m.reneau	split from main testsuite
+
+currentsuite = "function"
+
+function funone(a, b, c$, d$)
+   # old way of returning (prev to 0.9.9.21)
+   a *= 2
+   funone = a + b
+   c$ = funtwo$(ref(b), ref(d$))
+end function
+
+function funtwo$(r, s$)
+   r *=3
+   s$ += s$
+   return "squiggy"
+end function
+
+subroutine subone(a, b$)
+   # set globals
+   globala += a
+   globalb$ += b$
+end subroutine
+
+global globala, globalb$
+globala = 99
+globalb$ = "globalb"
+call subone(1,"foo")
+call n("globala=100 after sub",globala,100)
+call s("globalb$='globalbfoo' after sub",globalb$,"globalbfoo")
+
+a = 9
+b$ = "hi"
+c = funone(7, ref(a), "junk", ref(b$))
+call n("return from funone",c,23)
+call n("a=27 return from funone",a,27)
+call s("b$='hihi' return from funone",b$,"hihi")

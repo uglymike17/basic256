@@ -1,0 +1,7 @@
+# testsuite_if for BASIC256
+
+include "testsuite_common_include.kbs"
+
+include "testsuite_if_include.kbs"
+
+print "All Done"

@@ -1,0 +1,32 @@
+# spritetext3.kbs = use mouse to move a sprite around
+# 2010-06-13 j.m.reneau
+# 2011-11-03 j.m.reneau rewrite to showcase sprite rotation and scaling
+
+color green
+rect 0,0,300,300
+
+spritedim 2
+
+fixed = 1
+mobile = 0
+r = 0
+dr = .01 # change in rotation
+s = 1
+ds = .01 # change in scale
+
+
+spriteload fixed, "help.png"
+spriteplace fixed, 150,150
+spriteshow fixed
+
+spriteload mobile, "help.png"
+spriteplace mobile, 0,0
+spriteshow mobile
+
+while true
+r = r +.001
+s = s + ds
+if s > 3 or s < .25 then ds = ds * -1
+   spriteplace mobile, mousex, mousey,s,r
+   print spritecollide(0,1)
+end while

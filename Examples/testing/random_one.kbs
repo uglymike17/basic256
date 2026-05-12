@@ -1,0 +1,15 @@
+#ransom_one.kbs - test random for extremes (1.00) is very bad
+# 2008/09/07 jmr
+badkount = 0
+kount9 = 0
+kount0 = 0
+for t = 1 to 1000000
+   a = rand
+   if a = 1 then print t + " " + a : badkount = badkount + 1
+   if int(a*1000000) = 999999 then print t + " " + a : kount9 = kount9 + 1
+   if int(a*1000000) = 0 then print t + " " + a : kount0 = kount0 + 1
+next t
+print "badkount=" + badkount
+print "kount9=" + kount9
+print "kount0=" + kount0
+end

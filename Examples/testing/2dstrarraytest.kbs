@@ -1,0 +1,39 @@
+# test numeric 2d string array dim/redim/input/assogn
+# 20100417 j.m.reneau
+dim a$(6)
+a$ = {"A","B","C","D","E","F"}
+label$ = "array 6 1d"
+gosub displaya
+
+label$ = "array input [5]"
+print "input a$[5]?";
+input a$[5]
+gosub displaya
+
+redim a$(5,2)
+label$ = "array redim 5,2"
+gosub displaya
+
+label$ = "array switch 0,0 0,1"
+b$ = a$[0,1]
+a$[0,1]=a$[0,0]
+a$[0,0] = b$
+gosub displaya
+
+label$ = "array input [3,1]"
+print "input a$[3,1]?"
+input a$[3,1]
+gosub displaya
+
+end
+
+displaya:
+print
+print label$
+for row = 0 to a$[?,]-1
+   for col = 0 to a$[,?]-1
+      print "a$["+row+","+col+"]='"+a$[row,col] + "' ";
+   next col
+   print
+next row
+return

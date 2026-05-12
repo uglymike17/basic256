@@ -1,0 +1,65 @@
+# test program for array incriment shortcut and operate and assign statements += *= -= /= on normal variables
+# 2012-10-27 j.m.reneau
+
+a = 1
+b = 1
+
+print "a 1="+a
+a++
+print "a 2="+a
+a--
+print "a 1="+a
+
+print "b 1="+b
+b++
+print "b 2="+b
+b--
+print "b 1="+b
+
+print "a 1++="+a++
+print "a 2="+a
+print "a 2--="+a--
+print "a 1="+a
+
+print "a ++1="+ ++a
+print "a 2="+a
+print "a --2="+--a
+print "a 1="+a
+
+print "b 1++="+b++
+print "b 2="+b
+print "b 2--="+b--
+print "b 1="+b
+
+print "b ++1="+ ++b
+print "b 2="+b
+print "b --2="+--b
+print "b 1="+b
+
+
+a = 9
+print "a 9=" + a
+a+=5
+print "a 14=" + a
+a-=4
+print "a 10=" + a
+a*=3
+print "a 30=" + a
+a/=10
+print "a 3=" + a
+
+b = 9
+print "b 9=" + b
+b+=5
+print "b 14=" + b
+b-=4
+print "b 10=" + b
+b*=3
+print "b 30=" + b
+b/=10
+print "b 3=" + b
+
+c$ = "how now "
+print c$
+c$ += "brown cow"
+print c$

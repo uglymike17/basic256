@@ -1,0 +1,76 @@
+# test program for array incriment shortcut and operate and assign statements += *= -= /= on arrays
+# 2012-10-27 j.m.reneau
+
+ dim a(10)
+a[1] = 1
+dim b(10,10)
+b[5,2] = 1
+
+print "a[1] 1="+a[1]
+a[1]++
+print "a[1] 2="+a[1]
+a[1]--
+print "a[1] 1="+a[1]
+
+print "b[5,2] 1="+b[5,2]
+b[5,2]++
+print "b[5,2] 2="+b[5,2]
+b[5,2]--
+print "b[5,2] 1="+b[5,2]
+
+print "a[1] 1++="+a[1]++
+print "a[1] 2="+a[1]
+print "a[1] 2--="+a[1]--
+print "a[1] 1="+a[1]
+
+print "a[1] ++1="+ ++a[1]
+print "a[1] 2="+a[1]
+print "a[1] --2="+--a[1]
+print "a[1] 1="+a[1]
+
+print "b[5,2] 1++="+b[5,2]++
+print "b[5,2] 2="+b[5,2]
+print "b[5,2] 2--="+b[5,2]--
+print "b[5,2] 1="+b[5,2]
+
+print "b[5,2] ++1="+ ++b[5,2]
+print "b[5,2] 2="+b[5,2]
+print "b[5,2] --2="+--b[5,2]
+print "b[5,2] 1="+b[5,2]
+
+
+a[2] = 9
+print "a[2] 9=" + a[2]
+a[2]+=5
+print "a[2] 14=" + a[2]
+a[2]-=4
+print "a[2] 10=" + a[2]
+a[2]*=3
+print "a[2] 30=" + a[2]
+a[2]/=10
+print "a[2] 3=" + a[2]
+
+b[7,8] = 9
+print "b[7,8] 9=" + b[7,8]
+b[7,8]+=5
+print "b[7,8] 14=" + b[7,8]
+b[7,8]-=4
+print "b[7,8] 10=" + b[7,8]
+b[7,8]*=3
+print "b[7,8] 30=" + b[7,8]
+b[7,8]/=10
+print "b[7,8] 3=" + b[7,8]
+
+dim s$(10)
+s$[3] = "how now "
+print s$[3]
+s$[3] += "brown cow"
+print s$[3]
+
+dim r$(10,10)
+r$[3,7] = "how now "
+print r$[3,7]
+r$[3,7] += "brown cow"
+print r$[3,7]
+
+

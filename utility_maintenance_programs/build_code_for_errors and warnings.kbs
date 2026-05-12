@@ -1,0 +1,120 @@
+# this program will create copy/pasteable code to be places int he .y and .l file
+# in the lex folder for each warning/error defined in errorcodes.h
+#
+# 2020-04-17 j.m.reneau
+#
+dim e(200)	#error
+dim en(200)	#error number
+dim et(200) #error text
+le = 0
+tab = chr(9)
+
+open 1, "../Errorcodes.h"
+while not eof(1)
+	l = readline(1)
+	l = replace(l,tab,' ')
+	la = explode(l,' ')
+	if la[0] = "#define" then
+		print le, la[1], la[la[?]-1]
+		e[le] = la[1]
+		en[le] = int(la[la[?]-1])
+		txt = ""
+		open 2, "../Error.cpp"
+		while not eof(2)
+			tl = readline(2)
+			if instr(tl,"case ";la[1]) then
+				tl = readline(2)
+				tl = explode(tl,'"')
+				txt = tl[1]
+				exit while
+			endif
+		end while
+		close 2
+		et[le]= txt
+		le = le + 1
+	end if
+end while
+close 1
+
+
+# bubblesort alphabetically
+for a = 0 to le-2
+	for b = a+1 to le-1
+		if e[b]<e[a] then
+			x = e[a]
+			e[a] = e[b]
+			e[b] = x
+			x = en[a]
+			en[a] = en[b]
+			en[b] = x
+			x = et[a]
+			et[a] = et[b]
+			et[b] = x
+		end if
+	next b
+next a
+
+
+print "****************************************************************"
+print "Symbols in .l file"
+print "****************************************************************"
+for t = 0 to le-1
+	print lower(e[t]); ' ';
+	for i = 1 to length(e[t])
+		c = mid(e[t],i,1)
+		print '[';
+		if upper(c)=lower(c) then
+			print c;
+		else
+			? upper(c);lower(c);
+		endif
+		print ']';
+	next i
+	print
+next t
+
+print "****************************************************************"
+print "Symbols to terminals in .l file"
+print "****************************************************************"
+for t = 0 to le-1
+	print '{';lower(e[t]); '}';tab;tab;tab;
+	print "{ count(); return B256";e[t];"; }";
+	print
+next t
+
+
+print "****************************************************************"
+print "tokens for .y file"
+print "****************************************************************"
+for t = 0 to le-1
+	print "%token B256";e[t]
+next t
+
+print "****************************************************************"
+print "experssion code for .y file"
+print "****************************************************************"
+for t = 0 to le-1
+	? "| B256"; e[t]; " args_none {"
+	? tab; "addIntOp(OP_PUSHINT, "; e[t]; ");"
+	? "}"
+next t
+
+
+print "****************************************************************"
+print "table for wiki"
+print "****************************************************************"
+for t = 0 to le-1
+	? "|"; e[t]; "|"; en[t];"|";et[t];"|"
+next t
+
+
+print "****************************************************************"
+print "lines for ExitSyntaxHighliter.cpp"
+print "****************************************************************"
+for t = 0 to le-1
+	? tab;tab;tab;'<<"'; e[t]; '"'
+next t
+          
+
+
+

@@ -1,0 +1,25 @@
+# uaarray.kbs - code that caused access violation errors 
+# fixed 2008-08-29 jmr
+
+# example one - list assigning a non exist variable
+# both with float and string
+a = {1, 2, 3, 4}
+b$ = {"foo", "bar", "foobar"}
+
+# example 2 - list assigning a non array variable
+g = 99
+g = {1, 2, 3, 4}
+#
+h$ = "hi mom"
+h$ = {"foo", "bar", "foobar"}
+
+# sample 3 - index assignment with non exist variable
+c[88] = 9
+d$[22] = "foo"
+
+# sample 4 - index assign of a non array variable
+e = 7
+e[3] = 9
+#
+f$ = "bar"
+f$[7] = "crap"

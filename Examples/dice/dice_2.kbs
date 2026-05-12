@@ -1,0 +1,97 @@
+# dice_2.kbs - graphical dice 2009-10-31 j.m.reneau
+# doll dice and make a rolling noise while we do it.
+# changed 2012-10-06 to use new functions and subroutines in 0.9.9.x
+
+clg
+cls
+
+# draw initial screen
+color black
+rect 1,1,graphwidth,graphheight
+
+# Sound file from http://soundbible.com/183-Shake-Dice.html
+wavplay "shakedice.mp3"
+
+for t = 1 to 10
+   total = 0
+   for die = 1 to 2
+      r = roll()
+      total = total + r
+      call showroll(die,r)
+   next die
+   pause rand * .4
+next t
+print "You Rolled " + total
+pause 1	# let the sound finish
+end
+
+function roll()
+roll = int(rand * 6) + 1
+end function
+
+function getx(location)
+   if location = 2 then getx = 160: return
+   if location = 3 then getx = 40: return
+   if location = 4 then getx = 160: return
+   getx = 40
+endfunction
+
+function gety(location)
+   if location = 2 then gety = 160: return
+   if location = 3 then gety = 160: return
+   if location = 4 then gety = 40: return
+   gety = 40
+endfunction
+
+subroutine showroll(location, roll)
+   color white
+   # set x and y to the top corner of the die
+   x = getx(location)
+   y = gety(location)
+   rect x,y,100,100
+   if roll = 1 then call drawone(x,y)
+   if roll = 2 then call drawtwo(x,y)
+   if roll = 3 then call drawthree(x,y)
+   if roll = 4 then call drawfour(x,y)
+   if roll = 5 then call drawfive(x,y)
+   if roll = 6 then call drawsix(x,y)
+end subroutine
+
+subroutine drawone(x,y)
+   color red
+   rect x + 40, y + 40, 20, 20
+end subroutine
+
+subroutine drawtwo(x,y)
+   color black
+   rect x + 10, y + 10, 20, 20
+   rect x + 70, y + 70, 20, 20
+end subroutine
+
+subroutine drawthree(x,y)
+   call drawtwo(x,y)
+   call drawone(x,y)
+end subroutine
+
+subroutine drawfour(x,y)
+   call drawtwo(x,y)
+   color black
+   rect x + 10, y + 70, 20, 20
+   rect x + 70, y + 10, 20, 20
+end subroutine
+
+subroutine drawfive(x,y)
+   call drawfour(x,y)
+   call drawone(x,y)
+end subroutine
+
+subroutine drawsix(x,y)
+   call drawfour(x,y)
+   color black
+   rect x + 10, y + 40, 20, 20
+   rect x + 70, y + 40, 20, 20
+end subroutine
+
+
+
+

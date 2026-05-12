@@ -1,0 +1,16 @@
+# function test - Recursive function to calculate factorial
+# 2012-10-04 j.m.reneau
+# BASIC-256 version 0.9.6.74 or better
+
+for n = 1 to 20
+   print n + "! =" + fact(n)
+next n
+end
+
+function fact(n)
+   if n >=2 then
+      fact = fact(n-1) * n
+   else
+      fact = 1
+   end if
+end function

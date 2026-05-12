@@ -1,0 +1,68 @@
+# spriteslice.kbs - draw something on the screen and capture (slice) it
+# into a sprite
+# 2010-06-14 j.m.reneau
+
+spritedim 4
+dim dx(4)
+dim dy(4)
+
+# clear screen draw balls then slice out sprites
+clg
+# ball one - blue with square hole
+color blue
+circle 100,100,20
+color clear
+rect 90,90,20,20
+# ball 2 - green with hole
+color green
+circle 100,200,20
+color clear
+circle 100,200,10
+# ball 3 - red
+color red
+circle 200,100,20
+# fourth is a square with a triangle cut out
+color black
+rect 200,200,35,35
+color clear
+poly {217,205,205,230,230,230}
+
+# make sprites
+spriteslice 0,80,80,41,41
+spriteslice 1,180,80,41,41
+spriteslice 2,80,180,41,41
+spriteslice 3,200,200,35,35
+
+print "sprites made"
+pause 1
+
+# layout screen
+color yellow
+rect 0,0,300,300
+
+# move sprites to initial location and show
+spritemove 0,100,100
+spriteshow 0
+pause .5
+spritemove 1,200,200
+spriteshow 1
+pause .5
+spritemove 2,100,200
+spriteshow 2
+pause .5
+spritemove 3,200,100
+spriteshow 3
+pause .5
+
+for i = 0 to 3
+   dx[i] = rand * 5
+   dy[i] = rand * 5
+next i
+
+while true
+   for i = 0 to 3
+      if spritex(i) + spritew(i) / 2 >= 300 or spritex(i)  - spritew(i) / 2 <= 0 then dx[i] = dx[i] * -1
+      if spritey(i) + spriteh(i) / 2 >= 300 or spritey(i)  - spriteh(i) / 2 <= 0 then dy[i] = dy[i] * -1
+      spritemove i, dx[i], dy[i]
+   next i
+end while

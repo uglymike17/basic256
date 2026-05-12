@@ -1,0 +1,7 @@
+# testsuite_random for BASIC256
+
+include "testsuite_common_include.kbs"
+
+include "testsuite_random_include.kbs"
+
+print "All Done"

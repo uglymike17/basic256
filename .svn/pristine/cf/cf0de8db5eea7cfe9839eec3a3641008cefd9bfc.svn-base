@@ -1,0 +1,88 @@
+# testsuite_fileio_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20140103	j.m.reneau	split from main testsuite
+
+currentsuite = "fileio"
+
+# regular file io
+
+b$ = "testsuite_file.txt"
+print "new file - 0 to 255 on random length lines"
+fileno = 3
+open fileno,b$
+reset fileno
+for t = 0 to 255
+   r = rand
+   if r<.20 then
+      writeline fileno, string(t)
+   else
+      if r<.40 then
+         write fileno, string(t) + chr(9)
+      else
+         write fileno, string(t) + " "
+      end if
+   end if
+next t
+close fileno
+# read tokens from file
+open b$
+a = 0
+while not eof
+   t$ = read
+   a += int(t$)
+end while
+call n("read data sum", a, 32640)
+close
+# read lines from file and explode
+open b$
+a = 0
+while not eof
+   t$ = readline
+   c$ = explodex(t$,"\t| ")
+   for t = 0 to c$[?]-1
+      if instrx(c$[t],"^[0123456789]+") then
+         a += int(c$[t])
+      endif
+   next t
+end while
+call n("readline data sum", a, 32640)
+close
+kill b$
+# test freefile
+for t = 0 to 7
+   call n("freefile", freefile, t)
+   open freefile,"testsuite_"+t+".txt"
+next t
+for t = 0 to 7
+   close t
+   kill "testsuite_"+t+".txt"
+next t
+call n("freefile", freefile, 0)
+
+# binary file io
+
+b$ = "testsuite_binary.dat"
+print "new file"
+openb b$
+reset
+for t = 0 to 255
+   writebyte t
+next t
+close
+openb b$
+a = 0
+while not eof
+   a+= readbyte()
+end while
+call n("bindata sum", a, 32640)
+print "position to 10 and read"
+seek 10
+a=0
+while not eof
+   a+= readbyte()
+end while
+call n("bindata sum from 10", a, 32595)
+close
+kill b$

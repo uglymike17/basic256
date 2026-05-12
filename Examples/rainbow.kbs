@@ -1,0 +1,34 @@
+rem Rainbow example thanks to Joel Kahn
+
+
+clg
+fastgraphics
+m=-1.57:x1=1:y1=301
+q=0.00101:gx=0.15:gy=0.3
+
+for e=1 to 3107
+m=m+q
+x1=x1+gx*cos(m):y1=y1+gy*sin(m)
+x2=(x1+150)/2:y2=(y1+300)/2
+x3=(x1+x2)/2:y3=(y1+y2)/2
+x4=(x2+150)/2:y4=(y2+300)/2
+x5=(x1+x3)/2:y5=(y1+y3)/2
+x6=(x2+x3)/2:y6=(y2+y3)/2
+x7=(x2+x4)/2:y7=(y2+y4)/2
+x8=(x4+150)/2:y8=(y4+300)/2
+color red
+line x1,y1,x5,y5
+color orange
+line x5,y5,x3,y3
+color yellow
+line x3,y3,x6,y6
+color green
+line x6,y6,x2,y2
+color blue
+line x2,y2,x7,y7
+color darkblue
+line x7,y7,x4,y4
+color darkpurple
+line x4,y4,x8,y8
+refresh
+next e

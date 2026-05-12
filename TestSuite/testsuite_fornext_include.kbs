@@ -1,0 +1,569 @@
+# testsuite_fornext_include section for BASIC256
+
+# Modification History
+# date		programmer		description
+# 20170801	Florin Oprea	original coding
+
+
+
+stage=0
+
+# T E S T   I N T E G E R
+print "Test FOR/NEXT INTEGER"
+
+#Normal FOR/NEXT
+#STAGE:1
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1 to 10
+	test++
+next f
+if test<>10 or f<>11 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:2
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 10 to 1 step -1
+	test++
+next f
+if test<>10 or f<>0 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#Invalid FOR/NEXT
+#STAGE:3
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 10 to 1
+	test++
+next f
+if test<>0 or f<>10 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:4
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1 to 10 step -1
+	test++
+next f
+if test<>0 or f<>1 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STEP 0
+#STAGE:5
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1 to 10 step 0
+	test++
+	if test=20 then exit for
+next f
+if test<>20 or f<>1 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:6
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 10 to 1 step 0
+	test++
+	if test=20 then exit for
+next f
+if test<>20 or f<>10 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#Classic FOR/NEXT with variable modification
+#STAGE:7
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1 to 10
+	test++
+	if test=5 then f=20
+next f
+if test<>5 or f<>21 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:8
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1 to 10
+	test++
+	if test=5 then f=-20
+next f
+if test<>35 or f<>11 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:9
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 10 to 1 step -1
+	test++
+	if test=5 then f=-20
+next f
+if test<>5 or f<>-21 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:10
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 10 to 1 step -1
+	test++
+	if test=5 then f=20
+next f
+if test<>24 or f<>0 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STEP 0 with variable modification
+#STAGE:11
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1 to 10 step 0
+	test++
+	if test=5 then f=20
+next f
+if test<>5 or f<>20 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:12
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1 to 10 step 0
+	test++
+	if test=5 then f=-20
+	if test=50 then exit for
+next f
+if test<>50 or f<>-20 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:13
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 10 to 1 step 0
+	test++
+	if test=5 then f=-20
+next f
+if test<>5 or f<>-20 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:14
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 10 to 1 step 0
+	test++
+	if test=5 then f=20
+	if test=50 then exit for
+next f
+if test<>50 or f<>20 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#Start=End
+#STAGE:15
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1 to 1
+	test++
+next f
+if test<>1 or f<>2 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:16
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1 to 1 step -1
+	test++
+next f
+if test<>1 or f<>0 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#Start=End with EXIT FOR
+#STAGE:17
+stage++ : print "Test FOR/NEXT #";stage;
+for f = 1 to 1
+	exit for
+next f
+if f<>1 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:18
+stage++ : print "Test FOR/NEXT #";stage;
+for f = 1 to 1 step -1
+	exit for
+next f
+if f<>1 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#Start=End and STEP 0
+#STAGE:19
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1 to 1 step 0
+	test++
+	if test=5 then f=20
+next f
+if test<>5 or f<>20 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:20
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1 to 1 step 0
+	test++
+	if test=5 then f=-20
+next f
+if test<>5 or f<>-20 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:21
+stage++ : print "Test FOR/NEXT #";stage;
+try
+	test = 0
+	for a=1 to 10
+jump1:
+		for b=1 to 10
+			test++
+			if test=5 then goto jump1
+		next b
+	next a
+	print " - pass"
+catch
+	print " - fail": end
+end try
+
+
+
+# T E S T   F L O A T
+print "Test FOR/NEXT FLOAT"
+
+#Normal FOR/NEXT
+#STAGE:22
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1.0 to 10.0
+	test++
+next f
+if test<>10 or f<>11 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:23
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 10.0 to 1.0 step -1.0
+	test++
+next f
+if test<>10 or f<>0 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#Invalid FOR/NEXT
+#STAGE:24
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 10.0 to 1.0
+	test++
+next f
+if test<>0 or f<>10 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:25
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1.0 to 10.0 step -1.0
+	test++
+next f
+if test<>0 or f<>1 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STEP 0
+#STAGE:26
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1.0 to 10.0 step 0.0
+	test++
+	if test=20 then exit for
+next f
+if test<>20 or f<>1 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:27
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 10.0 to 1.0 step 0.0
+	test++
+	if test=20 then exit for
+next f
+if test<>20 or f<>10 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#Classic FOR/NEXT with variable modification
+#STAGE:28
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1.0 to 10.0
+	test++
+	if test=5 then f=20
+next f
+if test<>5 or f<>21 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:29
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1.0 to 10.0
+	test++
+	if test=5 then f=-20
+next f
+if test<>35 or f<>11 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:30
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 10.0 to 1.0 step -1.0
+	test++
+	if test=5 then f=-20
+next f
+if test<>5 or f<>-21 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:31
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 10.0 to 1.0 step -1.0
+	test++
+	if test=5 then f=20
+next f
+if test<>24 or f<>0 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STEP 0 with variable modification
+#STAGE:32
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1.0 to 10.0 step 0.0
+	test++
+	if test=5 then f=20
+next f
+if test<>5 or f<>20 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:33
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1.0 to 10.0 step 0.0
+	test++
+	if test=5 then f=-20
+	if test=50 then exit for
+next f
+if test<>50 or f<>-20 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:34
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 10.0 to 1.0 step 0.0
+	test++
+	if test=5 then f=-20
+next f
+if test<>5 or f<>-20 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:35
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 10.0 to 1.0 step 0.0
+	test++
+	if test=5 then f=20
+	if test=50 then exit for
+next f
+if test<>50 or f<>20 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#Start=End
+#STAGE:36
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1.0 to 1.0
+	test++
+next f
+if test<>1 or f<>2 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:37
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1.0 to 1.0 step -1.0
+	test++
+next f
+if test<>1 or f<>0 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#Start=End with EXIT FOR
+#STAGE:38
+stage++ : print "Test FOR/NEXT #";stage;
+for f = 1.0 to 1.0
+	exit for
+next f
+if f<>1 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:39
+stage++ : print "Test FOR/NEXT #";stage;
+for f = 1.0 to 1.0 step -1.0
+	exit for
+next f
+if f<>1 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#Start=End and STEP 0
+#STAGE:40
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1.0 to 1.0 step 0.0
+	test++
+	if test=5 then f=20
+next f
+if test<>5 or f<>20 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:41
+stage++ : print "Test FOR/NEXT #";stage;
+test = 0
+for f = 1.0 to 1.0 step 0.0
+	test++
+	if test=5 then f=-20
+next f
+if test<>5 or f<>-20 then
+	print " - fail": end
+else
+	print " - pass"
+end if
+
+#STAGE:42
+stage++ : print "Test FOR/NEXT #";stage;
+try
+	test = 0
+	for a=1.0 to 10.0
+jump2:
+		for b=1.0 to 10.0
+			test++
+			if test=5 then goto jump2
+		next b
+	next a
+	print " - pass"
+catch
+	print " - fail": end
+end try

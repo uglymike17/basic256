@@ -1,0 +1,86 @@
+# tictactoe - simple tic tac toe board
+# 2009-12-23 - j.m.reneau
+# requires BACIC256 0.9.4f or better
+
+# 0=empty 1=x, 2=0
+fastgraphics
+dim board(9)
+board = {0,0,0,0,0,0,0,0,0}
+
+gosub drawboard
+
+player = 1
+playerloop:
+  print "player ";
+  if player = 1 then print "X";
+  if player = 2 then print "O";
+  print " please click on cell."
+
+  clickclear
+
+playerwaitclick:
+  pause .1
+  if clickb = 0 then goto playerwaitclick
+
+  # what cell did they click on
+  i = int(clickx/100) + int(clicky/100)*3
+  # if it is not empty then wait again
+  if board[i] <> 0 then goto playerloop
+  # set cell and display
+  board[i] = player
+  gosub drawboard
+  # see if there is a winner and if not go to next player and wait
+  gosub iswinner
+  player = player + 1
+  if player > 2 then player = 1
+  if winner = 0 then goto playerloop
+  # we must have a winner
+  print "The winner was ";
+  if winner = -1 then print "cat"
+  if winner = 1 then print "X"
+  if winner = 2 then print "O"
+
+  end
+
+
+iswinner: #
+  # is there a winner = return winner - 0 if ther game continues
+  # winner = 1 for X, winner=2 for Y, winner=-1 for cat
+  for winner = 1 to 2
+    # check columns
+    for t = 0 to 2
+      if board[0+t] = winner and board[3+t] = winner and board[6+t] = winner then return
+    next t
+    # check rows
+    for t = 0 to 2
+      if board[3*t] = winner and board[3*t+1] = winner and board[3*t+2] = winner then return
+    next t
+    # check diagonals
+    if board[0] = winner and board[4] = winner and board[8] = winner then return
+    if board[2] = winner and board[4] = winner and board[6] = winner then return
+  next winner
+  # check for empty square 
+  winner = 0
+  for t = 0 to 8
+    if board[t]=0 then return
+  next t
+  # must be a cat
+  winner = -1
+  return
+
+drawboard: #
+  clg
+  color black
+  rect 0,95,300,10
+  rect 0,195,300,10
+  rect 95,0,10,300
+  rect 195,0,10,300
+  #
+  font "Tahoma",50,100
+  # draw X and O
+  for t = 0 to 8
+    if board[t]=1 then text ((t % 3)*100)+25, (int(t/3)*100)+10, "X" 
+    if board[t]=2 then text ((t % 3)*100)+25, (int(t/3)*100)+10, "O" 
+  next t
+  refresh
+  return

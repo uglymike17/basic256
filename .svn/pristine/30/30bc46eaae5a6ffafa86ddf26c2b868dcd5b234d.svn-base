@@ -1,0 +1,180 @@
+# Collision
+# 3 "balls" reflect on the walls and can collide
+# see http://www.geocities.com/vobarian
+
+print "The return key ends the program."
+
+clg
+fastgraphics
+
+# graphics window size
+gwidth  = 300
+gheight = 300
+graphsize gwidth,gheight
+
+# feel free to change the radius of the balls and their masses
+# radius
+r1 = 15
+r2 = 15
+r3 = 15
+
+# masses 
+m1 = r1*r1*r1
+m2 = r2*r2*r2
+m3 = r3*r3*r3
+
+# initial positions and velocities
+x1 = rand * (gwidth - 2*r1) + r1 : y1 = r1
+vx1 = 10*rand - 5 : vy1 = 3*rand
+x2 = rand * (gwidth - 2*r2) + r2 : y2 = gheight - r2
+vx2 = 10*rand - 5 : vy2 = -3*rand
+x3 = rand * (gwidth - 2*r3) + r3 : y3 = gheight - r3*2
+vx3 = 10*rand - 5 : vy3 = 6*rand
+
+kollision = 0    # do we have a collision (1 yes, 0 no)
+loopz:
+  c = key()
+  if c = 16777220 then goto ende
+
+  clg
+  gosub zeichne
+  refresh
+  #pause .01
+
+  gosub iskollision
+  if kollision = 0 then goto m1
+  gosub getkollision
+  gosub getnewpos
+
+  m1:
+  gosub wandball1
+  gosub wandball2
+  gosub wandball3
+
+  m2:
+  gosub getnewpos
+
+goto loopz
+
+getnewpos:
+  x1 = x1 + vx1
+  y1 = y1 + vy1
+  x2 = x2 + vx2
+  y2 = y2 + vy2
+  x3 = x3 + vx3
+  y3 = y3 + vy3
+return
+
+iskollision:
+  kollision = 0
+  if sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2)) < r1 + r2 then kollision = 1 : sound 400,2
+  if sqrt((x1 - x3) * (x1 - x3) + (y1 - y3) * (y1 - y3)) < r1 + r3 then kollision = 2 : sound 400,2
+  if sqrt ((x2 - x3) * (x2 - x3) + (y2 - y3) * (y2 - y3)) < r2 + r3 then kollision = 3 : sound 400,2
+return
+
+wandball1:
+  if ( x1 > gwidth - r1 and vx1 > 0 ) or ( x1 < r1 and vx1 < 0 ) then vx1 = -vx1
+  if ( y1 > gheight - r1 and vy1 > 0 ) or ( y1 < r1 and vy1 < 0 ) then vy1 = -vy1
+return
+
+wandball2:
+  if ( x2 > gwidth - r2 and vx2 > 0 ) or ( x2 < r2 and vx2 < 0 ) then vx2 = -vx2
+  if ( y2 > gheight - r2 and vy2 > 0 ) or ( y2 < r2 and vy2 < 0 ) then vy2 = -vy2
+return
+
+wandball3:
+  if ( x3 > gwidth - r3 and vx3 > 0 ) or ( x3 < r3 and vx3 < 0 ) then vx3 = -vx3
+  if ( y3 > gheight - r3 and vy3 > 0 ) or ( y3 < r3 and vy3 < 0 ) then vy3 = -vy3
+return
+
+getkollision:
+  #normal vector un = unx, uny
+  if kollision = 1 then
+    s = sqr((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2))
+    unx = (x2 - x1) / s
+    uny = (y2 -y1) / s
+  endif
+  if kollision = 2 then
+    s = sqr((x1-x3)*(x1-x3) + (y1-y3)*(y1-y3))
+    unx = (x3 - x1) / s
+    uny = (y3 -y1) / s
+  endif
+  if kollision = 3 then
+    s = sqr((x2-x3)*(x2-x3) + (y2-y3)*(y2-y3))
+    unx = (x3 - x2) / s
+    uny = (y3 -y2) / s
+  endif
+
+  #tangential vector ut
+  utx = -uny : uty = unx
+
+  if kollision = 1 then
+    #tangential velocities vt1, vt2 (skalar)
+    vt1 = utx*vx1 + uty*vy1
+    vt2 = utx*vx2 + uty*vy2
+    #normal velocities vn1, vn2 (skalar)
+    vn1 = unx*vx1 + uny*vy1
+    vn2 = unx*vx2 + uny*vy2
+  endif
+
+  if kollision = 2 then
+    #tangential velocities vt1, vt2 (skalar)
+    vt1 = utx*vx1 + uty*vy1
+    vt2 = utx*vx3 + uty*vy3
+    #normal velocities vn1, vn2 (skalar)
+    vn1 = unx*vx1 + uny*vy1
+    vn2 = unx*vx3 + uny*vy3
+  endif
+
+  if kollision = 3 then
+    #tangential velocities vt1, vt2 (skalar)
+    vt1 = utx*vx2 + uty*vy2
+    vt2 = utx*vx3 + uty*vy3
+    #normal velocities vn1, vn2 (skalar)
+    vn1 = unx*vx2 + uny*vy2
+    vn2 = unx*vx3 + uny*vy3
+  endif
+
+  # 1-dimensional collision formulas for the normal
+  # velocities after collision vn1n, vn2n
+  # the tangential component of the velcities does not change
+  vn1n =( (m1-m2)*vn1 + 2*m2*vn2 ) / (m1+m2)
+  vn2n =( (m2-m1)*vn2 + 2*m1*vn1 ) / (m1+m2)
+  
+  # vectors after collision:  tangential (vt1n,vt2n) and normal (vt1n,vt2n)
+  vn1nx = unx * vn1n : vn1ny = uny * vn1n
+  vn2nx = unx * vn2n : vn2ny = uny * vn2n
+  vt1nx = utx * vt1 : vt1ny = uty * vt1
+  vt2nx = utx * vt2 : vt2ny = uty * vt2
+
+  # tangential and normal vector add to resulting velocities
+  if kollision = 1 then
+    vx1 = vt1nx + vn1nx : vy1 = vt1ny + vn1ny
+    vx2 = vt2nx + vn2nx : vy2 = vt2ny + vn2ny
+  endif
+  if kollision = 2 then
+    vx1 = vt1nx + vn1nx : vy1 = vt1ny + vn1ny
+    vx3 = vt2nx + vn2nx : vy3 = vt2ny + vn2ny
+  endif
+  if kollision = 3 then
+    vx2 = vt1nx + vn1nx : vy2 = vt1ny + vn1ny
+    vx3 = vt2nx + vn2nx : vy3 = vt2ny + vn2ny
+  endif
+return
+
+zeichne:
+  color black
+  rect 0,0,gwidth,gheight
+  color clear
+  rect 1,1,gwidth-2,gheight-2
+  color red
+  circle x1,y1,r1
+  color blue
+  circle x2,y2,r2
+  color green
+  circle x3,y3,r3
+return
+
+ende:
+  print "Bye!"
+  end

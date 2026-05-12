@@ -1,0 +1,12 @@
+# imgload.kbs - show basic use of the imgload statement
+clg
+imgload 150,150,"test.bmp"
+for t = 1 to 10
+   imgload graphwidth*rand, graphheight*rand, "help.png"
+next t
+
+# scale by zero - no display
+imgload 100,100,0, "help.png"
+
+# this will error
+imgload 0,0,"crap.gif"

@@ -1,0 +1,54 @@
+# test_slice.kbs
+# 2010-05-08 j.m.reneau
+
+# test functionality of getslice and putslice
+
+color black
+rect 0,0,300,300
+
+for x = 10 to 300 step 10
+   for y = 0 to 300 step 10
+      color rgb(rand*256, rand*256, rand*256)
+      rect x,y,10,10
+   next y
+next x
+
+k$ = getslice(0,0,25,25)
+print length(k$)
+print k$
+l$ = getslice(50,50,100,75)
+print length(l$)
+w$ = getslice(0, 0, graphwidth, graphheight)
+print length(w$)
+
+print "test with no transparent color"
+input "press return", a$
+
+color green
+rect 0,0,300,300
+putslice 50,50,l$
+for t = 1 to 100
+   putslice rand*280, rand*280,k$
+next t
+pause .5
+rect 0,0,100,100
+
+print "now test with a black transparent color"
+input "press return", a$
+
+color red
+rect 0,0,300,300
+putslice 50,50,l$, black
+for t = 1 to 100
+   putslice rand*280, rand*280,k$,black
+next t
+pause .5
+rect 0,0,100,100
+
+print "now restore screen"
+input "press return", a$
+
+rect 0,0,300,300
+putslice 0, 0, w$
+
+print "end"

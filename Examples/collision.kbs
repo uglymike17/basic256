@@ -1,0 +1,138 @@
+# Collision
+# 2 "balls" reflect on the walls and can collide
+# see http://www.geocities.com/vobarian
+
+print "The return key ends the program."
+
+clg
+fastgraphics
+
+# graphics window size
+gwidth  = 300
+gheight = 300
+graphsize gwidth,gheight
+
+# feel free to change the radius of the balls and their masses
+# radius
+r1 = 15
+r2 = 15
+
+# masses 
+m1 = r1*r1*r1
+m2 = r2*r2*r2
+
+# initial positions and velocities
+x1 = rand * (gwidth - 2*r1) + r1 : y1 = r1
+vx1 = 10*rand - 5 : vy1 = 3*rand
+x2 = rand * (gwidth - 2*r2) + r2 : y2 = gheight - r2
+vx2 = 10*rand - 5 : vy2 = -3*rand
+
+#uncomment the following for direct central collision
+#gwidth  = 500
+#gheight = 200
+#graphsize gwidth,gheight
+#r1=15
+#r2 = r1
+#m2 = m1
+#x1 = 15
+#y1 = floor(gheight/2)
+#x2 = gwidth - 15
+#y2 = y1
+#vx1 = 5
+#vx2 = -vx1
+#vy1 = 0
+#vy2 = 0
+
+###################################
+kollision = 0    # do we have a collision (1 yes, 0 no)
+loopz:
+  c = key
+  if c = 16777220 then goto ende
+
+  clg
+  gosub zeichne
+  refresh
+
+  gosub iskollision
+  if kollision = 0 then goto m1
+  gosub getkollision
+  gosub getnewpos
+
+  m1:
+  gosub wandball1
+  gosub wandball2
+
+  m2:
+  gosub getnewpos
+
+goto loopz
+
+getnewpos:
+  x1 = x1 + vx1
+  y1 = y1 + vy1
+  x2 = x2 + vx2
+  y2 = y2 + vy2
+return
+
+iskollision:
+  kollision = 0
+  if sqr((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2)) < r1 + r2 then kollision = 1 : sound 400,2
+return
+
+wandball1:
+  if ( x1 > gwidth - r1 and vx1 > 0 ) or ( x1 < r1 and vx1 < 0 ) then vx1 = -vx1
+  if ( y1 > gheight - r1 and vy1 > 0 ) or ( y1 < r1 and vy1 < 0 ) then vy1 = -vy1
+return
+
+wandball2:
+  if ( x2 > gwidth - r2 and vx2 > 0 ) or ( x2 < r2 and vx2 < 0 ) then vx2 = -vx2
+  if ( y2 > gheight - r2 and vy2 > 0 ) or ( y2 < r2 and vy2 < 0 ) then vy2 = -vy2
+return
+
+getkollision:
+  #normal vector un = unx, uny
+  sq = sqr((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2))
+  unx = (x2 - x1) / sq
+  uny = (y2 -y1) / sq
+  
+  #tangential vector ut
+  utx = -uny : uty = unx
+
+  #tangential velocities vt1, vt2 (skalar)
+  vt1 = utx*vx1 + uty*vy1
+  vt2 = utx*vx2 + uty*vy2
+  #normal velocities vn1, vn2 (skalar)
+  vn1 = unx*vx1 + uny*vy1
+  vn2 = unx*vx2 + uny*vy2
+
+  # 1-dimensional collision formulas for the normal
+  # velocities after collision vn1n, vn2n
+  # the tangential component of the velcities does not change
+  vn1n =( (m1-m2)*vn1 + 2*m2*vn2 ) / (m1+m2)
+  vn2n =( (m2-m1)*vn2 + 2*m1*vn1 ) / (m1+m2)
+  
+  # vectors after collision:  tangential (vt1n,vt2n) and normal (vt1n,vt2n)
+  vn1nx = unx * vn1n : vn1ny = uny * vn1n
+  vn2nx = unx * vn2n : vn2ny = uny * vn2n
+  vt1nx = utx * vt1 : vt1ny = uty * vt1
+  vt2nx = utx * vt2 : vt2ny = uty * vt2
+
+  # tangential and normal vector add to resulting velocities
+  vx1 = vt1nx + vn1nx : vy1 = vt1ny + vn1ny
+  vx2 = vt2nx + vn2nx : vy2 = vt2ny + vn2ny
+return
+
+zeichne:
+  color black
+  rect 0,0,gwidth,gheight
+  color clear
+  rect 1,1,gwidth-2,gheight-2
+  color red
+  circle x1,y1,r1
+  color blue
+  circle x2,y2,r2
+return
+
+ende:
+  print "Bye!"
+  end

@@ -1,0 +1,12 @@
+for t = 0 to 100
+   color rand()*256, rand()* 256, rand()*256
+   rect rand()*graphwidth, rand()*graphheight,rand()*graphwidth, rand()*graphheight
+next t
+imgsave "testimgsave1.png"
+imgsave "testimgsave2.png", "png"
+imgsave "testimgsave3.jpg", "jpg"
+imgsave("testimgsave4.png")
+imgsave("testimgsave5.png", "png")
+imgsave("testimgsave6.jpg", "jpg")
+imgsave("testimgsave7.gif", "gif")
+

@@ -1,0 +1,18 @@
+# testchr.kbs - test readline, writeline, and eof
+# 2008-08-29 jmr
+
+for t = asc("a") to asc("z")
+    print chr(t);
+next t
+print
+for t = asc("A") to asc("Z")
+    print chr(asc(chr(t)));
+next t
+print
+
+print "press any key"
+loop:
+a = key
+if a = 0 then goto loop
+print "You Pressed " + chr(a) + " with value of " + string(a) + " = " + string(asc(chr(a)))
+goto loop

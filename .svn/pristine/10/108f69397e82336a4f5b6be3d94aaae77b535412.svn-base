@@ -1,0 +1,38 @@
+# testsuite_slice_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20200403	j.m.reneau	created
+
+currentsuite = "slice"
+
+
+graphsize 150,150
+clg
+color green
+rect 0,0,10,15
+color blue
+circle(5,5,5)
+refresh
+call q("little circle with green under")
+
+s = getslice(0,0,10,15)
+
+call n("slice width correct",s[?,],10)
+call n("slice height correct",s[,?],15)
+
+clg
+
+for t = 0 to 90 step 10
+putslice t,t,{{red,red,red,red,red},{red,clear,clear,clear,red},{red,clear,clear,clear,red},{red,clear,clear,clear,red},{red,red,red,red,red}}
+next t
+refresh
+call q("diagonal row of tiny red boxes")
+
+
+for t = 0 to 90 step 10
+	putslice t+25,t,s[]
+	putslice t+50,t,s
+next t
+refresh
+call q("2 diagonal rows of little circles")

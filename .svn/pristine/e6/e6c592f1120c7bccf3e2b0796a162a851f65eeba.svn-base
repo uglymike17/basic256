@@ -1,0 +1,207 @@
+# tictactoe_comp
+# with a computer player - 2009-12-25 - j.m.reneau
+# requires BACIC256 0.9.4g or better
+
+# -1=empty 0=x, 1=0
+fastgraphics
+dim board(9)
+board = {-1,-1,-1,-1,-1,-1,-1,-1,-1}
+
+gosub drawboard
+
+print "tictactoe"
+dim playertype$(2)
+for t = 0 to 1
+  do
+    print "who is player " + (t+1) + " (c-computer, h-human)";
+    input playertype$[t]
+  until playertype$[t] = "c" or playertype$[t] = "h"
+next t
+
+player = 1
+otherplayer = 0
+do
+  # swap player and otherplayer
+  t = player
+  player = otherplayer
+  otherplayer = t
+  # play the player
+  if playertype$[player] = "h" then gosub humanplayer
+  if playertype$[player] = "c" then gosub computerplayer
+  #  
+  gosub drawboard
+  # see if there is a winner and if not loop for next player
+  gosub iswinner
+until winner <> -1
+
+# we must have a winner
+print "The winner was ";
+if winner = 0 then print "X"
+if winner = 1 then print "O"
+if winner = 2 then print "cat"
+end
+
+humanplayer:
+  print "player ";
+  if player = 0 then
+    print "X";
+  else
+    print "O";
+  end if
+  print " please click on cell."
+
+  clickclear
+
+  while clickb = 0
+    pause .1
+  endwhile
+
+  # what cell did they click on
+  i = int(clickx/100) + int(clicky/100)*3
+  # if it is not empty then wait again
+  if board[i] <> -1 then goto humanplayer
+  # set cell and display
+  board[i] = player
+
+  return
+
+computerplayer:
+  # go through each square and if it is a win do it
+  # find the best offensive move I can make and save in mybest - we may do it later
+  mybest = -1
+  mybesttwofer = 0
+  twoferplayer = player
+  for i = 0 to 8
+      if board[i] = -1 then
+        board[i] = player
+        gosub iswinner
+        if winner = player then return
+        gosub counttwofer
+        if twofer > mybesttwofer then
+           mybesttwofer = twofer
+           mybest = i
+        endif
+        board[i] = -1
+      endif
+  next i
+  #
+  # go through each square and if it is a win for the other guy - block it
+  # find the best defensive move I can make and save in hisbest - we may do it later
+  hisbest = -1
+  hisbesttwofer = 0
+  twoferplayer = otherplayer
+  for i = 0 to 8
+      if board[i] = -1 then
+        board[i] = otherplayer
+        gosub iswinner
+        if winner = otherplayer then
+          board[i] = player
+          return
+        endif
+        gosub counttwofer
+        if twofer > hisbesttwofer then
+           hisbesttwofer = twofer
+           hisbest = i
+        endif
+        board[i] = -1
+      endif
+  next i
+  #
+  # if we can stop a 2 way 2fer stop it
+  if hisbesttwofer >= 2 then
+     board[hisbest] = player
+     return
+  endif
+  #
+  # if we can get a 2 way 2fer do it
+  if mybesttwofer >= 2 then
+     board[mybest] = player
+     return
+  endif
+  #
+  # if we can stop a 1 way 2fer stop it
+  if hisbesttwofer = 1 then
+     board[hisbest] = player
+     return
+  endif
+  #
+  # if we can get a 1 way 2fer do it
+  if mybesttwofer = 1 then
+     board[mybest] = player
+     return
+  endif
+  #
+  # last resort make a random move
+  # - loop until we randomly select an empty cell
+  do
+    i = int(rand * 9)
+  until board[i] = -1
+  board[i] = player
+  return
+
+iswinner: #
+  # is there a winner = return winner - -1 if ther game continues
+  # winner = 0 for X, winner=1 for Y, winner=2 for cat
+  for winner = 0 to 1
+    # check columns
+    for t = 0 to 2
+      if board[0+t] = winner and board[3+t] = winner and board[6+t] = winner then return
+    next t
+    # check rows
+    for t = 0 to 2
+      if board[3*t] = winner and board[3*t+1] = winner and board[3*t+2] = winner then return
+    next t
+    # check diagonals
+    if board[0] = winner and board[4] = winner and board[8] = winner then return
+    if board[2] = winner and board[4] = winner and board[6] = winner then return
+  next winner
+  # check for empty square 
+  winner = -1
+  for t = 0 to 8
+    if board[t]=-1 then return
+  next t
+  # must be a cat
+  winner = 2
+  return
+
+counttwofer: #
+  # count the number of 2 in a row with a blank for twoferplayer
+  # return as twofers
+  # check columns
+  twofer = 0
+  for t = 0 to 2
+    if board[0+t] = twoferplayer and board[3+t] = twoferplayer  and board[6+t] = -1 then twofer = twofer + 1
+    if board[0+t] = twoferplayer and board[3+t] = -1  and board[6+t] = twoferplayer then twofer = twofer + 1
+    if board[0+t] = -1 and board[3+t] = twoferplayer  and board[6+t] = twoferplayer then twofer = twofer + 1
+  next t
+  # check rows
+  for t = 0 to 2
+    if board[3*t] = twoferplayer and board[3*t+1] = twoferplayer and board[3*t+2] = -1 then twofer = twofer + 1
+    if board[3*t] = twoferplayer and board[3*t+1] = -1 and board[3*t+2] = twoferplayer then twofer = twofer + 1
+    if board[3*t] = -1 and board[3*t+1] = twoferplayer and board[3*t+2] = twoferplayer then twofer = twofer + 1
+  next t
+  # check diagonals
+  if board[0] = twoferplayer and board[4] = twoferplayer and board[8] = -1 then twofer = twofer + 1
+  if board[0] = twoferplayer and board[4] = -1 and board[8] = twoferplayer then twofer = twofer + 1
+  if board[0] = -1 and board[4] = twoferplayer and board[8] = twoferplayer then twofer = twofer + 1
+  if board[2] = twoferplayer and board[4] = twoferplayer and board[6] = -1 then twofer = twofer + 1
+  if board[2] = twoferplayer and board[4] = -1 and board[6] = twoferplayer then twofer = twofer + 1
+  if board[2] = -1 and board[4] = twoferplayer and board[6] = twoferplayer then twofer = twofer + 1
+  return
+
+drawboard: #
+  clg
+  color black
+  rect 0,95,300,10
+  rect 0,195,300,10
+  rect 95,0,10,300
+  rect 195,0,10,300
+  #
+  font "Tahoma",50,100
+  # draw X and O
+  for t = 0 to 8
+    if board[t]=0 then color red : text ((t % 3)*100)+25, (int(t/3)*100)+10, "X" 
+    if board[t]=1 then color blue : text ((t % 3)*100)+25, (int(t/3)*100)+10, "O" 
+  next t
+  refresh
+  return

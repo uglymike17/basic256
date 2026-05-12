@@ -1,0 +1,43 @@
+rem Mandelbrot example thanks to Joel Kahn
+
+fastgraphics
+
+editvisible false
+outputvisible false
+
+graphsize 800,800
+refresh
+kt=50:m=4.0
+xmin=2.1:xmax=-0.6:ymin=-1.5:ymax=1.5
+dx=(xmax-xmin)/graphwidth:dy=(ymax-ymin)/graphheight
+
+for x=0 to graphwidth
+jx=xmin+x*dx
+for y=0 to graphheight
+jy=ymin+y*dy
+k=0:wx=0.0:wy=0.0
+
+MainCalculation:
+tx=wx*wx-(wy*wy+jx)
+ty=2.0*wx*wy+jy
+wx=tx
+wy=ty
+r=wx*wx+wy*wy
+k=k+1
+if r<=m and k<kt then goto MainCalculation
+
+color darkblue
+if k > 5 then color darkblue
+if k > 10 then color blue
+if k > 15 then color darkgreen
+if k > 20 then color green
+if k > 25 then color darkred
+if k > 30 then color red
+if k > 35 then color darkpurple
+if k > 40 then color purple
+if k > 45 then color black
+plot x,y
+next y
+refresh
+next x
+

@@ -1,0 +1,26 @@
+# netgethomepage.kbs - connect to a web site and download
+# the home page into a variable
+
+site$ = "www.yahoo.com"
+port = 80
+NETCONNECT site$, port
+print "connected to " + site$ + ":" + port
+
+get$ = "GET http://" + site$ + "/ HTTP/1.0" + chr(13) + chr(10)
+get$ = get$ + chr(13) + chr(10)
+NETWRITE get$
+print "request written"
+
+s$ = ""
+do
+   chunk$ = netread
+   print "chunk  '" + left(chunk$,10) + "..." + right(chunk$,10) + "'" + length(chunk$)
+   s$ = s$ + chunk$
+   # wait for more data / may need to adjust for a slower connection
+   pause .2
+until not netdata
+NETCLOSE
+
+print "response"
+print s$
+print length(s$)

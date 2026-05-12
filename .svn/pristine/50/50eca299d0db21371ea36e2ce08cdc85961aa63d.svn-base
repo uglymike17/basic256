@@ -1,0 +1,118 @@
+# testsuite_image_include for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20170506	j.m.reneau	original coding
+
+# test the new image*** statements
+
+## setGraph() - set drawing to the main graphics window
+## setGraph(id) - set drawing to iamge id (in memory)
+##          to draw on a image you must new/copy/load it and then
+##          setGraph to it.
+
+
+## imagenew(w,h) returns string image id
+
+## imagecopy() - copy graphwin and return imageid
+## imagecopy(id) - copy image id and return new image id
+## imagecopy(x,y,w,h) - copy part of the graphwin and return new image id
+## imagecopy(id,x,y,w,h) - copy part of image id and return new image id
+
+## imagerotate(id,radians) - rotate image
+
+## imagecrop
+
+## imageautocrop
+
+## imageresize(i,w,h) - resize to w,h
+## imageresize(i,s) - scale
+
+## imageflip(i,w,h) - flip an image along axis
+##           h,w are boolean to flip along that axis
+
+## imagesetpixel
+
+## imagepixel(i,x,y) - return pixel value of image at x,y
+
+## imagewidth(i) - return width
+
+## imageheight(i) - return height
+
+## imageload(filename) - return string image id
+
+## imagesave
+
+currentsuite = "image"
+
+
+
+## reset graphics
+refresh
+graphsize 300,300
+clg
+refresh
+
+## draw a circle on the screen
+clg
+color blue
+circle 50,50,50
+## get the top quarter of the circle
+i1 = imagecopy(0,0,50,50)
+print i1
+call q("Blue circle in the top left corner")
+
+## put little red square on quarter circle
+setGraph(i1)
+color red
+rect 0,0,10,10
+
+## draw back on the screen
+setgraph()
+color green
+rect 0,100,100,100
+call q("green square under blue circle")
+
+## place the quarters on the screen to make a circle
+imagedraw(i1,0,100)
+imagerotate(i1,pi/2)
+imagedraw(i1,50,100)
+imagerotate(i1,pi/2)
+imagedraw(i1,50,150)
+imagerotate(i1,pi/2)
+imagedraw(i1,0,150)
+call q("blue circle with red dots on the green square")
+
+## resize image - draw egg shape
+imageresize(i1,1.5) ## 150%
+imagerotate(i1,pi/2)
+imagedraw(i1,100,0)
+imagerotate(i1,-pi/2)
+imagedraw(i1,100,75)
+imageresize(i1,100/150) ## original Size
+imageresize(i1,100,75) ## egg stretch
+imageflip(i1,true,false)
+imagedraw(i1,175,75)
+imageflip(i1,false,true)
+imagedraw(i1,175,0)
+call q("larger blue egg with red dots")
+
+## load the questionmarks
+icon = imageload("testsuite_sprite.png")
+imagedraw(icon,100,200)
+imageflip(icon,true,true)
+w = imagewidth(icon)
+imageresize(icon,2.00)
+imagedraw(icon,100+w,200)
+call q("star and larger upside down star")
+
+## save, clear, and reload the image 
+i = imagecopy(0,0,graphwidth, graphheight)
+clg
+imageflip(i,true,false)
+imagedraw(i,0,0)
+imagedraw(i,5,5)
+imagedraw(i,10,10)
+call q("whole screen flipped and layered")
+
+

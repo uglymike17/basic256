@@ -1,0 +1,67 @@
+# posted to sourceforge tracker by anonymous
+# on 2010-01-30
+dim credit$(6)
+credit$[0] = "###"
+credit$[1] = "# rotating 3d cube"
+credit$[2] = "# based on and adapted from: "
+credit$[3] = "# http://maettig.com/code/javascript/3d_dots.html"
+credit$[4] = "*************************************************"
+credit$[5] = "Move your mouse to rotate the cube"
+
+for i=0 to 5
+print credit$[i]
+next i
+
+clg
+dimension = 1
+a = 0
+b = 0
+i = 27
+
+while 1=1
+a = mousex / 99
+b = mousey / 99
+gosub update
+end while
+
+
+update:
+fastgraphics
+clg
+for x=-dimension to dimension step dimension
+
+for y=-dimension to dimension step dimension
+
+for z=-dimension to dimension step dimension
+u = x
+v = y
+w = z
+u2 = u * cos(a) - v * sin(a)
+v2 = u * sin(a) + v * cos(a)
+w2 = w
+u = u2
+v = v2
+w = w2
+u2 = u
+v2 = v * cos(b) - w * sin(b)
+w2 = v * sin(b) + w * cos(b)
+u = u2
+v = v2
+w = w2
+c = floor((w + 2) * 70)
+if (c < 0) then c = 0
+if (c > 255) then c = 255
+
+sx = 100+ u * (w + 2) * 35
+sy = 100+ v * (w + 2) * 35
+
+font "arial",(w + 2) * 16 ,15
+text sx,sy,"+"
+
+next z
+
+next y
+
+next x
+refresh
+return

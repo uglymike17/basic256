@@ -1,0 +1,40 @@
+# testsuite_network_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20140530	j.m.reneau	original Coding
+# 20151206	j.m.reneau	moved question to do to main testsuite
+
+currentsuite = "network"
+
+call sne("my ip address",netaddress,"")
+
+call q("Open another instance of basic256, load and run the program TestSuite/testsuite_network_helper.kbs then click yes.")
+
+# connect to helper program's server
+netconnect "127.0.0.1", 9999
+
+# write a string - it will be echoed back with ++ added
+# do this ten times
+a$ = "abcdefghijklmnopqrstuvwxyz"
+for t = 1 to 10
+   netwrite a$
+   b$ = netread
+   call s("Network connect and echo " + t, "++"+a$+"++", b$)
+   pause .1
+next t
+#
+# tell the server to stop
+netwrite "end"
+b$ = netread
+#
+# close connection
+netclose
+#
+# see if it really is closed
+pause .1
+try
+   netconnect "127.0.0.1", 9999
+catch
+   call n("network unable to connect error", lasterror, 38)
+end try

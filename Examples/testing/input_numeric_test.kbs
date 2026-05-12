@@ -1,0 +1,34 @@
+# test numeric input
+# 2009-11-01 j.m.reneau
+print "input with prompt to numeric variable"
+loop:
+input "input a number (>100 stops) ", a
+print "You entered " + a
+if a < 100 then goto loop
+#
+print "input with prompt to numeric array"
+dim b(10)
+loop2:
+input "input an index 1--10 ", i
+if i < 1 or i > 10 then goto loop2
+input "input a number (>100 stops) ", b[i]
+print "You entered " + b[i]
+if b[i] < 100 then goto loop2
+#
+print "input without prompt to numeric variable"
+loop3:
+print "input a number (>100 stops) "
+input a
+print "You entered " + a
+if a < 100 then goto loop3
+#
+print "input without prompt to numeric variable"
+loop4:
+input "input an index 1--10 ", i
+if i < 1 or i > 10 then goto loop4
+print "input a number (>100 stops) "
+input  b[i]
+print "You entered " + b[i]
+if b[i] < 100 then goto loop4
+#
+print "done"

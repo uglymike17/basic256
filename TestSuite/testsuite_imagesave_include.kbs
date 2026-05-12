@@ -1,0 +1,35 @@
+# testsuite_slice_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20200408	j.m.reneau  split from main testsuite
+
+currentsuite = "imgsave"
+
+
+refresh
+graphsize 300,300
+clg
+refresh
+
+penwidth 1
+for t = 1 to 20
+   color rgb(rand*256,rand*256,rand*256,rand*256)
+   line rand*graphwidth, rand*graphheight, 10*rand, 10*rand
+next t
+refresh
+imgsave "testimgsave.png"
+pause .5
+clg
+refresh
+pause .5
+imgload graphwidth/2,graphheight /2,"testimgsave.png"
+call q("imgload - did the image wink out?")
+clg
+for t = 0 to 2* pi step .1
+   imgload graphwidth/2,graphheight /2,t/2,t,"testimgsave.png"
+   refresh
+next t
+call q("imgload - did the image spin out?")
+kill "testimgsave.png"
+call same("delete temp imgsave image",exists("testimgsave.png"),false)

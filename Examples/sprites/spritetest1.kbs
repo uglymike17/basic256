@@ -1,0 +1,24 @@
+# spritetest1.kbs - move three sprites
+# 2020-06-13 j.m.reneau
+
+rect 0,0,300,300
+fastgraphics
+
+spritedim 3
+
+spriteload 0, "help.png"
+spriteplace 0,100,100
+spriteshow 0
+spriteload 1, "help.png"
+spriteplace 1,100,100
+spriteshow 1
+spriteload 2, "help.png"
+spriteplace 2,100,100
+spriteshow 2
+
+for t = 1 to 100
+   spritemove 0, 1, 0
+   spritemove 1, 0, 1
+   spritemove 2, 1, 1
+   refresh
+next t

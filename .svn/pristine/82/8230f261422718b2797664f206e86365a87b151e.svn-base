@@ -1,0 +1,12 @@
+# testsuite_graphics_loop for BASIC256
+
+include "testsuite_common_include.kbs"
+
+unattended = true
+for t = 1 to 1000
+   cls
+   include "testsuite_graphics_include.kbs"
+   pause .1
+next t
+
+print "All Done"

@@ -1,0 +1,22 @@
+The basic256 project uses the QTranslator system for internationalization.
+
+The XML files .ts are created by the lupdate utility in QT.  In trunk run
+
+lupdate BASIC256.pro
+
+This will create and update the XML files that will contain all of the strings
+in the program files.  New ones will be added, old ones will be marked as obsolete
+and existing ones will still have their translations.
+
+use the QT program
+
+lingust
+
+to maintain the xml files and to create the files with the .qm extensions.  The *.qm
+files are compiled translation files that need to be installed in the Translations folder
+of the executable.
+
+To run BASIC256 with a translation file use the -l command line option followed by
+the language code (de, sp, RU_ru...)
+
+j.m.reneau 2010/01/08

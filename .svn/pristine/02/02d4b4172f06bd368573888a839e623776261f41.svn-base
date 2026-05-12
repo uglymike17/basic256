@@ -1,0 +1,114 @@
+# testsuite_functions for BASIC256
+
+# these are the functions used by testquite.kbs to do much of the testing
+
+# Modification History
+# date		programmer	description
+# 2013-09-18	j.m.reneau	split to seperate include
+# 2014-04-16	j.m.reneau	added npercent test
+# 2014-05-29	j.m.reneau	added unattended global - set to true for no stopping
+
+###################################################
+## TEST SYSTEM FUNCTIONS
+###################################################
+
+global unattended
+global currentsuite
+
+unattended = false
+currentsuite = ''
+
+subroutine section(sec)
+	print "###########"
+	print sec
+	print "###########"
+end subroutine
+
+subroutine boolean(message, tf)
+	print '(';currentsuite;') ';message + " " + tf + " ";
+	if tf then
+		print "pass"
+	else
+		print "fail"
+		end
+	end if
+end subroutine
+
+
+subroutine q(message$)
+	# ask user to press y if test worked or n if it failed
+	if yn('(';currentsuite;') ';message$) then
+		print "pass"
+	else
+		print "fail"
+		end
+	end if
+end subroutine
+
+function yn(message$)
+	# ask user to press y to continue or n to fail
+	# return true for yes / false for no
+	print '(';currentsuite;') ';"question " + message$ + " ";
+	if not unattended then
+		return confirm(message$, true)
+	else
+		return true
+	endif
+end function
+
+subroutine same(message$,a,b)
+	# test that a and b are the same numerically or string (EXACTLY)
+	print '(';currentsuite;') ';"testing " + message$ + " (" + a + " = " + b + ") ";
+	if a = b then
+		print "pass"
+	else
+		print "fail"
+		end
+	end if
+end subroutine
+
+subroutine n(message$,a,b)
+	call same(message$,a,b)
+end subroutine
+
+subroutine s(message$,a,b)
+	call same(message$,a,b)
+end subroutine
+
+subroutine different(message$,a,b)
+	# test that a and b$ are not the same string
+	print '(';currentsuite;') ';"testing " + message$ + " ('" + a + "' <> '" + b + "') ";
+	if a <> b then
+		print "pass"
+	else
+		print "fail"
+		end
+	end if
+end subroutine
+
+subroutine sne(message$,a,b)
+	call different(message$,a,b)
+end subroutine
+
+subroutine npercent(message$,a,b,p)
+	# test that b-b*p <= a <= b+b*p (percent variance)
+	print '(';currentsuite;') ';"testing " + message$ + " (" + a + " = " + b + " within " + p*100 + "%) ";
+	if b-b*p <= a AND a <= b+b*p then
+		print "pass"
+	else
+		print "fail"
+		end
+	end if
+end subroutine
+
+subroutine nclose(message$,a,b)
+	# test that a and b are the same numerically ALMOST
+	print '(';currentsuite;') ';"testing " + message$ + " (" + a + " ~ " + b + ") ";
+	if abs(a - b) < .0001 then
+		print "pass"
+	else
+		print "fail"
+		end
+	end if
+end subroutine
+

@@ -1,0 +1,47 @@
+# pie_chart.kbs
+# 2012-12-29 j.m.reneau - example of pie statement added on 0.9.9.25
+# 2016-09-08 j.m.reneau - added bounding circle example 1.99.99.65
+#
+# 
+
+dim data(5)
+data = {1,3,5,7,10}
+dim colors(5)
+colors = {red,blue,green,yellow,cyan}
+total = 0
+for n = 0 to data[?]-1
+   total += data[n]
+next n
+
+print "with rectange bounding area"
+clg
+font "Arial", 20,100
+startangle = 0
+for n = 0 to data[?]-1
+   # calculate the with of the pie slice in radians
+   slicesize = 2*pi*data[n]/total
+   color colors[n]
+   pie 50,50,200,200,startangle,slicesize
+   # draw the value's number  outside the pie
+   text 140+sin(startangle+slicesize*.5)*120, 140-cos(startangle+slicesize*.5)*120, data[n]
+   startangle += slicesize
+next n
+
+input "press enter", crap
+
+print "with circle bounding area"
+clg
+font "Arial", 20,100
+startangle = 0
+for n = 0 to data[?]-1
+   # calculate the with of the pie slice in radians
+   slicesize = 2*pi*data[n]/total
+   color colors[n]
+   pie 150,150,100,startangle,slicesize
+   # draw the value's number  outside the pie
+   text 140+sin(startangle+slicesize*.5)*120, 140-cos(startangle+slicesize*.5)*120, data[n]
+   startangle += slicesize
+next n
+
+
+

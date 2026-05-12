@@ -1,0 +1,24 @@
+# spritetest2.kbs - jitter a collection of sprites
+# 2010-06-13 j.m.reneau
+
+fastgraphics
+
+n = 10
+
+spritedim n+1
+spriteload 0, "test.bmp"
+spriteplace 0,150,150
+spriteshow 0
+
+for t = 1 to n
+   spriteload t, "help.png"
+   spriteplace t, rand*300, rand * 300
+   spriteshow t
+next t
+
+while true
+   for t = 1 to n
+      spritemove t, 5 - rand * 10, 5 - rand * 10
+   next t
+   refresh
+end while

@@ -1,0 +1,28 @@
+rem Ring example thanks to Joel Kahn
+
+clg
+fastgraphics
+rm=0.0
+st=0.0251
+imx=3.281
+imy=3.095
+bm=0.2
+x=135.0
+y=2.0
+
+ring:
+rm=rm+st
+x=x+imx*cos(rm)
+y=y+imy*sin(rm)
+q=y*bm
+color clear
+rect x,y,q,q
+color black
+ex=x+q
+ey=y+q
+line x,y,ex,y
+line x,y,x,ey
+line ex,ey,ex,y
+line ex,ey,x,ey
+refresh
+goto ring

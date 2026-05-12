@@ -1,0 +1,20 @@
+for t = 1 to 100
+   if t = 0 then
+      print "zero"
+   else
+      print "not zero"
+   end if
+bar: ##
+   #
+   if t = 0 then
+      print "zero"
+   endif
+   
+   
+   print t
+next t
+
+
+
+foo:
+print "foo block"

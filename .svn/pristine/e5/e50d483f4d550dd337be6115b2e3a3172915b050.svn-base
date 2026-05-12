@@ -1,0 +1,35 @@
+# mousetest.kbs - 2009-12-21 j.m.reneau
+# click and doodle on the graphics output
+cls
+print "doodle on the graphic output with your mouse"
+print "left button to draw in black"
+print "right button to draw in crazy colors"
+print "right and left button to erase"
+
+
+clg
+
+color white
+rect 0,0,graphwidth, graphheight
+
+loop:
+if mouseb = 1 then gosub blackline
+if mouseb = 2 then gosub randomline
+if mouseb = 3 then gosub clearline
+goto loop
+
+blackline:
+color black
+circle mousex, mousey, 2
+return
+
+randomline:
+color rgb(rand*256, rand*256, rand*256)
+circle mousex, mousey, 2
+return
+
+clearline:
+color clear
+circle mousex, mousey, 2
+return
+

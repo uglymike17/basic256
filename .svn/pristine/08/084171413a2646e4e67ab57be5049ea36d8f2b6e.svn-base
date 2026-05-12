@@ -1,0 +1,11 @@
+# have the user enter a message and send it to the server
+input "enter message?", m$
+netconnect "127.0.0.1", 9997
+for t = 1 to 10
+   pause rand
+   netwrite t + " " + m$
+   print netread
+next t
+netwrite "end"
+print netread
+netclose

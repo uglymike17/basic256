@@ -1,0 +1,7 @@
+# testsuite_database for BASIC256
+
+include "testsuite_common_include.kbs"
+
+include "testsuite_binaryop_include.kbs"
+
+print "All Done"

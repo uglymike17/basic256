@@ -1,0 +1,34 @@
+# test string input
+# 2009-11-01 j.m.reneau
+print "test input with string and prompt"
+loop:
+input "input a string ('stop' stops) ", a$
+print "You entered " + a$
+if a$ <> "stop" then goto loop
+#
+print "test input with string and array"
+dim b$(10)
+loop2:
+input "input an index 1--10 ", i
+input "input a string ('stop' stops) ", b$[i]
+print "You entered " + b$[i]
+if b$[i] <> "stop" then goto loop2
+#
+print "test input with string and whthout prompt"
+loop3:
+print "input a string ('stop' stops) "
+input a$
+print "You entered " + a$
+if a$ <> "stop" then goto loop3
+#
+print "test input with string and array"
+loop4:
+print "input an index 1--10 "
+input i
+if i < 1 or i > 10 then goto loop4
+print "input a string ('stop' stops) "
+input b$[i]
+print "You entered " + b$[i]
+if b$[i] <> "stop" then goto loop4
+#
+print "done"

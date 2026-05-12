@@ -1,0 +1,29 @@
+# calculate the square root geometrically (according to Heron)
+# Carsten Berndt, 2007
+
+clg
+cls
+fastgraphics
+
+zuWurzeln=56224
+zuZeichnen=zuWurzeln
+zweiteZahl=1
+delta=0.000001
+
+print "sqrt("; : print zuWurzeln; : print ") =" ;
+MainLoop:
+  clg
+  rect 0, 0, zuZeichnen, zweiteZahl
+  zuZeichnen = (zuZeichnen+zweiteZahl)/2
+  zweiteZahl  = zuWurzeln/zuZeichnen
+  if zuZeichnen-zweiteZahl<delta then print zweiteZahl : goto Ende
+  refresh
+
+  pause 1
+
+  goto MainLoop
+Ende:
+	
+print "Check result:";
+print zweiteZahl; : print " * "; : print zweiteZahl; : print " = ";
+print zweiteZahl*zweiteZahl

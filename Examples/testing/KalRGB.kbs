@@ -1,0 +1,24 @@
+rem Kalidescope
+
+cls
+print "Press Q to stop."
+clg
+maxsize = 100
+
+fastgraphics
+
+while true
+   x = int(rand * graphwidth)
+   y = int(rand * graphheight)
+   z = int(rand * maxsize)	# size of box to draw on screen
+   color rgb(rand*256, rand*256, rand*256, rand*256) # random color and opacity
+   rect x, y, z, z
+   rect graphwidth - x - z, y, z, z		# draw mirror reflection on x axis
+   rect x, graphheight - y - z, z, z		# draw mirror reflection on y axis
+   rect graphwidth - x - z, graphheight - y - z, z, z	# draw mirror reflestion on both
+   refresh
+   if key = asc("Q") then end	# if user presses q then end
+end while
+
+
+

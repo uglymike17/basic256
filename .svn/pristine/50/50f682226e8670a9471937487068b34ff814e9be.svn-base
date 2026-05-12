@@ -1,0 +1,22 @@
+# testlineio.kbs - test readline, writeline, and eof
+# 2008-08-29 jmr
+
+open "foo.txt"
+reset
+for l = 1 to 8
+	writeline "Data file line " + l + "."
+next l
+
+
+l = 0
+donext:
+if eof then goto done
+l = l + 1
+a$ = readline
+print "line " + l + "=" + a$
+goto donext
+
+done:
+print "total of " + l + " lines."
+close
+end

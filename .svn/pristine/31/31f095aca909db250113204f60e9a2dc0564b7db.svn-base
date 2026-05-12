@@ -1,0 +1,33 @@
+openb 1,"readbinary_test.data"
+for t = 0 to 255
+   writebyte 1,t
+next t
+close 1
+
+
+openb 1,"readbinary_test.data"
+n = 0
+s$ = ""
+while not eof(1)
+   c = readbyte(1)
+   if n%8 = 0 then
+      print " " + s$
+      s$ = ""
+      print hex$(n\256) + hex$(n%256) + "  ";
+   end if
+   print hex$(c) + " ";
+   if c < 32 or c > 127 then
+      s$ = s$ + "."
+   else
+      s$ = s$ + chr(c)
+   end if
+   n = n + 1
+end while
+print " " + s$
+close 1
+end
+
+function hex$(n)
+   x$ = "0123456789abcdef"
+   hex$=mid(x$,n\16+1,1)+mid(x$,n%16+1,1)
+end function

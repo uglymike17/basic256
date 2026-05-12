@@ -1,0 +1,9 @@
+clg
+color black
+n = 5
+dim fonts$(n)
+fonts$ = {"Helvetica", "Times", "Courier", "System", "Symbol"}
+for t = 0 to n-1
+    font fonts$[t], 32, 50
+    text 10, t*50, fonts$[t]
+next t

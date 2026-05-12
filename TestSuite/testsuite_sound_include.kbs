@@ -1,0 +1,74 @@
+# testsuite_sound_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20140606	j.m.reneau	split from test suite
+# 20160806	j.m.reneau	added list of list tests
+# 20161031  j.m.reneau  added polysoud 2 3 and 4 voices
+# 20161101  j.m.reneau  added [] to all array passing to functions
+# 20170515  j.m.reneau  added back polyohonic sounds and added duration testing
+
+currentsuite = "sound"
+
+l = msec
+say "hello."
+l = msec - l
+call boolean("say at least 500MS and no more than 2500MS", l >= 500 and l <= 2500)
+call q("did the computer say 'hello'")
+
+l = msec
+say 3 + 7
+l = msec - l
+call boolean("say at least 500MS and no more than 2500MS", l >= 500 and l <= 2500)
+call boolean("say at least 500 MS", l >= 500)
+call q("did the computer say 'ten'")
+
+l = msec
+sound 440,500
+l = msec - l
+call npercent("note play for 500 MS", 500, l, 1)
+call q("did a half second sound play")
+
+l = msec
+sound {440,200,220,100,300,200}
+l = msec - l
+call npercent("note play for 500 MS", 500, l, 1)
+call q("did three sounds play from a list")
+
+c = {440,200,220,100,300,200}
+l = msec
+sound c[]
+l = msec - l
+call npercent("note play for 500 MS", 500, l, 1)
+call q("did same three sounds play from an array assigned a list")
+
+a = {261,2000}
+l = msec
+sound a[]
+l = msec - l
+call npercent("note play for 2000 MS", 2000, l, 1)
+call q("did c play for 2 seconds")
+
+## requires padding elements 0,0 because of loading into array
+b ={{261,2000,0,0}, {0,200,329,1600}}
+l = msec
+sound b
+l = msec - l
+call npercent("note play for 2000 MS", 2000, l, 1)
+call q("did c then e play for 2 seconds")
+
+## requires padding elements 0,0 because of loading into array
+c ={{261,2000,0,0}, {0,200,329,1600}, {0,400,391,1200}}
+l = msec
+sound c[]
+l = msec - l
+call npercent("note play for 2000 MS", 2000, l, 1)
+call q("did c then e then g play for 2 seconds")
+
+## does not require padding elements
+l = msec
+sound {{261,2000}, {0,200,329,1600}, {0,400,391,1200}, {0,600,523,800}}
+l = msec - l
+call npercent("note play for 2000 MS", 2000, l, 1)
+call q("did c then e then g then c play for 2 seconds")
+

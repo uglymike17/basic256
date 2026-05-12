@@ -1,0 +1,127 @@
+# testsuite_math_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20140204	j.m.reneau	split from testsuite
+# 20160330	j.m.reneau	modulo works only with int - per the documentation
+# 20160807	j.m.reneau	added floor
+
+currentsuite = "math"
+
+
+# Numeric Assignment
+a = 1 : call n("a=1",a,1)
+call n("a=1 during a++",a++,1)
+call n("a=2 after a++",a,2)
+call n("a = 3 after ++a",++a,3)
+a += 7 : call n("a=10 after a+=7",a,10)
+a -= 7 : call n("a=3 after a-=7",a,3)
+a *= 7 : call n("a=21 after a*=7",a,21)
+a /= 2 : call n("a=10.5 after a/=2",a,10.5)
+
+# Numeric Operations
+call n("1+2", 1+2, 3)
+call n("2+1", 2+1, 3)
+call n("1-2", 1-2, -1)
+call n("2-1", 2-1, 1)
+call n("1*2", 1*2, 2)
+call n("2*1", 2*1, 2)
+call n("10/4", 10/4, 2.5)
+call n("4/10", 4/10, 0.4)
+call n("5%3", 5%3, 2)
+call n("3%5", 3%5, 3)
+call n("10\4", 10\4, 2)
+call n("4\10", 4\10, 0)
+call n("5.5%2.5", 5.5%2.5, 1)
+call n("5.5\2.5", 5.5\2.5, 2)
+
+# Order of Numeric Operations
+call n("1+10/2", 1 + 10 / 2, 6)
+call n("(1+10)/2", (1+10) / 2, 5.5)
+call n("1-10*2", 1 - 10 * 2, -19)
+call n("(1-10)*2", (1-10) * 2, -18)
+
+# Integer Comparison
+call n("1=1", 1=1, true)
+call n("1=2", 1=2, false)
+call n("1<>1", 1<>1, false)
+call n("1<>2", 1<>2, true)
+call n("1>0", 1>0, true)
+call n("1>1", 1>1, false)
+call n("1>2", 1>2, false)
+call n("1>=0", 1>=0, true)
+call n("1>=1", 1>=1, true)
+call n("1>=2", 1>=2, false)
+call n("1<0", 1<0, false)
+call n("1<1", 1<1, false)
+call n("1<2", 1<2, true)
+call n("1<=0", 1<=0, false)
+call n("1<=1", 1<=1, true)
+call n("1<=2", 1<=2, true)
+
+# Float Comparison
+call n("1.34=1.34", 1.34=1.34, true)
+call n("1.34=3.56", 1.34=3.56, false)
+call n("1.34<>1.34", 1.34<>1.34, false)
+call n("1.34<>3.56", 1.34<>3.56, true)
+call n("1.34>0.78", 1.34>0.78, true)
+call n("1.34>1.34", 1.34>1.34, false)
+call n("1.34>3.56", 1.34>3.56, false)
+call n("1.34>=0.78", 1.34>=0.78, true)
+call n("1.34>=1.34", 1.34>=1.34, true)
+call n("1.34>=3.56", 1.34>=3.56, false)
+call n("1.34<0.78", 1.34<0.78, false)
+call n("1.34<1.34", 1.34<1.34, false)
+call n("1.34<3.56", 1.34<3.56, true)
+call n("1.34<=0.78", 1.34<=0.78, false)
+call n("1.34<=1.34", 1.34<=1.34, true)
+call n("1.34<=3.56", 1.34<=3.56, true)
+
+# built in functions
+call n("abs(-9)", abs(-9), 9)
+call n("abs(-9.8)", abs(-9.8), 9.8)
+call n("abs(5.4)", abs(5.4), 5.4)
+call nclose("acos(1)", acos(1), 0)
+call nclose("acos(0)", acos(0), pi/2)
+call nclose("asin(1)", asin(1), pi/2)
+call nclose("asin(0)", asin(0), 0)
+call nclose("atan(1)", atan(1), pi/4)
+call nclose("atab(0)", atan(0), 0)
+call n("ceil(9.1)", ceil(9.1), 10)
+call n("ceil(-5.4)", ceil(-5.4), -5)
+call n("floor(9.1)", floor(9.1), 9)
+call n("floor(-5.4)", floor(-5.4), -6)
+call nclose("cos(pi/2)", cos(pi/2), 0)
+call nclose("cos(0)", cos(0),1)
+call nclose("sin(pi/2)", sin(pi/2), 1)
+call nclose("sin(0)", sin(0), 0)
+call nclose("tan(pi/4)", tan(pi/4), 1)
+call nclose("tan(0)", tan(0), 0)
+call nclose("exp(1)", exp(1), 2.718282)
+call nclose("exp(log(10))", exp(log(10)), 10)
+call nclose("log10(100)", log10(100), 2)
+call nclose("radians(0)", radians(0), 0)
+call nclose("radians(180)", radians(180), pi)
+call nclose("degrees(0)", degrees(0), 0)
+call nclose("degrees(pi)", degrees(pi), 180)
+call nclose("sqr(2)=2^.5",sqr(2),2^.5)
+call nclose("sqrt(5)=5^.5",sqrt(5),5^.5)
+call n("int(-9)", int(-9), -9)
+call n("int(-9.8)", int(-9.9), -9)
+call n("int(5.4)", int(5.4), 5)
+call n("int(0)", int(0), 0)
+
+# Epsilon - Integer to Float Compare
+total = 0
+for t=1 to 10 step .00001
+   if t=int(t) then print t;: total+= t
+next t
+print " " + total
+call n("EPSILON - For INT", total, 55)
+#
+total = 0
+for t=10 to 1 step -.00001
+   if t=int(t) then print t;: total+= t
+next t
+print " " + total
+call n("EPSILON - For Backwards INT", total, 55)

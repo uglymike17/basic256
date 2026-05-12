@@ -1,0 +1,48 @@
+print "Generate BASIC256 icon - for Google Store"
+print "2014-04-07"
+
+graphsize 180, 120
+
+rem set up initial ball position and speed
+x = 20 * graphheight / 300
+y = 100 * graphheight / 300
+r = 5
+rw = 2
+yvel = -1.0 * graphheight / 300
+xvel = 1.10 * graphwidth / 300
+yacc = .0098 * graphwidth / 300
+
+fastgraphics
+color darkblue
+rect 0,0,graphwidth, graphheight
+
+loop1:
+rem change the downward velocity according to the acceleration
+yvel = yvel + yacc
+
+rem calculate new position
+y = y + yvel
+x = x + xvel
+
+rem check for collisions
+if y > graphheight - r - 1 then yvel = -0.9 * yvel : y = graphheight - r - 1 : xvel = xvel * 0.9
+if x > graphwidth - r - 1 then xvel = -xvel : x = graphwidth - r - 1
+if x < r then xvel = -xvel : x = r
+
+rem draw the ball
+gosub drawBall
+if xvel * xvel < 0.0001 then
+   refresh
+   imgsave "basic256_icon_googlePlay.png"
+   end
+end if
+goto loop1
+
+drawBall:
+color darkgray
+circle x, y, r
+color gray
+circle x, y, r - rw
+if rand < .01 then refresh
+return
+

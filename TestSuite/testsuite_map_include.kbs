@@ -1,0 +1,100 @@
+# testsuite_map_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20200423	j.m.reneau	split from testsuite
+
+currentsuite = "map"
+
+map q
+q['q'] = 'QQ'
+q['a'] = "AA"
+q['b'] = "BB"
+
+
+call s("set key a on map q", q['a'], "AA")
+call s("set key b on map q", q['b'], "BB")
+call s("set key q on map q", q['q'], "QQ")
+
+call n("map should have three items - length", length(q), 3)
+call n("map should have three items - ?", q[?], 3)
+
+## order should be in string sort order
+total = ""
+for each i in q
+	total = total + q[i]
+	? i,q[i],total
+next i
+call s("in alpha order", total, "AABBQQ")
+
+
+q['n'] = 99
+q['m'] = 99
+q['sum'] = q['m'] + q['n']
+call n("normal math with map elements", q['sum'], 198)
+
+call n("map should have six items - length", length(q), 6)
+
+call boolean("key x - not exist ? ", typeof(q['x'])=TYPE_UNASSIGNED)
+call boolean("key a - exist ? ", typeof(q['a'])<>TYPE_UNASSIGNED)
+call boolean("key x - not assigned ", not assigned(q['x']))
+call boolean("key a - assigned ", assigned(q['a']))
+
+
+
+unassign q['a']
+total = ""
+for each i in q
+	total = total + q[i]
+	? i,q[i],total
+next i
+call s("in alpha order after delete ", total, "BB9999QQ198")
+
+call n("after unassign - map should have 5 items - length", length(q), 5)
+call boolean("key a - not exist ? ", typeof(q['a'])=TYPE_UNASSIGNED)
+call boolean("key a - not assigned ", not assigned(q['a']))
+
+sq = serialize(q)
+? sq
+
+qq = unserialize(sq)
+call n("unserialize - length",length(q), length(qq))
+for each i in qq
+	print i, q[i], qq[i]
+	call s("unserialize key ";i;" same",q[i],qq[i])
+	call n("unserialize key ";i;" type same",typeof(q[i]),typeof(qq[i]))
+next i
+
+unassign q
+unassign qq	
+
+
+a = {'a'->'alpha','b'->"bravo",'c'->"charlie",'d'->'delta'}
+total = ''
+foreach k in a
+	total = total ; k
+	? k
+next 
+call s("brace build variable", total, "abcd")
+
+total = ''
+foreach k->v in a
+	total = total ; k; v
+	? k,v
+next 
+call s("foreach key and value", total, "aalphabbravoccharlieddelta")
+
+total = ''
+foreach k in {1->'x','x'->1,2->'y','y'->2}
+	total = total ; k
+	? k
+next 
+call s("brace build for each", total, "12xy")
+
+total = ''
+foreach k->v in  {1->'x','x'->1,2->'y','y'->2}
+	total = total ; k; v
+	? k,v
+next 
+call s("brace build foreach key and value", total, "1x2yx1y2")
+

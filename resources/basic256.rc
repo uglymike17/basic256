@@ -1,0 +1,117 @@
+﻿/** Copyright (C) 2017, Florin Oprea <florinoprea.contact@gmail.com>
+ **
+ **  This program is free software; you can redistribute it and/or modify
+ **  it under the terms of the GNU General Public License as published by
+ **  the Free Software Foundation; either version 2 of the License, or
+ **  (at your option) any later version.
+ **
+ **  This program is distributed in the hope that it will be useful,
+ **  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ **  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ **  GNU General Public License for more details.
+ **
+ **  You should have received a copy of the GNU General Public License along
+ **  with this program; if not, write to the Free Software Foundation, Inc.,
+ **  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ **/
+
+/** Defines a version-information resource. The resource contains such
+ ** information about the file as its version number, its description,
+ ** its name and its original filename.
+ ** The resource is intended to be used by WINDOWS.
+ ** This file contains also an icon, also used by WINDOWS.
+ **/
+
+IDI_ICON1               ICON    DISCARDABLE     "icons/basic256.ico"
+
+#include "../Version.h"
+#define VOS_NT_WINDOWS32    0x00040004L
+
+#define COMMONSTUFF VALUE "CompanyName", "BASIC-256\0" VALUE "InternalName", "BASIC-256\0" VALUE "OriginalFilename", "basic256.exe\0" VALUE "ProductName", "BASIC-256\0" VALUE "ProductVersion", VERSION
+
+1 VERSIONINFO
+FILEVERSION VERSIONPRODUCT
+PRODUCTVERSION VERSIONPRODUCT
+FILEOS VOS_NT_WINDOWS32
+FILETYPE 0x01L
+FILEFLAGSMASK 0x3fL
+FILESUBTYPE 0x0L
+FILEFLAGS 0x0L
+{
+  BLOCK "StringFileInfo"
+  {
+    BLOCK "040904E4"  // Lang=English (United States), CharSet=Multilingual
+    {
+        VALUE "FileDescription", "BASIC-256 is an easy to use version of BASIC designed to teach anybody how to program.\0"
+        VALUE "LegalCopyright", "Copyright \251 2006-2017, The BASIC-256 Team\0"
+        COMMONSTUFF
+    }
+
+    BLOCK "041804E4"  // Lang=Romanian, CharSet=Multilingual
+    {
+        VALUE "FileDescription", "BASIC-256 este o versiune de BASIC usor de utilizat, conceputa pentru a invata pe oricine cum sa programeze.\0"
+        VALUE "LegalCopyright", "Echipa BASIC-256 \251 2006-2017\0"
+        COMMONSTUFF
+    }
+
+    /* Add here blocks for other languages */
+  }
+
+  BLOCK "VarFileInfo"
+  {
+    VALUE "Translation", 0x0409, 0x04E4, 0x0418, 0x04E4
+  }
+}
+
+
+
+/*	With "Translation" statement you can specify multiple langId and charsetID pairs
+	which will show the user that that are multiple translations for the VI in the image.
+
+	langId – This field contains a language code in hexadecimal format.
+	All the possible values for this field are:
+
+        Code	Language		Code	Language
+	0x0401	Arabic			0x0415	Polish
+        0x0402	Bulgarian		0x0416	Portuguese (Brazil)
+	0x0403	Catalan			0x0417	Rhaeto-Romanic
+	0x0404	Traditional Chinese	0x0418	Romanian
+        0x0405	Czech			0x0419	Russian
+	0x0406	Danish			0x041A	Croato-Serbian (Latin)
+	0x0407	German			0x041B	Slovak
+        0x0408	Greek			0x041C	Albanian
+	0x0409	U.S. English		0x041D	Swedish
+	0x040A	Castilian Spanish	0x041E	Thai
+	0x040B	Finnish			0x041F	Turkish
+	0x040C	French			0x0420	Urdu
+	0x040D	Hebrew			0x0421	Bahasa
+        0x040E	Hungarian		0x0804	Simplified Chinese
+        0x040F	Icelandic		0x0807	Swiss German
+	0x0410	Italian			0x0809	U.K. English
+        0x0411	Japanese		0x080A	Spanish (Mexico)
+	0x0412	Korean			0x080C	Belgian French
+        0x0413	Dutch			0x0C0C	Canadian French
+	0x0414	Norwegian ? Bokmal	0x100C	Swiss French
+	0x0810	Swiss Italian		0x0816	Portuguese (Portugal)
+	0x0813	Belgian Dutch		0x081A	Serbo-Croatian (Cyrillic)
+	0x0814	Norwegian ? Nynorsk
+
+	charsetID - This field contains a character set code in hexadecimal format.
+	All the possible values for this field are:
+
+        Decimal         Hexadecimal     Character Set
+        0		0000		7-bit ASCII
+        932		03A4		Japan (Shift ? JIS X-0208)
+        949		03B5		Korea (Shift ? KSC 5601)
+        950		03B6		Taiwan (Big5)
+        1200		04B0		Unicode
+        1250		04E2		Latin-2 (Eastern European)
+        1251		04E3		Cyrillic
+        1252		04E4		Multilingual
+        1253		04E5		Greek
+        1254		04E6		Turkish
+        1255		04E7		Hebrew
+        1256		04E8		Arabic
+*/
+
+

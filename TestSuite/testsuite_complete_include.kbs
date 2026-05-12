@@ -1,0 +1,88 @@
+# testsuite_complete_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20140529	j.m.reneau	original coding
+
+currentsuite = "complete"
+
+# This section of the testsuite searches all of the programs
+# in the TestSuite folder using regular expressions to
+# create a list of statements and tokens that do not exist in the
+# code
+
+# this tests the test suite for completeness
+
+dim token$(1000)
+dim regex$(1000)
+dim kount(1000)
+ntoken = 0
+
+## get a list of reserved words and tokens from the
+## flex syntax file and build the regex expressions into
+## an array
+## IGNORE error_ and warning_ tokens
+if exists("../LEX/basicParse.l") then
+   open "../LEX/basicParse.l"
+   # skip to line that begins "abs "
+   l$ = readline
+   while left(l$,4) <> "abs "
+      l$ = readline
+      l$ = replace(l$,chr(10),"")
+      l$ = replace(l$,chr(13),"")
+   end while
+   # get tokens and REGEX associates for all of them
+   do
+      pos = instr(l$,' ')
+      if pos>1 then
+         if left(l$,6)<> "error_" and left(l$,8)<> "warning_" and left(l$,pos-1)<> "label" then
+            token$[ntoken] = left(l$,pos-1)
+            regex$[ntoken] = mid(l$,pos+1,99999)
+            kount[ntoken] = 0
+            ntoken++
+         endif
+      endif
+      l$ = readline
+      l$ = replace(l$,chr(10),"")
+      l$ = replace(l$,chr(13),"")
+   until left(l$,2) = "%%"
+   close
+   #
+   # loop through the test suite programs and create a kount
+   # of the times that each of the regex expressions happen
+   file$ = dir(".")
+   while file$ <> ""
+      if instr(file$,".kbs") then
+         open file$
+         pgm$ = ""
+         while not eof
+            l$ = readline
+            pgm$ += l$
+         end while
+         pgm$ = replace(pgm$,"("," ")
+         pgm$ = replace(pgm$,")"," ")
+         close
+         for n = 0 to ntoken-1
+            if instrx(pgm$,regex$[n])<>0 then
+               kount[n]++
+            endif
+         next n
+      end if
+      file$ = dir()
+   endwhile
+   #
+   a$ = "TestSuite not testing for the following tokens: "
+   for n = 0 to ntoken-1
+      if kount[n]=0 then
+         a$+=token$[n] + " "
+      endif
+   next n
+   if not yn(a$) then end
+   print
+else
+   print "testsuite unable to list tokens not being tested for - Source not available"
+endif
+token$ = ""
+regex$ = ""
+kount = 0
+pgm$ = ""

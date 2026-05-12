@@ -1,0 +1,54 @@
+# testsuite_printer_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20140529	j.m.reneau	original coding
+
+currentsuite = "printer"
+
+if ostype() = 0 or ostype = 1 or ostype = 2 then
+   call s("Printer - PDF setting", getsetting("SYSTEM","Printer/Printer"), "-1")
+   
+   #
+   a$ = getsetting("SYSTEM","Printer/PDFFile")
+   call sne("Printer - PDF setting", a$, "")
+
+   printer on
+   font "Arial", 20, 50
+   for p = 1 to 3
+      for l = 0 to 10
+         text 0,l*textheight(), "you should NOT SEE this line on page " + p + " line " + l
+      next l
+      printer page
+   next p
+   printer cancel
+
+   printer on
+   font "Times New Roman", 20, 50
+   for p = 1 to 3
+      for l = 0 to 10
+         b$ = "you should see this line on page " + p + " line " + l + " dot ->"
+         text 0,l*textheight(), b$
+         circle textwidth(b$)+50, (l+.5)*textheight(), 10
+      next l
+      if p <> 3 then printer page
+   next p
+   printer off
+   
+   print a$
+   
+   begin case
+      case ostype = 0
+         system "cmd /c start " + a$
+      case ostype = 1
+         system "gnome-open " + a$
+      case ostype = 2
+         system "open " + a$
+   end case
+   
+   call q("Did 3 page pdf open")
+   kill a$
+   
+else
+   alert("printing is not supported on the current os type - tests skipped")
+endif

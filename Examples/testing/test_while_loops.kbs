@@ -1,0 +1,13 @@
+#test_while_loops.kbs
+
+t = 0
+print "before while"
+while t < 10
+  u = 0
+  while u < 10
+    print t*10 + u + " " ;
+    u = u + 1
+  endwhile
+  t = t + 1
+endwhile
+print "done"

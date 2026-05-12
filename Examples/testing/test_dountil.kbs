@@ -1,0 +1,7 @@
+print "click the center mouse button to stop"
+clickclear
+do
+  print clickb
+  pause .1
+until clickb = 4
+print "stop"

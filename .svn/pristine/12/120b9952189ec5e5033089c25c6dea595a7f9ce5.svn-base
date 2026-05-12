@@ -1,0 +1,137 @@
+# testsuite_inputkey_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20160510	j.m.reneau	original coding
+# 20160527  j.m.reneau  added keypress fancy logic
+# 20200421  j.m.reneau  moved input test from type
+# 20200629  j.m.reneau  added unicode key option 
+
+currentsuite = "inputkey"
+
+# this include tests input, prompt, key, and ketpressed
+
+#
+input "Enter '1234' >",a
+call n("input '1234' type", typeof(a), TYPE_INT)
+call n("input '1234' value", a, 1234)
+
+input "Enter '1234.56' >",a
+call n("input '1234.56' type", typeof(a), TYPE_FLOAT)
+call n("input '1234.56' value", a, 1234.56)
+
+input "Enter '-12e+7' >",a
+call n("input '-12e+7' type", typeof(a), TYPE_FLOAT)
+call n("input '-12e+7' value", a, -12e7)
+
+input "Enter '99aa' >",a
+call n("input '99aa' type", typeof(a), TYPE_STRING)
+call n("input '99aa' value", a, "99aa")
+
+input integer "Enter '1234' >",a
+call n("input integer '1234' type", typeof(a), TYPE_INT)
+call n("input integer '1234' value", a, 1234)
+
+input integer "Enter '1234.56' >",a
+call n("input integer '1234.56' type", typeof(a), TYPE_INT)
+call n("input integer '1234.56' value", a, 0)
+
+input float "Enter '1234' >",a
+call n("input float '1234' type", typeof(a), TYPE_FLOAT)
+call n("input float '1234' value", a, 1234)
+
+input float "Enter '1234.56' >",a
+call n("input float '1234.56' type", typeof(a), TYPE_FLOAT)
+call n("input float '1234.56' value", a, 1234.56)
+
+input string "Enter '1234' >",a
+call n("input string '1234' type", typeof(a), TYPE_string)
+call n("input string '1234' value", a, "1234")
+
+input string "Enter '1234.56' >",a
+call n("input string '1234.56' type", typeof(a), TYPE_string)
+call n("input string '1234.56' value", a, "1234.56")
+
+## key
+if ostype() <> 3 then
+   print "Press the space bar"
+   # debounce
+   do
+      a = key
+   until a = 0
+   # get key
+   do
+      a = key
+   until a <> 0
+   call n("key space",a,32)
+   #
+   print "Press the shift key."
+   # debounce
+   do
+      a = key
+   until a = 0
+   # get key
+   do
+      a = key
+   until a <> 0
+   call n("key shift",a,16777248)
+   #
+   print "Press a lowrcase 'a'."
+      # debounce
+   do
+      a = key
+   until a = 0
+   # get unicode
+   do
+      a = key(true)
+   until a <> 0
+   call n("key shift",a,asc('a'))
+   #
+   print "Press a control-x."
+      # debounce
+   do
+      a = key
+   until a = 0
+   # get unicode
+   do
+      a = key(true)
+   until a <> 0
+   call n("key shift",a,24)
+end if
+
+# graphical input - prompt
+a$=prompt("Click OK to accept the default","abcd")
+call s("prompt dialog default",a$,"abcd")
+a$=prompt("Change the value and click cancel","abcd")
+call s("prompt dialog cancel default",a$,"abcd")
+a$=prompt("Change the value to 'able' and click OK")
+call s("prompt dialog",a$,"able")
+
+# keypressed
+# because of a quirk in QT and keyboard handling a key that is
+# contuniously pressed may show release even if down.
+# use a threshold of 75% or better for downness
+
+print 'press and hold the down arrow for 2 seconds'
+#wait for it
+while not keypressed(16777237)
+   pause .01
+end while
+print 'start 2 seconds now'
+time = msec + 2000
+n = 0	# count the number of ticks the key is pressed
+while time >= msec
+   if keypressed(16777237) then n++
+   pause .1
+   print '.';
+end while
+print n
+call n("keypressed single key 2 seconds",n>15,1)
+#
+print
+print 'press and hold the UP arrow AND space bar'
+while not keypressed(16777235) or not keypressed(32)
+   pause .01
+end while
+print 'passed multiple keys'
+

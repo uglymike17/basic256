@@ -1,0 +1,79 @@
+# testsuite_wav_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20140415	j.m.reneau	original coding
+# 2014-08-04	j.m.reneau	rewrote using spoken number sound file
+
+currentsuite = "wav"
+
+file$ = "jim_saying_numbers.mp3"
+notes = 5
+len = 6
+
+if ostype = 2 then
+   # android does not have enhansed WAV support
+   # (WAVPLAY, WAVSTOP, and WAVWAIT only)
+   #
+   # simple play then stop
+   wavplay file$
+   pause 2 * len/notes
+   wavstop
+   call q("wavstop - were the words 'one' and 'two' played and then stop?")
+   #
+   # simple play to the end of the wav file
+   wavplay file$
+   wavwait
+   call q("wavwait - Were the words 'one', 'two', 'three', 'four', and 'five' played?")
+else
+   # other systems use Multimedia that allows for pause, seek, position and duration
+   #
+   # simple play then stop
+   wavplay file$
+   pause 2* len/notes
+   wavstop
+   call q("wavstop - were the words 'one' and 'two' played and then stop?")
+   #
+   call n("wavstop - check position 0",wavpos, 0)
+   #
+   notel = wavlength() / notes
+   call npercent("wavlength - check average note length",notel, len/notes, .10)
+   #
+   wavplay # play from begining
+   pause notel
+   wavpause
+   call npercent("wavpos - check position 1 note",wavpos, notel, .20)
+   pause notel
+   wavplay
+   pause notel
+   wavstop
+   call q("wavstop - were the words 'one' and 'two' played with a rest between them and then stop?")
+   #
+   call n("wavpos stop - check position after stop",wavpos, 0)
+   #
+   #
+   # simple reload and play to the end of the wav file
+   # play scale forward
+   timer = msec
+   wavseek 0
+   wavplay
+   wavwait
+   timer = (msec - timer) / 1000 / wavlength()
+   call npercent("wavwait - timer 100%",timer, 1, .10)
+   call q("wavwait - Were the words 'one', 'two', 'three', 'four', and 'five'played in order?")
+   #
+   # play scale backwards
+   # sound currently at stopped state
+   # should be in stop state from wavwait
+   timer = msec
+   wavplay file$
+   for a = notes-1 to 0 step -1
+      wavseek a * notel
+      pause notel
+   next a
+   wavstop
+   timer = (msec - timer) / 1000 / wavlength()
+   call npercent("wavseek/wavstop - timer 100%",timer,1,.1)
+   call q("wavseek/wavstop - were the numbers 1 to 5 counted from high to low?")
+   
+endif

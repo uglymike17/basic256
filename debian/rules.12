@@ -1,0 +1,26 @@
+#!/usr/bin/make -f
+
+# THIS IS THE RULES FILE FOR Ubuntu 12.+ (precise, ...)
+# using QT4
+
+export DH_VERBOSE=1
+
+# find the real path to the installed qmake or use the one in the path
+QMAKE32=/usr/lib/i386-linux-gnu/qt4/bin/qmake
+QMAKE64=/usr/lib/x86_64-linux-gnu/qt4/bin/qmake
+QMAKE=qmake
+ifneq "$(wildcard $(QMAKE32))" ""
+	QMAKE=$(QMAKE32)
+else
+	ifneq "$(wildcard $(QMAKE64))" ""
+		QMAKE=$(QMAKE64)
+	else
+	endif
+endif
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	$(QMAKE) BASIC256.pro
+

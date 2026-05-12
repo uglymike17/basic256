@@ -1,0 +1,4 @@
+[Launch]
+ProgramExecutable=BASIC256\BASIC256.exe
+DirectoryMoveOK=yes
+SupportsUNC=yes

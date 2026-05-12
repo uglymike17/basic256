@@ -1,0 +1,14 @@
+# get a message and send back success
+print "wait for connection"
+netlisten 9997
+print "got connection"
+do
+   while not netdata
+      pause .1
+      print ".";
+   end while
+   n$ = netread
+   print n$
+   netwrite "I got '" + n$ + "'."
+until n$ = "end"
+netclose

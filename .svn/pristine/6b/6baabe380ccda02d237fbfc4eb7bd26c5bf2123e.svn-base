@@ -1,0 +1,103 @@
+# testsuite_string_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20140204	j.m.reneau	split from testsuite
+# 20140806  j.m.reneau      added midx and regexminimal
+# 20160328	j.m.reneau	Added ltrim, rtrim, trim
+# 20161101  j.m.reneau  added [] to all array passing to functions
+# 20200421  j.m.reneau  added string repeat with *
+# 20200424  j.m.reneau  added ljust rjust and zfill
+
+currentsuite = "string"
+
+# String Assignment
+b$ = "string" : call s('b$ = "string"', b$, "string")
+b$ = 'string' : call s("b$ = 'string'", b$, 'string')
+b$ = 2.75 : call s("b$ = 2.75", b$, "2.75")
+b$ += "." : call s("b$ = '2.75.' after b+='.'", b$, "2.75.")
+b$ += 9 : call s("b$ = '2.75.9' after b+=9", b$, "2.75.9")
+
+# String Functions
+call n("asc('a')", asc("a"), 97)
+call s("chr(98)='b'", chr(98), "b")
+call n('count("Hello", "lo")', count("Hello", "lo"), 1)
+call n('count("Buffalo buffalo buffalo.","BUFFALO",true)', count("Buffalo buffalo buffalo.","BUFFALO",true), 3)
+c$ = Explode("How now brown cow"," ")
+call s("implode-", implode(c$[],"-"), "How-now-brown-cow")
+call s("implode", implode(c$[]), "Hownowbrowncow")
+c = Explode("1,2,3.33,4.44,5.55",",")
+call s("implode, ", implode(c[],", "), "1, 2, 3.33, 4.44, 5.55")
+call s("implode", implode(c[]), "123.334.445.55")
+call s("upper", upper('upper'), "UPPER")
+call s("lower", lower('LOWER'), "lower")
+call n('instr("Hello", "lo")',instr("Hello", "lo"),4)
+call n('instr("Hello", "xx")',instr("Hello", "xx"),0)
+call n('instr("101,222,333",",",5)',instr("101,222,333",",",5),8)
+call s('left("Hello", 2)',left("Hello", 2),"He")
+call s('left("Hello", 999)',left("Hello", 999),"Hello")
+call s('left("Hello", 0)',left("Hello", 0),"")
+call s('right("Hello", 2)',right("Hello", 2),"lo")
+call s('right("Hello", 999)',right("Hello", 999),"Hello")
+call s('right("Hello", 0)',right("Hello", 0),"")
+call n('length("Hello")',length("Hello"),5)
+call n('length("")',length(""),0)
+call s('MD5("Something")',MD5("Something"),"73f9977556584a369800e775b48f3dbe")
+call s('MD5("something")',MD5("something"),"437b930db84b8079c2dd804a71936b5f")
+call s('mid("Hello", 2, 3)',mid("Hello", 2, 3),"ell")
+call s('mid("Hello", 2, 0)',mid("Hello", 2, 0),"")
+call s('mid("Hello", 2, 9999)',mid("Hello", 2, 9999),"ello")
+call s('replace("abababba","a","c")',replace("abababba","a","c"),"cbcbcbbc")
+call s('replace("abababba","q","c")',replace("abababba","q","c"),"abababba")
+call s('replace("abababba","ab","c")',replace("abababba","ab","c"),"cccba")
+b$ = "We all live in a yellow submarine, yellow submarine, yellow submarine."
+
+# String Comparison
+call n("'bb'='bb'", "bb"="bb", true)
+call n("'bb'='cc'", "bb"="cc", false)
+call n("'bb'<>'bb'", "bb"<>"bb", false)
+call n("'bb'<>'cc'", "bb"<>"cc", true)
+call n("'bb'>'aa'", "bb">"aa", true)
+call n("'bb'>'bb'", "bb">"bb", false)
+call n("'bb'>'cc'", "bb">"cc", false)
+call n("'bb'>='aa'", "bb">="aa", true)
+call n("'bb'>='bb'", "bb">="bb", true)
+call n("'bb'>='cc'", "bb">="cc", false)
+call n("'bb'<'aa'", "bb"<"aa", false)
+call n("'bb'<'bb'", "bb"<"bb", false)
+call n("'bb'<'cc'", "bb"<"cc", true)
+call n("'bb'<='aa'", "bb"<="aa", false)
+call n("'bb'<='bb'", "bb"<="bb", true)
+call n("'bb'<='cc'", "bb"<="cc", true)
+
+# regular expression magic
+call n('countx("Buffalo buffalo buffalo.","[Bb][u]")', countx("Buffalo buffalo buffalo.","[Bb][u]"), 3)
+call n('instrx("HeLLo", "[Ll]o")',instrx("HeLLo", "[Ll]o"),4)
+call n('instrx("Hello, Kitti","[Ii]",10)',instrx("Hello, Kitti","[Ii]",10),12)
+call s('midx("HeLLo", "[Ll]o")',midx("HeLLo", "[Ll]o"),'Lo')
+call s('midx("Hello, Kitti","[Ii]",10)',midx("Hello, Kitti","[Ii]",10),'i')
+call s('Replacex(b$,"ye.*ow","blue")',Replacex(b$,"ye.*ow","blue"),"We all live in a blue submarine.")
+call s('Replacex(b$, "[wW]e", "Beatles")',Replacex(b$, "[wW]e", "Beatles"),"Beatles all live in a yellow submarine, yellow submarine, yellow submarine.")
+regexminimal true
+call s('lazy midx("abcdacbdabcdabcd", "b.*d")',midx("abcdacbdabcdabcd", "b.*d"),'bcd')
+regexminimal false # return back to default
+call s('greedy midx("abcdacbdabcdabcd", "b.*d")',midx("abcdacbdabcdabcd", "b.*c"),'bcdacbdabcdabc')
+
+# string trimming
+a$ = "	 test  string to trim 	  "
+call s("ltrim '"+a$+"'",ltrim(a$),"test  string to trim 	  ")
+call s("rtrim '"+a$+"'",rtrim(a$),"	 test  string to trim")
+call s("trim '"+a$+"'",trim(a$),"test  string to trim")
+
+# string repeat (using *)
+call s("repeat 10 times","A"*10, "AAAAAAAAAA")
+call s("repeat 0 times","A"*0, "")
+call s("repeat -10 times","A"*-10, "")
+
+# fill and justify
+call s("ljust 5",ljust(99,5),"99   ")
+call s("ljust 5 X",ljust(99,5,"X"),"99XXX")
+call s("rjust 5",rjust(99,5),"   99")
+call s("rjust 5 X",rjust(99,5,"X"),"XXX99")
+call s("zfill 5 ",zfill(99,5),"00099")
+

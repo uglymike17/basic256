@@ -1,0 +1,59 @@
+print "Generate BASIC256 icon - updated for version 1"
+
+fastgraphics
+graphsize 512, 512
+
+rem set up initial ball position and speed
+r = 20
+x = 0 * graphheight / 300
+y = 100 * graphheight / 300
+yvel = -1.3 * graphheight / 300
+xvel = -1.30 * graphwidth / 300
+yacc = .015 * graphwidth / 300
+
+dim colors(1)
+colors = {red, blue, green, yellow, cyan, orange, grey}
+bounce = 0
+
+color black
+rect 0,0,graphwidth, graphheight
+
+do
+   rem change the downward velocity according to the acceleration
+   yvel = yvel + yacc
+   
+   rem calculate new position
+   y = y + yvel
+   x = x + xvel
+   
+   rem check for collisions
+   if y > graphheight - r - 1 then
+      yvel = -0.9 * yvel
+      y = graphheight - r - 1
+      xvel = xvel * 0.9
+      bounce = bounce + 1
+      refresh
+   end if
+   if x > graphwidth - r - 1 then
+      xvel = -xvel
+      x = graphwidth - r - 1
+      bounce = bounce + 1
+      refresh
+   end if
+   if x < r then
+      xvel = -xvel
+      x = r
+      bounce = bounce + 1
+      refresh
+   end if
+   
+   call drawBall(x,y,r,colors[bounce%colors[?]])
+until abs(xvel) < .5
+refresh
+end
+
+subroutine drawBall(x,y,r,c)
+   color c
+   circle x, y, r
+   
+end subroutine

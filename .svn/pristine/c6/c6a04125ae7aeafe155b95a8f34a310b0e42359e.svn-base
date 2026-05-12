@@ -1,0 +1,20 @@
+# testsuite_time_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20140529	j.m.reneau	original coding
+# 20170515  j.m.reneau  lengthened sleep test time for slower pc
+
+currentsuite = "time"
+
+# test the date and time functions
+
+# date and time functions
+call q("Is this the correct date and time " + year + "-" + right(month+101,2) + "-" + right(day+100,2) + " "  + right(hour+100,2) + ":" + right(minute+100,2) + ":" + right(second+100,2))
+
+#programming running
+m = msec
+pause 1.000
+m = msec -m
+call npercent("programming running time msec", m, 1000, .10)
+

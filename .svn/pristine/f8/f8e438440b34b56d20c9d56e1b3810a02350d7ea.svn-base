@@ -1,0 +1,46 @@
+# testsuite_dir_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20140529	j.m.reneau	original coding
+
+currentsuite = "dir"
+
+# test file system functions
+
+# change directories and see if all is well
+c$ = currentdir
+if right(c$,10) = "/TestSuite" then
+   changedir("..")
+   n$ = currentdir
+   changedir(c$)
+   call s("ChangeDir/CurrentDir", n$+"/TestSuite",c$)
+else
+   call s("ChangeDir/CurrentDir", "not being execited from the TestSuite folder","")
+endif
+
+# see if a dummy file exists
+try
+   kill("dirtemp.txt")
+catch
+end try
+call n("DIR dummyfile not exists", exists("dirtemp.txt"), false)
+
+# create it and see if it exists
+open "dirtemp.txt"
+close
+call n("DIR dummyfile exists", exists("dirtemp.txt"), true)
+
+# use the dir stmt to see if it exists
+f$ = dir(".")
+a = false
+do
+   if f$ = "dirtemp.txt" then a = true
+   f$ = dir()
+until f$ = ""
+call n("DIR dummyfile exists (dir)", a, true)
+
+# kill it and make sure it is gone
+kill("dirtemp.txt")
+call n("DIR dummyfile second not exists", exists("dirtemp.txt"), false)
+

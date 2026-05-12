@@ -1,0 +1,6 @@
+# sum, min, max, and avg for basic256 2.0.2
+function sum(a):t=0:foreach v in a:t+=v:next:return t:endfunction
+function min(a):t=a[getarraybase()]:foreach v in a:if v<t then:t=v:endif:next:return t:endfunction
+function max(a):t=a[getarraybase()]:foreach v in a:if v>t then:t=v:endif:next:return t:endfunction
+function avg(a):return sum(a)/length(a):endfunction
+

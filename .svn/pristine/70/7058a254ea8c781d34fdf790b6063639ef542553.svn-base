@@ -1,0 +1,10 @@
+# arc_example.kbs
+# 2012-12-29 j.m.reneau
+#
+# example of arc statement added on 0.9.9.25
+
+clg
+color black
+for t = 1 to 100 step 3
+   arc 150-t,150-t,t*2,t*2,0,pi*2*t/100
+next t

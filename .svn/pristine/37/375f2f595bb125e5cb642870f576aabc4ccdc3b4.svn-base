@@ -1,0 +1,135 @@
+# teamdatabase.kbs - a database example to keep track of players and teams
+# requires BASIC256 0.9.9.23 or later
+# 2012-11-25 j.m.reneau
+
+db = freedb	# use the database number db
+dbopen db,"teamdatabase.sqlite3"
+
+do
+   print
+   print "1-create tables"
+   print "2-add team"
+   print "3-list teams"
+   print "4-add player"
+   print "5-list players"
+   input "0-exit >", choice
+   print
+   
+   if choice=1 then call createplayertables(db)
+   if choice=2 then call addteam(db)
+   if choice=3 then call listteams(db)
+   if choice=4 then call addplayer(db)
+   if choice=5 then call listplayers(db)
+until choice = 0
+dbclose db
+end
+
+function quote$(a$)
+   # wrap a string in single quotes (for a sql statement)
+   # if it contains a single quote double it
+   return "'" + replace(a$,"'","''") + "'"
+end function
+
+function dbstringnull$(db,set,column$)
+   # get a custom value for null (not always the "" string)
+   if dbnull(db,set,column$) then
+      return "NULL"
+   else
+      return dbstring(db,set,column$)
+   end if
+end function
+
+function dbintnull(db,set,column$)
+   # get a custom value for null (not always zero)
+   if dbnull(db,set,column$) then
+      return -1
+   else
+      return dbint(db,set,column$)
+   end if
+end function
+
+
+subroutine createplayertables(db)
+   onerror createplayertablesproblem
+   dbexecute db,"create table player (id integer primary key, name text, team_id text);"
+   dbexecute db,"create table team (team_id string primary key, name text);"
+   offerror
+end subroutine
+
+subroutine createplayertablesproblem()
+   # just display the sqlite error message and try the next statement
+   print lasterrorextra
+end subroutine
+
+subroutine addteam(db)
+   print "add team"
+   input "team id >", team_id$
+   input "team name >", team_name$
+   if team_id$ = "" or team_name$ = "" then
+      print "please enter a team id or name"
+   else
+      if isteamonfile(db,team_id$) then
+         print "team already on file"
+      else
+         dbexecute db,"insert into team (team_id, name) values (" + quote$(team_id$) + "," + quote$(team_name$) + ");"
+         print team_id$ + " added."
+      end if
+   end if
+end subroutine
+
+subroutine addplayer(db)
+   print "add player"
+   input "player number >", id
+   input "name >", name$
+   input "team id >", team_id$
+   if id = 0 or name$ = "" or team_id$ = "" then
+      print "please enter a player number, name, and team_id"
+   else
+      if isplayeronfile(db,id) then
+         print "player already on file"
+      else
+         if not isteamonfile(db,team_id$) then
+            print "team is not on file"
+         else
+            dbexecute db,"insert into player (id, name, team_id) values (" + id + "," + quote$(name$) + "," + quote$(team_id$) + ");"
+            print id + " added."
+         endif
+      end if
+   end if
+end subroutine
+
+function isteamonfile(db, team_id$)
+   onfile = false
+   set = freedbset(db)
+   dbopenset db, set, "select team_id from team where team_id = " + quote$(team_id$)
+   if dbrow(db,set) then onfile = true
+   dbcloseset db,set
+   return onfile
+end function
+
+function isplayeronfile(db, id)
+   onfile = false
+   set = freedbset(db)
+   dbopenset db, set, "select id from player where id = " + id
+   if dbrow(db,set) then onfile = true
+   dbcloseset db,set
+   return onfile
+end function
+
+subroutine listteams(db)
+   set = freedbset(db)
+   dbopenset db, set, "select team_id, name from team order by team_id"
+   while dbrow(db,set)
+      print dbstringnull$(db,set,"team_id") + " " + dbstringnull$(db,set,"name")
+   end while
+   dbcloseset db,set
+end subroutine
+
+subroutine listplayers(db)
+   set = freedbset(db)
+   dbopenset db, set, "select id, player.name as player_name, team.team_id as team_id, team.name as team_name from team left join player on player.team_id = team.team_id order by team.team_id, id"
+   while dbrow(db,set)
+      print dbstringnull$(db,set,"team_id") + " " + dbstringnull$(db,set,"team_name") + " " + dbintnull(db,set,"id") + " " + dbstringnull$(db,set,"player_name")
+   end while
+   dbcloseset db,set
+end subroutine

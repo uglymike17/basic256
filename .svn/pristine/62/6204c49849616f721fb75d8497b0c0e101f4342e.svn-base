@@ -1,0 +1,9 @@
+clg
+for t = 1 to 1000
+  font "tahoma", int(rand*100), int(rand*100)
+  color rgb(rand*256, rand*256, rand*256, rand*256)
+  text(int(rand*300),int(rand*300),"foo")
+  text(int(rand*300),int(rand*300),"bar")
+next t
+ #
+#
