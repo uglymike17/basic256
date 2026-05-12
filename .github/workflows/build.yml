@@ -114,7 +114,7 @@ jobs:
         mingw32-make
         cd ..
 
-        qmake BASIC256.pro -spec win32-g++ "QT+=multimediawidgets" "CONFIG+=release"
+        qmake BASIC256.pro -spec win32-g++ "QT+=multimediawidgets" "CONFIG+=release" "DEFINES-=ESPEAK"
         mingw32-make -j2
 
     # ---------------------------
