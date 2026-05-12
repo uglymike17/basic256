@@ -51,7 +51,7 @@ TRANSLATIONS					=	Translations/basic256_en.ts \
 win32 {
 	DEFINES 					+=	WIN32
 	DEFINES 					+=	USEQMEDIAPLAYER
-	DEFINES 					+=	QT_TEXTTOSPEECH
+	DEFINES 					+=	USE_QT_TEXTTOSPEECH
 	RC_FILE						=	resources/windows.rc
 	LIBS						+=	-lole32 \
 									-lws2_32 \
@@ -67,14 +67,8 @@ win32 {
 unix:!macx {
 	## this is the LINUX (unix-non-mac)
 	DEFINES						+=	LINUX
-    DEFINES 					+=  QT_TEXTTOSPEECH	
+    DEFINES 					+=  USE_QT_TEXTTOSPEECH	
 	LIBS						+=	-lm
-	QMAKE_CXXFLAGS				+=	-std=c++11
-
-	########
-	# Sound class - How Sound statement works
-	########
-	QT							+=	multimedia texttospeech
 
 
 	########
@@ -102,14 +96,14 @@ macx {
 	# macintosh
 	DEFINES						+=	MACX
 	DEFINES						+=	MACX_SAY
-
+    DEFINES 					+=  USE_QT_TEXTTOSPEECH
 	ICON						=	resources/basic256.icns
 
 	LIBS						+=	-L/opt/local/lib
 	INCLUDEPATH					+=	/opt/local/include
 
 	# Sound - QT Mobility Multimedia AudioOut
-	QT							+=	multimedia
+	QT							+=  texttospeech
 	INCLUDEPATH					+=	QtMultimediaKit
 	INCLUDEPATH					+=	QtMobility
 
