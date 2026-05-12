@@ -1,5 +1,0 @@
-
-color yellow
-for a = 1 to 100
-plot a, a
-next a

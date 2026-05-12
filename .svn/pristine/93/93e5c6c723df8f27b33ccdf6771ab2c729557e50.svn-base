@@ -1,1 +1,0 @@
-?package(basic256): needs="X11" section="Applications/Programming" title="BASIC-256" command="basic256"
