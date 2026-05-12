@@ -51,12 +51,12 @@ TRANSLATIONS					=	Translations/basic256_en.ts \
 win32 {
 	DEFINES 					+=	WIN32
 	DEFINES 					+=	USEQMEDIAPLAYER
-	DEFINES 					+=	ESPEAK
+	DEFINES 					+=	QT_TEXTTOSPEECH
 	RC_FILE						=	resources/windows.rc
 	LIBS						+=	-lole32 \
 									-lws2_32 \
 									-lwinmm
-									-lespeak
+
 	# Only keep this if building 32-bit; remove for 64-bit
 	QMAKE_CXXFLAGS				+=	-mstackrealign
 	QMAKE_CXXFLAGS_RELEASE		+=	-mstackrealign
@@ -66,15 +66,15 @@ win32 {
 # Linux Specific
 unix:!macx {
 	## this is the LINUX (unix-non-mac)
-	DEFINES						+=	LINUX ESPEAK
-	LIBS						+=	-lespeak -lm
+	DEFINES						+=	LINUX
+    DEFINES 					+=  QT_TEXTTOSPEECH	
+	LIBS						+=	-lm
 	QMAKE_CXXFLAGS				+=	-std=c++11
-	INCLUDEPATH					+=	/usr/include/espeak
 
 	########
 	# Sound class - How Sound statement works
 	########
-	QT							+=	multimedia
+	QT							+=	multimedia texttospeech
 
 
 	########
