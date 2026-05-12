@@ -177,16 +177,11 @@ jobs:
         cp $QT_PLUGIN_DIR/audio/libqtaudio_alsa.so dist/plugins/audio/ || true
 
         # Add a launcher script that sets library path
-        python3 -c "
-import os
-script = '#!/bin/bash\n'
-script += 'DIR=\"\$(cd \"\$(dirname \"\$0\")\" && pwd)\"\n'
-script += 'export LD_LIBRARY_PATH=\"\$DIR:\$LD_LIBRARY_PATH\"\n'
-script += 'export QT_PLUGIN_PATH=\"\$DIR/plugins\"\n'
-script += 'exec \"\$DIR/basic256\" \"\$@\"\n'
-with open('dist/run_basic256.sh', 'w') as f:
-    f.write(script)
-"
+        printf '#!/bin/bash\n' > dist/run_basic256.sh
+        printf 'DIR="$(cd "$(dirname "$0")" && pwd)"\n' >> dist/run_basic256.sh
+        printf 'export LD_LIBRARY_PATH="$DIR:$LD_LIBRARY_PATH"\n' >> dist/run_basic256.sh
+        printf 'export QT_PLUGIN_PATH="$DIR/plugins"\n' >> dist/run_basic256.sh
+        printf 'exec "$DIR/basic256" "$@"\n' >> dist/run_basic256.sh
         chmod +x dist/run_basic256.sh
 
         tar -czf ${{ matrix.artifact_name }}.tar.gz dist
