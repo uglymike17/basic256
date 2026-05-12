@@ -3797,10 +3797,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_SAY: {
-					mymutex->lock();
-					emit(speakWords(stack->popQString()));
-					waitCond->wait(mymutex);
-					mymutex->unlock();
+    				emit(speakWords(stack->popQString()));
 				}
 				break;
 
