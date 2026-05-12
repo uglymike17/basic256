@@ -31,7 +31,6 @@
 #include <QFileDialog>
 #include <QClipboard>
 
-
 #include "RunController.h"
 #include "MainWindow.h"
 #include "Settings.h"
@@ -59,7 +58,7 @@
 #include <sys/soundcard.h>
 #endif
 
-#ifdef ESPEAK
+#ifdef QT_TEXTTOSPEECH
 #include <speak_lib.h>
 #endif
 
@@ -87,6 +86,11 @@ RunController::RunController() {
 	i = new Interpreter(mainwin->locale);
 
 	replacewin = NULL;
+	tts = new QTextToSpeech(this);
+	connect(tts,
+        &QTextToSpeech::stateChanged,
+        this,
+        &RunController::speechStateChanged);
 
 #ifdef ANDROID
 	androidtts = new AndroidTTS();
@@ -153,74 +157,21 @@ RunController::~RunController() {
 	delete i;
 }
 
+void RunController::speakWords(QString text)
+{
+    if (!tts)
+        return;
 
-void
-RunController::speakWords(QString text) {
-#ifdef ESPEAK
-	SETTINGS;
-	espeak_ERROR err;
+    tts->say(text);
+}
 
-	mymutex->lock();
+void RunController::speechStateChanged(QTextToSpeech::State state)
+{
+    if (state == QTextToSpeech::Ready ||
+        state == QTextToSpeech::Error) {
 
-	// espeak-nt tts library
-	int synth_flags = espeakCHARS_UTF8 | espeakPHONEMES | espeakENDPAUSE;
-#ifdef WIN32
-	// use program install folder
-	int samplerate = espeak_Initialize(AUDIO_OUTPUT_SYNCH_PLAYBACK,0,(char *) QFileInfo(QCoreApplication::applicationFilePath()).absolutePath().toUtf8().data(),0);
-#else
-	// use default path for espeak-nt-data
-	int samplerate = espeak_Initialize(AUDIO_OUTPUT_SYNCH_PLAYBACK,0,NULL,0);
-#endif
-	if (samplerate!=-1) {
-		QString voicename = settings.value(SETTINGSESPEAKVOICE,SETTINGSESPEAKVOICEDEFAULT).toString();
-		if (voicename == SETTINGSESPEAKVOICEDEFAULT) {
-			voicename = QString("english-us");
-		}
-		err = espeak_SetVoiceByName(voicename.toUtf8().data());
-		if(err==EE_OK) {
-			int size=text.length()+1;	// buffer length
-			err = espeak_Synth(text.toUtf8().data(),size,0,POS_CHARACTER,0,synth_flags,NULL,NULL);
-			if (err==EE_OK) {
-				espeak_Synchronize();		// wait to finish
-				espeak_Terminate();		// clean up
-			} else {
-				printf("espeak synth error %i\n", err);
-			}
-		} else {
-			printf("espeak set voice error %i\n", err);
-		}
-	} else {
-		printf("Unable to initialize espeak\n");
-	}
-	waitCond->wakeAll();
-	mymutex->unlock();
-
-#endif
-#ifdef ESPEAK_EXECUTE
-	// easy espeak implementation when all else fails
-	// mutex handled by executeSystem
-	SETTINGS;
-	QString statement = settings.value(SETTINGSESPEAKSTATEMENT,SETTINGSESPEAKSTATEMENTDEFAULT).toString();
-	text.replace("\""," quote ");
-	statement.replace("WORDS", text);
-	executeSystem(statement);
-#endif
-#ifdef MACX_SAY
-	// easy macosX implementation - call the command line say statement
-	// mutex handled by executeSystem
-	text.replace("\""," quote ");
-	text.prepend("say \"");
-	text.append("\"");
-	//fprintf(stderr,"MACX_SAY %s\n", text.toStdString().c_str());
-	executeSystem(text);
-#endif
-#ifdef ANDROID
-	mymutex->lock();
-	androidtts->say(text);
-	waitCond->wakeAll();
-	mymutex->unlock();
-#endif
-
+        waitCond->wakeAll();
+    }
 }
 
 void
