@@ -28,6 +28,7 @@ QT								+=	widgets
 QT								+=	printsupport
 QT								+=	serialport
 QT								+=	multimedia
+QT 								+= texttospeech
 
 # Project Structure
 INCLUDEPATH						+=	.
