@@ -94,6 +94,15 @@ jobs:
       if: runner.os == 'Windows'
       run: choco install winflexbison3 -y
 
+    - name: Disable eSpeak in .pro file (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        (Get-Content BASIC256.pro) `
+          -replace 'DEFINES\s*\+=\s*ESPEAK', '#DEFINES += ESPEAK' |
+          Set-Content BASIC256.pro
+        echo "--- Checking ESPEAK lines after patch ---"
+        Select-String -Path BASIC256.pro -Pattern "ESPEAK"
+        
     - name: Run Build (Windows)
       if: runner.os == 'Windows'
       env:
