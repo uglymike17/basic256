@@ -70,6 +70,7 @@ AndroidTTS *androidtts;
 extern QMutex* mymutex;
 extern QMutex* mydebugmutex;
 extern QWaitCondition* waitCond;
+extern QWaitCondition* inputWaitCond;
 extern QWaitCondition* waitDebugCond;
 
 extern MainWindow * mainwin;
@@ -316,7 +317,7 @@ RunController::inputEntered(QString text) {
 	i->setInputString(text); //set the input from user
 	graphwin->setFocus();
 	mymutex->lock();
-	waitCond->wakeAll(); // continue OP_INPUT from interpreter
+	inputWaitCond->wakeAll(); // continue OP_INPUT from interpreter
 	mymutex->unlock();
 }
 
@@ -390,7 +391,7 @@ void RunController::stopRun() {
 	// otherwise waitCond->wakeAll(); will generate errors in different situations
 	if(stopinput){
 		outwin->stopInput(); //make output window readonly
-		waitCond->wakeAll(); //continue OP_INPUT from interpreter
+		inputWaitCond->wakeAll(); //continue OP_INPUT from interpreter
 	}
 	mymutex->unlock();
 
