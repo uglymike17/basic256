@@ -179,8 +179,11 @@ void RunController::speakWords(QString text)
     tts->say(text);
     QEventLoop loop;
     connect(tts, &QTextToSpeech::stateChanged, &loop, [&loop](QTextToSpeech::State state) {
-        if (state == QTextToSpeech::Ready || state == QTextToSpeech::Error) {
-            loop.quit();
+        if (state == QTextToSpeech::Ready || state == QTextToSpeech::Speaking) {
+            // Only wait for Ready state, Speaking will continue
+            if (state == QTextToSpeech::Ready) {
+                loop.quit();
+            }
         }
     });
     if (tts->state() == QTextToSpeech::Speaking) {
@@ -190,8 +193,8 @@ void RunController::speakWords(QString text)
 
 void RunController::speechStateChanged(QTextToSpeech::State state)
 {
-    if (state == QTextToSpeech::Ready ||
-        state == QTextToSpeech::Error) {
+    // Only check for Ready state - Error handling is done via error() signal
+    if (state == QTextToSpeech::Ready) {
         waitCond->wakeAll();
     }
 }
