@@ -17,8 +17,6 @@
 
 #include "Sound.h"
 #include <QDebug>
-#include <QT_BEGIN_NAMESPACE>
-#include <QT_END_NAMESPACE>
 
 Sound::Sound(QObject *parent) :
 	QObject(parent)
