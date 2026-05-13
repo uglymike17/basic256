@@ -86,6 +86,7 @@ extern SoundSystem *sound;
 extern QMutex *mymutex;
 extern QMutex *mydebugmutex;
 extern QWaitCondition *waitCond;
+extern QWaitCondition *inputWaitCond;
 extern QWaitCondition *waitDebugCond;
 
 extern BasicGraph * graphwin;
@@ -4580,7 +4581,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					if (prompt.length()>0) {
 						mymutex->lock();
 						emit(outputReady(prompt));
-						waitCond->wait(mymutex);
+						inputWaitCond->wait(mymutex);
 						mymutex->unlock();
 					}
 #ifdef ANDROID
@@ -4591,12 +4592,12 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					mymutex->lock();
 					if (prompt.length()==0) prompt = "?";
 					emit(dialogPrompt(prompt,""));
-					waitCond->wait(mymutex);
+					inputWaitCond->wait(mymutex);
 					mymutex->unlock();
 					//
 					mymutex->lock();
 					emit(outputReady(returnString+"\n"));
-					waitCond->wait(mymutex);
+					inputWaitCond->wait(mymutex);
 					mymutex->unlock();
 					waitForGraphics();
 					//
@@ -4608,7 +4609,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					status = R_INPUT;
 					mymutex->lock();
 					emit(getInput());
-					waitCond->wait(mymutex);
+					inputWaitCond->wait(mymutex);
 					mymutex->unlock();
 					//we got input from user or program is going to stop
 					if (status==R_INPUT) {//program is not stopped by user in the mean time
