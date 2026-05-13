@@ -46,6 +46,7 @@
 QMutex* mymutex;
 QMutex* mydebugmutex;
 QWaitCondition* waitCond;
+QWaitCondition* inputWaitCond;
 QWaitCondition* waitDebugCond;
 BasicIcons *basicIcons;
 
@@ -80,6 +81,7 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     mymutex = new QMutex(QMutex::NonRecursive);
     mydebugmutex = new QMutex(QMutex::NonRecursive);
     waitCond = new QWaitCondition();
+	inputWaitCond = new QWaitCondition();
     waitDebugCond = new QWaitCondition();
 
     setWindowIcon(basicIcons->basic256Icon);
@@ -552,6 +554,7 @@ MainWindow::~MainWindow() {
     delete rc;
     delete mymutex;
     delete waitCond;
+	delete inputWaitCond;
     delete outwin;
     delete graphwin;
     delete main_toolbar;
