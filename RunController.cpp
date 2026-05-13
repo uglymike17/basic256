@@ -87,6 +87,21 @@ RunController::RunController() {
 
 	replacewin = NULL;
 	tts = new QTextToSpeech(this);
+    // In constructor, after tts = new QTextToSpeech(this):
+    #ifdef USE_QT_TEXTTOSPEECH
+        SETTINGS;
+        QString voicename = settings.value(
+            SETTINGSESPEAKVOICE,
+            SETTINGSESPEAKVOICEDEFAULT
+        ).toString();
+        QVector<QVoice> voices = tts->availableVoices();
+        for (const QVoice &voice : voices) {
+            if (voice.name() == voicename) {
+                tts->setVoice(voice);
+                break;
+            }
+        }
+    #endif
 	connect(tts,
         &QTextToSpeech::stateChanged,
         this,
@@ -151,34 +166,6 @@ RunController::RunController() {
 }
 
 RunController::~RunController() {
-	#ifdef USE_QT_TEXTTOSPEECH
-    SETTINGS;
-    tts = new QTextToSpeech(this);
-
-    QString voicename =
-        settings.value(
-            SETTINGSESPEAKVOICE,
-            SETTINGSESPEAKVOICEDEFAULT
-        ).toString();
-
-    QVector<QVoice> voices = tts->availableVoices();
-
-    for (const QVoice &voice : voices) {
-
-        if (voice.name() == voicename) {
-            tts->setVoice(voice);
-            break;
-        }
-    }
-
-    connect(
-        tts,
-        &QTextToSpeech::stateChanged,
-        this,
-        &RunController::speechStateChanged
-    );
-
-    #endif
 	if(replacewin!=NULL) replacewin->close();
 	stopRun();
 	i->wait();
@@ -191,6 +178,13 @@ void RunController::speakWords(QString text)
         return;
 
     tts->say(text);
+
+    // Block until speech finishes (state becomes Ready or Error)
+    mymutex->lock();
+    while (tts->state() == QTextToSpeech::Speaking) {
+        waitCond->wait(mymutex);
+    }
+    mymutex->unlock();
 }
 
 void RunController::speechStateChanged(QTextToSpeech::State state)
