@@ -17,7 +17,8 @@
 
 #include "Sound.h"
 #include <QDebug>
-
+#include <QT_BEGIN_NAMESPACE>
+#include <QT_END_NAMESPACE>
 
 Sound::Sound(QObject *parent) :
 	QObject(parent)
@@ -385,11 +386,10 @@ void Sound::prepareConnections() {
 }
 
 void Sound::handlePositionChanged(qint64 position){
-	//Signal the position of the content has changed to position, expressed in milliseconds.
-	isPositionChanged = true;
-	//This flag is usefull because we need to wait before make another seek
-	//or before return the true position after a seek action
+    Q_UNUSED(position);
+    isPositionChanged = true;
 }
+
 
 void Sound::handleMediaStatusChanged(QMediaPlayer::MediaStatus s){
 	if(s!=QMediaPlayer::LoadingMedia){
@@ -410,11 +410,11 @@ void Sound::handleMediaDurationChanged(qint64 d){
 }
 
 void Sound::handleMediaError(QMediaPlayer::Error err) {
+	Q_UNUSED(err);
 	if(needValidation){
 		isValidated=media->duration()>0.0;
 		needValidation=false;
 	}
-	//qDebug() << err;
 }
 
 void Sound::handleMediaStateChanged(QMediaPlayer::State newState){
