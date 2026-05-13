@@ -400,7 +400,7 @@ PreferencesWin::PreferencesWin (QWidget * parent, bool showAdvanced)
         const QVector<QLocale> locales = tts->availableLocales();
         for (const QLocale &locale : locales) {
             tts->setLocale(locale);
-            const QList<QVoice> voices = tts->availableVoices();
+            const QVector<QVoice> voices = tts->availableVoices();
             for (const QVoice &voice : voices) {
                 QString gender;
                 switch (voice.gender()) {
