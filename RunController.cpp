@@ -176,21 +176,22 @@ void RunController::speakWords(QString text)
 {
     if (!tts)
         return;
-
     tts->say(text);
-
-    // Block until speech finishes (state becomes Ready or Error)
-    mymutex->lock();
-    while (tts->state() == QTextToSpeech::Speaking) {
-        waitCond->wait(mymutex);
+    QEventLoop loop;
+    connect(tts, &QTextToSpeech::stateChanged, &loop, [&loop](QTextToSpeech::State state) {
+        if (state == QTextToSpeech::Ready || state == QTextToSpeech::Error) {
+            loop.quit();
+        }
+    });
+    if (tts->state() == QTextToSpeech::Speaking) {
+        loop.exec();
     }
-    mymutex->unlock();
 }
 
 void RunController::speechStateChanged(QTextToSpeech::State state)
 {
-    if (state == QTextToSpeech::Ready) {
-
+    if (state == QTextToSpeech::Ready ||
+        state == QTextToSpeech::Error) {
         waitCond->wakeAll();
     }
 }
