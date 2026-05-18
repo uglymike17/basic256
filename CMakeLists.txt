@@ -81,7 +81,7 @@ qt5_add_translation(QM_FILES ${TS_FILES})
 # -------------------------------------------------------------------
 
 if(WIN32)
-    add_compile_definitions(WIN32 USEQMEDIAPLAYER USE_QT_TEXTTOSPEECH) [cite: 3]
+    add_compile_definitions(WIN32 USEQMEDIAPLAYER USE_QT_TEXTTOSPEECH)
     
     # Windows Resource File [cite: 3]
     list(APPEND SOURCES resources/windows.rc)
@@ -94,7 +94,7 @@ if(WIN32)
     add_compile_options(-mstackrealign) 
 
 elseif(APPLE)
-    add_compile_definitions(MACX MACX_SAY USE_QT_TEXTTOSPEECH) [cite: 4]
+    add_compile_definitions(MACX MACX_SAY USE_QT_TEXTTOSPEECH)
     
     # App icon 
     list(APPEND SOURCES resources/basic256.icns)
@@ -105,9 +105,9 @@ elseif(APPLE)
     link_directories(/opt/local/lib)
 
 elseif(UNIX AND NOT APPLE)
-    add_compile_definitions(LINUX USE_QT_TEXTTOSPEECH) [cite: 4]
+    add_compile_definitions(LINUX USE_QT_TEXTTOSPEECH)
     
-    set(PLATFORM_LIBS m) [cite: 4]
+    set(PLATFORM_LIBS m)
     
     # Installation rules 
     install(DIRECTORY ./Examples DESTINATION /usr/share/basic256)
