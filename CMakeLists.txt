@@ -83,15 +83,15 @@ qt5_add_translation(QM_FILES ${TS_FILES})
 if(WIN32)
     add_compile_definitions(WIN32 USEQMEDIAPLAYER USE_QT_TEXTTOSPEECH)
     
-    # Windows Resource File [cite: 3]
+    # Windows Resource File
     list(APPEND SOURCES resources/windows.rc)
     
-    # Platform Libraries [cite: 3]
+    # Platform Libraries
     set(PLATFORM_LIBS ole32 ws2_32 winmm)
     
-    # 32-bit stack realignment flags 
-    # Remove these or wrap in a check if you are targeting 64-bit only 
-    add_compile_options(-mstackrealign) 
+    # Only use -mstackrealign if compiling with MinGW/GCC (MSVC doesn't use it)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        add_compile_options(-mstackrealign) 
 
 elseif(APPLE)
     add_compile_definitions(MACX MACX_SAY USE_QT_TEXTTOSPEECH)
@@ -118,10 +118,10 @@ elseif(UNIX AND NOT APPLE)
 endif()
 
 # -------------------------------------------------------------------
-# Target Configuration [cite: 2]
+# Target Configuration 
 # -------------------------------------------------------------------
 
-# Define the executable target [cite: 2]
+# Define the executable target 
 add_executable(basic256 
     ${SOURCES} 
     ${HEADERS} 
@@ -129,7 +129,7 @@ add_executable(basic256
     ${QM_FILES}
 )
 
-# Link Qt libraries and OS specific libraries [cite: 2]
+# Link Qt libraries and OS specific libraries 
 target_link_libraries(basic256
     PRIVATE
         Qt5::Core

@@ -1,4 +1,4 @@
-name: Build BASIC-256
+name: Build BASIC-256 CMake
 on:
   push:
     branches: [ main, master ]
@@ -26,7 +26,7 @@ jobs:
           - os: windows-latest
             arch: x86_64
             use_jurplel: true
-            qt_arch: win64_mingw81
+            qt_arch: win64_msvc2019_64  # Updated for MSVC 2019 / 2022 compatibility
             artifact_name: BASIC256-Windows
 
     steps:
@@ -100,21 +100,26 @@ jobs:
       env:
         BISON_PKGDATADIR: C:\ProgramData\chocolatey\lib\winflexbison3\tools\data
       run: |
-        $qtBin = "$env:Qt5_Dir\bin"
-        $mingwBin = "C:\ProgramData\Chocolatey\lib\mingw\tools\install\mingw64\bin"
         $bisonBin = "C:\ProgramData\chocolatey\lib\winflexbison3\tools"
-        $env:Path = "$qtBin;$mingwBin;$bisonBin;" + $env:Path
-
+        
+        # Mirror flex/bison executables so names match standard conventions
         Copy-Item "$bisonBin\win_flex.exe" "$bisonBin\flex.exe" -Force
         Copy-Item "$bisonBin\win_bison.exe" "$bisonBin\bison.exe" -Force
+        
+        # Add bison tools to path for the lexer build step
+        $env:Path = "$bisonBin;" + $env:Path
 
+        # Generate LEX parser files manually using flex/bison direct execution
         cd LEX
-        mingw32-make
+        & "$bisonBin\bison.exe" -d -v -l basicParse.y
+        & "$bisonBin\flex.exe" -L basicParse.l
         cd ..
 
-        # Configure and Build using CMake (using MinGW Makefiles generator)
-        cmake -G "MinGW Makefiles" -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$env:Qt5_Dir"
-        cmake --build build --config Release -j2
+        # Configure using MSVC (Omitting -G defaults to the installed Visual Studio version)
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$env:Qt5_Dir"
+        
+        # Build using MSVC compiler pipeline natively via CMake
+        cmake --build build --config Release
 
     # ---------------------------
     # Packaging Linux x86_64
@@ -193,7 +198,7 @@ jobs:
         tar -czf ${{ matrix.artifact_name }}.tar.gz dist
 
     # ---------------------------
-    # Packaging Windows
+    # Packaging Windows (MSVC Migration)
     # ---------------------------
     - name: Package Windows Build
       if: runner.os == 'Windows'
@@ -203,14 +208,15 @@ jobs:
         echo set QT_OPENGL=desktop >> dist\basic256.bat
         echo start basic256.exe >> dist\basic256.bat
         
-        # Copy binary from CMake's out-of-source build location
-        Copy-Item build\basic256.exe dist\
+        # MSVC multi-config generator outputs binaries into a 'Release' subfolder
+        Copy-Item build\Release\basic256.exe dist\
         
+        # Deploy deployment assets using MSVC-built windeployqt
         & "$env:Qt5_Dir\bin\windeployqt.exe" `
-        --dir dist `
-        --multimedia `
-        --no-translations `
-        dist\basic256.exe
+          --dir dist `
+          --multimedia `
+          --no-translations `
+          dist\basic256.exe
           
         if (Test-Path "dist\translations") {
             Move-Item "dist\translations" "dist\Translations_Temp"
@@ -220,11 +226,9 @@ jobs:
             New-Item -ItemType Directory -Path "dist\Translations" | Out-Null
         }
         
-        # Copy the CMake-generated .qm compilation translations if available
         if (Test-Path "build\basic256_en.qm") {
             Copy-Item "build\*.qm" "dist\Translations\" -Force
         } elseif (Test-Path "Translations") {
-            # Fallback to source directory if qmake artifacts lingered
             Copy-Item "Translations\*.qm" "dist\Translations\" -Force
         }
         
@@ -233,7 +237,7 @@ jobs:
         Copy-Item "$env:Qt5_Dir\bin\Qt5MultimediaWidgets.dll" dist\ -Force
         Copy-Item "$env:Qt5_Dir\bin\Qt5PrintSupport.dll" dist\ -Force
         Compress-Archive -Path dist\* -DestinationPath ${{ matrix.artifact_name }}.zip
-
+        
     - name: Upload artifacts
       uses: actions/upload-artifact@v4.6.2
       with:

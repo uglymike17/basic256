@@ -10,8 +10,11 @@ This new  GitHub repository is my attempt to restart Basic256 and takes the r946
 
 The aim for this branch is
  - make it compile on Windows, Linux-Intel and Linux-ARM (RPi) from a single Actions pipeline. (Qt being cross-platform, MacOS port may also be looked at).
+ ==> At the moment, I'm concentrating on Windows. Linux-Intel, Linux-ARM, Portable app will have to wait
  - port from qmake to CMake
- - make clean-ups & modernisations where possible. (currently synchronious ESpeak has already been replaced by asynchronious Qt texttoSpeech)
+ ==> Seems to have gone ok
+ - make clean-ups & modernisations where possible. (
+ ==> synchronious ESpeak has been replaced by asynchronious Qt texttoSpeech
 
 I asked ChatGPT to do an Audit and show a way forward for this. This is what it answered:
 
