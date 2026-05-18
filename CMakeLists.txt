@@ -92,6 +92,7 @@ if(WIN32)
     # Only use -mstackrealign if compiling with MinGW/GCC (MSVC doesn't use it)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         add_compile_options(-mstackrealign) 
+    endif()    
 
 elseif(APPLE)
     add_compile_definitions(MACX MACX_SAY USE_QT_TEXTTOSPEECH)
