@@ -75,7 +75,7 @@ jobs:
         cd LEX && make && cd ..
         
         # Configure and Build using CMake
-        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=${{ env.Qt5_Dir }}
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=$Qt5_Dir
         cmake --build build --config Release -j$(nproc)
 
     # ---------------------------
@@ -100,7 +100,7 @@ jobs:
       env:
         BISON_PKGDATADIR: C:\ProgramData\chocolatey\lib\winflexbison3\tools\data
       run: |
-        $qtBin = "${{ env.Qt5_Dir }}\bin"
+        $qtBin = "$env:Qt5_Dir\bin"
         $mingwBin = "C:\ProgramData\Chocolatey\lib\mingw\tools\install\mingw64\bin"
         $bisonBin = "C:\ProgramData\chocolatey\lib\winflexbison3\tools"
         $env:Path = "$qtBin;$mingwBin;$bisonBin;" + $env:Path
@@ -113,7 +113,7 @@ jobs:
         cd ..
 
         # Configure and Build using CMake (using MinGW Makefiles generator)
-        cmake -G "MinGW Makefiles" -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ env.Qt5_Dir }}"
+        cmake -G "MinGW Makefiles" -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$env:Qt5_Dir"
         cmake --build build --config Release -j2
 
     # ---------------------------
@@ -206,11 +206,11 @@ jobs:
         # Copy binary from CMake's out-of-source build location
         Copy-Item build\basic256.exe dist\
         
-        & "${{ env.Qt5_Dir }}\bin\windeployqt.exe" `
-          --dir dist `
-          --multimedia `
-          --no-translations `
-          dist\basic256.exe
+        & "$env:Qt5_Dir\bin\windeployqt.exe" `
+        --dir dist `
+        --multimedia `
+        --no-translations `
+        dist\basic256.exe
           
         if (Test-Path "dist\translations") {
             Move-Item "dist\translations" "dist\Translations_Temp"
@@ -229,9 +229,9 @@ jobs:
         }
         
         Remove-Item "dist\libGLESv2.dll", "dist\libEGL.dll", "dist\opengl32sw.dll" -ErrorAction SilentlyContinue
-        Copy-Item "${{ env.Qt5_Dir }}\bin\Qt5OpenGL.dll" dist\ -Force
-        Copy-Item "${{ env.Qt5_Dir }}\bin\Qt5MultimediaWidgets.dll" dist\ -Force
-        Copy-Item "${{ env.Qt5_Dir }}\bin\Qt5PrintSupport.dll" dist\ -Force
+        Copy-Item "$env:Qt5_Dir\bin\Qt5OpenGL.dll" dist\ -Force
+        Copy-Item "$env:Qt5_Dir\bin\Qt5MultimediaWidgets.dll" dist\ -Force
+        Copy-Item "$env:Qt5_Dir\bin\Qt5PrintSupport.dll" dist\ -Force
         Compress-Archive -Path dist\* -DestinationPath ${{ matrix.artifact_name }}.zip
 
     - name: Upload artifacts
