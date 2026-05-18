@@ -47,9 +47,10 @@ jobs:
       run: |
         sudo apt update
         sudo apt install -y \
-          qt5-qmake \
+          cmake \
           qtbase5-dev \
           qttools5-dev \
+          qttools5-dev-tools \
           libqt5sql5-sqlite \
           libqt5serialport5-dev \
           libqt5printsupport5 \
@@ -66,12 +67,16 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt update
-        sudo apt install -y build-essential libgl1-mesa-dev libx11-dev libxext-dev \
+        sudo apt install -y build-essential cmake libgl1-mesa-dev libx11-dev libxext-dev \
           libxrender-dev libxi-dev libxkbcommon-x11-0 \
-          flex bison
+          flex bison qttools5-dev-tools
+        
+        # Generate LEX parser files
         cd LEX && make && cd ..
-        qmake BASIC256.pro CONFIG+=release
-        make -j$(nproc)
+        
+        # Configure and Build using CMake
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=${{ env.Qt5_Dir }}
+        cmake --build build --config Release -j$(nproc)
 
     # ---------------------------
     # Linux ARM Build
@@ -80,8 +85,8 @@ jobs:
       if: matrix.os == 'ubuntu-24.04-arm'
       run: |
         cd LEX && make && cd ..
-        qmake BASIC256.pro CONFIG+=release
-        make -j$(nproc)
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
+        cmake --build build --config Release -j$(nproc)
 
     # ---------------------------
     # Windows Build
@@ -90,15 +95,6 @@ jobs:
       if: runner.os == 'Windows'
       run: choco install winflexbison3 -y
 
-    - name: Disable eSpeak in .pro file (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        (Get-Content BASIC256.pro) `
-          -replace 'DEFINES\s*\+=\s*ESPEAK', '#DEFINES += ESPEAK' |
-          Set-Content BASIC256.pro
-        echo "--- Checking ESPEAK lines after patch ---"
-        Select-String -Path BASIC256.pro -Pattern "ESPEAK"
-        
     - name: Run Build (Windows)
       if: runner.os == 'Windows'
       env:
@@ -109,9 +105,6 @@ jobs:
         $bisonBin = "C:\ProgramData\chocolatey\lib\winflexbison3\tools"
         $env:Path = "$qtBin;$mingwBin;$bisonBin;" + $env:Path
 
-        if (Test-Path "tmp") { Remove-Item -Recurse "tmp" }
-        if (Test-Path "release") { Remove-Item -Recurse "release" }
-
         Copy-Item "$bisonBin\win_flex.exe" "$bisonBin\flex.exe" -Force
         Copy-Item "$bisonBin\win_bison.exe" "$bisonBin\bison.exe" -Force
 
@@ -119,8 +112,9 @@ jobs:
         mingw32-make
         cd ..
 
-        qmake BASIC256.pro -spec win32-g++ "QT+=multimediawidgets" "CONFIG+=release" "DEFINES-=ESPEAK"
-        mingw32-make -j2
+        # Configure and Build using CMake (using MinGW Makefiles generator)
+        cmake -G "MinGW Makefiles" -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ env.Qt5_Dir }}"
+        cmake --build build --config Release -j2
 
     # ---------------------------
     # Packaging Linux x86_64
@@ -129,7 +123,7 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         mkdir -p dist
-        cp basic256 dist/
+        cp build/basic256 dist/
         cp -r Examples dist/ || true
         cp README.md dist/ || true
         cp $Qt5_Dir/lib/libQt5Multimedia.so.5 dist/ || true
@@ -150,11 +144,14 @@ jobs:
       if: matrix.os == 'ubuntu-24.04-arm'
       run: |
         mkdir -p dist
+        cp build/basic256 dist/
         cp README.md dist/ || true
 
-        # Find and copy Qt5 libraries from system location
-        QT_LIB_DIR=$(qmake -query QT_INSTALL_LIBS)
-        echo "Qt libs located at: $QT_LIB_DIR"
+        # For system Qt, we can find libs via a fallback layout since we aren't using qmake queries
+        QT_LIB_DIR="/usr/lib/x86_64-linux-gnu"
+        if [ "${{ matrix.arch }}" = "arm64" ] || [ "${{ matrix.os }}" = "ubuntu-24.04-arm" ]; then
+            QT_LIB_DIR="/usr/lib/aarch64-linux-gnu"
+        fi
 
         for lib in \
           libQt5Core \
@@ -172,16 +169,20 @@ jobs:
             find $QT_LIB_DIR /usr/lib -name "${lib}.so.5" 2>/dev/null | head -1 | xargs -I{} cp {} dist/ || true
         done
 
-        # Copy Qt plugins needed at runtime
+        # Copy runtime plugins
         mkdir -p dist/plugins/platforms
         mkdir -p dist/plugins/sqldrivers
         mkdir -p dist/plugins/audio
-        QT_PLUGIN_DIR=$(qmake -query QT_INSTALL_PLUGINS)
+        QT_PLUGIN_DIR="/usr/lib/x86_64-linux-gnu/qt5/plugins"
+        if [ -d "/usr/lib/aarch64-linux-gnu/qt5/plugins" ]; then
+            QT_PLUGIN_DIR="/usr/lib/aarch64-linux-gnu/qt5/plugins"
+        fi
+        
         cp $QT_PLUGIN_DIR/platforms/libqxcb.so dist/plugins/platforms/ || true
         cp $QT_PLUGIN_DIR/sqldrivers/libqsqlite.so dist/plugins/sqldrivers/ || true
         cp $QT_PLUGIN_DIR/audio/libqtaudio_alsa.so dist/plugins/audio/ || true
 
-        # Add a launcher script that sets library path
+        # Add launcher script
         printf '#!/bin/bash\n' > dist/run_basic256.sh
         printf 'DIR="$(cd "$(dirname "$0")" && pwd)"\n' >> dist/run_basic256.sh
         printf 'export LD_LIBRARY_PATH="$DIR:$LD_LIBRARY_PATH"\n' >> dist/run_basic256.sh
@@ -195,19 +196,22 @@ jobs:
     # Packaging Windows
     # ---------------------------
     - name: Package Windows Build
-
       if: runner.os == 'Windows'
       run: |
         mkdir dist
         "@echo off" > dist\basic256.bat
         echo set QT_OPENGL=desktop >> dist\basic256.bat
         echo start basic256.exe >> dist\basic256.bat
-        Copy-Item release\basic256.exe dist\
+        
+        # Copy binary from CMake's out-of-source build location
+        Copy-Item build\basic256.exe dist\
+        
         & "${{ env.Qt5_Dir }}\bin\windeployqt.exe" `
           --dir dist `
           --multimedia `
           --no-translations `
           dist\basic256.exe
+          
         if (Test-Path "dist\translations") {
             Move-Item "dist\translations" "dist\Translations_Temp"
             Move-Item "dist\Translations_Temp" "dist\Translations" -Force
@@ -215,9 +219,15 @@ jobs:
         if (-not (Test-Path "dist\Translations")) {
             New-Item -ItemType Directory -Path "dist\Translations" | Out-Null
         }
-        if (Test-Path "Translations") {
+        
+        # Copy the CMake-generated .qm compilation translations if available
+        if (Test-Path "build\basic256_en.qm") {
+            Copy-Item "build\*.qm" "dist\Translations\" -Force
+        } elseif (Test-Path "Translations") {
+            # Fallback to source directory if qmake artifacts lingered
             Copy-Item "Translations\*.qm" "dist\Translations\" -Force
         }
+        
         Remove-Item "dist\libGLESv2.dll", "dist\libEGL.dll", "dist\opengl32sw.dll" -ErrorAction SilentlyContinue
         Copy-Item "${{ env.Qt5_Dir }}\bin\Qt5OpenGL.dll" dist\ -Force
         Copy-Item "${{ env.Qt5_Dir }}\bin\Qt5MultimediaWidgets.dll" dist\ -Force
@@ -232,9 +242,6 @@ jobs:
           *.tar.gz
           *.zip
 
-  # ---------------------------
-  # Release job (only on tag)
-  # ---------------------------
   release:
     name: Publish Release
     needs: build
