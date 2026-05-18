@@ -84,6 +84,8 @@ char *filename;
 }
 #endif
 
+%option nounistd
+
 void count();
 void unputcolon();
 
