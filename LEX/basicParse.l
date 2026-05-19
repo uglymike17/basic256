@@ -25,6 +25,10 @@
 #include "../CompileErrors.h"
 #include "../WordCodes.h"
 
+// Fix for MSVC unresolved external symbol strcasecmp
+#ifdef _MSC_VER
+#define strcasecmp _stricmp
+#endif
 
 #ifdef __cplusplus
 	extern "C" {
