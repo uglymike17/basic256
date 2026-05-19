@@ -96,6 +96,8 @@ if(WIN32)
     # Force MSVC to recognize alternative operator text keywords like 'and', 'not', 'or'
     elseif(MSVC)
         add_compile_options(/permissive-)
+        # Globally fix the missing POSIX strcasecmp mapping for MSVC
+        add_compile_definitions(strcasecmp=_stricmp)
     endif()
     
 elseif(APPLE)
