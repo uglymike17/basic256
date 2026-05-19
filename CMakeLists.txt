@@ -94,6 +94,11 @@ if(WIN32)
         add_compile_options(-mstackrealign) 
     endif()    
 
+    # Force MSVC to recognize alternative operator text keywords like 'and', 'not', 'or'
+    elseif(MSVC)
+        add_compile_options(/Zc:alternativeTokens)
+    endif()
+    
 elseif(APPLE)
     add_compile_definitions(MACX MACX_SAY USE_QT_TEXTTOSPEECH)
     

@@ -947,10 +947,14 @@ Interpreter::cleanup() {
 	}
 
 	// close the currently open folder
-	if(directorypointer != NULL) {
-		closedir(directorypointer);
-		directorypointer = NULL;
-	}
+	if (directorypointer != NULL) {
+	#ifndef _MSC_VER
+    	closedir(directorypointer);
+	#else
+    	delete static_cast<QStringList*>(directorypointer);
+	#endif
+    directorypointer = NULL;
+}
 
 	// close and delete painter
 	if (painter) {
