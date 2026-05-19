@@ -5835,32 +5835,77 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_DIR: {
-					// Get next directory entry - id path send start a new folder else get next file name
-					// return "" if we have no names on list - skippimg . and ..
-					QString folder = stack->popQString();
-					if (folder.length()>0) {
-						if(directorypointer != NULL) {
-							closedir(directorypointer);
-							directorypointer = NULL;
-						}
-						directorypointer = opendir( folder.toUtf8().data() );
-					}
-					if (directorypointer != NULL) {
-						struct dirent *dirp;
-						dirp = readdir(directorypointer);
-						while(dirp != NULL && dirp->d_name[0]=='.') dirp = readdir(directorypointer);
-						if (dirp) {
-							stack->pushQString(QString::fromUtf8(dirp->d_name));
-						} else {
-							stack->pushQString(QString(""));
-							closedir(directorypointer);
-							directorypointer = NULL;
-						}
-					} else {
-						error->q(ERROR_FOLDER);
-						stack->pushQString(QString(""));
-					}
-				}
+                    // Get next directory entry - id path send start a new folder else get next file name
+                    // return "" if we have no names on list - skipping . and ..
+                    QString folder = stack->popQString();
+
+				#ifndef _MSC_VER
+                    // ==========================================
+                    // Original Linux/MinGW/POSIX Implementation
+                    // ==========================================
+                    if (folder.length() > 0) {
+                        if (directorypointer != NULL) {
+                            closedir(directorypointer);
+                            directorypointer = NULL;
+                        }
+                        directorypointer = opendir(folder.toUtf8().data());
+                    }
+                    if (directorypointer != NULL) {
+                        struct dirent *dirp;
+                        dirp = readdir(directorypointer);
+                        while (dirp != NULL && dirp->d_name[0] == '.') dirp = readdir(directorypointer);
+                        if (dirp) {
+                            stack->pushQString(QString::fromUtf8(dirp->d_name));
+                        } else {
+                            stack->pushQString(QString(""));
+                            closedir(directorypointer);
+                            directorypointer = NULL;
+                        }
+                    } else {
+                        error->q(ERROR_FOLDER);
+                        stack->pushQString(QString(""));
+                    }
+				#else
+                    // ==========================================
+                    // New Cross-Platform MSVC Implementation (Qt)
+                    // ==========================================
+                    #include <QDir>
+                    #include <QStringList>
+
+                    if (folder.length() > 0) {
+                        // If a folder list was already open, clear it out of memory
+                        if (directorypointer != NULL) {
+                            delete static_cast<QStringList*>(directorypointer);
+                            directorypointer = NULL;
+                        }
+
+                        QDir dir(folder);
+                        if (dir.exists()) {
+                            // Fetch all files, skipping "." and ".." natively via Qt flags
+                            QStringList *fileList = new QStringList(dir.entryList(QDir::NoDotAndDotDot | QDir::AllEntries));
+                            directorypointer = static_cast<void*>(fileList);
+                        }
+                    }
+
+                    if (directorypointer != NULL) {
+                        QStringList *fileList = static_cast<QStringList*>(directorypointer);
+                        
+                        if (!fileList->isEmpty()) {
+                            // Pop the front file off our list and hand it to BASIC-256
+                            QString nextFile = fileList->takeFirst();
+                            stack->pushQString(nextFile);
+                        } else {
+                            // Out of files! Clear the pointer and return empty string
+                            stack->pushQString(QString(""));
+                            delete fileList;
+                            directorypointer = NULL;
+                        }
+                    } else {
+                        error->q(ERROR_FOLDER);
+                        stack->pushQString(QString(""));
+                    }
+				#endif
+                }
 				break;
 
 				case OP_REPLACE: {

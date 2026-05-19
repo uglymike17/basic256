@@ -147,7 +147,7 @@ Variable* Variables::getAt(int varnum, int level) {
 	Variable *v;
 	if(isglobal[varnum]) level = 0;
 	v = varmap[level][varnum];
-	if (not v) {
+	if (! v) {
 		v = new Variable();
 		varmap[level][varnum] = v;
 	}

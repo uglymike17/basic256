@@ -26,7 +26,12 @@
 #include <QTime>
 #include <stdio.h>
 #include <cmath>
+#ifndef _MSC_VER
 #include <dirent.h>
+#else
+#include <windows.h>
+// MSVC doesn't have dirent structures, so we will use native Windows types instead
+#endif
 #include "BasicGraph.h"
 #include "Constants.h"
 #include "DataElement.h"
@@ -287,7 +292,11 @@ class Interpreter : public QThread
         int listensockfd;				// temp socket used in netlisten
         int netsockfd[NUMSOCKETS];
 
-        DIR *directorypointer;		// used by DIR function
+        #ifndef _MSC_VER
+            DIR *directorypointer;
+        #else
+            void *directorypointer; // On MSVC, we will cast this to a QStringList*
+        #endif
         QTime runtimer;				// used by MSEC function
         //SoundSystem *sound;
         int includeFileNumber;
