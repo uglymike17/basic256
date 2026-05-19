@@ -154,7 +154,6 @@ if(WIN32)
     set(PLATFORM_LIBS ole32 ws2_32 winmm)
     list(APPEND SOURCES 
         resources/windows.rc
-        resources/basic256.rc
 )
 
 elseif(APPLE)
