@@ -79,7 +79,7 @@ set(TS_FILES
     Translations/basic256_it.ts
 )
 # Process TS files into QM files When switching to Qt6, use qt_add_translations() instead of qt_add_translation() 
-qt_add_translation(QM_FILES ${TS_FILES})
+qt5_add_translation(QM_FILES ${TS_FILES})
 
 # -------------------------------------------------------------------
 # Platform Specific Settings 
@@ -89,8 +89,11 @@ if(WIN32)
     set(PLATFORM_DEFS WIN32 USEQMEDIAPLAYER USE_QT_TEXTTOSPEECH)
     
     # Windows Resource File
-    list(APPEND SOURCES resources/windows.rc)
-    
+    list(APPEND SOURCES 
+        resources/windows.rc
+        LEX/lex.yy.c
+        LEX/basicParse.tab.c
+    )
     # Platform Libraries
     set(PLATFORM_LIBS ole32 ws2_32 winmm)
     
@@ -114,7 +117,7 @@ endif()
 # -------------------------------------------------------------------
 
 # Define the executable target 
-qt_add_executable(basic256 
+add_executable(basic256 
     ${SOURCES} 
     ${HEADERS} 
     ${RESOURCES}
