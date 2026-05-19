@@ -129,9 +129,12 @@ set(HEADERS
 # Qt Resources 
 set(RESOURCES
     resources/resource.qrc
-    resources/basic256.qrc
-    resources/windows.rc
+    resources/basic256.rc
 )
+
+if(WIN32)
+    list(APPEND RESOURCES resources/windows.rc)
+endif()
 
 # Translations 
 set(TS_FILES
@@ -153,14 +156,6 @@ qt5_add_translation(QM_FILES ${TS_FILES})
 
 if(WIN32)
     set(PLATFORM_DEFS WIN32 USEQMEDIAPLAYER USE_QT_TEXTTOSPEECH)
-    
-    # Windows Resource File
-    list(APPEND SOURCES 
-        resources/windows.rc
-        LEX/lex.yy.c
-        LEX/basicParse.tab.c
-    )
-    # Platform Libraries
     set(PLATFORM_LIBS ole32 ws2_32 winmm)
     
 elseif(APPLE)
@@ -184,8 +179,8 @@ endif()
 
 # Define the executable target 
 add_executable(basic256 
-    ${SOURCES_MAIN} 
-    ${HEADERS_MAIN} 
+    ${SOURCES} 
+    ${HEADERS} 
     ${RESOURCES}
     ${QM_FILES}
 )
@@ -200,7 +195,6 @@ target_include_directories(basic256 PRIVATE
 )
 
 if(UNIX AND NOT APPLE)
-    include(GNUInstallDirs)
     install(TARGETS basic256 DESTINATION ${CMAKE_INSTALL_BINDIR})
     install(DIRECTORY ./Examples DESTINATION ${CMAKE_INSTALL_DATADIR}/basic256)
     install(DIRECTORY ./wikihelp/help DESTINATION ${CMAKE_INSTALL_DATADIR}/basic256)
@@ -227,7 +221,6 @@ else()
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_SYSTEM_NAME STREQUAL "Windows")
         target_compile_options(basic256 PRIVATE -mstackrealign)
     endif()
-
 endif()
 
 # Link Qt libraries and OS specific libraries 
