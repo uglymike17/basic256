@@ -95,7 +95,7 @@ if(WIN32)
 
     # Force MSVC to recognize alternative operator text keywords like 'and', 'not', 'or'
     elseif(MSVC)
-        add_compile_options(/Zc:alternativeTokens)
+        add_compile_options(/permissive-)
     endif()
     
 elseif(APPLE)
