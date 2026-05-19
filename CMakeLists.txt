@@ -48,24 +48,90 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS
 # -------------------------------------------------------------------
 
 # Note: Explicitly listing files is best practice in CMake, 
-# but file(GLOB) mimics the behavior of the original *.cpp / *.h masks 
-file(GLOB SOURCES_MAIN CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
-file(GLOB HEADERS_MAIN CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
+set(SOURCES_MAIN
+    BasicDock.cpp
+    BasicDownloader.cpp
+    BasicEdit.cpp
+    BasicGraph.cpp
+    BasicIcons.cpp
+    BasicKeyboard.cpp
+    BasicMediaPlayer.cpp
+    BasicOutput.cpp
+    BasicWidget.cpp
+    Convert.cpp
+    DataElement.cpp
+    EditSyntaxHighlighter.cpp
+    Error.cpp
+    Interpreter.cpp
+    LineNumberArea.cpp
+    Main.cpp
+    MainWindow.cpp
+    md5.cpp
+    PreferencesWin.cpp
+    ReplaceWin.cpp
+    RunController.cpp
+    Sleeper.cpp
+    Sound.cpp
+    Stack.cpp
+    Variables.cpp
+    VariableWin.cpp
+    ViewWidgetIFace.cpp
+)
+
+set(HEADERS_MAIN
+    BasicDock.h
+    BasicDownloader.h
+    BasicEdit.h
+    BasicGraph.h
+    BasicIcons.h
+    BasicKeyboard.h
+    BasicMediaPlayer.h
+    BasicOutput.h
+    BasicTypes.h
+    BasicWidget.h
+    CompileErrors.h
+    Constants.h
+    Convert.h
+    DataElement.h
+    EditSyntaxHighlighter.h
+    Error.h
+    ErrorCodes.h
+    Interpreter.h
+    LineNumberArea.h
+    MainWindow.h
+    md5.h
+    PreferencesWin.h
+    ReplaceWin.h
+    RunController.h
+    Settings.h
+    Sleeper.h
+    Sound.h
+    Stack.h
+    Variables.h
+    VariableWin.h
+    Version.h
+    ViewWidgetIFace.h
+    WordCodes.h
+)
 
 # Add the explicit LEX files 
 set(SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/LEX/lex.yy.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/LEX/basicParse.tab.c
+    LEX/lex.yy.c
+    LEX/basicParse.tab.c
     ${SOURCES_MAIN}
 )
 
 set(HEADERS
-    ${CMAKE_CURRENT_SOURCE_DIR}/LEX/basicParse.tab.h
+    LEX/basicParse.tab.h
     ${HEADERS_MAIN}
 )
 
 # Qt Resources 
-set(RESOURCES resources/resource.qrc)
+set(RESOURCES
+    resources/resource.qrc
+    resources/basic256.qrc
+    resources/windows.rc
+)
 
 # Translations 
 set(TS_FILES
@@ -118,8 +184,8 @@ endif()
 
 # Define the executable target 
 add_executable(basic256 
-    ${SOURCES} 
-    ${HEADERS} 
+    ${SOURCES_MAIN} 
+    ${HEADERS_MAIN} 
     ${RESOURCES}
     ${QM_FILES}
 )
