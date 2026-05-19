@@ -84,12 +84,12 @@ char *filename;
 }
 #endif
 
-%option nounistd
-
 void count();
 void unputcolon();
 
 %}
+
+%option nounistd
 
 %x INCLUDE
 %x INCLUDE_FILE
