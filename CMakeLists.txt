@@ -1,42 +1,47 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.21)
 project(basic256 VERSION 1.0 LANGUAGES C CXX)
 
-# Force C++17 standard [cite: 2]
+# Force C++17 standard 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Automatic handling of Qt features
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# Find Qt 5 components [cite: 1, 2]
-find_package(Qt5 COMPONENTS 
-    Core 
-    Gui 
-    Widgets 
-    Sql 
-    PrintSupport 
-    SerialPort 
-    Multimedia 
-    TextToSpeech 
-    LinguistTools 
-    REQUIRED
+include(GNUInstallDirs)
+
+# IDE/Tooling supportsupport for compile_commands.json (e.g. for clangd, VSCode C++ extensions) 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Find Qt 5/6 components 
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS
+    Core
+    Gui
+    Widgets
+    Sql
+    PrintSupport
+    SerialPort
+    Multimedia
+    TextToSpeech
+    LinguistTools
 )
 
-# Global compiler definitions
-# (Uncomment the line below if you need the interpreter debug messages)
-# add_compile_definitions(DEBUG)
-
-if(CMAKE_BUILD_TYPE STREQUAL "Release" OR NOT CMAKE_BUILD_TYPE)
-    add_compile_definitions(QT_NO_DEBUG_OUTPUT QT_NO_WARNING_OUTPUT)
-endif()
-
-# Include paths [cite: 2]
-include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/LEX
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS
+    Core
+    Gui
+    Widgets
+    Sql
+    PrintSupport
+    SerialPort
+    Multimedia
+    TextToSpeech
+    LinguistTools
 )
+
+
 
 # -------------------------------------------------------------------
 # Source Files & Wildcards 
@@ -44,8 +49,8 @@ include_directories(
 
 # Note: Explicitly listing files is best practice in CMake, 
 # but file(GLOB) mimics the behavior of the original *.cpp / *.h masks 
-file(GLOB SOURCES_MAIN "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
-file(GLOB HEADERS_MAIN "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
+file(GLOB SOURCES_MAIN CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+file(GLOB HEADERS_MAIN CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 
 # Add the explicit LEX files 
 set(SOURCES
@@ -59,10 +64,10 @@ set(HEADERS
     ${HEADERS_MAIN}
 )
 
-# Qt Resources [cite: 3]
+# Qt Resources 
 set(RESOURCES resources/resource.qrc)
 
-# Translations [cite: 3]
+# Translations 
 set(TS_FILES
     Translations/basic256_en.ts
     Translations/basic256_de.ts
@@ -73,15 +78,15 @@ set(TS_FILES
     Translations/basic256_nl.ts
     Translations/basic256_it.ts
 )
-# Process TS files into QM files
-qt5_add_translation(QM_FILES ${TS_FILES})
+# Process TS files into QM files When switching to Qt6, use qt_add_translations() instead of qt_add_translation() 
+qt_add_translation(QM_FILES ${TS_FILES})
 
 # -------------------------------------------------------------------
 # Platform Specific Settings 
 # -------------------------------------------------------------------
 
 if(WIN32)
-    add_compile_definitions(WIN32 USEQMEDIAPLAYER USE_QT_TEXTTOSPEECH)
+    set(PLATFORM_DEFS WIN32 USEQMEDIAPLAYER USE_QT_TEXTTOSPEECH)
     
     # Windows Resource File
     list(APPEND SOURCES resources/windows.rc)
@@ -89,39 +94,19 @@ if(WIN32)
     # Platform Libraries
     set(PLATFORM_LIBS ole32 ws2_32 winmm)
     
-    # Only use -mstackrealign if compiling with MinGW/GCC (MSVC doesn't use it)
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        add_compile_options(-mstackrealign)    
-
-    # Force MSVC to recognize alternative operator text keywords like 'and', 'not', 'or'
-    elseif(MSVC)
-        add_compile_options(/permissive-)
-        # Globally fix the missing POSIX strcasecmp mapping for MSVC
-        add_compile_definitions(strcasecmp=_stricmp)
-    endif()
-    
 elseif(APPLE)
-    add_compile_definitions(MACX MACX_SAY USE_QT_TEXTTOSPEECH)
+    set(PLATFORM_DEFS MACX MACX_SAY USE_QT_TEXTTOSPEECH)
+    set(PLATFORM_LIBS "")
+    set(PLATFORM_INCLUDE_DIRS /opt/local/include)  # ← store, don't apply yet
+    set(PLATFORM_LINK_DIRS /opt/local/lib)
     
     # App icon 
     list(APPEND SOURCES resources/basic256.icns)
     set_source_files_properties(resources/basic256.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-    
-    # Mac include paths & libraries 
-    include_directories(/opt/local/include)
-    link_directories(/opt/local/lib)
 
 elseif(UNIX AND NOT APPLE)
-    add_compile_definitions(LINUX USE_QT_TEXTTOSPEECH)
-    
+    set(PLATFORM_DEFS LINUX USE_QT_TEXTTOSPEECH)
     set(PLATFORM_LIBS m)
-    
-    # Installation rules 
-    install(DIRECTORY ./Examples DESTINATION /usr/share/basic256)
-    install(DIRECTORY ./wikihelp/help DESTINATION /usr/share/basic256)
-    
-    # Install generated .qm translation files 
-    install(FILES ${QM_FILES} DESTINATION /usr/share/basic256)
 endif()
 
 # -------------------------------------------------------------------
@@ -129,28 +114,64 @@ endif()
 # -------------------------------------------------------------------
 
 # Define the executable target 
-add_executable(basic256 
+qt_add_executable(basic256 
     ${SOURCES} 
     ${HEADERS} 
     ${RESOURCES}
     ${QM_FILES}
 )
 
+# All target_* commands AFTER target creation
+target_compile_definitions(basic256 PRIVATE ${PLATFORM_DEFS})
+target_compile_definitions(basic256 PRIVATE $<$<CONFIG:Release>:QT_NO_DEBUG_OUTPUT QT_NO_WARNING_OUTPUT>)
+
+target_include_directories(basic256 PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/LEX
+)
+
+if(UNIX AND NOT APPLE)
+    include(GNUInstallDirs)
+    install(TARGETS basic256 DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(DIRECTORY ./Examples DESTINATION ${CMAKE_INSTALL_DATADIR}/basic256)
+    install(DIRECTORY ./wikihelp/help DESTINATION ${CMAKE_INSTALL_DATADIR}/basic256)
+    install(FILES ${QM_FILES} DESTINATION ${CMAKE_INSTALL_DATADIR}/basic256)
+endif()
+
+if(PLATFORM_INCLUDE_DIRS)
+    target_include_directories(basic256 PRIVATE ${PLATFORM_INCLUDE_DIRS})
+endif()
+if(PLATFORM_LINK_DIRS)
+    target_link_directories(basic256 PRIVATE ${PLATFORM_LINK_DIRS})
+endif()
+
+# Global compiler definitions
+if(MSVC)
+    target_compile_options(basic256 PRIVATE /W4 /permissive-)
+    target_compile_definitions(basic256 PRIVATE strcasecmp=_stricmp)
+else()
+    target_compile_options(basic256 PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+    )
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        target_compile_options(basic256 PRIVATE -mstackrealign)
+    endif()
+
+endif()
+
 # Link Qt libraries and OS specific libraries 
 target_link_libraries(basic256
     PRIVATE
-        Qt5::Core
-        Qt5::Gui
-        Qt5::Widgets
-        Qt5::Sql
-        Qt5::PrintSupport
-        Qt5::SerialPort
-        Qt5::Multimedia
-        Qt5::TextToSpeech
+        Qt${QT_VERSION_MAJOR}::Core
+        Qt${QT_VERSION_MAJOR}::Gui
+        Qt${QT_VERSION_MAJOR}::Widgets
+        Qt${QT_VERSION_MAJOR}::Sql
+        Qt${QT_VERSION_MAJOR}::PrintSupport
+        Qt${QT_VERSION_MAJOR}::SerialPort
+        Qt${QT_VERSION_MAJOR}::Multimedia
+        Qt${QT_VERSION_MAJOR}::TextToSpeech
         ${PLATFORM_LIBS}
 )
 
-# Linux target installation path 
-if(UNIX AND NOT APPLE)
-    install(TARGETS basic256 DESTINATION /usr/bin)
-endif()

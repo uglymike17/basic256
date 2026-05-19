@@ -28,6 +28,10 @@ jobs:
             use_jurplel: true
             qt_arch: win64_msvc2019_64  # Updated for MSVC 2019 / 2022 compatibility
             artifact_name: BASIC256-Windows
+ #         - os: ubuntu-24.04-arm
+ #           arch: arm64
+ #           use_jurplel: false
+ #           artifact_name: BASIC256-Linux-ARM64  
 
     steps:
     - name: Checkout
@@ -40,6 +44,7 @@ jobs:
       with:
         version: ${{ env.QT_VERSION }}
         arch: ${{ matrix.qt_arch }}
+        cache: true
 
     # Install Qt via apt for ARM Linux
     - name: Install Qt (apt for ARM)
@@ -75,7 +80,7 @@ jobs:
         cd LEX && make && cd ..
         
         # Configure and Build using CMake
-        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=$Qt5_Dir
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${Qt5_DIR:-$Qt5_Dir}"
         cmake --build build --config Release -j$(nproc)
 
     # ---------------------------
@@ -116,7 +121,7 @@ jobs:
         cd ..
 
         # Configure using MSVC (Omitting -G defaults to the installed Visual Studio version)
-        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$env:Qt5_Dir"
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="env:Qt5_DIR"
         
         # Build using MSVC compiler pipeline natively via CMake
         cmake --build build --config Release
@@ -204,9 +209,7 @@ jobs:
       if: runner.os == 'Windows'
       run: |
         mkdir dist
-        "@echo off" > dist\basic256.bat
-        echo set QT_OPENGL=desktop >> dist\basic256.bat
-        echo start basic256.exe >> dist\basic256.bat
+        Set-Content -Path "dist\basic256.bat" -Value "@echo off`r`nset QT_OPENGL=desktop`r`nstart basic256.exe"
         
         # MSVC multi-config generator outputs binaries into a 'Release' subfolder
         Copy-Item build\Release\basic256.exe dist\
@@ -251,6 +254,8 @@ jobs:
     needs: build
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
     - name: Download artifacts
       uses: actions/download-artifact@v4.3.0
