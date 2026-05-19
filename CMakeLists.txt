@@ -129,12 +129,7 @@ set(HEADERS
 # Qt Resources 
 set(RESOURCES
     resources/resource.qrc
-    resources/basic256.rc
 )
-
-if(WIN32)
-    list(APPEND RESOURCES resources/windows.rc)
-endif()
 
 # Translations 
 set(TS_FILES
@@ -157,7 +152,11 @@ qt5_add_translation(QM_FILES ${TS_FILES})
 if(WIN32)
     set(PLATFORM_DEFS WIN32 USEQMEDIAPLAYER USE_QT_TEXTTOSPEECH)
     set(PLATFORM_LIBS ole32 ws2_32 winmm)
-    
+    list(APPEND SOURCES 
+        resources/windows.rc
+        resources/basic256.rc
+)
+
 elseif(APPLE)
     set(PLATFORM_DEFS MACX MACX_SAY USE_QT_TEXTTOSPEECH)
     set(PLATFORM_LIBS "")
