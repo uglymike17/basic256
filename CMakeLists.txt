@@ -114,15 +114,35 @@ set(HEADERS_MAIN
     WordCodes.h
 )
 
-# Add the explicit LEX files 
+# -------------------------------------------------------------------
+# Dynamic Lexer/Parser Generation (Flex & Bison)
+# -------------------------------------------------------------------
+
+# Find the standard Flex and Bison executables on the system
+find_package(FLEX REQUIRED)
+find_package(BISON REQUIRED)
+
+# Point to your original grammar and scanner files
+set(BISON_INPUT ${CMAKE_CURRENT_SOURCE_DIR}/LEX/basicParse.y)
+set(FLEX_INPUT ${CMAKE_CURRENT_SOURCE_DIR}/LEX/basicParse.l)
+
+# Direct CMake to generate the C files dynamically inside the build directory
+BISON_TARGET(BasicParser ${BISON_INPUT} ${CMAKE_CURRENT_BINARY_DIR}/basicParse.tab.c
+             DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/basicParse.tab.h)
+FLEX_TARGET(BasicLexer ${FLEX_INPUT} ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.c)
+
+# Ensure the lexer always waits for the parser's header file to be ready
+ADD_FLEX_BISON_DEPENDENCY(BasicLexer BasicParser)
+
+# Combine the dynamically generated files with your main source files
 set(SOURCES
-    LEX/lex.yy.c
-    LEX/basicParse.tab.c
+    ${BISON_BasicParser_OUTPUTS}
+    ${FLEX_BasicLexer_OUTPUTS}
     ${SOURCES_MAIN}
 )
 
 set(HEADERS
-    LEX/basicParse.tab.h
+    ${BISON_BasicParser_OUTPUTS_H}
     ${HEADERS_MAIN}
 )
 

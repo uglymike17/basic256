@@ -140,14 +140,20 @@ int main(int argc, char *argv[]) {
         guimode=2;
     }
 
-    QTranslator qtTranslator;
+QTranslator kbTranslator;
 #ifdef WIN32
-    qtTranslator.load("qt_" + localecode);
+    kbTranslator.load("basic256_" + localecode, qApp->applicationDirPath() + "/Translations/");
 #else
-    qtTranslator.load("qt_" + localecode, QLibraryInfo::location(QLibraryInfo::TranslationsPath));
+    // Check relative directory for portable linux builds / AppImages first
+    bool ok = kbTranslator.load("basic256_" + localecode, qApp->applicationDirPath() + "/Translations/");
+    if (!ok) {
+        // Fallback to standard installation paths if installed globally via apt/make install
+        ok = kbTranslator.load("basic256_" + localecode, qApp->applicationDirPath() + "/../share/basic256/");
+    }
+    if (!ok) ok = kbTranslator.load("basic256_" + localecode, "/usr/share/basic256/");
+    if (!ok) ok = kbTranslator.load("basic256_" + localecode, "/usr/local/share/basic256/");
 #endif
-    qapp.installTranslator(&qtTranslator);
-
+    qapp.installTranslator(&kbTranslator);
     QTranslator kbTranslator;
 #ifdef WIN32
     kbTranslator.load("basic256_" + localecode, qApp->applicationDirPath() + "/Translations/");
