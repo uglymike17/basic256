@@ -140,10 +140,13 @@ jobs:
         wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
         chmod a+x linuxdeployqt-continuous-x86_64.AppImage
         
-        # Package dependencies, plugins, and setup an executable container seamlessly
-        export OLD_PATH=$PATH
-        ./linuxdeployqt-continuous-x86_64.AppImage dist/basic256 -show-logging -bundle-non-qt-libs
+        # Point PATH to the exact folder containing the jurplel-installed Qt binaries (like qmake)
+        export PATH="$Qt5_Dir/bin:$PATH"
         
+        # Run linuxdeployqt without the invalid flag to bundle dependencies and plugins
+        ./linuxdeployqt-continuous-x86_64.AppImage dist/basic256 -bundle-non-qt-libs
+        
+        # Compress everything into your final delivery asset
         tar -czf ${{ matrix.artifact_name }}.tar.gz dist
 
     # ---------------------------
