@@ -140,7 +140,17 @@ int main(int argc, char *argv[]) {
         guimode=2;
     }
 
-QTranslator kbTranslator;
+QTranslator qtTranslator;
+#ifdef WIN32
+    qtTranslator.load("qt_" + localecode);
+#else
+    qtTranslator.load("qt_" + localecode, QLibraryInfo::location(QLibraryInfo::TranslationsPath));
+#endif
+    qapp.installTranslator(&qtTranslator);
+
+    // DECLARE ONCE HERE
+    QTranslator kbTranslator; 
+
 #ifdef WIN32
     kbTranslator.load("basic256_" + localecode, qApp->applicationDirPath() + "/Translations/");
 #else
@@ -152,15 +162,6 @@ QTranslator kbTranslator;
     }
     if (!ok) ok = kbTranslator.load("basic256_" + localecode, "/usr/share/basic256/");
     if (!ok) ok = kbTranslator.load("basic256_" + localecode, "/usr/local/share/basic256/");
-#endif
-    qapp.installTranslator(&kbTranslator);
-    QTranslator kbTranslator;
-#ifdef WIN32
-    kbTranslator.load("basic256_" + localecode, qApp->applicationDirPath() + "/Translations/");
-#else
-    bool ok;
-    ok = kbTranslator.load("basic256_" + localecode, "/usr/share/basic256/");
-    if (!ok) ok = kbTranslator.load("basic256_" + localecode, "/usr/local/share/basic256/");  // alternative location
 #endif
     qapp.installTranslator(&kbTranslator);
 
