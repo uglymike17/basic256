@@ -144,7 +144,7 @@ jobs:
         export PATH="$Qt5_Dir/bin:$PATH"
         
         # Run linuxdeployqt without the invalid flag to bundle dependencies and plugins
-        ./linuxdeployqt-continuous-x86_64.AppImage dist/basic256 -bundle-non-qt-libs
+        ./linuxdeployqt-continuous-x86_64.AppImage dist/basic256 -bundle-non-qt-libs -no-plugins --appimage-extract-and-run
         
         # Compress everything into your final delivery asset
         tar -czf ${{ matrix.artifact_name }}.tar.gz dist
