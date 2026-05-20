@@ -134,8 +134,9 @@ jobs:
       run: |
         mkdir -p dist
         cp build/basic256 dist/
-        cp -r Examples dist/ || true
         cp README.md dist/ || true
+        # Copy Examples directly into the dist folder that gets zipped
+        cp -r Examples dist/
         cp $Qt5_Dir/lib/libQt5Multimedia.so.5 dist/ || true
         cp $Qt5_Dir/lib/libQt5MultimediaWidgets.so.5 dist/ || true
         cp $Qt5_Dir/lib/libQt5Widgets.so.5 dist/ || true
@@ -156,7 +157,8 @@ jobs:
         mkdir -p dist
         cp build/basic256 dist/
         cp README.md dist/ || true
-
+        # Copy Examples directly into the dist folder
+        cp -r Examples dist/
         # For system Qt, we can find libs via a fallback layout since we aren't using qmake queries
         QT_LIB_DIR="/usr/lib/x86_64-linux-gnu"
         if [ "${{ matrix.arch }}" = "arm64" ] || [ "${{ matrix.os }}" = "ubuntu-24.04-arm" ]; then
@@ -213,6 +215,9 @@ jobs:
         
         # MSVC multi-config generator outputs binaries into a 'Release' subfolder
         Copy-Item build\Release\basic256.exe dist\
+
+        # Copy Examples directly into the dist folder before compressing
+        Copy-Item -Path "Examples" -Destination "dist\Examples" -Recurse -Force       
         
         # Deploy deployment assets using MSVC-built windeployqt
         & "$env:Qt5_Dir\bin\windeployqt.exe" `
@@ -240,7 +245,7 @@ jobs:
         Copy-Item "$env:Qt5_Dir\bin\Qt5MultimediaWidgets.dll" dist\ -Force
         Copy-Item "$env:Qt5_Dir\bin\Qt5PrintSupport.dll" dist\ -Force
         Compress-Archive -Path dist\* -DestinationPath ${{ matrix.artifact_name }}.zip
-        
+
     - name: Upload artifacts
       uses: actions/upload-artifact@v4.6.2
       with:

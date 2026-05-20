@@ -142,6 +142,25 @@ set(TS_FILES
     Translations/basic256_nl.ts
     Translations/basic256_it.ts
 )
+
+# -------------------------------------------------
+# Install Examples
+# -------------------------------------------------
+
+install(
+    DIRECTORY ${CMAKE_SOURCE_DIR}/Examples
+    DESTINATION share/basic256
+)
+
+# -------------------------------------------------
+# Install TestSuite
+# -------------------------------------------------
+
+install(
+    DIRECTORY ${CMAKE_SOURCE_DIR}/TestSuite
+    DESTINATION share/basic256
+)
+
 # Process TS files into QM files When switching to Qt6, use qt_add_translations() instead of qt_add_translation() 
 qt5_add_translation(QM_FILES ${TS_FILES})
 

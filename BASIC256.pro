@@ -47,6 +47,25 @@ TRANSLATIONS					=	Translations/basic256_en.ts \
 #### debugging the interpreter
 ###DEFINES += DEBUG
 
+# -------------------------------------------------
+# Install Examples
+# -------------------------------------------------
+
+examples.path = $$PREFIX/share/basic256/Examples
+examples.files = $$files(Examples/*, true)
+
+INSTALLS += examples
+
+
+# -------------------------------------------------
+# Install TestSuite
+# -------------------------------------------------
+
+testsuite.path = $$PREFIX/share/basic256/TestSuite
+testsuite.files = $$files(TestSuite/*, true)
+
+INSTALLS += testsuite
+
 # Windows Specific
 win32 {
 	DEFINES 					+=	WIN32
