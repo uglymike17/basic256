@@ -76,9 +76,6 @@ jobs:
           libxrender-dev libxi-dev libxkbcommon-x11-0 \
           flex bison qttools5-dev-tools
         
-        # Generate LEX parser files
-        cd LEX && make && cd ..
-        
         # Configure and Build using CMake
         cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${Qt5_DIR:-$Qt5_Dir}"
         cmake --build build --config Release -j$(nproc)
@@ -251,9 +248,8 @@ jobs:
       uses: actions/upload-artifact@v4.6.2
       with:
         name: ${{ matrix.artifact_name }}
-        path: |
-          ${{ github.workspace }}/*.tar.gz
-          ${{ github.workspace }}/*.zip
+        path: ${{ github.workspace }}/BASIC256-*
+
 
   release:
     name: Publish Release

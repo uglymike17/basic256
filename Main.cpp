@@ -154,16 +154,28 @@ QTranslator qtTranslator;
 #ifdef WIN32
     kbTranslator.load("basic256_" + localecode, qApp->applicationDirPath() + "/Translations/");
 #else
-    // Check relative directory for portable linux builds / AppImages first
-    bool ok = kbTranslator.load("basic256_" + localecode, qApp->applicationDirPath() + "/Translations/");
+    // Linux: Dynamic path detection strategy
+    bool ok = false;
+
+    // 1. First choice: Check for a "Translations" subfolder sitting right next to the executable
+    // (This is perfect for self-contained packages, AppImages, and local build tests)
+    ok = kbTranslator.load("basic256_" + localecode, qApp->applicationDirPath() + "/Translations/");
+
+    // 2. Second choice: Look for a standard relative installation layout (bin/ vs share/)
+    // If your app is in /usr/bin/ or /usr/local/bin/, this steps out and goes to share/basic256/
     if (!ok) {
-        // Fallback to standard installation paths if installed globally via apt/make install
         ok = kbTranslator.load("basic256_" + localecode, qApp->applicationDirPath() + "/../share/basic256/");
     }
-    if (!ok) ok = kbTranslator.load("basic256_" + localecode, "/usr/share/basic256/");
-    if (!ok) ok = kbTranslator.load("basic256_" + localecode, "/usr/local/share/basic256/");
+
+    // 3. Fallback choices: Global system directories if run from a strange, non-standard layout
+    if (!ok) {
+        ok = kbTranslator.load("basic256_" + localecode, "/usr/share/basic256/"); // 
+    }
+    if (!ok) {
+        ok = kbTranslator.load("basic256_" + localecode, "/usr/local/share/basic256/"); // 
+    }
 #endif
-    qapp.installTranslator(&kbTranslator);
+    qapp.installTranslator(&kbTranslator); //
 
     MainWindow mainwin(0, 0, localecode, guimode);
     mainwin.setObjectName( "mainwin" );
