@@ -45,7 +45,7 @@ jobs:
         version: ${{ env.QT_VERSION }}
         arch: ${{ matrix.qt_arch }}
         cached: ${{ github.ref_name == 'main' || github.ref_name == 'master' }}
-        modules: 'qtmultimedia qttexttospeech qtserialport'
+        modules: qtmultimedia qttexttospeech qtserialport
     # ---------------------------
     # Linux x86_64 Build
     # ---------------------------
@@ -76,8 +76,9 @@ jobs:
         run: |
           # 1. Install standard development dependencies inside ARM64 environment
           apt-get update && apt-get install -y build-essential cmake flex bison \
-            qtbase5-dev qttools5-dev-tools qtmultimedia5-dev libqt5texttospeech5-dev \
-            libqt5serialport5-dev libgl1-mesa-dev libx11-dev libespeak-ng-dev
+            qtbase5-dev qttools5-dev-tools qttools5-dev qtmultimedia5-dev \
+            libqt5texttospeech5-dev libqt5serialport5-dev libgl1-mesa-dev \
+            libx11-dev libespeak-ng-dev
 
           # 2. Compile directly using native ARM64 tools
           cmake -B build -DCMAKE_BUILD_TYPE=Release
