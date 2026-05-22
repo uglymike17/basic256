@@ -252,8 +252,8 @@ jobs:
       with:
         name: ${{ matrix.artifact_name }}
         path: |
-          *.tar.gz
-          *.zip
+          ${{ github.workspace }}/*.tar.gz
+          ${{ github.workspace }}/*.zip
 
   release:
     name: Publish Release
