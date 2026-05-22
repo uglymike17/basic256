@@ -28,10 +28,10 @@ jobs:
             use_jurplel: true
             qt_arch: win64_msvc2019_64  # Updated for MSVC 2019 / 2022 compatibility
             artifact_name: BASIC256-Windows
- #         - os: ubuntu-24.04-arm
- #           arch: arm64
- #           use_jurplel: false
- #           artifact_name: BASIC256-Linux-ARM64  
+          - os: ubuntu-latest
+            arch: arm64
+            use_jurplel: false
+            artifact_name: BASIC256-RaspberryPi-ARM64  
 
     steps:
     - name: Checkout
@@ -44,27 +44,8 @@ jobs:
       with:
         version: ${{ env.QT_VERSION }}
         arch: ${{ matrix.qt_arch }}
-        cache: true
-
-    # Install Qt via apt for ARM Linux
-    - name: Install Qt (apt for ARM)
-      if: matrix.use_jurplel == false
-      run: |
-        sudo apt update
-        sudo apt install -y \
-          cmake \
-          qtbase5-dev \
-          qttools5-dev \
-          qttools5-dev-tools \
-          libqt5sql5-sqlite \
-          libqt5serialport5-dev \
-          libqt5printsupport5 \
-          libqt5multimedia5 \
-          qtmultimedia5-dev \
-          libqt5texttospeech5-dev \
-          libgl1-mesa-dev \
-          flex bison
-
+        cached: ${{ github.ref_name == 'main' || github.ref_name == 'master' }}
+        modules: 'qtmultimedia qttexttospeech qtserialport'
     # ---------------------------
     # Linux x86_64 Build
     # ---------------------------
@@ -80,15 +61,43 @@ jobs:
         cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${Qt5_DIR:-$Qt5_Dir}"
         cmake --build build --config Release -j$(nproc)
 
-    # ---------------------------
-    # Linux ARM Build
-    # ---------------------------
-    - name: Build Linux ARM
-      if: matrix.os == 'ubuntu-24.04-arm'
-      run: |
-        cd LEX && make && cd ..
-        cmake -B build -DCMAKE_BUILD_TYPE=Release
-        cmake --build build --config Release -j$(nproc)
+    # -----------------------------------------------------------------
+    # Raspberry Pi ARM64 Emulated Build Flow
+    # -----------------------------------------------------------------
+    - name: Build and Package Raspberry Pi ARM64 via QEMU Container
+      if: matrix.arch == 'arm64'
+      uses: uraimo/run-on-arch-action@v2
+      with:
+        arch: aarch64
+        distro: ubuntu22.04
+        githubToken: ${{ github.token }}
+        setup: |
+          mkdir -p "${{ github.workspace }}/artifacts"
+        run: |
+          # 1. Install standard development dependencies inside ARM64 environment
+          apt-get update && apt-get install -y build-essential cmake flex bison \
+            qtbase5-dev qttools5-dev-tools qtmultimedia5-dev libqt5texttospeech5-dev \
+            libqt5serialport5-dev libgl1-mesa-dev libx11-dev libespeak-ng-dev
+
+          # 2. Compile directly using native ARM64 tools
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release -j$(nproc)
+
+          # 3. Create standalone relocatable pipeline distribution folder
+          mkdir -p dist
+          cp build/basic256 dist/
+          cp -r Examples dist/
+
+          # 4. Generate dynamic compiled translations inside distribution target
+          mkdir -p dist/Translations
+          if ls build/*.qm 1> /dev/null 2>&1; then
+            cp build/*.qm dist/Translations/
+          elif ls Translations/*.qm 1> /dev/null 2>&1; then
+            cp Translations/*.qm dist/Translations/
+          fi
+
+          # 5. Pack everything up for immediate collection
+          tar -czf ${{ matrix.artifact_name }}.tar.gz dist
 
     # ---------------------------
     # Windows Build
