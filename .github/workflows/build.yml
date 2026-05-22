@@ -69,7 +69,7 @@ jobs:
     # Linux x86_64 Build
     # ---------------------------
     - name: Build Linux x86_64
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-22.04'
       run: |
         sudo apt update
         sudo apt install -y build-essential cmake libgl1-mesa-dev libx11-dev libxext-dev \
