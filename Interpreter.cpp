@@ -70,7 +70,7 @@ typedef int socklen_t;
 
 
 
-#include "LEX/basicParse.tab.h"
+#include "basicParse.tab.h"
 #include "WordCodes.h"
 #include "CompileErrors.h"
 #include "Interpreter.h"

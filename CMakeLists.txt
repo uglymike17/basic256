@@ -140,7 +140,6 @@ set(SOURCES
     ${FLEX_BasicLexer_OUTPUTS}
     ${SOURCES_MAIN}
 )
-
 set(HEADERS
     ${BISON_BasicParser_OUTPUTS_H}
     ${HEADERS_MAIN}
@@ -229,6 +228,7 @@ target_compile_definitions(basic256 PRIVATE $<$<CONFIG:Release>:QT_NO_DEBUG_OUTP
 target_include_directories(basic256 PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/LEX
+    ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 if(UNIX AND NOT APPLE)
