@@ -127,7 +127,7 @@ jobs:
     # Packaging Linux x86_64
     # ---------------------------
     - name: Package Linux x86_64
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-22.04'
       run: |
         mkdir -p dist
         cp build/basic256 dist/
@@ -244,12 +244,17 @@ jobs:
         Copy-Item "$env:Qt5_Dir\bin\Qt5PrintSupport.dll" dist\ -Force
         Compress-Archive -Path dist -DestinationPath ${{ matrix.artifact_name }}.zip
 
+    # ---------------------------
+    # Upload Artifacts Step
+    # ---------------------------
     - name: Upload artifacts
       uses: actions/upload-artifact@v4.6.2
       with:
         name: ${{ matrix.artifact_name }}
-        path: ${{ github.workspace }}/BASIC256-*
-
+        if-no-files-found: ignore  # Tells the runner to not crash if one of the extensions is missing
+        path: |
+          ${{ github.workspace }}/*.tar.gz
+          ${{ github.workspace }}/*.zip
 
   release:
     name: Publish Release
