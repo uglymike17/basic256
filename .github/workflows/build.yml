@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04  # <-- Change from ubuntu-latest to ubuntu-22.04
             arch: x86_64
             use_jurplel: true
             qt_arch: gcc_64
