@@ -45,7 +45,7 @@ jobs:
         version: ${{ env.QT_VERSION }}
         arch: ${{ matrix.qt_arch }}
         cached: ${{ github.ref_name == 'main' || github.ref_name == 'master' }}
-        modules: qtmultimedia qttexttospeech qtserialport
+
     # ---------------------------
     # Linux x86_64 Build
     # ---------------------------
