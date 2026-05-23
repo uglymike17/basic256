@@ -103,14 +103,20 @@ jobs:
           cp /usr/lib/aarch64-linux-gnu/libQt5PrintSupport.so.* dist/lib/
           cp /usr/lib/aarch64-linux-gnu/libQt5Sql.so.* dist/lib/
 
-          mkdir -p dist/plugins/platforms
-          cp /usr/lib/aarch64-linux-gnu/qt5/plugins/platforms/libqxcb.so dist/plugins/platforms/
+          if [ -d /usr/lib/aarch64-linux-gnu/qt5/plugins/platforms ]; then          
+            mkdir -p dist/plugins/platforms
+            cp /usr/lib/aarch64-linux-gnu/qt5/plugins/platforms/libqxcb.so dist/plugins/platforms/
+          fi    
           
-          mkdir -p dist/plugins/mediaservice
-          cp /usr/lib/aarch64-linux-gnu/qt5/plugins/mediaservice/* dist/plugins/mediaservice/
+          if [ -d /usr/lib/aarch64-linux-gnu/qt5/plugins/mediaservice ]; then
+            mkdir -p dist/plugins/mediaservice
+            cp /usr/lib/aarch64-linux-gnu/qt5/plugins/mediaservice/* dist/plugins/mediaservice/
+          fi
 
-          mkdir -p dist/plugins/imageformats
-          cp /usr/lib/aarch64-linux-gnu/qt5/plugins/imageformats/* dist/plugins/imageformats/
+          if [ -d /usr/lib/aarch64-linux-gnu/qt5/plugins/imageformats ]; then
+            mkdir -p dist/plugins/imageformats
+            cp /usr/lib/aarch64-linux-gnu/qt5/plugins/imageformats/* dist/plugins/imageformats/
+          fi
 
           cp -r Examples dist/
 
