@@ -16,774 +16,250 @@ The aim for this branch is
  - make clean-ups & modernisations where possible. (
  ==> synchronious ESpeak has been replaced by asynchronious Qt texttoSpeech
 
-I asked ChatGPT to do an Audit and show a way forward for this. I have attached ChatGPTs initial audit. This needs to be updated as we now have a CMakeList.txt and a working CMake based build.yml, so qmake and .pro files are obsolete (but still need to be removed) MinGW has also been replaced by MSVC. Windows, Linux x86 and RPi are included although Linux x86 has still to be tested. RPi does not know where the Qt elements are (in ./libs) so that needs to be corrected. Once these 3 are up and running, I'll make an official release and spread the word...
+I asked Clause.com to do an Audit and show a way forward for this. I previously asked ChatGPTs for an audit. Windows, Linux x86 and RPi are included although Linux x86 and RPi are still to be tested.  Once these 3 are up and running, I'll make an official release and spread the word...
 
-# BASIC256 Build System Audit and Modernization Plan
+Here is Claude's feedback:
 
-Repository: [uglymike17/basic256](https://github.com/uglymike17/basic256?utm_source=chatgpt.com)
+# BASIC256 Project — Deep Analysis & Roadmap
 
-Based on your description, this repository is derived from the BASIC256 2.0.0.11 SourceForge branch and still uses a classic Qt/qmake-based build structure.
-
-This document focuses on:
-
-1. A unified GitHub Actions CI/CD pipeline for:
-
-   * Windows
-   * Linux x86_64
-   * Linux ARM64
-   * macOS
-2. Migration from qmake to modern CMake
-3. Qt5/Qt6 compatibility strategy
-4. Packaging recommendations
-5. Long-term modernization roadmap
+**Repository:** uglymike17/basic256  
+**Date of review:** May 2026  
+**Audience:** Project owner, non-C++ programmer
 
 ---
 
-# 1. High-Level Audit
+## 1. What this project actually is
 
-## Current Situation (likely based on 2.0.x)
+BASIC256 is a revival effort of an educational BASIC interpreter (think old-school BASIC for kids, with graphics and sound). The original died on SourceForge after a failed Qt6 migration. This fork takes the last stable source (r946 / v2.0.0.11) and attempts to modernize the build system and get it compiling again on modern platforms — primarily Raspberry Pi, Windows and Linux-x86 and potentially MacOS.
 
-Typical BASIC256 repositories from this era usually contain:
-
-* `.pro` qmake project files
-* manual include/lib paths
-* platform-specific hacks
-* bundled/generated UI files
-* weak separation between:
-
-  * interpreter
-  * IDE/editor
-  * graphics subsystem
-  * sound/multimedia
-* direct Qt Widgets coupling
-* no proper dependency abstraction
-* no CI or fragmented CI
-
-This worked well in:
-
-* Qt4
-* early Qt5
-* desktop-only environments
-
-But becomes increasingly difficult for:
-
-* Apple Silicon
-* ARM Linux
-* Qt6
-* reproducible builds
-* GitHub Actions
-* package managers
-* cross compilation
+The project is 71% C++, 13% Yacc (grammar), and 7% Lex (tokenizer) — the core of a language interpreter. You are not writing a simple app; you are maintaining a programming language runtime and IDE.
 
 ---
 
-# 2. Recommended Target Architecture
+## 2. The CMakeLists.txt — Is it modern?
 
-You should aim for:
+### What it does well
 
-```text
-basic256/
-├── CMakeLists.txt
-├── cmake/
-│   ├── modules/
-│   └── toolchains/
-├── src/
-│   ├── core/
-│   ├── interpreter/
-│   ├── ide/
-│   ├── graphics/
-│   ├── audio/
-│   └── main/
-├── resources/
-├── translations/
-├── tests/
-├── packaging/
-└── .github/workflows/
-```
+- Uses CMake 3.21 minimum — correct for 2024/2025 work.
+- C++17 is set correctly — the right standard for Qt5 and Qt6.
+- `CMAKE_AUTOMOC`, `AUTORCC`, `AUTOUIC` are all on — handles Qt's code generation automatically.
+- Flex/Bison integration is done the proper CMake way (`BISON_TARGET`, `FLEX_TARGET`, `ADD_FLEX_BISON_DEPENDENCY`).
+- Source files are listed explicitly (not via glob wildcards) — this is correct CMake practice.
+- Platform-specific defines use CMake's `if(WIN32)` / `if(APPLE)` / `if(UNIX)` idioms rather than raw compiler flags.
+- `target_compile_definitions`, `target_link_libraries`, `target_include_directories` all use the modern `PRIVATE` scoping — correct.
+- Dual Qt5/Qt6 detection via `find_package(QT NAMES Qt6 Qt5 ...)` is the right pattern.
+- `GNUInstallDirs` is included and used for install paths.
 
-The key architectural change:
+### What is outdated or problematic
 
-## Separate "core" from "GUI"
+**`qt5_add_translation()` is Qt5-only.**  
+The comment in the file even says "When switching to Qt6, use `qt_add_translations()` instead" — but no conditional logic exists to actually do this. Right now, if Qt6 is found, this line will fail. Since the `find_package` logic tries Qt6 first, this is a latent build-breaker waiting to happen.
 
-You eventually want:
-
-| Component | Responsibility          |
-| --------- | ----------------------- |
-| core      | interpreter/runtime     |
-| ide       | editor/debugger UI      |
-| graphics  | rendering/window system |
-| audio     | multimedia              |
-| platform  | OS integration          |
-
-This makes:
-
-* testing easier
-* ARM support easier
-* Qt6 migration easier
-* future scripting support easier
-
----
-
-# 3. Unified GitHub Actions Strategy
-
-## Recommended Platforms
-
-| Platform            | Runner           | Architecture |
-| ------------------- | ---------------- | ------------ |
-| Windows             | windows-latest   | x64          |
-| Ubuntu              | ubuntu-24.04     | x64          |
-| Ubuntu ARM          | ubuntu-24.04-arm | ARM64        |
-| macOS Intel         | macos-13         | x64          |
-| macOS Apple Silicon | macos-14         | ARM64        |
-
-You can later add:
-
-* AppImage
-* Flatpak
-* Homebrew
-* MSIX
-* dmg notarization
-
----
-
-# 4. Recommended Qt Strategy
-
-## Do NOT stay locked to Qt5 forever
-
-Recommended transition:
-
-| Phase   | Goal                       |
-| ------- | -------------------------- |
-| Phase 1 | Build with Qt5 and Qt6     |
-| Phase 2 | Remove deprecated Qt5 APIs |
-| Phase 3 | Qt6 primary                |
-| Phase 4 | Optional Qt5 compatibility |
-
-Recommended minimum:
-
+Fix: replace with:
 ```cmake
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS
-    Widgets
-    Gui
-    Core
-    Multimedia
-    Network
-    PrintSupport
-)
+if(QT_VERSION_MAJOR EQUAL 6)
+    qt_add_translations(basic256 TS_FILES ${TS_FILES})
+else()
+    qt5_add_translation(QM_FILES ${TS_FILES})
+    target_sources(basic256 PRIVATE ${QM_FILES})
+endif()
 ```
 
-This is the canonical dual Qt5/Qt6 approach.
+**Duplicate `find_package` block.**  
+There is a blank line between the two `find_package` calls but no real issue — however the first block finds `QT` (capital) to determine the version, then the second finds `Qt${QT_VERSION_MAJOR}`. This is correct pattern but worth noting — you cannot collapse them into one.
+
+**`qt5_add_translation` produces `QM_FILES` but those are never added to `target_sources`.**  
+The `QM_FILES` variable is listed in `add_executable(... ${QM_FILES})`, which compiles the `.qm` files into the executable as resources — but only if the `.qm` files are also referenced in the `.qrc` file. If they are not in the `.qrc`, they will be compiled as empty resource slots. Verify `resources/resource.qrc` includes a reference to the translation files.
+
+**Windows resource file path.**  
+`resources/windows.rc` is appended to `SOURCES` for Win32. This is fine but the `.rc` file needs to exist and be valid. If it references the old `.ico` path from qmake days, it may fail silently on MSVC.
+
+**No `cmake/` subdirectory.**  
+All logic is in the root CMakeLists.txt. For a project of this size this is acceptable, but as platform-specific logic grows, a `cmake/` folder with helper files (`Packaging.cmake`, `Translations.cmake`) becomes important for readability.
+
+**`COMPILING.txt` / `HOWTO_debian.txt` are probably outdated.**  
+These likely still reference qmake. They should be updated to reflect CMake instructions.
+
+### Overall CMakeLists.txt verdict
+
+**B+ — Mostly modern, a few Qt5/Qt6 incompatibilities that will bite you.**
 
 ---
 
-# 5. Proposed CMake Migration
+## 3. The build.yml — Is it modern?
 
-## Phase 1 — Parallel Build System
+### Structure overview
 
-Do NOT immediately remove qmake.
+The workflow has a matrix that currently runs: Raspberry Pi ARM64 via QEMU emulation, Windows and Linux x86. There is a separate `release:` job that uploads to GitHub Releases.
 
-Instead:
+### What it does well
 
-* keep `.pro` files working
-* introduce CMake in parallel
-* verify all platforms
-* switch CI to CMake
-* remove qmake later
+- Uses `actions/checkout@v4.2.2`, `actions/upload-artifact@v4.6.2`, `actions/download-artifact@v4.3.0` — all pinned to specific versions, which is good security practice.
+- The `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` env variable shows awareness of GitHub's Node runtime migration.
+- `fail-fast: false` is correct for multi-platform builds — one platform failing shouldn't cancel others.
+- `softprops/action-gh-release@v2` for release uploads is the current standard.
+- The ARM build uses `uraimo/run-on-arch-action@v2` to emulate aarch64 — this works but see below.
+- The Windows steps correctly rename `win_flex.exe` → `flex.exe` and `win_bison.exe` → `bison.exe` to satisfy CMake's tool detection.
+- `patchelf --set-rpath '$ORIGIN/lib'` in the ARM packaging step is the right idea.
 
-This dramatically lowers migration risk.
+### What is outdated or problematic
 
----
+**QEMU emulation for ARM is the wrong approach in 2025/2026.**  
+GitHub Actions now has native ARM64 runners: `ubuntu-24.04-arm`. QEMU-emulated builds are dramatically slower (often 10-20x), hit memory limits (hence `j1` in your build command), and are harder to debug. The `uraimo/run-on-arch-action` approach was the only option before 2024, but it is now obsolete for your use case.
 
-# 6. Minimal Root CMakeLists.txt
-
-## Recommended Starting Point
-
-```cmake
-cmake_minimum_required(VERSION 3.21)
-
-project(BASIC256 VERSION 2.0.0 LANGUAGES CXX)
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTORCC ON)
-
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS
-    Core
-    Gui
-    Widgets
-    Multimedia
-    Network
-    PrintSupport
-)
-
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS
-    Core
-    Gui
-    Widgets
-    Multimedia
-    Network
-    PrintSupport
-)
-
-add_subdirectory(src)
-```
-
----
-
-# 7. Recommended src/CMakeLists.txt
-
-```cmake
-set(BASIC256_SOURCES
-    main.cpp
-    mainwindow.cpp
-    interpreter.cpp
-    graphics.cpp
-)
-
-set(BASIC256_HEADERS
-    mainwindow.h
-    interpreter.h
-    graphics.h
-)
-
-set(BASIC256_RESOURCES
-    resources/basic256.qrc
-)
-
-qt_add_executable(basic256
-    ${BASIC256_SOURCES}
-    ${BASIC256_HEADERS}
-    ${BASIC256_RESOURCES}
-)
-
-target_link_libraries(basic256 PRIVATE
-    Qt${QT_VERSION_MAJOR}::Core
-    Qt${QT_VERSION_MAJOR}::Gui
-    Qt${QT_VERSION_MAJOR}::Widgets
-    Qt${QT_VERSION_MAJOR}::Multimedia
-    Qt${QT_VERSION_MAJOR}::Network
-    Qt${QT_VERSION_MAJOR}::PrintSupport
-)
-```
-
----
-
-# 8. Biggest qmake → CMake Migration Problems
-
-These are the usual migration pain points for old Qt projects.
-
-## A. UI Files
-
-qmake:
-
-```pro
-FORMS += mainwindow.ui
-```
-
-CMake:
-
-Handled automatically using:
-
-```cmake
-set(CMAKE_AUTOUIC ON)
-```
-
----
-
-## B. MOC Generation
-
-qmake handled this magically.
-
-CMake equivalent:
-
-```cmake
-set(CMAKE_AUTOMOC ON)
-```
-
----
-
-## C. Resources
-
-qmake:
-
-```pro
-RESOURCES += basic256.qrc
-```
-
-CMake:
-
-```cmake
-qt_add_executable(... basic256.qrc)
-```
-
----
-
-## D. Platform Defines
-
-Old projects often contain:
-
-```cpp
-#ifdef WIN32
-```
-
-Prefer:
-
-```cpp
-#ifdef Q_OS_WIN
-```
-
-because Qt abstracts platform detection.
-
----
-
-## E. Manual Include Paths
-
-qmake often contains:
-
-```pro
-INCLUDEPATH += /usr/include/foo
-```
-
-Modern CMake should use:
-
-```cmake
-target_include_directories(...)
-```
-
-Never use global include directories unless unavoidable.
-
----
-
-# 9. Recommended GitHub Actions Workflow
-
-## Single Unified build.yml
-
+Replace this entire block:
 ```yaml
-name: build
-
-on:
-  push:
-  pull_request:
-  workflow_dispatch:
-
-jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            qt_arch: win64_msvc2022_64
-
-          - os: ubuntu-24.04
-            qt_arch: gcc_64
-
-          - os: ubuntu-24.04-arm
-            qt_arch: linux_gcc_arm64
-
-          - os: macos-13
-            qt_arch: clang_64
-
-          - os: macos-14
-            qt_arch: clang_64
-
-    runs-on: ${{ matrix.os }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: '6.7.2'
-          arch: ${{ matrix.qt_arch }}
-          modules: qtmultimedia qtserialport qtspeech
-
-      - name: Configure
-        run: |
-          cmake -B build \
-            -DCMAKE_BUILD_TYPE=Release
-
-      - name: Build
-        run: |
-          cmake --build build --config Release --parallel
-
-      - name: Package
-        run: |
-          cmake --install build --prefix install
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: basic256-${{ matrix.os }}
-          path: install/
+- os: ubuntu-latest
+  arch: arm64
+  use_jurplel: false
+  artifact_name: BASIC256-RaspberryPi-ARM64
 ```
-
----
-
-# 10. Linux ARM Strategy
-
-## IMPORTANT
-
-GitHub now supports ARM runners.
-
-You no longer need:
-
-* QEMU emulation
-* Docker emulation
-* cross-compilation hacks
-
-Use:
-
+...and the QEMU step with:
 ```yaml
-runs-on: ubuntu-24.04-arm
+- os: ubuntu-24.04-arm
+  artifact_name: BASIC256-RaspberryPi-ARM64
 ```
+Then use a standard apt-install + cmake build, just like Linux x86. No QEMU, no container, no `j1`.
 
-This is vastly more reliable.
+**No launcher script in the ARM dist.**  
+The Windows packaging creates `basic256.bat` that sets environment variables before launching. The ARM packaging has no equivalent. A `run.sh` launcher that sets `LD_LIBRARY_PATH` and `QT_PLUGIN_PATH` is the belt-and-suspenders safety net for systems that ignore rpath.
 
----
+**The `Package Linux ARM` step references `ubuntu-24.04-arm` but the matrix uses `ubuntu-latest`.**  
+These are different runner names. The packaging step has `if: matrix.os == 'ubuntu-24.04-arm'` — which will never be true under the current matrix definition of `os: ubuntu-latest`. This step is dead code and will never execute.
 
-# 11. Windows Strategy
+**`env: QT_VERSION: 5.15.2` is declared but never used in the active ARM build path.**  
+The ARM path installs Qt via `apt`, not `jurplel`, so this env var is unused. It's leftover from the commented-out blocks and causes confusion.
 
-## Strong Recommendation
+**The `release:` job uses `ubuntu-22.04` as its runner.**  
+Ubuntu 22.04 will reach end-of-life for GitHub Actions runners. Change to `ubuntu-24.04`.
 
-Use:
+**`jurplel/install-qt-action@v3` is outdated.**  
+Version 4 of this action has been available since late 2024 and fixes several Qt module installation issues. The `qt_arch: linux_gcc_arm64` arch string also only works in v4 — v3 does not support ARM Linux at all.
 
-* MSVC
-* NOT MinGW
+### Overall build.yml verdict
 
-Why:
-
-| MSVC                          | MinGW             |
-| ----------------------------- | ----------------- |
-| official Qt support           | partial           |
-| fewer DLL problems            | many DLL problems |
-| better GitHub Actions support | weaker            |
-| better debugging              | weaker            |
-| modern CMake support          | inconsistent      |
-
-Your previous workflow issues involving:
-
-```text
-libstdc++-6.dll missing
-```
-
-are classic MinGW deployment problems.
-
-MSVC removes most of these.
+**C+ — The structure is reasonable but the active ARM build path has multiple bugs that cause exactly the runtime library problems you are experiencing. The QEMU approach should be abandoned entirely in favor of native ARM64 runners.**
 
 ---
 
-# 12. macOS Strategy
+## 4. The repository — project-level analysis
 
-## Recommended
+### What is in the repo
 
-Build both:
+Looking at the file tree:
 
-* Intel
-* Apple Silicon
+| Item | Status |
+|---|---|
+| `CMakeLists.txt` | Active — your new build system |
+| `BASIC256.nsi` | NSIS Windows installer script — may be outdated |
+| `old github workflows qmake/` | Archived old CI — good to keep for reference |
+| `BASIC256Portable/` | Separate portable build — unclear if active |
+| `debian/` | Debian packaging files — presence is promising |
+| `utility_maintenance_programs/` | Unclear purpose — probably old tooling |
+| `LEX/` | Flex/Bison grammar files — core of the interpreter |
+| `Modules/` | Unclear — probably interpreter extension modules |
+| `TestSuite/` | Test programs — valuable, keep and expand |
+| `Translations/` | `.ts` files for 8 languages — active |
+| `wikihelp/` | Referenced in CMakeLists.txt but not visible in tree |
 
-Initially separately.
+### Clutter and legacy weight
 
-Later:
+The repo carries significant legacy weight:
 
-* universal binaries
-* notarization
-* signed DMGs
+**`COMPILING.txt` and `HOWTO_debian.txt`** almost certainly reference qmake. They need to be updated to describe the CMake workflow or they will mislead anyone trying to build from source.
 
-can be added.
+### What is actually working
 
----
+Based on the README, the CI, and the build files, the current state is:
 
-# 13. Packaging Recommendations
+- **RPi ARM64 build: compiles, but runtime library loading fails.** The binary is built successfully inside the QEMU container but the resulting `dist/` folder has missing libraries and no `qt.conf`, so the application either doesn't launch or launches without a visible window.
+- **Windows: commented out** — there is substantial Windows build code present but it is not running in CI.
+- **Linux x86: commented out.**
+- **macOS: not present.**
 
-## Windows
+The project is in "it compiles but doesn't run properly" state for its primary target platform.
 
-Use:
+### The Debian packaging (`debian/` folder)
 
-```text
-windeployqt
-```
+The presence of a `debian/` folder is genuinely valuable — it means someone has done the work to describe how to build a proper `.deb` package. However, this folder almost certainly still references qmake. If updated to use CMake (`dpkg-buildpackage` can invoke `cmake`), this would give you a proper installable package that users can install with `sudo apt install ./basic256.deb` rather than having to run a shell script.
 
-inside CI.
+### The TestSuite
 
-Example:
+There is a `TestSuite/` directory. This is valuable and underutilized. Currently there is no CI step that runs the test suite after building. A BASIC256 interpreter that passes its own test suite is a much stronger claim than one that merely compiles. Adding a test step to CI would catch regressions early.
 
-```yaml
-- name: Deploy Qt
-  run: |
-    windeployqt install/basic256.exe
-```
+### The `wikihelp/` issue
 
----
-
-## Linux
-
-Recommended:
-
-* AppImage
-* .deb
-
-Eventually:
-
-* Flatpak
-
----
-
-## macOS
-
-Use:
-
-```text
-macdeployqt
-```
-
-Later:
-
-* notarization
-* dmgbuild
-
----
-
-# 14. Recommended Dependency Cleanup
-
-## Remove obsolete Qt APIs
-
-You will likely encounter:
-
-| Old                | New                        |
-| ------------------ | -------------------------- |
-| QRegExp            | QRegularExpression         |
-| SIGNAL/SLOT macros | function-pointer connect   |
-| QtScript           | QJSEngine or custom parser |
-| QString::null      | QString()                  |
-| foreach            | range-for                  |
-
-This cleanup should happen BEFORE full Qt6 migration.
-
----
-
-# 15. Recommended Compiler Baseline
-
-## Suggested
-
+`CMakeLists.txt` references `./wikihelp/help` in an install rule:
 ```cmake
-set(CMAKE_CXX_STANDARD 17)
+install(DIRECTORY ./wikihelp/help DESTINATION ${CMAKE_INSTALL_DATADIR}/basic256)
 ```
-
-Do not remain on C++98/11.
-
-Qt6 is much happier with C++17.
+This directory is not visible in the repository tree. It may have been accidentally excluded from `.gitignore`, or it may never have been committed. If it exists locally but not in the repo, the install step will silently produce an incomplete installation. Either commit it or remove the install rule until it exists.
 
 ---
 
-# 16. Recommended CI Expansion
+## 5. The bigger picture: what ChatGPT recommended vs. where you actually are
 
-Once the main build works:
+The README includes a detailed ChatGPT audit. That audit was largely sound advice, but some of it is aspirational for a solo maintainer who doesn't write C++. A realistic assessment:
 
-## Add
+**ChatGPT's advice that you should follow now:**
 
-### Static Analysis
+- Switch ARM64 CI from QEMU to `ubuntu-24.04-arm` native runner — this is a one-line change with major impact.
+- Fix the `qt.conf` generation in packaging — five lines.
+- Fix the missing `libQt5XcbQpa` and `libQt5DBus` copies — two lines.
+- Add a launcher `run.sh` script to the ARM dist — six lines.
+- Delete the legacy `.pro`, `.sln`, `.vcproj` files.
+- Update `COMPILING.txt`.
 
-```yaml
-- clang-tidy
-- cppcheck
-```
+**ChatGPT's advice that is correct but non-urgent:**
 
-### Formatting
-
-```yaml
-- clang-format
-```
-
-### Unit Tests
-
-```yaml
-- ctest
-```
-
-### Release Automation
-
-```yaml
-on:
-  release:
-```
+- Reorganize source into `src/core/`, `src/ide/` etc. — good long-term architecture but requires C++ knowledge to do safely.
+- Qt6 migration — worthwhile eventually, but Qt5 works fine and Qt5 LTS runs until 2025/2026.
+- Adding clang-tidy, clang-format, cppcheck — useful but not blocking.
+- AppImage / Flatpak packaging — good for distribution, not needed for initial working builds.
 
 ---
 
-# 17. Recommended Migration Timeline
+## 6. Prioritized action plan
 
-## Stage 1
+These are ordered by impact and difficulty, for someone who cannot write C++.
 
-* Add root CMakeLists.txt
-* Build Windows
-* Build Ubuntu
+### Immediate — fix the RPi build (no C++ required)
 
-## Stage 2
+1. Add `qt.conf` generation to the ARM packaging step in `build.yml`.
+2. Add `libQt5XcbQpa.so.*` and `libQt5DBus.so.*` to the `cp` commands.
+3. Add a `run.sh` launcher script to the dist folder.
+4. Add `INSTALL_RPATH` and `BUILD_WITH_INSTALL_RPATH` to `CMakeLists.txt` (copy-paste from section 2 above).
 
-* Add ARM
-* Add macOS
-* Add packaging
+### Short-term — modernize the CI
 
-## Stage 3
+5. Replace the QEMU ARM build with `ubuntu-24.04-arm` native runner.
+6. Uncomment and fix the Linux x86 build (update from `ubuntu-22.04` to `ubuntu-24.04`, update `jurplel` to v4).
+7. Uncomment the Windows build and test it.
+8. Add a `TestSuite` execution step after building.
 
-* Clean deprecated Qt APIs
-* Add Qt6 support
+### Clean-up — reduce confusion and legacy weight
 
-## Stage 4
+9. Delete `BASIC256.pro`, `BASIC256Portable.pro`, `basic256.sln`, `basic256.vcproj`, `BASIC256PortableSupportFileCopy.bat`, `ziplinuxsource.sh`.
+10. Update `COMPILING.txt` with CMake build instructions.
+11. Resolve the `wikihelp/` missing directory situation.
+12. Fix the `qt5_add_translation` Qt5/Qt6 conditional in `CMakeLists.txt`.
 
-* Remove qmake
-* Remove legacy hacks
-* Add tests
+### Medium-term — distribution quality
 
----
+13. Update the `debian/` packaging to use CMake as the build system.
+14. Add a GitHub Actions step that builds a `.deb` package.
+15. Create a proper GitHub Release with the first working ARM64 tarball.
+16. Write a `README` section explaining how to run the binary from the tarball.
 
-# 18. Most Important Recommendation
+### Long-term — future-proofing (requires C++ help or AI assistance)
 
-## Do NOT try to modernize everything simultaneously.
-
-This should be done in layers:
-
-1. Build reproducibility
-2. CI stability
-3. CMake migration
-4. Qt modernization
-5. Architecture cleanup
-6. Packaging
-
-Trying to combine all six at once usually creates a multi-month unstable branch.
+17. Replace `qt5_add_translation` with the dual Qt5/Qt6 version.
+18. Work through the deprecated Qt API list (QRegExp → QRegularExpression, etc.).
+19. Port to Qt6 once the deprecated API cleanup is done.
+20. Reorganize source into logical subdirectories.
 
 ---
 
-# 19. Strongly Recommended Immediate Actions
+## 7. One-paragraph summary
 
-## First Priority
-
-### Create:
-
-```text
-.github/workflows/build.yml
-```
-
-with:
-
-* Windows
-* Ubuntu x64
-
-ONLY.
-
-Do not add all platforms on day one.
-
----
-
-## Second Priority
-
-Create:
-
-```text
-CMakeLists.txt
-```
-
-that:
-
-* builds the current app
-* changes nothing else
-
----
-
-## Third Priority
-
-Refactor platform-specific code:
-
-```cpp
-#ifdef WIN32
-```
-
-into:
-
-```cpp
-#ifdef Q_OS_WIN
-```
-
----
-
-## Fourth Priority
-
-Switch CI to CMake.
-
-Only then:
-
-* add ARM
-* add macOS
-* add packaging
-
----
-
-# 20. Long-Term Vision
-
-Once CMake exists, BASIC256 becomes dramatically easier to:
-
-* package
-* maintain
-* modernize
-* port
-* test
-* distribute
-* integrate with Linux distros
-* support Apple Silicon
-* support future Qt versions
-
-The migration is absolutely worth doing.
-
----
-
-# 21. Final Recommended Target Stack
-
-| Component        | Recommendation                       |
-| ---------------- | ------------------------------------ |
-| Build System     | CMake                                |
-| CI               | GitHub Actions                       |
-| Windows Compiler | MSVC                                 |
-| Linux Compiler   | GCC/Clang                            |
-| macOS Compiler   | AppleClang                           |
-| Qt Version       | Qt6 primary, Qt5 compatible          |
-| C++ Standard     | C++17                                |
-| Packaging        | AppImage + windeployqt + macdeployqt |
-| Testing          | CTest                                |
-| Formatting       | clang-format                         |
-| Static Analysis  | clang-tidy                           |
-
----
-
-# 22. Suggested Next Deliverables
-
-The next practical files to create would be:
-
-1. Root `CMakeLists.txt`
-2. `src/CMakeLists.txt`
-3. `.github/workflows/build.yml`
-4. `cmake/FindDependencies.cmake`
-5. `packaging/windows/`
-6. `packaging/linux/`
-7. `packaging/macos/`
-
-Those seven items form the foundation for a modern cross-platform BASIC256 codebase.
-
----
-
-Additional reference:
-
-* [Qt CMake Manual](https://doc.qt.io/qt-6/cmake-manual.html?utm_source=chatgpt.com)
-* [install-qt-action](https://github.com/jurplel/install-qt-action?utm_source=chatgpt.com)
-* [CMake Documentation](https://cmake.org/documentation/?utm_source=chatgpt.com)
-* [GitHub Actions Documentation](https://docs.github.com/actions?utm_source=chatgpt.com)
-
-
-All his might make it possible to relaunch Basic256 on a new, modern website like this A.I.-generated one:
-
-<img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/32f4c601-2637-4f97-927e-7afc5226a163" />
+The project has successfully completed the hardest part — migrating from qmake to CMake and getting the interpreter to compile under a modern toolchain. The remaining problems are all in the build and packaging layer, not in the C++ code itself. The QEMU-based ARM build should be replaced with GitHub's native ARM64 runner, which would also eliminate the `j1` serial build workaround and dramatically speed up CI. Once these fixes are in place, BASIC256 would have genuinely distributable Windows, Linux x86 and ARM64 packages — which is the stated goal of the project.
