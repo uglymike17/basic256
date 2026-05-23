@@ -1,7 +1,7 @@
 BASIC-256 is an easy to use version of BASIC designed to teach anybody how to program. It was/is aimed at teaching the beginnings of programming to youngsters. 
 In fact the original name of Basic256 was Kidbasic, but it is already quite capable for everyday hobby use in its current state.
 A Qt5-based program, it has a 3-pane IDE with edit-, output- and graphics-windows. 
-The original code and current downloadable version resides on SourceForge (https://sourceforge.net/projects/kidbasic/) and is at version 2.0.0.11
+The original code and current downloadable version resides on SourceForge (https://sourceforge.net/projects/kidbasic/) and is at version 2.0.0.11. It has an example directory but all programs there need to be updated. There is also a Testsuite that works on the official SourceForge release but blocks on the one here.
 
 Unfortunately, development of Basic256 has stopped apparently after a failed attempt to port it to Qt6.
 Some have tried to get involved with development (RiOn and comick) and a most recent try has even moved sourceforge to github ( GitHub - comick/basic256)
