@@ -1,7 +1,7 @@
 BASIC-256 is an easy to use version of BASIC designed to teach anybody how to program. It was/is aimed at teaching the beginnings of programming to youngsters. 
 In fact the original name of Basic256 was Kidbasic, but it is already quite capable for everyday hobby use in its current state.
 A Qt5-based program, it has a 3-pane IDE with edit-, output- and graphics-windows. 
-The original code and current downloadable version resides on SourceForge (https://sourceforge.net/projects/kidbasic/) and is at version 2.0.0.11
+The original code and current downloadable version resides on SourceForge (https://sourceforge.net/projects/kidbasic/) and is at version 2.0.0.11. It has an example directory but all programs there need to be updated. There is also a Testsuite that works on the official SourceForge release but blocks on the one here.
 
 Unfortunately, development of Basic256 has stopped apparently after a failed attempt to port it to Qt6.
 Some have tried to get involved with development (RiOn and comick) and a most recent try has even moved sourceforge to github ( GitHub - comick/basic256)
@@ -16,7 +16,7 @@ The aim for this branch is
  - make clean-ups & modernisations where possible. (
  ==> synchronious ESpeak has been replaced by asynchronious Qt texttoSpeech
 
-I asked ChatGPT to do an Audit and show a way forward for this. This is what it answered:
+I asked ChatGPT to do an Audit and show a way forward for this. I have attached ChatGPTs initial audit. This needs to be updated as we now have a CMakeList.txt and a working CMake based build.yml, so qmake and .pro files are obsolete (but still need to be removed) MinGW has also been replaced by MSVC. Windows, Linux x86 and RPi are included although Linux x86 has still to be tested. RPi does not know where the Qt elements are (in ./libs) so that needs to be corrected. Once these 3 are up and running, I'll make an official release and spread the word...
 
 # BASIC256 Build System Audit and Modernization Plan
 
