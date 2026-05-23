@@ -18,16 +18,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-22.04  # <-- Change from ubuntu-latest to ubuntu-22.04
-            arch: x86_64
-            use_jurplel: true
-            qt_arch: gcc_64
-            artifact_name: BASIC256-Linux-x86_64
-          - os: windows-latest
-            arch: x86_64
-            use_jurplel: true
-            qt_arch: win64_msvc2019_64  # Updated for MSVC 2019 / 2022 compatibility
-            artifact_name: BASIC256-Windows
+#          - os: ubuntu-22.04  # <-- Change from ubuntu-latest to ubuntu-22.04
+#            arch: x86_64
+#            use_jurplel: true
+ #           qt_arch: gcc_64
+ #           artifact_name: BASIC256-Linux-x86_64
+#          - os: windows-latest
+#            arch: x86_64
+#            use_jurplel: true
+#            qt_arch: win64_msvc2019_64  # Updated for MSVC 2019 / 2022 compatibility
+#            artifact_name: BASIC256-Windows
           - os: ubuntu-latest
             arch: arm64
             use_jurplel: false
@@ -45,7 +45,7 @@ jobs:
         version: ${{ env.QT_VERSION }}
         arch: ${{ matrix.qt_arch }}
         cached: ${{ github.ref_name == 'main' || github.ref_name == 'master' }}
-
+  
     # ---------------------------
     # Linux x86_64 Build
     # ---------------------------
@@ -80,13 +80,37 @@ jobs:
             libqt5texttospeech5-dev libqt5serialport5-dev libgl1-mesa-dev \
             libx11-dev libespeak-ng-dev
 
+          apt-get install -y patchelf  # For fixing up library paths in the distribution  
+
           # 2. Compile directly using native ARM64 tools
-          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${Qt5_DIR:-$Qt5_Dir}"
           cmake --build build --config Release -j$(nproc)
+
+          patchelf --set-rpath '$ORIGIN/lib' dist/basic256
 
           # 3. Create standalone relocatable pipeline distribution folder
           mkdir -p dist
           cp build/basic256 dist/
+          # Copy Qt runtime libraries
+          mkdir -p dist/lib
+          cp /usr/lib/aarch64-linux-gnu/libQt5Core.so.* dist/lib/
+          cp /usr/lib/aarch64-linux-gnu/libQt5Gui.so.* dist/lib/
+          cp /usr/lib/aarch64-linux-gnu/libQt5Widgets.so.* dist/lib/
+          cp /usr/lib/aarch64-linux-gnu/libQt5Multimedia.so.* dist/lib/
+          cp /usr/lib/aarch64-linux-gnu/libQt5SerialPort.so.* dist/lib/
+          cp /usr/lib/aarch64-linux-gnu/libQt5TextToSpeech.so.* dist/lib/
+          cp /usr/lib/aarch64-linux-gnu/libQt5PrintSupport.so.* dist/lib/
+          cp /usr/lib/aarch64-linux-gnu/libQt5Sql.so.* dist/lib/
+
+          mkdir -p dist/plugins/platforms
+          cp /usr/lib/aarch64-linux-gnu/qt5/plugins/platforms/libqxcb.so dist/plugins/platforms/
+          
+          mkdir -p dist/plugins/mediaservice
+          cp /usr/lib/aarch64-linux-gnu/qt5/plugins/mediaservice/* dist/plugins/mediaservice/
+
+          mkdir -p dist/plugins/imageformats
+          cp /usr/lib/aarch64-linux-gnu/qt5/plugins/imageformats/* dist/plugins/imageformats/
+
           cp -r Examples dist/
 
           # 4. Generate dynamic compiled translations inside distribution target
