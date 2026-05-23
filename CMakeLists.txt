@@ -221,6 +221,13 @@ add_executable(basic256
     ${QM_FILES}
 )
 
+if(UNIX AND NOT APPLE)
+    set_target_properties(basic256 PROPERTIES
+        INSTALL_RPATH "$ORIGIN/lib"
+        BUILD_WITH_INSTALL_RPATH TRUE
+    )
+endif()
+
 # All target_* commands AFTER target creation
 target_compile_definitions(basic256 PRIVATE ${PLATFORM_DEFS})
 target_compile_definitions(basic256 PRIVATE $<$<CONFIG:Release>:QT_NO_DEBUG_OUTPUT QT_NO_WARNING_OUTPUT>)

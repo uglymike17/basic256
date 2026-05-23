@@ -92,6 +92,9 @@ jobs:
           mkdir -p dist
           cp build/basic256 dist/
           patchelf --set-rpath '$ORIGIN/lib' dist/basic256
+
+          printf '[Paths]\nPlugins=plugins\nLibraries=lib\n' > dist/qt.conf
+
           # Copy Qt runtime libraries
           mkdir -p dist/lib
           cp /usr/lib/aarch64-linux-gnu/libQt5Core.so.* dist/lib/
@@ -102,6 +105,9 @@ jobs:
           cp /usr/lib/aarch64-linux-gnu/libQt5TextToSpeech.so.* dist/lib/
           cp /usr/lib/aarch64-linux-gnu/libQt5PrintSupport.so.* dist/lib/
           cp /usr/lib/aarch64-linux-gnu/libQt5Sql.so.* dist/lib/
+          cp /usr/lib/aarch64-linux-gnu/libQt5XcbQpa.so.* dist/lib/
+          cp /usr/lib/aarch64-linux-gnu/libQt5DBus.so.* dist/lib/
+          cp /usr/lib/aarch64-linux-gnu/libxcb.so.* dist/lib/ 2>/dev/null || true
 
           if [ -d /usr/lib/aarch64-linux-gnu/qt5/plugins/platforms ]; then          
             mkdir -p dist/plugins/platforms
@@ -240,6 +246,14 @@ jobs:
         printf 'export QT_PLUGIN_PATH="$DIR/plugins"\n' >> dist/run_basic256.sh
         printf 'exec "$DIR/basic256" "$@"\n' >> dist/run_basic256.sh
         chmod +x dist/run_basic256.sh
+
+        # ADD THIS: launcher script as fallback for systems where rpath alone isn't enough
+        printf '#!/bin/sh\n' > dist/run.sh
+        printf 'DIR="$(cd "$(dirname "$0")" && pwd)"\n' >> dist/run.sh
+        printf 'export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"\n' >> dist/run.sh
+        printf 'export QT_PLUGIN_PATH="$DIR/plugins"\n' >> dist/run.sh
+        printf 'exec "$DIR/basic256" "$@"\n' >> dist/run.sh
+        chmod +x dist/run.sh
 
         tar -czf ${{ matrix.artifact_name }}.tar.gz dist
 
