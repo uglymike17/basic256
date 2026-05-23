@@ -16,7 +16,7 @@ The aim for this branch is
  - make clean-ups & modernisations where possible. (
  ==> synchronious ESpeak has been replaced by asynchronious Qt texttoSpeech
 
-I asked ChatGPT to do an Audit and show a way forward for this. This is what it answered:
+I asked ChatGPT to do an Audit and show a way forward for this. I have attached ChatGPTs initial audit. This needs to be updated as we now have a CMakeList.txt and a working CMake based build.yml, so qmake and .pro files are obsolete (but still need to be removed) MinGW has also been replaced by MSVC. Windows, Linux x86 and RPi are included although Linux x86 has still to be tested. RPi does not know where the Qt elements are (in ./libs) so that needs to be corrected. Once these 3 are up and running, I'll make an official release and spread the word...
 
 # BASIC256 Build System Audit and Modernization Plan
 
