@@ -188,7 +188,7 @@ qt5_add_translation(QM_FILES ${TS_FILES})
 # -------------------------------------------------------------------
 
 if(WIN32)
-    set(PLATFORM_DEFS WIN32 USEQMEDIAPLAYER USE_QT_TEXTTOSPEECH)
+    set(PLATFORM_DEFS WIN32 USE_QT_TEXTTOSPEECH)
     set(PLATFORM_LIBS ole32 ws2_32 winmm)
     list(APPEND SOURCES 
         resources/windows.rc
