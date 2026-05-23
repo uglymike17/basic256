@@ -44,7 +44,7 @@ jobs:
       with:
         version: ${{ env.QT_VERSION }}
         arch: ${{ matrix.qt_arch }}
-        cached: ${{ github.ref_name == 'main' || github.ref_name == 'master' }}
+        cache: true
   
     # ---------------------------
     # Linux x86_64 Build
@@ -83,7 +83,7 @@ jobs:
           apt-get install -y patchelf  # For fixing up library paths in the distribution  
 
           # 2. Compile directly using native ARM64 tools
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${Qt5_DIR:-$Qt5_Dir}"
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
           cmake --build build --config Release -j$(nproc)
 
           patchelf --set-rpath '$ORIGIN/lib' dist/basic256
