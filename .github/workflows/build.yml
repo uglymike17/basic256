@@ -84,7 +84,7 @@ jobs:
 
           # 2. Compile directly using native ARM64 tools
           cmake -B build -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --config Release -j$(nproc)
+          cmake --build build --config Release -j1  # Avoid parallel build on ARM to reduce memory pressure
 
           patchelf --set-rpath '$ORIGIN/lib' dist/basic256
 
