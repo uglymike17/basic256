@@ -86,11 +86,12 @@ jobs:
           cmake -B build -DCMAKE_BUILD_TYPE=Release
           cmake --build build --config Release -j1  # Avoid parallel build on ARM to reduce memory pressure
 
-          patchelf --set-rpath '$ORIGIN/lib' dist/basic256
+
 
           # 3. Create standalone relocatable pipeline distribution folder
           mkdir -p dist
           cp build/basic256 dist/
+          patchelf --set-rpath '$ORIGIN/lib' dist/basic256
           # Copy Qt runtime libraries
           mkdir -p dist/lib
           cp /usr/lib/aarch64-linux-gnu/libQt5Core.so.* dist/lib/
