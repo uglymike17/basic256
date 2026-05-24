@@ -28,7 +28,7 @@ jobs:
             use_jurplel: true
             qt_arch: win64_msvc2019_64  # Updated for MSVC 2019 / 2022 compatibility
             artifact_name: BASIC256-Windows
-          - os: ubuntu-latest
+          - os: ubuntu-24.04-arm
             arch: arm64
             use_jurplel: false
             artifact_name: BASIC256-RaspberryPi-ARM64  
@@ -62,80 +62,61 @@ jobs:
         cmake --build build --config Release -j$(nproc)
 
     # -----------------------------------------------------------------
-    # Raspberry Pi ARM64 Emulated Build Flow
+    # Raspberry Pi ARM64 Native Build Flow
     # -----------------------------------------------------------------
-    - name: Build and Package Raspberry Pi ARM64 via QEMU Container
+    - name: Install dependencies (ARM64)
       if: matrix.arch == 'arm64'
-      uses: uraimo/run-on-arch-action@v2
-      with:
-        arch: aarch64
-        distro: ubuntu22.04
-        githubToken: ${{ github.token }}
-        setup: |
-          mkdir -p "${{ github.workspace }}/artifacts"
-        run: |
-          # 1. Install standard development dependencies inside ARM64 environment
-          apt-get update && apt-get install -y build-essential cmake flex bison \
-            qtbase5-dev qttools5-dev-tools qttools5-dev qtmultimedia5-dev \
-            libqt5texttospeech5-dev libqt5serialport5-dev libgl1-mesa-dev \
-            libx11-dev libespeak-ng-dev
+      run: |
+        sudo apt-get update && sudo apt-get install -y \
+          build-essential cmake flex bison \
+          qtbase5-dev qttools5-dev-tools qttools5-dev qtmultimedia5-dev \
+          libqt5texttospeech5-dev libqt5serialport5-dev libgl1-mesa-dev \
+          libx11-dev libespeak-ng-dev patchelf
 
-          apt-get install -y patchelf  # For fixing up library paths in the distribution  
+    - name: Build and Package Raspberry Pi ARM64
+      if: matrix.arch == 'arm64'
+      run: |
+        # 1. Compile using native ARM64 tools
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
+        cmake --build build --config Release -j$(nproc)
 
-          # 2. Compile directly using native ARM64 tools
-          cmake -B build -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --config Release -j1  # Avoid parallel build on ARM to reduce memory pressure
+        # 2. Create standalone relocatable distribution folder
+        mkdir -p dist
+        cp build/basic256 dist/
+        patchelf --set-rpath '$ORIGIN/lib' dist/basic256
 
+        printf '[Paths]\nPlugins=plugins\nLibraries=lib\n' > dist/qt.conf
 
+        # 3. Copy Qt runtime libraries
+        mkdir -p dist/lib
+        cp /usr/lib/aarch64-linux-gnu/libQt5Core.so.*          dist/lib/
+        cp /usr/lib/aarch64-linux-gnu/libQt5Gui.so.*           dist/lib/
+        cp /usr/lib/aarch64-linux-gnu/libQt5Widgets.so.*       dist/lib/
+        cp /usr/lib/aarch64-linux-gnu/libQt5Multimedia.so.*    dist/lib/
+        cp /usr/lib/aarch64-linux-gnu/libQt5SerialPort.so.*    dist/lib/
+        cp /usr/lib/aarch64-linux-gnu/libQt5TextToSpeech.so.*  dist/lib/
+        cp /usr/lib/aarch64-linux-gnu/libQt5PrintSupport.so.*  dist/lib/
+        cp /usr/lib/aarch64-linux-gnu/libQt5Sql.so.*           dist/lib/
+        cp /usr/lib/aarch64-linux-gnu/libQt5XcbQpa.so.*        dist/lib/
+        cp /usr/lib/aarch64-linux-gnu/libQt5DBus.so.*          dist/lib/
+        cp /usr/lib/aarch64-linux-gnu/libxcb.so.*              dist/lib/ 2>/dev/null || true
 
-          # 3. Create standalone relocatable pipeline distribution folder
-          mkdir -p dist
-          cp build/basic256 dist/
-          patchelf --set-rpath '$ORIGIN/lib' dist/basic256
+        if [ -d /usr/lib/aarch64-linux-gnu/qt5/plugins/platforms ]; then
+          mkdir -p dist/plugins/platforms
+          cp /usr/lib/aarch64-linux-gnu/qt5/plugins/platforms/libqxcb.so dist/plugins/platforms/
+        fi
 
-          printf '[Paths]\nPlugins=plugins\nLibraries=lib\n' > dist/qt.conf
+        if [ -d /usr/lib/aarch64-linux-gnu/qt5/plugins/mediaservice ]; then
+          mkdir -p dist/plugins/mediaservice
+          cp /usr/lib/aarch64-linux-gnu/qt5/plugins/mediaservice/* dist/plugins/mediaservice/
+        fi
 
-          # Copy Qt runtime libraries
-          mkdir -p dist/lib
-          cp /usr/lib/aarch64-linux-gnu/libQt5Core.so.* dist/lib/
-          cp /usr/lib/aarch64-linux-gnu/libQt5Gui.so.* dist/lib/
-          cp /usr/lib/aarch64-linux-gnu/libQt5Widgets.so.* dist/lib/
-          cp /usr/lib/aarch64-linux-gnu/libQt5Multimedia.so.* dist/lib/
-          cp /usr/lib/aarch64-linux-gnu/libQt5SerialPort.so.* dist/lib/
-          cp /usr/lib/aarch64-linux-gnu/libQt5TextToSpeech.so.* dist/lib/
-          cp /usr/lib/aarch64-linux-gnu/libQt5PrintSupport.so.* dist/lib/
-          cp /usr/lib/aarch64-linux-gnu/libQt5Sql.so.* dist/lib/
-          cp /usr/lib/aarch64-linux-gnu/libQt5XcbQpa.so.* dist/lib/
-          cp /usr/lib/aarch64-linux-gnu/libQt5DBus.so.* dist/lib/
-          cp /usr/lib/aarch64-linux-gnu/libxcb.so.* dist/lib/ 2>/dev/null || true
+        if [ -d /usr/lib/aarch64-linux-gnu/qt5/plugins/imageformats ]; then
+          mkdir -p dist/plugins/imageformats
+          cp /usr/lib/aarch64-linux-gnu/qt5/plugins/imageformats/* dist/plugins/imageformats/
+        fi
 
-          if [ -d /usr/lib/aarch64-linux-gnu/qt5/plugins/platforms ]; then          
-            mkdir -p dist/plugins/platforms
-            cp /usr/lib/aarch64-linux-gnu/qt5/plugins/platforms/libqxcb.so dist/plugins/platforms/
-          fi    
-          
-          if [ -d /usr/lib/aarch64-linux-gnu/qt5/plugins/mediaservice ]; then
-            mkdir -p dist/plugins/mediaservice
-            cp /usr/lib/aarch64-linux-gnu/qt5/plugins/mediaservice/* dist/plugins/mediaservice/
-          fi
-
-          if [ -d /usr/lib/aarch64-linux-gnu/qt5/plugins/imageformats ]; then
-            mkdir -p dist/plugins/imageformats
-            cp /usr/lib/aarch64-linux-gnu/qt5/plugins/imageformats/* dist/plugins/imageformats/
-          fi
-
-          cp -r Examples dist/
-
-          # 4. Generate dynamic compiled translations inside distribution target
-          mkdir -p dist/Translations
-          if ls build/*.qm 1> /dev/null 2>&1; then
-            cp build/*.qm dist/Translations/
-          elif ls Translations/*.qm 1> /dev/null 2>&1; then
-            cp Translations/*.qm dist/Translations/
-          fi
-
-          # 5. Pack everything up for immediate collection
-          tar -czf ${{ matrix.artifact_name }}.tar.gz dist
+        cp -r Examples dist/
 
     # ---------------------------
     # Windows Build
@@ -199,64 +180,36 @@ jobs:
     - name: Package Linux ARM
       if: matrix.os == 'ubuntu-24.04-arm'
       run: |
-        mkdir -p dist
-        cp build/basic256 dist/
+        # dist/ is already populated by the build step (binary, libs, plugins,
+        # translations, qt.conf). Just add extras here.
+
         cp README.md dist/ || true
-        # Copy Examples directly into the dist folder
-        cp -r Examples dist/
-        # For system Qt, we can find libs via a fallback layout since we aren't using qmake queries
-        QT_LIB_DIR="/usr/lib/x86_64-linux-gnu"
-        if [ "${{ matrix.arch }}" = "arm64" ] || [ "${{ matrix.os }}" = "ubuntu-24.04-arm" ]; then
-            QT_LIB_DIR="/usr/lib/aarch64-linux-gnu"
+
+        # ICU libraries - required by Qt5Core at runtime for Unicode/locale support
+        cp /usr/lib/aarch64-linux-gnu/libicuuc.so.*   dist/lib/
+        cp /usr/lib/aarch64-linux-gnu/libicudata.so.* dist/lib/
+        cp /usr/lib/aarch64-linux-gnu/libicui18n.so.* dist/lib/
+
+        # Compiled translations
+        mkdir -p dist/Translations
+        if ls build/*.qm 1>/dev/null 2>&1; then
+          cp build/*.qm dist/Translations/
+        elif ls Translations/*.qm 1>/dev/null 2>&1; then
+          cp Translations/*.qm dist/Translations/
         fi
 
-        for lib in \
-          libQt5Core \
-          libQt5Gui \
-          libQt5Widgets \
-          libQt5Multimedia \
-          libQt5MultimediaWidgets \
-          libQt5Sql \
-          libQt5PrintSupport \
-          libQt5SerialPort \
-          libQt5TextToSpeech \
-          libQt5Network \
-          libQt5DBus \
-          libQt5XcbQpa; do
-            find $QT_LIB_DIR /usr/lib -name "${lib}.so.5" 2>/dev/null | head -1 | xargs -I{} cp {} dist/ || true
-        done
-
-        # Copy runtime plugins
-        mkdir -p dist/plugins/platforms
-        mkdir -p dist/plugins/sqldrivers
-        mkdir -p dist/plugins/audio
-        QT_PLUGIN_DIR="/usr/lib/x86_64-linux-gnu/qt5/plugins"
-        if [ -d "/usr/lib/aarch64-linux-gnu/qt5/plugins" ]; then
-            QT_PLUGIN_DIR="/usr/lib/aarch64-linux-gnu/qt5/plugins"
-        fi
-        
-        cp $QT_PLUGIN_DIR/platforms/libqxcb.so dist/plugins/platforms/ || true
-        cp $QT_PLUGIN_DIR/sqldrivers/libqsqlite.so dist/plugins/sqldrivers/ || true
-        cp $QT_PLUGIN_DIR/audio/libqtaudio_alsa.so dist/plugins/audio/ || true
-
-        # Add launcher script
-        printf '#!/bin/bash\n' > dist/run_basic256.sh
-        printf 'DIR="$(cd "$(dirname "$0")" && pwd)"\n' >> dist/run_basic256.sh
-        printf 'export LD_LIBRARY_PATH="$DIR:$LD_LIBRARY_PATH"\n' >> dist/run_basic256.sh
-        printf 'export QT_PLUGIN_PATH="$DIR/plugins"\n' >> dist/run_basic256.sh
-        printf 'exec "$DIR/basic256" "$@"\n' >> dist/run_basic256.sh
-        chmod +x dist/run_basic256.sh
-
-        # ADD THIS: launcher script as fallback for systems where rpath alone isn't enough
-        printf '#!/bin/sh\n' > dist/run.sh
-        printf 'DIR="$(cd "$(dirname "$0")" && pwd)"\n' >> dist/run.sh
-        printf 'export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"\n' >> dist/run.sh
-        printf 'export QT_PLUGIN_PATH="$DIR/plugins"\n' >> dist/run.sh
-        printf 'exec "$DIR/basic256" "$@"\n' >> dist/run.sh
+        # Launcher script (LD_LIBRARY_PATH fallback for systems ignoring rpath)
+        cat > dist/run.sh << 'EOF'
+        #!/bin/sh
+        DIR="$(cd "$(dirname "$0")" && pwd)"
+        export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
+        export QT_PLUGIN_PATH="$DIR/plugins"
+        exec "$DIR/basic256" "$@"
+        EOF
         chmod +x dist/run.sh
 
         tar -czf ${{ matrix.artifact_name }}.tar.gz dist
-
+        
     # ---------------------------
     # Packaging Windows (MSVC Migration)
     # ---------------------------

@@ -180,8 +180,6 @@ install(
     DESTINATION share/basic256
 )
 
-# Process TS files into QM files When switching to Qt6, use qt_add_translations() instead of qt_add_translation() 
-qt5_add_translation(QM_FILES ${TS_FILES})
 
 # -------------------------------------------------------------------
 # Platform Specific Settings 
@@ -220,6 +218,14 @@ add_executable(basic256
     ${RESOURCES}
     ${QM_FILES}
 )
+
+# Process TS files into QM files
+if(QT_VERSION_MAJOR EQUAL 6)
+    qt_add_translations(basic256 TS_FILES ${TS_FILES})
+else()
+    qt5_add_translation(QM_FILES ${TS_FILES})
+    target_sources(basic256 PRIVATE ${QM_FILES})
+endif()
 
 if(UNIX AND NOT APPLE)
     set_target_properties(basic256 PROPERTIES

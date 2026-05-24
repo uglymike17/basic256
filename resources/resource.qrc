@@ -67,5 +67,14 @@
         <file>icons/22x22/zoom-in.png</file>
         <file>icons/16x16/zoom-out.png</file>
         <file>icons/22x22/zoom-out.png</file>
+        <file>../Translations/basic256_en.qm</file>
+        <file>../Translations/basic256_fr.qm</file>
+        <file>../Translations/basic256_de.qm</file>
+        <file>../Translations/basic256_es.qm</file>
+        <file>../Translations/basic256_it.qm</file>
+        <file>../Translations/basic256_nl.qm</file>
+        <file>../Translations/basic256_pt.qm</file>
+        <file>../Translations/basic256_ru.qm</file>
     </qresource>
+
 </RCC>
