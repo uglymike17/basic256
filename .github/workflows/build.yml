@@ -192,6 +192,10 @@ jobs:
 
         # Patch Qt5Core's rpath so it can find the bundled ICU libs
         patchelf --set-rpath '$ORIGIN' dist/lib/libQt5Core.so.5
+        # Patch ALL bundled Qt libs to resolve dependencies within dist/lib only
+        for lib in dist/lib/libQt5*.so.*; do
+          patchelf --set-rpath '$ORIGIN' "$lib" 2>/dev/null || true
+        done
 
         # Also patch libicuuc since it depends on libicudata
         patchelf --set-rpath '$ORIGIN' dist/lib/libicuuc.so.*
@@ -210,7 +214,7 @@ jobs:
         cat > dist/run.sh << 'EOF'
         #!/bin/sh
         DIR="$(cd "$(dirname "$0")" && pwd)"
-        export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
+        export LD_LIBRARY_PATH="$DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
         export QT_PLUGIN_PATH="$DIR/plugins"
         exec "$DIR/basic256" "$@"
         EOF
