@@ -111,6 +111,14 @@ jobs:
           cp /usr/lib/aarch64-linux-gnu/qt5/plugins/platforms/libqxcb.so dist/plugins/platforms/
         fi
 
+        # Text-to-speech engine plugin
+        if [ -d /usr/lib/aarch64-linux-gnu/qt5/plugins/texttospeech ]; then
+          mkdir -p dist/plugins/texttospeech
+          cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_espeak.so dist/plugins/texttospeech/ || true
+          cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_flite.so  dist/plugins/texttospeech/ || true
+          cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_speechd.so dist/plugins/texttospeech/ || true
+        fi
+
         if [ -d /usr/lib/aarch64-linux-gnu/qt5/plugins/mediaservice ]; then
           mkdir -p dist/plugins/mediaservice
           cp /usr/lib/aarch64-linux-gnu/qt5/plugins/mediaservice/* dist/plugins/mediaservice/
