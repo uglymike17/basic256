@@ -84,6 +84,9 @@ jobs:
         mkdir -p dist/lib dist/plugins
         cp build/basic256 dist/
         patchelf --set-rpath '$ORIGIN/lib' dist/basic256
+        find dist/plugins -name "*.so" | while read f; do
+          patchelf --set-rpath '$ORIGIN/../../lib:$ORIGIN/../lib:$ORIGIN' "$f" || true
+        done
         printf '[Paths]\nPlugins=plugins\nLibraries=lib\n' > dist/qt.conf
 
         # 3. Define plugin dir once, used throughout
@@ -102,7 +105,11 @@ jobs:
         cp $QT_LIB_DIR/libQt5XcbQpa.so.*        dist/lib/
         cp $QT_LIB_DIR/libQt5DBus.so.*          dist/lib/
         cp $QT_LIB_DIR/libQt5Network.so.*       dist/lib/
+        cp $QT_LIB_DIR/libssl.so.*              dist/lib/
+        cp $QT_LIB_DIR/libcrypto.so.*           dist/lib/
         cp $QT_LIB_DIR/libxcb.so.*              dist/lib/ 2>/dev/null || true
+        cp $QT_LIB_DIR/libxcb-*.so.*            dist/lib/ 2>/dev/null || true
+        cp $QT_LIB_DIR/libxkbcommon*.so.*       dist/lib/ 2>/dev/null || true
 
         # 5. Platform plugins
         mkdir -p dist/plugins/platforms
@@ -113,7 +120,7 @@ jobs:
 
         # 6. Text-to-speech plugin
         mkdir -p dist/plugins/texttospeech
-        cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_speechd.so dist/plugins/texttospeech/ || true
+        #cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_speechd.so dist/plugins/texttospeech/ || true
         cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_espeak.so  dist/plugins/texttospeech/ || true
         cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_flite.so   dist/plugins/texttospeech/ || true
 
@@ -162,7 +169,7 @@ jobs:
         cd ..
 
         # Configure using MSVC (Omitting -G defaults to the installed Visual Studio version)
-        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="env:Qt5_DIR"
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$env:Qt5_DIR"
         
         # Build using MSVC compiler pipeline natively via CMake
         cmake --build build --config Release
@@ -176,7 +183,9 @@ jobs:
         mkdir -p dist
         cp build/basic256 dist/
         cp -r Examples dist/
-        
+        cp -r TestSuite dist/ || true
+        cp README.md dist/ || true
+
         # Download linuxdeployqt asset
         wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
         chmod a+x linuxdeployqt-continuous-x86_64.AppImage
@@ -185,7 +194,7 @@ jobs:
         export PATH="$Qt5_Dir/bin:$PATH"
         
         # Run linuxdeployqt without the invalid flag to bundle dependencies and plugins
-        ./linuxdeployqt-continuous-x86_64.AppImage dist/basic256 -bundle-non-qt-libs -no-plugins --appimage-extract-and-run
+        ./linuxdeployqt-continuous-x86_64.AppImage dist/basic256 -bundle-non-qt-libs --appimage-extract-and-run
         
         # Compress everything into your final delivery asset
         tar -czf ${{ matrix.artifact_name }}.tar.gz dist
