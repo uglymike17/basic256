@@ -73,7 +73,7 @@ jobs:
           libqt5texttospeech5-dev libqt5serialport5-dev libgl1-mesa-dev \
           libx11-dev libespeak-ng-dev patchelf
 
-    - name: Build and Package Raspberry Pi ARM64
+    - name: Build Raspberry Pi ARM64
       if: matrix.arch == 'arm64'
       run: |
         # 1. Compile using native ARM64 tools
@@ -81,53 +81,55 @@ jobs:
         cmake --build build --config Release -j$(nproc)
 
         # 2. Create standalone relocatable distribution folder
-        mkdir -p dist
+        mkdir -p dist/lib dist/plugins
         cp build/basic256 dist/
         patchelf --set-rpath '$ORIGIN/lib' dist/basic256
-
         printf '[Paths]\nPlugins=plugins\nLibraries=lib\n' > dist/qt.conf
 
-        # 3. Copy Qt runtime libraries
-        mkdir -p dist/lib
-        cp /usr/lib/aarch64-linux-gnu/libQt5Core.so.*          dist/lib/
-        cp /usr/lib/aarch64-linux-gnu/libQt5Gui.so.*           dist/lib/
-        cp /usr/lib/aarch64-linux-gnu/libQt5Widgets.so.*       dist/lib/
-        cp /usr/lib/aarch64-linux-gnu/libQt5Multimedia.so.*    dist/lib/
-        cp /usr/lib/aarch64-linux-gnu/libQt5SerialPort.so.*    dist/lib/
-        cp /usr/lib/aarch64-linux-gnu/libQt5TextToSpeech.so.*  dist/lib/
-        cp /usr/lib/aarch64-linux-gnu/libQt5PrintSupport.so.*  dist/lib/
-        cp /usr/lib/aarch64-linux-gnu/libQt5Sql.so.*           dist/lib/
-        cp /usr/lib/aarch64-linux-gnu/libQt5XcbQpa.so.*        dist/lib/
-        cp /usr/lib/aarch64-linux-gnu/libQt5DBus.so.*          dist/lib/
-        cp /usr/lib/aarch64-linux-gnu/libQt5Network.so.*       dist/lib/        
-        cp /usr/lib/aarch64-linux-gnu/libxcb.so.*              dist/lib/
-        cp /usr/lib/aarch64-linux-gnu/libespeak-ng.so.*       dist/lib/ || true 2>/dev/null || true
+        # 3. Define plugin dir once, used throughout
+        QT_PLUGIN_DIR="/usr/lib/aarch64-linux-gnu/qt5/plugins"
+        QT_LIB_DIR="/usr/lib/aarch64-linux-gnu"
 
-        if [ -d /usr/lib/aarch64-linux-gnu/qt5/plugins/platforms ]; then
-          mkdir -p dist/plugins/platforms
-          cp /usr/lib/aarch64-linux-gnu/qt5/plugins/libqxcb.so dist/plugins/platforms/ || true
-          cp /usr/lib/aarch64-linux-gnu/qt5/plugins/libqwayland-generic.so dist/plugins/platforms/ || true
-          cp /usr/lib/aarch64-linux-gnu/qt5/plugins/platforms/libqwayland-egl.so     dist/plugins/platforms/ || true
-          cp /usr/lib/aarch64-linux-gnu/qt5/plugins/platforms/libqoffscreen.so       dist/plugins/platforms/ || true
-          cp /usr/lib/aarch64-linux-gnu/qt5/plugins/platforms/libqxcb.so dist/plugins/platforms/
-        fi
+        # 4. Copy Qt runtime libraries
+        cp $QT_LIB_DIR/libQt5Core.so.*          dist/lib/
+        cp $QT_LIB_DIR/libQt5Gui.so.*           dist/lib/
+        cp $QT_LIB_DIR/libQt5Widgets.so.*       dist/lib/
+        cp $QT_LIB_DIR/libQt5Multimedia.so.*    dist/lib/
+        cp $QT_LIB_DIR/libQt5SerialPort.so.*    dist/lib/
+        cp $QT_LIB_DIR/libQt5TextToSpeech.so.*  dist/lib/
+        cp $QT_LIB_DIR/libQt5PrintSupport.so.*  dist/lib/
+        cp $QT_LIB_DIR/libQt5Sql.so.*           dist/lib/
+        cp $QT_LIB_DIR/libQt5XcbQpa.so.*        dist/lib/
+        cp $QT_LIB_DIR/libQt5DBus.so.*          dist/lib/
+        cp $QT_LIB_DIR/libQt5Network.so.*       dist/lib/
+        cp $QT_LIB_DIR/libxcb.so.*              dist/lib/ 2>/dev/null || true
 
-        # Text-to-speech engine plugin
-        if [ -d /usr/lib/aarch64-linux-gnu/qt5/plugins/texttospeech ]; then
-          mkdir -p dist/plugins/texttospeech
-          cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_espeak.so dist/plugins/texttospeech/ || true
-          cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_flite.so  dist/plugins/texttospeech/ || true
-          cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_speechd.so dist/plugins/texttospeech/ || true
-        fi
+        # 5. Platform plugins
+        mkdir -p dist/plugins/platforms
+        cp $QT_PLUGIN_DIR/platforms/libqxcb.so              dist/plugins/platforms/ || true
+        cp $QT_PLUGIN_DIR/platforms/libqwayland-generic.so  dist/plugins/platforms/ || true
+        cp $QT_PLUGIN_DIR/platforms/libqwayland-egl.so      dist/plugins/platforms/ || true
+        cp $QT_PLUGIN_DIR/platforms/libqoffscreen.so        dist/plugins/platforms/ || true
 
-        if [ -d /usr/lib/aarch64-linux-gnu/qt5/plugins/mediaservice ]; then
+        # 6. Text-to-speech plugin
+        mkdir -p dist/plugins/texttospeech
+        cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_speechd.so dist/plugins/texttospeech/ || true
+        cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_espeak.so  dist/plugins/texttospeech/ || true
+        cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_flite.so   dist/plugins/texttospeech/ || true
+
+        # 7. espeak-ng and libjpeg runtime libs (outside any if-block)
+        cp $QT_LIB_DIR/libespeak-ng.so.*  dist/lib/ || true
+        cp $QT_LIB_DIR/libjpeg.so.*       dist/lib/ || true
+
+        # 8. Media service and image format plugins
+        if [ -d $QT_PLUGIN_DIR/mediaservice ]; then
           mkdir -p dist/plugins/mediaservice
-          cp /usr/lib/aarch64-linux-gnu/qt5/plugins/mediaservice/* dist/plugins/mediaservice/
+          cp $QT_PLUGIN_DIR/mediaservice/* dist/plugins/mediaservice/
         fi
 
-        if [ -d /usr/lib/aarch64-linux-gnu/qt5/plugins/imageformats ]; then
+        if [ -d $QT_PLUGIN_DIR/imageformats ]; then
           mkdir -p dist/plugins/imageformats
-          cp /usr/lib/aarch64-linux-gnu/qt5/plugins/imageformats/* dist/plugins/imageformats/
+          cp $QT_PLUGIN_DIR/imageformats/* dist/plugins/imageformats/
         fi
 
         cp -r Examples dist/
@@ -194,9 +196,6 @@ jobs:
     - name: Package Linux ARM
       if: matrix.os == 'ubuntu-24.04-arm'
       run: |
-        # dist/ is already populated by the build step (binary, libs, plugins,
-        # translations, qt.conf). Just add extras here.
-
         cp README.md dist/ || true
 
         # ICU libraries - required by Qt5Core at runtime for Unicode/locale support
@@ -204,17 +203,10 @@ jobs:
         cp /usr/lib/aarch64-linux-gnu/libicudata.so.* dist/lib/
         cp /usr/lib/aarch64-linux-gnu/libicui18n.so.* dist/lib/
 
-        # Patch Qt5Core's rpath so it can find the bundled ICU libs
-        patchelf --set-rpath '$ORIGIN' dist/lib/libQt5Core.so.5
-        # Patch ALL bundled Qt libs to resolve dependencies within dist/lib only
-        for lib in dist/lib/libQt5*.so.*; do
-          patchelf --set-rpath '$ORIGIN' "$lib" 2>/dev/null || true
+        # Patch ALL bundled libs so they resolve dependencies within dist/lib only
+        for lib in dist/lib/libQt5*.so.* dist/lib/libicu*.so.* dist/lib/libespeak*.so.* dist/lib/libjpeg*.so.*; do
+          [ -f "$lib" ] && patchelf --set-rpath '$ORIGIN' "$lib" 2>/dev/null || true
         done
-
-        # Also patch libicuuc since it depends on libicudata
-        patchelf --set-rpath '$ORIGIN' dist/lib/libicuuc.so.*
-        patchelf --set-rpath '$ORIGIN' dist/lib/libicui18n.so.*
-
 
         # Compiled translations
         mkdir -p dist/Translations
@@ -224,7 +216,7 @@ jobs:
           cp Translations/*.qm dist/Translations/
         fi
 
-        # Launcher script (LD_LIBRARY_PATH fallback for systems ignoring rpath)
+        # Launcher script
         cat > dist/run.sh << 'EOF'
         #!/bin/sh
         DIR="$(cd "$(dirname "$0")" && pwd)"
