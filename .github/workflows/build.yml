@@ -236,6 +236,13 @@ jobs:
         chmod +x dist/run.sh
 
         tar -czf ${{ matrix.artifact_name }}.tar.gz dist
+
+    - name: List available TTS plugins
+      if: matrix.os == 'ubuntu-24.04-arm'
+      run: |
+        find /usr/lib/aarch64-linux-gnu/qt5/plugins/texttospeech -type f 2>/dev/null \
+        || echo "No TTS plugins found at expected path"
+        find /usr/lib -name "*texttospeech*" -o -name "*espeak*" 2>/dev/null | grep -v "/proc"
         
     # ---------------------------
     # Packaging Windows (MSVC Migration)
