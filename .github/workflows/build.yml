@@ -103,6 +103,10 @@ jobs:
 
         if [ -d /usr/lib/aarch64-linux-gnu/qt5/plugins/platforms ]; then
           mkdir -p dist/plugins/platforms
+          cp /usr/lib/aarch64-linux-gnu/qt5/plugins/libqxcb.so dist/plugins/platforms/ || true
+          cp /usr/lib/aarch64-linux-gnu/qt5/plugins/libqwayland-generic.so dist/plugins/platforms/ || true
+          cp /usr/lib/aarch64-linux-gnu/qt5/plugins/platforms/libqwayland-egl.so     dist/plugins/platforms/ || true
+          cp /usr/lib/aarch64-linux-gnu/qt5/plugins/platforms/libqoffscreen.so       dist/plugins/platforms/ || true
           cp /usr/lib/aarch64-linux-gnu/qt5/plugins/platforms/libqxcb.so dist/plugins/platforms/
         fi
 
@@ -216,6 +220,7 @@ jobs:
         DIR="$(cd "$(dirname "$0")" && pwd)"
         export LD_LIBRARY_PATH="$DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
         export QT_PLUGIN_PATH="$DIR/plugins"
+        export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
         exec "$DIR/basic256" "$@"
         EOF
         chmod +x dist/run.sh
