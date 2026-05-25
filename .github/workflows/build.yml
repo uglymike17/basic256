@@ -99,6 +99,7 @@ jobs:
         cp /usr/lib/aarch64-linux-gnu/libQt5Sql.so.*           dist/lib/
         cp /usr/lib/aarch64-linux-gnu/libQt5XcbQpa.so.*        dist/lib/
         cp /usr/lib/aarch64-linux-gnu/libQt5DBus.so.*          dist/lib/
+        cp /usr/lib/aarch64-linux-gnu/libQt5Network.so.*       dist/lib/        
         cp /usr/lib/aarch64-linux-gnu/libxcb.so.*              dist/lib/ 2>/dev/null || true
 
         if [ -d /usr/lib/aarch64-linux-gnu/qt5/plugins/platforms ]; then
