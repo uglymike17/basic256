@@ -69,9 +69,10 @@ jobs:
       run: |
         sudo apt-get update && sudo apt-get install -y \
           build-essential cmake flex bison \
+          libespeak-ng-dev \
           qtbase5-dev qttools5-dev-tools qttools5-dev qtmultimedia5-dev \
           libqt5texttospeech5-dev libqt5serialport5-dev libgl1-mesa-dev \
-          libx11-dev libespeak-ng-dev patchelf
+          libx11-dev patchelf
 
     - name: Build Raspberry Pi ARM64
       if: matrix.arch == 'arm64'
@@ -87,7 +88,7 @@ jobs:
         find dist/plugins -name "*.so" | while read f; do
           patchelf --set-rpath '$ORIGIN/../../lib:$ORIGIN/../lib:$ORIGIN' "$f" || true
         done
-        printf '[Paths]\nPlugins=plugins\nLibraries=lib\n' > dist/qt.conf
+        #printf '[Paths]\nPlugins=plugins\nLibraries=lib\n' > dist/qt.conf
 
         # 3. Define plugin dir once, used throughout
         QT_PLUGIN_DIR="/usr/lib/aarch64-linux-gnu/qt5/plugins"
@@ -122,7 +123,7 @@ jobs:
         mkdir -p dist/plugins/texttospeech
         #cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_speechd.so dist/plugins/texttospeech/ || true
         cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_espeak.so  dist/plugins/texttospeech/ || true
-        cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_flite.so   dist/plugins/texttospeech/ || true
+        #cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_flite.so   dist/plugins/texttospeech/ || true
 
         # 7. espeak-ng and libjpeg runtime libs (outside any if-block)
         cp $QT_LIB_DIR/libespeak-ng.so.*  dist/lib/ || true
@@ -213,8 +214,12 @@ jobs:
         cp /usr/lib/aarch64-linux-gnu/libicui18n.so.* dist/lib/
 
         # Patch ALL bundled libs so they resolve dependencies within dist/lib only
-        for lib in dist/lib/libQt5*.so.* dist/lib/libicu*.so.* dist/lib/libespeak*.so.* dist/lib/libjpeg*.so.*; do
+        for lib in dist/lib/*.so.* ; do
           [ -f "$lib" ] && patchelf --set-rpath '$ORIGIN' "$lib" 2>/dev/null || true
+        done
+        # Patch plugins too — they need to find dist/lib
+        for plugin in dist/plugins/**/*.so; do
+          [ -f "$plugin" ] && patchelf --set-rpath '$ORIGIN/../../../lib:$ORIGIN/../../lib' "$plugin" 2>/dev/null || true
         done
 
         # Compiled translations
@@ -238,12 +243,14 @@ jobs:
 
         tar -czf ${{ matrix.artifact_name }}.tar.gz dist
 
-    - name: List available TTS plugins
-      if: matrix.os == 'ubuntu-24.04-arm'
+    - name: Verify TTS plugin loads
+      if: matrix.arch == 'arm64'
       run: |
-        find /usr/lib/aarch64-linux-gnu/qt5/plugins/texttospeech -type f 2>/dev/null \
-        || echo "No TTS plugins found at expected path"
-        find /usr/lib -name "*texttospeech*" -o -name "*espeak*" 2>/dev/null | grep -v "/proc"
+        export LD_LIBRARY_PATH="$(pwd)/dist/lib"
+        export QT_PLUGIN_PATH="$(pwd)/dist/plugins"
+        export QT_DEBUG_PLUGINS=1
+        export QT_QPA_PLATFORM=offscreen
+        ./dist/basic256 --version 2>&1 | grep -i "tts\|text\|speech\|plugin\|espeak" || true
         
     # ---------------------------
     # Packaging Windows (MSVC Migration)
