@@ -53,6 +53,7 @@ jobs:
       if: matrix.os == 'ubuntu-22.04'
       run: |
         sudo apt update
+        sudo apt-get remove -y libunwind-14-dev
         sudo apt install -y build-essential cmake libgl1-mesa-dev libx11-dev libxext-dev \
           libxrender-dev libxi-dev libxkbcommon-x11-0 \
           flex bison qttools5-dev-tools \
@@ -224,7 +225,7 @@ jobs:
           -bundle-non-qt-libs \
           -extra-plugins=texttospeech,mediaservice,audio,imageformats \
           --appimage-extract-and-run
-          
+
         # Compress everything into your final delivery asset
         tar -czf ${{ matrix.artifact_name }}.tar.gz dist
 
