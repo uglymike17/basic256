@@ -53,7 +53,7 @@ jobs:
       if: matrix.os == 'ubuntu-22.04'
       run: |
         sudo apt update
-        sudo apt-get remove -y libunwind-14-dev
+        sudo apt-get remove -y libunwind-14-dev 
         sudo apt install -y build-essential cmake libgl1-mesa-dev libx11-dev libxext-dev \
           libxrender-dev libxi-dev libxkbcommon-x11-0 \
           flex bison qttools5-dev-tools \
