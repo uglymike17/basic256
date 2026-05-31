@@ -17,24 +17,29 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-22.04  # <-- Change from ubuntu-latest to ubuntu-22.04
-            arch: x86_64
-            use_jurplel: false
-            qt_arch: gcc_64
-            artifact_name: BASIC256-Linux-x86_64
+          # - os: ubuntu-22.04  # <-- Change from ubuntu-latest to ubuntu-22.04
+          #   arch: x86_64
+          #   use_jurplel: false
+          #   qt_arch: gcc_64
+          #   artifact_name: BASIC256-Linux-x86_64
           - os: windows-latest
             arch: x86_64
             use_jurplel: false
             qt_arch: win64_msvc2019_64  # Updated for MSVC 2019 / 2022 compatibility
             artifact_name: BASIC256-Windows
-          - os: ubuntu-24.04-arm
-            arch: arm64
-            use_jurplel: false
-            artifact_name: BASIC256-RaspberryPi-ARM64  
+          # - os: ubuntu-24.04-arm
+          #   arch: arm64
+          #   use_jurplel: false
+          #   artifact_name: BASIC256-RaspberryPi-ARM64  
 
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+
+    - name: Install Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.x'
 
     ## Install Qt via jurplel for x86_64 Linux and Windows
     #- name: Install Qt (jurplel)
@@ -158,7 +163,7 @@ jobs:
     - name: Install Qt
       run: |
         pip install aqtinstall
-        aqt install-qt linux desktop 5.15.2 gcc_64
+        aqt install-qt linux desktop 5.15.2 win64_msvc2019_64
         
     - name: Run Build (Windows)
       if: runner.os == 'Windows'
@@ -181,7 +186,7 @@ jobs:
         cd ..
 
         # Configure using MSVC (Omitting -G defaults to the installed Visual Studio version)
-        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$env:Qt5_DIR"
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ github.workspace }}\5.15.2\msvc2019_64"
         
         # Build using MSVC compiler pipeline natively via CMake
         cmake --build build --config Release
