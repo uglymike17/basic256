@@ -20,12 +20,12 @@ jobs:
         include:
           - os: ubuntu-22.04  # <-- Change from ubuntu-latest to ubuntu-22.04
             arch: x86_64
-            use_jurplel: true
+            use_jurplel: false
             qt_arch: gcc_64
             artifact_name: BASIC256-Linux-x86_64
           - os: windows-latest
             arch: x86_64
-            use_jurplel: true
+            use_jurplel: false
             qt_arch: win64_msvc2019_64  # Updated for MSVC 2019 / 2022 compatibility
             artifact_name: BASIC256-Windows
           - os: ubuntu-24.04-arm
@@ -35,16 +35,16 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4.2.2
+      uses: actions/checkout@v4
 
-    # Install Qt via jurplel for x86_64 Linux and Windows
-    - name: Install Qt (jurplel)
-      if: matrix.use_jurplel == true
-      uses: jurplel/install-qt-action@v3
-      with:
-        version: ${{ env.QT_VERSION }}
-        arch: ${{ matrix.qt_arch }}
-        cache: true
+    ## Install Qt via jurplel for x86_64 Linux and Windows
+    #- name: Install Qt (jurplel)
+    #  if: matrix.use_jurplel == true
+    #  uses: jurplel/install-qt-action@v3
+    #  with:
+    #    version: ${{ env.QT_VERSION }}
+    #    arch: ${{ matrix.qt_arch }}
+    #    cache: true
   
     # ---------------------------
     # Linux x86_64 Build
@@ -55,8 +55,8 @@ jobs:
         sudo apt update
         sudo apt-get remove -y libunwind-14-dev 
         sudo apt install -y build-essential cmake libgl1-mesa-dev libx11-dev libxext-dev \
-          libxrender-dev libxi-dev libxkbcommon-x11-0 \
-          flex bison qttools5-dev-tools \
+          libxrender-dev libxi-dev libxkbcommon-x11-0 flex bison \
+          qtbase5-dev qttools5-dev-tools qttools5-dev qtmultimedia5-dev libqt5texttospeech5-dev libqt5serialport5-dev \
           libspeechd-dev libspeechd2 speech-dispatcher libespeak-ng-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
         
         # Configure and Build using CMake
@@ -156,6 +156,11 @@ jobs:
       if: runner.os == 'Windows'
       run: choco install winflexbison3 -y
 
+    - name: Install Qt
+      run: |
+        pip install aqtinstall
+        aqt install-qt linux desktop 5.15.2 gcc_64
+        
     - name: Run Build (Windows)
       if: runner.os == 'Windows'
       env:
@@ -338,7 +343,7 @@ jobs:
     # Upload Artifacts Step
     # ---------------------------
     - name: Upload artifacts
-      uses: actions/upload-artifact@v4.6.2
+      uses: actions/upload-artifact@v5
       with:
         name: ${{ matrix.artifact_name }}
         if-no-files-found: ignore  # Tells the runner to not crash if one of the extensions is missing
