@@ -59,7 +59,6 @@ Sound::~Sound() {
     		audio->stop();
     		audio->deleteLater();
     		audio = nullptr;
-		}
 	}
 	if(media){
 		delete(media);
