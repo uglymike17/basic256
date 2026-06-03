@@ -52,25 +52,22 @@ Sound::Sound(QObject *parent) :
 	isPausedBySystem = false;
 }
 
-Sound::~Sound() {
-	if(audio){
-		// while(audio->state()!=QAudio::StoppedState) audio->stop();
-		// delete(audio);
-    		audio->stop();
-    		audio->deleteLater();
-    		audio = nullptr;
-	}
-	if(media){
-		delete(media);
-		media=NULL;
-	}
-	if(buffer){
-		buffer->close();
-		delete(buffer);
-		buffer=NULL;
-	}
-	delete(byteArray);
-	byteArray=NULL;
+Sound::~Sound()
+{
+    if(audio)
+        audio->stop();
+
+    if(media)
+        media->stop();
+
+    if(buffer){
+        buffer->close();
+        delete buffer;
+        buffer = nullptr;
+    }
+
+    delete byteArray;
+    byteArray = nullptr;
 }
 
 int Sound::state() {
