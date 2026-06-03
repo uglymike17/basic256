@@ -54,8 +54,12 @@ Sound::Sound(QObject *parent) :
 
 Sound::~Sound() {
 	if(audio){
-		while(audio->state()!=QAudio::StoppedState) audio->stop();
-		delete(audio);
+		// while(audio->state()!=QAudio::StoppedState) audio->stop();
+		// delete(audio);
+    		audio->stop();
+    		audio->deleteLater();
+    		audio = nullptr;
+		}
 		audio=NULL;
 	}
 	if(media){
