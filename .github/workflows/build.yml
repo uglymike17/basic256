@@ -64,8 +64,7 @@ jobs:
           libspeechd-dev libspeechd2 speech-dispatcher libespeak-ng-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
         
         # Configure and Build using CMake
-        #cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${Qt5_DIR:-$Qt5_Dir}"
-        cmake -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="${Qt5_DIR:-$Qt5_Dir}"
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${Qt5_DIR:-$Qt5_Dir}"
         cmake --build build --config Release -j$(nproc)
 
     # -----------------------------------------------------------------
@@ -87,7 +86,8 @@ jobs:
       if: matrix.arch == 'arm64'
       run: |
         # 1. Compile using native ARM64 tools
-        cmake -B build -DCMAKE_BUILD_TYPE=Release
+        #cmake -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_PREFIX_PATH="${Qt5_DIR:-$Qt5_Dir}"
+        cmake -B build -DCMAKE_BUILD_TYPE=debug -DCMAKE_PREFIX_PATH="${Qt5_DIR:-$Qt5_Dir}"
         cmake --build build --config Release -j$(nproc)
 
         # 2. Create standalone relocatable distribution folder
