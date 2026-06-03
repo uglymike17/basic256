@@ -1,20 +1,56 @@
 BASIC-256 is an easy to use version of BASIC designed to teach anybody how to program. It was/is aimed at teaching the beginnings of programming to youngsters. 
-In fact the original name of Basic256 was Kidbasic, but it is already quite capable for everyday hobby use in its current state.
+In fact the original name of Basic256 was Kidbasic and it started in 2007, but today in its current state, it is already quite capable for everyday hobby use.
 A Qt5-based program, it has a 3-pane IDE with edit-, output- and graphics-windows. 
-The original code and current downloadable version resides on SourceForge (https://sourceforge.net/projects/kidbasic/) and is at version 2.0.0.11. It has an example directory but all programs there need to be updated. There is also a Testsuite that works on the official SourceForge release but blocks on the one here.
+The original code and current downloadable version resides on SourceForge (https://sourceforge.net/projects/kidbasic/) and is at version 2.0.0.11, which launched in 2020. It has an example directory but all programs there need to be updated. There is also a Testsuite that works on the official SourceForge release but blocks on the one here.
 
 Unfortunately, development of Basic256 has stopped apparently after a failed attempt to port it to Qt6.
 Some have tried to get involved with development (RiOn and comick) and a most recent try has even moved sourceforge to github ( GitHub - comick/basic256)
 
-This new  GitHub repository is my attempt to restart Basic256 and takes the r946 branch of the original code (the branch from which resulted the 2.0.0.11 version) with the aim of trying to modernize the codebase.
+This new  GitHub repository is my attempt to restart Basic256 and takes the r934 branch of the original code (the branch from which resulted the 2.0.0.11 version) with the aim of trying to modernize the codebase.
 
 The aim for this branch is
  - make it compile on Windows, Linux-Intel and Linux-ARM (RPi) from a single Actions pipeline. (Qt being cross-platform, MacOS port may also be looked at).
- ==> At the moment, I'm concentrating on Windows. Linux-Intel, Linux-ARM, Portable app will have to wait
- - port from qmake to CMake
+ ==> At the moment, I'm concentrating on Windows. Linux-Intel, Linux-ARM. MacOS may follow later.
+ - port from qmake to CMake and from minGW to MSVC
  ==> Seems to have gone ok
- - make clean-ups & modernisations where possible. (
- ==> synchronious ESpeak has been replaced by asynchronious Qt texttoSpeech
+ - make clean-ups & modernisations where possible. 
+ ==> synchronious ESpeak has been replaced by asynchronious Qt texttoSpeech at least on Windows
+
+ Current status as of 03/06/2026
+ The is a monolitic build.yml file that builds everything together. It just provides zipped .tar balls for Linux x86 and Raspberry Pi and a selfcontained .zip file for win32.
+ Linux x86 seems to be working (say command is horrible though..) but has issues (ie bugs) in some cases.
+ Raspberry Pi is still problematic on Trixie as it either complains on mixed Qt versions when I copy the Qt files for the build or Trixie is missing some modules when I try to rely on the host system's Qt installation
+ Win32 is working, although the test suite does not run but blocks at the first input prompt.
+
+ Next steps:
+   Figure out how to deliver a complete Raspberry Pi build that works on Trixie. Once done I will consder this build.yml complete (Of course most Linux distros - x86 and ARM - provide their own version of Basic256 2.0.0.11)
+
+   Then I would like to break up the build.yml to make it more readable and mainainable by having it use shell scripts, so using following structure:
+    .github/
+    ├── workflows/
+    │   ├── build.yml
+    │   ├── test.yml
+    │   └── release.yml
+
+    scripts/
+    ├── linux/
+    │   ├── build.sh
+    │   ├── package.sh
+    │   └── deployqt.sh
+    ├── arm64/
+    │   ├── build.sh
+    │   ├── package.sh
+    │   └── patchlibs.sh
+    ├── windows/
+    │   ├── build.ps1
+    │   └── package.ps1
+
+    Once there, I would like to look at making a Windows installer by updating the .nsi file which was last updated in 2020. A debian file would be nice but is of lower priority (need to update the debian directory)
+
+    After that (or possibly before...) I would like to add a MacOS on ARM silicon build to the .github/workflows and scripts directory.
+
+    Once there (dreaming), then I can start at trying the move to Qt6 for the next major release. 
+
 
 I asked Clause.com to do an Audit and show a way forward for this. I previously asked ChatGPTs for an audit. Windows, Linux x86 and RPi are included although Linux x86 and RPi are still to be tested.  Once these 3 are up and running, I'll make an official release and spread the word...
 
