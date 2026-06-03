@@ -27,10 +27,10 @@ jobs:
             use_jurplel: false
             qt_arch: win64_msvc2019_64  # Updated for MSVC 2019 / 2022 compatibility
             artifact_name: BASIC256-Windows
-          - os: ubuntu-24.04-arm
-            arch: arm64
-            use_jurplel: false
-            artifact_name: BASIC256-RaspberryPi-ARM64  
+          # - os: ubuntu-24.04-arm
+          #   arch: arm64
+          #   use_jurplel: false
+          #   artifact_name: BASIC256-RaspberryPi-ARM64  
 
     steps:
     - name: Checkout
@@ -165,7 +165,11 @@ jobs:
       run: |
         pip install aqtinstall
         aqt install-qt windows desktop 5.15.2 win64_msvc2019_64
-        
+
+    - name: Set Qt5_Dir (Windows)
+      if: runner.os == 'Windows'
+      run: echo "Qt5_Dir=${{ github.workspace }}\5.15.2\msvc2019_64" >> $env:GITHUB_ENV      
+
     - name: Run Build (Windows)
       if: runner.os == 'Windows'
       env:
