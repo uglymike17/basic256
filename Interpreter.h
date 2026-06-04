@@ -26,7 +26,6 @@
 #include <QTime>
 #include <stdio.h>
 #include <cmath>
-#include <dirent.h>
 #include "BasicGraph.h"
 #include "Constants.h"
 #include "DataElement.h"
@@ -37,6 +36,10 @@
 #include "Sound.h"
 #include "Sleeper.h"
 #include "BasicDownloader.h"
+
+#ifndef _WIN32
+#include <dirent.h>
+#endif
 
 #include <QElapsedTimer>
 #include <QDebug>
