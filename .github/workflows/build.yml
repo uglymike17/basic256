@@ -1,4 +1,4 @@
-name: Build BASIC-256 CMake
+name: Build BASIC-256_2.0.99.10.2 CMake
 on:
   push:
     branches: [ main, master ]
