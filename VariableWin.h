@@ -40,17 +40,19 @@ public:
 public slots:
     void varWinAssign(Variables **, int, int);
     void varWinAssign(Variables **, int, int, int, int);
+    void varWinAssign(Variables **, int, int, QString);
     void varWinDropLevel(int);
 
 private:
-    Convert *convert;
-    void setTypeAndValue(QTreeWidgetItem *, DataElement *);
-    QString tr_stringType;
-    QString tr_integerType;
-    QString tr_floatType;
-    QString tr_referenceType;
-    QString tr_arrayType;
-    QString tr_unknownType;
+	Convert *convert;
+	void setTypeAndValue(QTreeWidgetItem *, DataElement *);
+	QString tr_stringType;
+	QString tr_integerType;
+	QString tr_floatType;
+	QString tr_referenceType;
+	QString tr_arrayType;
+	QString tr_mapType;
+	QString tr_unknownType;
 };
 
 

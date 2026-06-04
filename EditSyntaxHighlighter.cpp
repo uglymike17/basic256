@@ -11,7 +11,7 @@
  **
  **  You should have received a copy of the GNU General Public License
  **  along with this program; if not, write to the Free Software
- **  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ **  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301
  **/
 
 #include <QTextDocument>
@@ -213,6 +213,7 @@ void EditSyntaxHighlighter::initKeywords() {
 			<< "mid"								//mid
 			<< "midx"								//midx
 			<< "minute"								//minute
+			<< "mkdir"
 			<< "mod"
 			<< "month"								//month
 			<< "mouseb"								//mouseb
@@ -230,6 +231,7 @@ void EditSyntaxHighlighter::initKeywords() {
 			<< "not"								//not
 			<< "offerror"							//offerror
 			<< "onerror"							//onerror
+			<< "onstop"
 			<< "open"								//open
 			<< "openb"								//openb
 			<< "openfiledialog"
@@ -247,6 +249,7 @@ void EditSyntaxHighlighter::initKeywords() {
 			<< "portin"								//portin
 			<< "portout"							//portout
 			<< "print"								//print
+			<< "printat"							//printat
 			<< "printer[ \t]*cancel"				//printercancel or printer cancel
 			<< "printer[ \t]*off"					//printeroff or printer off
 			<< "printer[ \t]*on"					//printeron or printer on
@@ -270,6 +273,7 @@ void EditSyntaxHighlighter::initKeywords() {
 			<< "rgb"								//rgb
 			<< "right"								//right
 			<< "rjust"
+			<< "rmdir"
 			<< "round"
 			<< "savefiledialog"
 			<< "say"								//say
@@ -318,6 +322,7 @@ void EditSyntaxHighlighter::initKeywords() {
 			<< "sprites"							//sprites
 			<< "spriteshow"							//spriteshow
 			<< "spriteslice"						//spriteslice
+			<< "spritetext"
 			<< "spritev"							//spritev
 			<< "spritew"							//spritew
 			<< "spritex"							//spritex

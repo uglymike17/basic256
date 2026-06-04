@@ -111,6 +111,10 @@ void Error::q(int errornumber, int variablenumber, int arrayx, int arrayy, QStri
         if (varnotassignederror==SETTINGSERRORNONE) return;
         if (varnotassignederror==SETTINGSERRORWARN) errornumber = WARNING_REFNOTASSIGNED;
     }
+    if (errornumber==ERROR_MAPKEY) {
+        if (varnotassignederror==SETTINGSERRORNONE) return;
+        if (varnotassignederror==SETTINGSERRORWARN) errornumber = WARNING_MAPKEY;
+    }
     if(pending_e == ERROR_NONE){
         //store only first error from last operation
         //example: print a/b
@@ -465,6 +469,12 @@ QString Error::getErrorMessage(char **symtable) {
 		case ERROR_MAPKEY:
 			errormessage = tr("Map key does not exist");
 			break;
+		case ERROR_RMDIR:
+			errormessage = tr("Unable to remove folder (it must be empty)");
+			break;
+		case ERROR_MKDIR:
+			errormessage = tr("Unable to create new folder");
+			break;
 
 
 
@@ -518,7 +528,9 @@ QString Error::getErrorMessage(char **symtable) {
 		case WARNING_REFNOTASSIGNED:
 			errormessage = tr("Variable %VARNAME% refers to an unassigned variable");
 			break;
-
+		case WARNING_MAPKEY:
+			errormessage = tr("Map key has not been assigned a value");
+			break;
 
 
 		// put WARNING new messages here

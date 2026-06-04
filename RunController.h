@@ -24,8 +24,9 @@
 #include <QtWidgets/QTextEdit>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QStatusBar>
-#include <QTextToSpeech>
-
+#include <QtTextToSpeech/QTextToSpeech>
+#include <QtTextToSpeech/QVoice>
+#include <QThread>
 #include <QLocale>
 
 #include "BasicEdit.h"
@@ -52,6 +53,7 @@ class RunController : public QObject
   void outputReady(QString text);
   void outputError(QString text);
   void outputClear();
+  void outputTextAt(int, int, QString);
   void goutputReady();
   void resizeGraphWindow(int, int, qreal);
   void startDebug();
@@ -89,18 +91,16 @@ class RunController : public QObject
   void getClipboardString();
   void setClipboardImage(QImage);
   void setClipboardString(QString);
-
-private slots:
-    void speechStateChanged(QTextToSpeech::State state);
+  
 
  private:
-  QTextToSpeech *tts;
   Interpreter *i;
   bool paused;
   run_status oldStatus;
   QString bytefilename;
   QLocale *locale;
   BasicEdit *currentEditor;
+  QTextToSpeech *speech;
 };
 
 

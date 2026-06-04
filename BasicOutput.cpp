@@ -45,8 +45,8 @@ BasicOutput::BasicOutput( ) : QTextEdit () {
 	setAcceptRichText(false);
 	setUndoRedoEnabled(false);
 	gettingInput = false;
-	connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(cursorChanged()));
-	connect(this, SIGNAL(selectionChanged()), this, SLOT(cursorChanged()));
+	saveLastPosition();
+
 }
 
 BasicOutput::~BasicOutput( ) {
@@ -54,17 +54,15 @@ BasicOutput::~BasicOutput( ) {
 }
 
 void BasicOutput::getInput() {
-    // move cursor to the end of the existing text and start input
-    inputText.clear();
-    gettingInput = true;
-	emit(mainWindowsVisible(2,true));
-	QTextCursor t(textCursor());
-	t.movePosition(QTextCursor::End);
-	setTextCursor(t);
-	startPos = t.position();
-	setReadOnly(false);
+	// move cursor to the end of the existing text and start input
+	inputText.clear();
+	gettingInput = true;
 	setFocus();
-    updatePasteButton();
+	emit(mainWindowsVisible(2,true));
+	restoreLastPosition();
+	inputPosition = lastPosition;
+	setReadOnly(false);
+	updatePasteButton();
 }
 
 void BasicOutput::stopInput() {
@@ -83,21 +81,24 @@ void BasicOutput::keyPressEvent(QKeyEvent *e) {
 		mymutex->unlock();
     } else {
         if (e->key() == Qt::Key_Return || e->key() == Qt::Key_Enter) {
+            saveLastPosition();
             QTextCursor t(textCursor());
-            t.setPosition(startPos);
-            t.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
+            t.setPosition(inputPosition);
+            t.movePosition(QTextCursor::Start, QTextCursor::KeepAnchor);
+            t.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, lastPosition);
             inputText=t.selectedText();
-            t.movePosition(QTextCursor::End);
-            setTextCursor(t);
+            restoreLastPosition();
             insertPlainText("\n");
+            saveLastPosition();
             stopInput();
             emit(inputEntered(inputText)); // send the string back to the interperter and run controller
 
        } else if (e->key() == Qt::Key_Backspace) {
             QTextCursor t(textCursor());
             t.movePosition(QTextCursor::PreviousCharacter);
-            if (t.position() >= startPos)
+            if (t.position() >= inputPosition)
                 QTextEdit::keyPressEvent(e);
+                saveLastPosition();
         } else {
             QTextEdit::keyPressEvent(e);
         }
@@ -179,23 +180,14 @@ void BasicOutput::slotPrint() {
 #endif
 }
 
-
-//User can navigate or select text only in permitted area when BASIC-256 wait for input
-void BasicOutput::cursorChanged() {
-	if (gettingInput) {
-		QTextCursor t(textCursor());
-		int position=t.position();
-		int anchor=t.anchor();
-		if (position < startPos || anchor < startPos) {
-			if (position < startPos) position = startPos;
-			if (anchor < startPos) anchor = startPos;
-			t.setPosition(anchor, QTextCursor::MoveAnchor);
-			t.setPosition(position, QTextCursor::KeepAnchor);
-			setTextCursor(t);
-		}
-	}
+void BasicOutput::paintEvent(QPaintEvent* event) {
+	// paint a visible cursor at the text cursor
+	QTextEdit::paintEvent(event);
+	QRect cursor = cursorRect();
+	cursor.setWidth(2);
+	QPainter p(viewport());
+	p.fillRect(cursor, Qt::SolidPattern);
 }
-
 
 // Ensure that drag and drop is allowed only in permitted area when BASIC-256 wait for input
 void BasicOutput::dragEnterEvent(QDragEnterEvent *e){
@@ -205,7 +197,7 @@ void BasicOutput::dragEnterEvent(QDragEnterEvent *e){
 
 void BasicOutput::dragMoveEvent (QDragMoveEvent *event){
 	QTextCursor t = cursorForPosition(event->pos());
-	if (t.position() >= startPos){
+	if (t.position() >= inputPosition){
 		event->acceptProposedAction();
 		QDragMoveEvent move(event->pos(),event->dropAction(), event->mimeData(), event->mouseButtons(),
 			event->keyboardModifiers(), event->type());
@@ -234,5 +226,127 @@ void BasicOutput::updatePasteButton(){
 void BasicOutput::slotClear(){
      clearAct->setEnabled(false);
      clear();
+     lastPosition = 0;
 }
+
+void BasicOutput::slotWrap(bool checked) {
+	if (checked) {
+		setLineWrapMode(QTextEdit::WidgetWidth);
+	} else {
+		setLineWrapMode(QTextEdit::NoWrap);
+	}
+}
+
+void BasicOutput::outputText(QString text) {
+	outputText(text, Qt::black);
+}
+
+void BasicOutput::outputText(QString text, QColor color) {
+	this->setTextColor(color); //back to black color
+	restoreLastPosition();
+	this->insertPlainText(text);
+	this->ensureCursorVisible();
+	saveLastPosition();
+}
+
+int BasicOutput::getCurrentPosition() {
+		QTextCursor t(textCursor());
+		return t.position();
+}
+
+void BasicOutput::saveLastPosition() {
+	lastPosition = getCurrentPosition();
+}
+
+void BasicOutput::restoreLastPosition() {
+	moveToPosition(lastPosition);
+}
+
+void BasicOutput::moveToPosition(int pos) {
+	// move to an absolute character number (position) in the document
+	QTextCursor t(textCursor());
+	t.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
+	t.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, pos);
+	setTextCursor(t);
+}
+
+void BasicOutput::outputTextAt(int col, int row, QString s) {
+	//fprintf(stderr, "moveToPosition = col %i row %i\n", col, row);
+
+	QTextCursor t(textCursor());
+	t.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
+
+	//fprintf(stderr, "moveToPosition start=%i\n", t.position());
+
+	// move to the begining of the sprecified line or append lines
+	int lines = toPlainText().count("\n");
+	//fprintf(stderr, "moveToPosition lines=%i\n", lines);
+	if (row>lines) {
+		// go to end and append
+		for (; lines < row; lines++) {
+			t.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
+			this->setTextCursor(t);
+			insertPlainText("\n");
+			//fprintf(stderr, "moveToPosition add line\n", lines);
+		}
+	} else {
+		// go down to the row
+		for (int i=0; i < row; i++) {
+			t.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor);
+			//fprintf(stderr, "moveToPosition down line\n", lines);
+		}
+		this->setTextCursor(t);
+	}
+	//fprintf(stderr, "moveToPosition after position=%i\n", t.position());
+
+	// move to the specified character on the current line or append
+	t.movePosition(QTextCursor::StartOfLine, QTextCursor::MoveAnchor);
+	int lineStart = t.position();
+	t.movePosition(QTextCursor::EndOfLine, QTextCursor::MoveAnchor);
+	int lineEnd = t.position();
+	//fprintf(stderr, "moveToPosition = ls %i le %i\n", lineStart, lineEnd);
+
+
+	if (col <= lineEnd-lineStart) {
+		// line is long enough to start - replace mode
+		t.movePosition(QTextCursor::StartOfLine, QTextCursor::MoveAnchor);
+		t.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, col);
+		this->setTextCursor(t);
+		
+		// replace text at cursor
+		int startText = t.position();
+		t.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, s.length());
+		int endLength = t.position();
+		t.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
+		t.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, startText);
+		t.movePosition(QTextCursor::EndOfLine, QTextCursor::MoveAnchor);
+		int endLine = t.position();
+
+		int replaceLen= (endLine<endLength?endLine:endLength) - startText;
+		//fprintf(stderr, "moveToPosition = replace s %i len %i line %i replaceLen %i\n", startText, endLength, endLine, replaceLen);
+		
+		t.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
+		t.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, startText);
+		t.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, replaceLen);
+		this->setTextCursor(t);
+		this->insertPlainText(s);
+		
+	} else {
+		// line is not long enough - insert spaces and insert
+		t.movePosition(QTextCursor::EndOfLine, QTextCursor::MoveAnchor);
+		this->setTextCursor(t);
+		for (int i=lineEnd-lineStart; i<col; i++) {
+			insertPlainText(" ");
+		}
+		this->insertPlainText(s);
+	}
+
+	saveLastPosition();	
+	//fprintf(stderr, "moveToPosition = -----------------------------------\n");
+
+}
+
+
+
+
 

@@ -29,9 +29,8 @@ Variable::~Variable() {
 
 Variables::Variables(int n) :  numsyms(n){
 	// n is the size of the symbol table
-    recurselevel = 0;
-	maxrecurselevel = -1;
-	allocateRecurseLevel();
+    recurselevel = -1;
+    increaserecurse(); // go to recurse level 0 (main level)
 	isglobal = new bool[numsyms];
 	int i=numsyms;
 	while(i-- > 0) {
@@ -41,17 +40,12 @@ Variables::Variables(int n) :  numsyms(n){
 
 Variables::~Variables() {
 	// free variables and all storage
-	do {
-		// delete a recurse level being sure to delete
-		// the variables in the runlevel before removing it
-		int i=numsyms;
-		while(i-- > 0) {
-			delete(varmap[recurselevel][i]);
-		}
-		delete[] varmap[recurselevel];
-		recurselevel--;
-	} while (recurselevel>=0);
-	varmap.clear();
+	// delete a recurse level being sure to delete
+	// the variables in the runlevel before removing itmake
+	while(recurselevel >= 0) {
+		decreaserecurse();
+	}
+	varmap.resize(0);
 	delete[] isglobal;
 }
 
@@ -65,62 +59,48 @@ QString Variables::debug() {
 				s += QStringLiteral(" varnum ") + QString::number(j) + QStringLiteral(" ") ;
 				s += varmap[i][j]->data->debug();
 				s += "\n";
-            }
-            s += "\n";
-        }
-    }
-    return s;
-}
-
-void Variables::allocateRecurseLevel() {
-    // initialize a new recurse level
-    // create a new Variable for each symbol at this recurse level
-    // wasteful for the labels and jump points but vector is so fast
-    // to access an element it does not matter
-    if(maxrecurselevel<recurselevel){
-        varmap.resize(recurselevel+1);
-        varmap[recurselevel] = new Variable*[numsyms];
-        int i=numsyms;
-        while(i-- > 0) {
-            varmap[recurselevel][i] = NULL;
-        }
-        
-        maxrecurselevel=recurselevel;
-    }
-}
-
-void Variables::clearRecurseLevel() {
-	// clear a recurse level
-	//it can be reused faster than create/delete all variables
-	int i=numsyms;
-	while(i-- > 0) {
-		delete varmap[recurselevel][i];
-		varmap[recurselevel][i] = NULL;
-    }
+			}
+			s += "\n";
+		}
+	}
+	return s;
 }
 
 void Variables::increaserecurse() {
-    recurselevel++;
-    if (recurselevel>=MAX_RECURSE_LEVELS) {
-        recurselevel--;
-        e = ERROR_MAXRECURSE;
-    } else {
-		allocateRecurseLevel();
+	// initialize a new recurse level
+	// create a new Variable for each symbol at this recurse level
+	// wasteful for the labels and jump points but vector is so fast
+	// to access an element it does not matter	recurselevel++;
+	if (recurselevel>=MAX_RECURSE_LEVELS) {
+		recurselevel--;
+		e = ERROR_MAXRECURSE;
+	} else {
+		recurselevel++;
+		varmap.resize(recurselevel+1);
+		varmap[recurselevel] = new Variable*[numsyms];
+		int i=numsyms;
+		while(i-- > 0) {
+			varmap[recurselevel][i] = NULL;
+		}
+
 	}
 }
 
 int Variables::getrecurse() {
-    return recurselevel;
+	return recurselevel;
 }
 
 void Variables::decreaserecurse() {
-    if (recurselevel>0) {
-        // clear all variables in the current recurse level before we return
-        // to the previous level
-        clearRecurseLevel();
-        // return back to prev variable context
-        recurselevel--;
-    }
+	if (recurselevel>=0) {
+		int i=numsyms;
+		while(i-- > 0) {
+			if (varmap[recurselevel][i]) delete varmap[recurselevel][i];
+		}
+		delete varmap[recurselevel];
+		// return back to prev variable context
+		recurselevel--;
+		varmap.resize(recurselevel+1);
+	}
 }
 
 
@@ -129,7 +109,7 @@ Variable* Variables::get(int varnum, int level) {
 	Variable *v;
 	//printf("variables::get - varnum %d level %d\n", varnum, level);
 	v = getAt(varnum, level);
-	if(v->data->type==T_REF) {
+	if(DataElement::getType(v->data)==T_REF) {
 		// reference to other level - recurse down the rabitty hole
 		return get(v->data->intval, v->data->level);
 	} else {
@@ -147,7 +127,7 @@ Variable* Variables::getAt(int varnum, int level) {
 	Variable *v;
 	if(isglobal[varnum]) level = 0;
 	v = varmap[level][varnum];
-	if (! v) {
+	if (not v) {
 		v = new Variable();
 		varmap[level][varnum] = v;
 	}
@@ -161,6 +141,7 @@ Variable* Variables::getAt(int varnum) {
 
 DataElement* Variables::getData(int varnum) {
 	// get data from variable - return varnum's data
+	// DO NOT DELETE ****** COPY OF THE VARIABLE's INTERNAL STORAGE
 	Variable *v = get(varnum);
 	return v->data;
 }
@@ -170,7 +151,7 @@ void Variables::setData(int varnum, DataElement* d) {
     // recieves a DataElement pointed pulled from the stack
     // e is a pointer in the stack vector AND MUST NOT BE DELETED
 	Variable *v;
-	if (d->type==T_REF) {
+	if (DataElement::getType(d)==T_REF) {
 		// if we are assigning a "REF" dont recurse down the previous ref is there is one
 		// just assign it at the current run level.
 		v = getAt(varnum);
@@ -181,31 +162,40 @@ void Variables::setData(int varnum, DataElement* d) {
 }
 
 void Variables::setData(int varnum, long l) {
-    Variable *v = get(varnum);
-    v->data->type = T_INT;
-    v->data->intval = l;
+	Variable *v = get(varnum);
+	v->data->clear();
+	v->data->type = T_INT;
+	v->data->intval = l;
 }
 
 void Variables::setData(int varnum, double f) {
-    Variable *v = get(varnum);
-    v->data->type = T_FLOAT;
-    v->data->floatval = f;
+	Variable *v = get(varnum);
+	v->data->clear();
+	v->data->type = T_FLOAT;
+	v->data->floatval = f;
 }
 
 void Variables::setData(int varnum, QString s) {
-    Variable *v = get(varnum);
-    v->data->type = T_STRING;
-    v->data->stringval = s;
+	//fprintf(stderr,"s");
+	Variable *v = get(varnum);
+	v->data->clear();
+	v->data->type = T_STRING;
+	v->data->stringval = s;
+}
+
+void Variables::setData(int varnum, std::string s) {
+	// used in foreach for maps
+	setData(varnum, QString::fromStdString(s));
 }
 
 void Variables::unassign(int varnum) {
-    //unassign true variable, not the reference (unlink)
-    Variable *v = varmap[(recurselevel==0||isglobal[varnum])?0:recurselevel][varnum];
-    v->data->clear();
+	//unassign true variable, not the reference (unlink)
+	Variable *v = varmap[(recurselevel==0||isglobal[varnum])?0:recurselevel][varnum];
+	v->data->clear();
 }
 
 void Variables::makeglobal(int varnum) {
-    // make a variable global - if there is a value in a run level greater than 0 then
-    // that value will be lost to the program
-    isglobal[varnum] = true;
+	// make a variable global - if there is a value in a run level greater than 0 then
+	// that value will be lost to the program
+	isglobal[varnum] = true;
 }

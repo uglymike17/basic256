@@ -39,6 +39,7 @@ VariableWin::VariableWin () {
     tr_floatType = tr("Type: Float");
     tr_arrayType = tr("Type: Array");
     tr_referenceType = tr("Type: Reference");
+    tr_mapType = tr("Type: Map");
     tr_unknownType = tr("?");
 }
 
@@ -51,8 +52,7 @@ void VariableWin::setTypeAndValue(QTreeWidgetItem *r, DataElement *d) {
 	QString var;
 	if (r) {
 		r->takeChildren();
-		if (d!=NULL) {
-			switch (d->type) {
+		switch(DataElement::getType(d)) {
 			case T_STRING:{
 				r->setText(COLUMNTYPE, QStringLiteral("S"));
 				r->setData(COLUMNTYPE, Qt::ToolTipRole, tr_stringType);
@@ -82,7 +82,7 @@ void VariableWin::setTypeAndValue(QTreeWidgetItem *r, DataElement *d) {
 				r->setData(COLUMNVALUE, Qt::UserRole + 1, var); //to do:00level+var
 				break;
 			}
-			 case T_ARRAY:{
+			case T_ARRAY:{
 				r->setText(COLUMNTYPE, QStringLiteral("A"));
 				r->setData(COLUMNTYPE, Qt::ToolTipRole, tr_arrayType);
 				if (d->arrayRows()==1) {
@@ -96,19 +96,22 @@ void VariableWin::setTypeAndValue(QTreeWidgetItem *r, DataElement *d) {
 				r->setData(COLUMNVALUE, Qt::UserRole + 1, var); //to do:00level+var
 				break;
 			}
+			case T_MAP:{
+				r->setText(COLUMNTYPE, QStringLiteral("M"));
+				r->setData(COLUMNTYPE, Qt::ToolTipRole, tr_mapType);
+				var = QStringLiteral("[") + QString::number(d->mapLength()) + QStringLiteral("]");
+				r->setText(COLUMNVALUE, var);
+				r->setData(COLUMNVALUE, Qt::UserRole + 1, var); //to do:00level+var
+				break;
+			}
 		   default:{
 				r->setText(COLUMNTYPE, tr_unknownType);
 				r->setData(COLUMNTYPE, Qt::ToolTipRole, QStringLiteral(""));
 				r->setText(COLUMNVALUE, QStringLiteral(""));
 				r->setData(COLUMNVALUE, Qt::UserRole + 1, QVariant());
 			}
-			}
-		} else {
-			r->setText(COLUMNTYPE, tr_unknownType);
-			r->setData(COLUMNTYPE, Qt::ToolTipRole, QStringLiteral(""));
-			r->setText(COLUMNVALUE, QStringLiteral(""));
-			r->setData(COLUMNVALUE, Qt::UserRole + 1, QVariant());
 		}
+
 	}
 }
 
@@ -119,7 +122,6 @@ void VariableWin::varWinAssign(Variables **variables, int varnum, int level, int
 	QString parentname, childname;
 	DataElement *d;
 	QList<QTreeWidgetItem *> list;
-
 
 	if(*variables){
 		Variable *v = (*variables)->getAt(varnum, level);
@@ -147,6 +149,40 @@ void VariableWin::varWinAssign(Variables **variables, int varnum, int level, int
 				parentItem->addChild(childItem);
 			}
 			setTypeAndValue(childItem, v->data->arrayGetData(x,y));
+		}
+	}
+}
+
+void VariableWin::varWinAssign(Variables **variables, int varnum, int level, QString key) {
+	// refresh a map's elements
+	QTreeWidgetItem *parentItem = NULL;
+	QTreeWidgetItem *childItem = NULL;
+	QString parentname, childname;
+	DataElement *d;
+	QList<QTreeWidgetItem *> list;
+
+	if(*variables){
+		Variable *v = (*variables)->getAt(varnum, level);
+		parentname = QString::number(level) + QStringLiteral(" - ") + symtable[varnum];
+		// see if v is on the list and change value or add
+		list = findItems(parentname, Qt::MatchExactly | Qt::MatchRecursive, COLUMNNAME);
+
+		if (list.size() > 0) {
+			parentItem = (TreeWidgetItem *)list[0];
+			// now find child or add
+			childname = parentname + QStringLiteral("[") + key + QStringLiteral("]");
+			list = findItems(childname, Qt::MatchExactly | Qt::MatchRecursive, COLUMNNAME);
+			if (list.size() > 0) {
+				// get existing element
+				childItem = (TreeWidgetItem *)list[0];
+			} else {
+				// create a new one
+				childItem = new TreeWidgetItem();
+				childItem->setText(COLUMNNAME, childname);
+				childItem->setData(COLUMNNAME, Qt::UserRole + 1, childname);
+				parentItem->addChild(childItem);
+			}
+			setTypeAndValue(childItem, v->data->mapGetData(key));
 		}
 	}
 }
@@ -182,11 +218,18 @@ void VariableWin::varWinAssign(Variables **variables, int varnum, int level) {
 				for(int y = 0; y<v->data->arr->ydim;y++) {
 					DataElement *q = v->data->arrayGetData(x,y);
 					DataElement::getError(true);
-					if (q->type!=T_UNASSIGNED) {
+					if (q && q->type!=T_UNASSIGNED) {
 						varWinAssign(variables, varnum, level, x, y);
 					}
 				}  
 			}  
+		}
+		//
+		// if a map set initial values if any
+		if (v->data->type==T_MAP) {
+			for (std::map<std::string, DataElement*>::iterator it = v->data->map->data.begin(); it != v->data->map->data.end(); it++ ) {
+				varWinAssign(variables, varnum, level, QString::fromStdString(it->first));
+			}
 		}
 	}
 }

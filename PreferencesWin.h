@@ -90,19 +90,19 @@ private:
 	QLineEdit *passwordinput;
 	QCheckBox *settingcheckbox;
 
-    QGroupBox *settingsgroup;
-    QRadioButton *settingsacces0;
-    QRadioButton *settingsacces1;
-    QRadioButton *settingsacces2;
+	QGroupBox *settingsgroup;
+	QRadioButton *settingsacces0;
+	QRadioButton *settingsacces1;
+	QRadioButton *settingsacces2;
 
-    QLabel *allowsystemlabel;
-    QComboBox *allowsystemcombo;
-    QLabel *allowportlabel;
-    QComboBox *allowportcombo;
-    QLabel *settingsaccesslabel;
-    QComboBox *settingsaccesscombo;
-    QLabel *settingsmaxlabel;
-    QComboBox *settingsmaxcombo;
+	QLabel *allowsystemlabel;
+	QComboBox *allowsystemcombo;
+	QLabel *allowportlabel;
+	QComboBox *allowportcombo;
+	QLabel *settingsaccesslabel;
+	QComboBox *settingsaccesscombo;
+	QLabel *settingsmaxlabel;
+	QComboBox *settingsmaxcombo;
 
     SettingsBrowser *settingsbrowser;
 
@@ -115,35 +115,31 @@ private:
 	QLabel *varnotassignedlabel;
 	QComboBox *varnotassignedcombo;
 	QLabel *decdigslabel;
-    QLabel *decdigsvalue;
+	QLabel *decdigsvalue;
 	QSlider *decdigsslider;
-    QCheckBox *floattailcheckbox;
-    QCheckBox *floatlocalecheckbox;
-    QLabel *debugspeedlabel;
-    QLabel *debugspeedvalue;
+	QCheckBox *floattailcheckbox;
+	QCheckBox *floatlocalecheckbox;
+	QLabel *debugspeedlabel;
+	QLabel *debugspeedvalue;
 	QSlider *debugspeedslider;
-    QCheckBox *windowsrestorecheckbox;
-    QLabel *startuplabel;
-    QCheckBox *checkupdatecheckbox;
+	QCheckBox *windowsrestorecheckbox;
+	QLabel *startuplabel;
+	QCheckBox *checkupdatecheckbox;
 
 	// sound tab
 	QWidget * soundtabwidget;
 	QGridLayout * soundtablayout;
-	QLabel *voicelabel;
-	QComboBox *voicecombo;
-	QLabel *speakstmtlabel;
-	QLineEdit *speakstmtinput;
-   QLabel *soundvolumelabel;
-    QLabel *soundvolumevalue;
-    QSlider *soundvolumeslider;
-    QLabel *soundnormalizelabel;
-    QLabel *soundnormalizevalue;
-    QSlider *soundnormalizeslider;
-    QLabel *soundvolumerestorelabel;
-    QLabel *soundvolumerestorevalue;
-    QSlider *soundvolumerestoreslider;
-    QLabel *soundsampleratelabel;
-    QComboBox *soundsampleratecombo;
+	QLabel *soundvolumelabel;
+	QLabel *soundvolumevalue;
+	QSlider *soundvolumeslider;
+	QLabel *soundnormalizelabel;
+	QLabel *soundnormalizevalue;
+	QSlider *soundnormalizeslider;
+	QLabel *soundvolumerestorelabel;
+	QLabel *soundvolumerestorevalue;
+	QSlider *soundvolumerestoreslider;
+	QLabel *soundsampleratelabel;
+	QComboBox *soundsampleratecombo;
 
 	// printer tab
 	QWidget * printertabwidget;

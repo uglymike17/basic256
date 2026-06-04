@@ -1,0 +1,38 @@
+Instructions 2020-10-04b
+Debian buster in Raspberry Pi
+
+sudo apt-get update
+sudo apt-get install subversion qt5-default bison flex qtmultimedia5-dev libqt5serialport5-dev libqt5multimedia5-plugins libqt5texttospeech5-dev qtspeech5-flite-plugin pulseaudio
+pulseudio --start
+ 
+in your home folder
+svn checkout https://svn.code.sf.net/p/kidbasic/code/trunk basic256
+
+cd basic256
+qmake BASIC256.pro -config release
+make clean
+make
+sudo make install
+
+RaspberryPi - AUdio
+https://www.raspberrypi.org/documentation/configuration/audio-config.md
+
+
+svn checkout --username=renejm svn+ssh://renejm@svn.code.sf.net/p/kidbasic/code/trunk kidbasic-code
+
+SNAP:
+based on : https://jonathansblog.co.uk/snapcraft-building-arm-snaps-on-raspberry-pi
+
+setup:
+sudo apt update && sudo apt upgrade
+sudo apt install snapd
+sudo snap install core
+sudo snap install snapcraft --classic
+sudo snap install lxd
+sudo usermod -a -G lxd ${USER}
+lxd init (answer the questions with their defaults)
+reboot (this is important)
+
+making:
+snapcraft --use-lxd
+

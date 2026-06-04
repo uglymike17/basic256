@@ -76,6 +76,7 @@ class BasicEdit : public QPlainTextEdit, public ViewWidgetIFace
 		void slotPrint();
 		void beautifyProgram();
 		void slotWhitespace(bool);
+		void slotWrap(bool);
         void highlightCurrentLine();
 		int  indentSelection();
 		void unindentSelection();

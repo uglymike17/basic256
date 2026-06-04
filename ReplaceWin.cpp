@@ -39,6 +39,7 @@ ReplaceWin::ReplaceWin () {
     layout->addWidget(findLabel,r,1,1,1);
     findTextCombo = new QComboBox;
     findTextCombo->setEditable(true);
+    findTextCombo->setCompleter(nullptr);
     findTextCombo->setInsertPolicy(QComboBox::InsertAtTop);
     findText = findTextCombo->lineEdit();
     findText->setMaxLength(100);
@@ -51,6 +52,7 @@ ReplaceWin::ReplaceWin () {
     layout->addWidget(replaceLabel,r,1,1,1);
     replaceTextCombo = new QComboBox;
     replaceTextCombo->setEditable(true);
+    replaceTextCombo->setCompleter(nullptr);
     replaceTextCombo->setInsertPolicy(QComboBox::InsertAtTop);
     replaceText = replaceTextCombo->lineEdit();
     replaceText->setMaxLength(100);
@@ -179,11 +181,11 @@ void ReplaceWin::saveHistory() {
     QString f = findText->text();
     QString r = replaceText->text();
     if(f.length() != 0){
-        if(findTextCombo->findText(f)==-1)
+        if(findTextCombo->findText(f,Qt::MatchCaseSensitive)==-1)
             findTextCombo->insertItem(0, f);
     }
     if(r.length() != 0){
-        if(replaceTextCombo->findText(r)==-1)
+        if(replaceTextCombo->findText(r,Qt::MatchCaseSensitive)==-1)
             replaceTextCombo->insertItem(0, r);
     }
 }

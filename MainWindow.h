@@ -114,6 +114,7 @@ public:
 	QAction *graphwin_visible_act;
 	QAction *varwin_visible_act;
 	QAction *edit_whitespace_act;
+	QAction *edit_wrap_act;
 	QAction *graph_grid_visible_act;
 	QAction *fontact;
 	QAction *main_toolbar_visible_act;

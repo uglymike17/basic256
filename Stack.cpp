@@ -4,13 +4,11 @@
 
 int Stack::e = ERROR_NONE;
 
-Stack::Stack(Convert *c, QLocale *applocale) {
+Stack::Stack(Convert *c) {
 	convert = c;
 	stackpointer = 0;	// height of stack
 	stacksize = 0;       //max size of stack to avoid calling stackdata.size()
 	stackGrow();
-	locale = applocale;
-
 }
 
 Stack::~Stack() {
@@ -56,11 +54,13 @@ int Stack::height() {
 void Stack::pushDE(DataElement *source) {
 	if (stackpointer >= stacksize)  stackGrow();
 	// push to stack a copy of he dataelement
+	
+	// IF YOU CREATED A DE TO PUSH - BE SURE TO DELETE
+	// AFTER pushDE
+	
 	stackdata[stackpointer] = new DataElement();
 	if (source) {
 		stackdata[stackpointer]->copy(source);
-	} else {
-		stackdata[stackpointer]->type = T_UNASSIGNED;
 	}
 	stackpointer++;
 }
@@ -98,65 +98,10 @@ void Stack::pushBool(bool i) {
 	stackdata[stackpointer++] = new DataElement(i?1L:0L);
 }
 
-
-//
-// Pushes derived from RAW pushes
-//
-
-void Stack::pushVariant(QString string, int type) {
-	// try to convert a string to an int or float and push that type
-	// if unable then push a string
-	switch (type) {
-		case T_UNASSIGNED:
-			{
-				bool ok;
-				long i;
-				i = string.toLong(&ok);
-				if (ok) {
-					pushLong(i);
-				} else {
-					double d;
-					d = locale->toDouble(string,&ok);
-					if (ok) {
-						pushDouble(d);
-					} else {
-						// not an integer or double - push string
-						pushQString(string);
-					}
-				}
-			}
-			break;
-		case T_INT:
-			{
-				bool ok;
-				long i=0;
-				i = string.toLong(&ok);
-				if (!ok) {
-					e = ERROR_NUMBERCONV;
-				}
-				pushLong(i);
-			}
-			break;
-		case T_FLOAT:
-			{
-				bool ok;
-				double d=0.0;
-				d = locale->toDouble(string,&ok);
-				if (!ok) {
-					e = ERROR_NUMBERCONV;
-				}
-				pushDouble(d);
-			}
-			break;
-		case T_STRING:
-			{
-				pushQString(string);
-			}
-			break;
-	}
+void Stack::pushUnassigned() {
+	if (stackpointer >= stacksize)  stackGrow();
+	stackdata[stackpointer++] = new DataElement();
 }
-	
-
 
 //
 // Peek Operations - look but dont touch
@@ -180,7 +125,7 @@ DataElement *Stack::popDE() {
 	// pop an element - a POINTER to the data on the stack
 	// WILL CHANGE ON NEXT PUSH!!!!
 	
-	// MUST delete THIS AFTER YOU ARE DOME WITH IT!!!!!!!!
+	// MUST delete THIS AFTER YOU ARE DONE WITH IT!!!!!!!!
 	
 	if (stackpointer==0) {
 		e = ERROR_STACKUNDERFLOW;
@@ -253,6 +198,19 @@ QString Stack::popQString() {
 	QString s = convert->getString(stackdata[--stackpointer]);
 	delete stackdata[stackpointer];
 	return s;
+}
+
+QColor Stack::popQColor() {
+	if (peekType() == T_STRING) {
+		QString s = popQString();
+		if (QString::compare(s, "CLEAR", Qt::CaseInsensitive)) {
+			return QColor(s);
+		} else {
+			return Qt::transparent;
+		}
+	} else {
+		return QColor::fromRgba((QRgb) popInt());
+	}
 }
 
 //

@@ -143,6 +143,14 @@ void BasicEdit::slotWhitespace(bool checked) {
 	document()->setDefaultTextOption(option);
 }
 
+void BasicEdit::slotWrap(bool checked) {
+	if (checked) {
+		setLineWrapMode(QPlainTextEdit::WidgetWidth);
+	} else {
+		setLineWrapMode(QPlainTextEdit::NoWrap);
+	}
+}
+
 void
 BasicEdit::goToLine(int newLine) {
     seekLine(newLine);
@@ -446,36 +454,36 @@ void BasicEdit::replaceString(QString from, QString to, bool reverse, bool cases
 
     //Replace all
     }else{
-        QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-        setUpdatesEnabled(false);
-        QTextCursor cursor = this->textCursor();
-        QTextCursor cursorSaved = cursor;
-        int scroll = verticalScrollBar()->value();
-        cursor.beginEditBlock();
-        int n = 0;
+		QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+		setUpdatesEnabled(false);
+		QTextCursor cursorSaved = textCursor();
+		int scroll = verticalScrollBar()->value();
+		QTextCursor cursor = textCursor();
+		cursor.beginEditBlock();
+		int n = 0;
 		cursor.movePosition(QTextCursor::Start);
 		setTextCursor(cursor);
-        QTextDocument::FindFlags flag;
-        if (casesens) flag |= QTextDocument::FindCaseSensitively;
-        if (words) flag |= QTextDocument::FindWholeWords;
+		QTextDocument::FindFlags flag;
+		if (casesens) flag |= QTextDocument::FindCaseSensitively;
+		if (words) flag |= QTextDocument::FindWholeWords;
 		while (find(from, flag)){
 			if (textCursor().hasSelection()){
 				textCursor().insertText(to);
 				n++;
 			}
 		}
+		cursor.endEditBlock();
+		setUpdatesEnabled(true);
+		QApplication::restoreOverrideCursor();
 		// set the cursor back to its initial position and restore verticalScrollBar value
-        setTextCursor(cursorSaved);
-        verticalScrollBar()->setValue(scroll);
-        cursor.endEditBlock();
-        setUpdatesEnabled(true);
-        QApplication::restoreOverrideCursor();
-        if(n==0)
+		setTextCursor(cursorSaved);
+		verticalScrollBar()->setValue(scroll);
+		if(n==0)
 			QMessageBox::information(this, tr("Replace"),
 				tr("String not found."),
 				QMessageBox::Ok, QMessageBox::Ok);
 		else
-            QMessageBox::information(this, tr("Replace"),
+			QMessageBox::information(this, tr("Replace"),
 				tr("Replace completed.") + "\n" + QString::number(n) + " " + tr("occurrence(s) were replaced."),
 				QMessageBox::Ok, QMessageBox::Ok);
 	}

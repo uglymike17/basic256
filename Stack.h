@@ -14,6 +14,7 @@
 
 #include <QString>
 #include <QLocale>
+#include <QColor>
 
 #include "Error.h"
 #include "Convert.h"
@@ -25,18 +26,18 @@
 class Stack
 {
 	public:
-		Stack(Convert *, QLocale *);
+		Stack(Convert *);
 		~Stack();
 
 		Convert *convert;
 		void pushDE(DataElement*);
 		void pushBool(bool);
 		void pushQString(QString);
-		void pushVariant(QString, int);
 		void pushInt(int);
 		void pushLong(long);
 		void pushRef(int, int);
 		void pushDouble(double);
+		void pushUnassigned();
 		void swap();
 		void swap2();
 		void topto2();
@@ -47,6 +48,7 @@ class Stack
 		DataElement *popDE();
 		int popInt();
 		int popBool();
+		QColor popQColor();
 		long popLong();
 		double popDouble();
 		double popMusicalNote();
@@ -71,7 +73,6 @@ class Stack
 		int stackpointer; //faster than unsigned int and is quite enough as size
 		int stacksize;
 		void stackGrow();
-		QLocale *locale;
 		
 		static int e;		// error number thrown - will be 0 if no error
 };

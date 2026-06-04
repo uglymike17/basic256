@@ -31,45 +31,58 @@
 class BasicOutput : public QTextEdit, public ViewWidgetIFace
 {
   Q_OBJECT
- public:
-  BasicOutput();
-  ~BasicOutput();
-  
-  char *inputString;
-  int currentKey;			// store the last key pressed for key function
-  void inputStart();
-  QAction *copyAct;
-  QAction *pasteAct;
-  QAction *printAct;
-  QAction *clearAct;
+	public:
+		BasicOutput();
+		~BasicOutput();
+		
+		char *inputString;
+		int currentKey;			// store the last key pressed for key function
+		void inputStart();
+		void outputText(QString);
+		void outputText(QString, QColor);
+		void outputTextAt(int, int, QString);
+		QAction *copyAct;
+		QAction *pasteAct;
+		QAction *printAct;
+		QAction *clearAct;
 
-  virtual bool initActions(QMenu *, QToolBar *);
+	virtual bool initActions(QMenu *, QToolBar *);
 
- public slots:
-  void getInput();
-  void stopInput();
-  void slotPrint();
-  void cursorChanged();
-  void updatePasteButton();
-  void slotClear();
+	public slots:
+		void getInput();
+		void stopInput();
+		void slotPrint();					// sent output to printer
+		void paintEvent(QPaintEvent*);		// display cursor on redraw
+		void updatePasteButton();
+		void slotClear();
+		void slotWrap(bool);
 
- signals:
-  void inputEntered(QString);
-  void mainWindowsVisible(int, bool);
-  
- protected:
-  void keyPressEvent(QKeyEvent *);
-  void keyReleaseEvent(QKeyEvent *);
-  void dragEnterEvent(QDragEnterEvent *e);
-  void dragMoveEvent(QDragMoveEvent *e);
-  void insertFromMimeData(const QMimeData *source);
-  void focusOutEvent(QFocusEvent* );
+			
+	signals:
+		void inputEntered(QString);
+		void mainWindowsVisible(int, bool);
+	  
+	protected:
+		void keyPressEvent(QKeyEvent *);
+		void keyReleaseEvent(QKeyEvent *);
+		void dragEnterEvent(QDragEnterEvent *e);
+		void dragMoveEvent(QDragMoveEvent *e);
+		void insertFromMimeData(const QMimeData *source);
+		void focusOutEvent(QFocusEvent* );
 
- private:
-  int startPos;
-  bool gettingInput;
-  void changeFontSize(unsigned int);
-  QString inputText;
+	private:
+		// cursor Management
+		int lastPosition;
+		int getCurrentPosition();
+		void saveLastPosition();
+		void restoreLastPosition();
+		void moveToPosition(int);
+
+		int inputPosition;
+		bool gettingInput;
+		QString inputText;
+
+		void changeFontSize(unsigned int);
 };
 
 

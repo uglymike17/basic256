@@ -90,7 +90,11 @@ static void associateFileTypes(const QStringList &fileTypes)
 
 
 int main(int argc, char *argv[]) {
+    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QApplication qapp(argc, argv);
+    QFont f = qapp.font();
+    f.setPointSize(9);
+    qapp.setFont(f);
     qRegisterMetaType<std::vector<std::vector<double>>>("std::vector<std::vector<double>>");
     int guimode = 0;		// 0=normal, 1- r option, 2- app option
     QString localecode;		// either lang or the system localle - stored on mainwin for help display
@@ -140,7 +144,7 @@ int main(int argc, char *argv[]) {
         guimode=2;
     }
 
-QTranslator qtTranslator;
+    QTranslator qtTranslator;
 #ifdef WIN32
     qtTranslator.load("qt_" + localecode);
 #else
@@ -148,34 +152,15 @@ QTranslator qtTranslator;
 #endif
     qapp.installTranslator(&qtTranslator);
 
-    // DECLARE ONCE HERE
-    QTranslator kbTranslator; 
-
+    QTranslator kbTranslator;
 #ifdef WIN32
     kbTranslator.load("basic256_" + localecode, qApp->applicationDirPath() + "/Translations/");
 #else
-    // Linux: Dynamic path detection strategy
-    bool ok = false;
-
-    // 1. First choice: Check for a "Translations" subfolder sitting right next to the executable
-    // (This is perfect for self-contained packages, AppImages, and local build tests)
-    ok = kbTranslator.load("basic256_" + localecode, qApp->applicationDirPath() + "/Translations/");
-
-    // 2. Second choice: Look for a standard relative installation layout (bin/ vs share/)
-    // If your app is in /usr/bin/ or /usr/local/bin/, this steps out and goes to share/basic256/
-    if (!ok) {
-        ok = kbTranslator.load("basic256_" + localecode, qApp->applicationDirPath() + "/../share/basic256/");
-    }
-
-    // 3. Fallback choices: Global system directories if run from a strange, non-standard layout
-    if (!ok) {
-        ok = kbTranslator.load("basic256_" + localecode, "/usr/share/basic256/"); // 
-    }
-    if (!ok) {
-        ok = kbTranslator.load("basic256_" + localecode, "/usr/local/share/basic256/"); // 
-    }
+    bool ok;
+    ok = kbTranslator.load("basic256_" + localecode, "/usr/share/basic256/");
+    if (!ok) ok = kbTranslator.load("basic256_" + localecode, "/usr/local/share/basic256/");  // alternative location
 #endif
-    qapp.installTranslator(&kbTranslator); //
+    qapp.installTranslator(&kbTranslator);
 
     MainWindow mainwin(0, 0, localecode, guimode);
     mainwin.setObjectName( "mainwin" );

@@ -16,9 +16,7 @@
  **/
 
 #include <iostream>
-#include <QTextToSpeech>
-#include <QVoice>
-#include <QLocale>
+
 
 
 #include "PreferencesWin.h"
@@ -380,64 +378,7 @@ PreferencesWin::PreferencesWin (QWidget * parent, bool showAdvanced)
 	soundvolumerestorevalue->setText(soundvolumerestorevalue->text() + "        "); //ensure space for label to grow without resizing wind
 
 
-#ifdef USE_QT_TEXTTOSPEECH
-    r++;
-    {
-        QString setvoice;
-        voicelabel = new QLabel(tr("SAY Voice:"), this);
-        soundtablayout->addWidget(voicelabel, r, 1, 1, 1);
-        voicecombo = new QComboBox(this);
-
-        // temporary speech engine for voice enumeration
-        QTextToSpeech *tts = new QTextToSpeech(this);
-
-        voicecombo->addItem(QString("default"), QString("default"));
-
-        // Save state before probing
-        QLocale originalLocale = tts->locale();
-        QVoice  originalVoice  = tts->voice();
-
-        const QVector<QLocale> locales = tts->availableLocales();
-        for (const QLocale &locale : locales) {
-            tts->setLocale(locale);
-            const QVector<QVoice> voices = tts->availableVoices();
-            for (const QVoice &voice : voices) {
-                QString gender;
-                switch (voice.gender()) {
-                    case QVoice::Male:    gender = "Male";    break;
-                    case QVoice::Female:  gender = "Female";  break;
-                    default:              gender = "Unknown"; break;
-                }
-                QString label = voice.name()
-                                + " ("
-                                + QLocale::languageToString(locale.language())
-                                + ", "
-                                + gender
-                                + ")";
-                voicecombo->addItem(label, voice.name());
-            }
-        }
-
-        // Restore engine state (probing via setLocale changed it)
-        tts->setLocale(originalLocale);
-        tts->setVoice(originalVoice);
-
-        delete tts;
-
-        // restore saved setting
-        // NOTE: kept SETTINGSESPEAKVOICE key intentionally so existing
-        // saved preferences still load correctly
-        setvoice = settings.value(
-            SETTINGSESPEAKVOICE,
-            SETTINGSESPEAKVOICEDEFAULT
-        ).toString();
-        int index = voicecombo->findData(setvoice);
-        if (index != -1) {
-            voicecombo->setCurrentIndex(index);
-        }
-        soundtablayout->addWidget(voicecombo, r, 2, 1, 2);
-    }
-#endif
+// TTS Settings added here some day
 
 	// *******************************************************************************************
 	// build the printer tab
@@ -475,36 +416,36 @@ PreferencesWin::PreferencesWin (QWidget * parent, bool showAdvanced)
 		paperlabel = new QLabel(tr("Paper:"),this);
 		printertablayout->addWidget(paperlabel,r,1,1,1);
 		papercombo = new QComboBox(this);
-		papercombo->addItem("A0 (841 x 1189 mm)",	QPrinter::A0);
-		papercombo->addItem("A1 (594 x 841 mm)", QPrinter::A1);
-		papercombo->addItem("A2 (420 x 594 mm", QPrinter::A2);
-		papercombo->addItem("A3 (297 x 420 mm", QPrinter::A3);
-		papercombo->addItem("A4 (210 x 297 mm, 8.26 x 11.69 inches", QPrinter::A4);
-		papercombo->addItem("A5 (148 x 210 mm", QPrinter::A5);
-		papercombo->addItem("A6 (105 x 148 mm", QPrinter::A6);
-		papercombo->addItem("A7 (74 x 105 mm", QPrinter::A7);
-		papercombo->addItem("A9 (52 x 74 mm", QPrinter::A8);
-		papercombo->addItem("A9 (37 x 52 mm", QPrinter::A9);
-		papercombo->addItem("B0 (1000 x 1414 mm", QPrinter::B0);
-		papercombo->addItem("B1 (707 x 1000 mm", QPrinter::B1);
-		papercombo->addItem("B2 (500 x 707 mm", QPrinter::B2);
-		papercombo->addItem("B3 (353 x 500 mm", QPrinter::B3);
-		papercombo->addItem("B4 (250 x 353 mm", QPrinter::B4);
-		papercombo->addItem("B5 (176 x 250 mm, 6.93 x 9.84 inches", QPrinter::B5);
-		papercombo->addItem("B6 (125 x 176 mm", QPrinter::B6);
-		papercombo->addItem("B7 (88 x 125 mm", QPrinter::B7);
-		papercombo->addItem("B8 (62 x 88 mm", QPrinter::B8);
-		papercombo->addItem("B9 (33 x 62 mm", QPrinter::B9);
-		papercombo->addItem("B10 (31 x 44 mm", QPrinter::B10);
-		papercombo->addItem("#5 Envelope (163 x 229 mm", QPrinter::C5E);
-		papercombo->addItem("#10 Envelope (105 x 241 mm", QPrinter::Comm10E);
-		papercombo->addItem("DLE (110 x 220 mm", QPrinter::DLE);
-		papercombo->addItem("Executive (7.5 x 10 inches, 190.5 x 254 mm", QPrinter::Executive);
-		papercombo->addItem("Folio (210 x 330 mm", QPrinter::Folio);
-		papercombo->addItem("Ledger (431.8 x 279.4 mm", QPrinter::Ledger);
-		papercombo->addItem("Legal (8.5 x 14 inches, 215.9 x 355.6 mm", QPrinter::Legal);
-		papercombo->addItem("Letter (8.5 x 11 inches, 215.9 x 279.4 mm", QPrinter::Letter);
-		papercombo->addItem("Tabloid (279.4 x 431.8 mm", QPrinter::Tabloid);
+		papercombo->addItem(tr("A0 (841 x 1189 mm)"),	QPrinter::A0);
+		papercombo->addItem(tr("A1 (594 x 841 mm)"), QPrinter::A1);
+		papercombo->addItem(tr("A2 (420 x 594 mm)"), QPrinter::A2);
+		papercombo->addItem(tr("A3 (297 x 420 mm)"), QPrinter::A3);
+		papercombo->addItem(tr("A4 (210 x 297 mm, 8.26 x 11.69 inches)"), QPrinter::A4);
+		papercombo->addItem(tr("A5 (148 x 210 mm)"), QPrinter::A5);
+		papercombo->addItem(tr("A6 (105 x 148 mm)"), QPrinter::A6);
+		papercombo->addItem(tr("A7 (74 x 105 mm)"), QPrinter::A7);
+		papercombo->addItem(tr("A9 (52 x 74 mm)"), QPrinter::A8);
+		papercombo->addItem(tr("A9 (37 x 52 mm)"), QPrinter::A9);
+		papercombo->addItem(tr("B0 (1000 x 1414 mm)"), QPrinter::B0);
+		papercombo->addItem(tr("B1 (707 x 1000 mm)"), QPrinter::B1);
+		papercombo->addItem(tr("B2 (500 x 707 mm)"), QPrinter::B2);
+		papercombo->addItem(tr("B3 (353 x 500 mm)"), QPrinter::B3);
+		papercombo->addItem(tr("B4 (250 x 353 mm)"), QPrinter::B4);
+		papercombo->addItem(tr("B5 (176 x 250 mm, 6.93 x 9.84 inches)"), QPrinter::B5);
+		papercombo->addItem(tr("B6 (125 x 176 mm)"), QPrinter::B6);
+		papercombo->addItem(tr("B7 (88 x 125 mm)"), QPrinter::B7);
+		papercombo->addItem(tr("B8 (62 x 88 mm)"), QPrinter::B8);
+		papercombo->addItem(tr("B9 (33 x 62 mm)"), QPrinter::B9);
+		papercombo->addItem(tr("B10 (31 x 44 mm)"), QPrinter::B10);
+		papercombo->addItem(tr("#5 Envelope (163 x 229 mm)"), QPrinter::C5E);
+		papercombo->addItem(tr("#10 Envelope (105 x 241 mm)"), QPrinter::Comm10E);
+		papercombo->addItem(tr("DLE (110 x 220 mm)"), QPrinter::DLE);
+		papercombo->addItem(tr("Executive (7.5 x 10 inches, 190.5 x 254 mm)"), QPrinter::Executive);
+		papercombo->addItem(tr("Folio (210 x 330 mm)"), QPrinter::Folio);
+		papercombo->addItem(tr("Ledger (431.8 x 279.4 mm)"), QPrinter::Ledger);
+		papercombo->addItem(tr("Legal (8.5 x 14 inches, 215.9 x 355.6 mm)"), QPrinter::Legal);
+		papercombo->addItem(tr("Letter (8.5 x 11 inches, 215.9 x 279.4 mm)"), QPrinter::Letter);
+		papercombo->addItem(tr("Tabloid (279.4 x 431.8 mm)"), QPrinter::Tabloid);
 		// set setting and select
 		setpaper = settings.value(SETTINGSPRINTERPAPER, SETTINGSPRINTERPAPERDEFAULT).toInt();
 		int index = papercombo->findData(setpaper);
@@ -652,16 +593,7 @@ void PreferencesWin::clickSaveButton() {
 		if (soundsampleratecombo->currentIndex()!=-1) {
 			settings.setValue(SETTINGSSOUNDSAMPLERATE, soundsampleratecombo->itemData(soundsampleratecombo->currentIndex()));
 		}
-#ifdef QT_TEXTTOSPEECH
-		if (voicecombo->currentIndex() != -1) {
-			settings.setValue(
-				SETTINGSESPEAKVOICE,
-				voicecombo->itemData(
-					voicecombo->currentIndex()
-				)
-			);
-		}
-#endif
+
 
 		// *******************************************************************************************
 		// printer settings

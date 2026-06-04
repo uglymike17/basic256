@@ -11,36 +11,13 @@ Dependencies:
 * flex
 * bison
 * libsdl-mixer??-dev
-* libespeak-dev (if using the LINUX_ESPEAK option in BASIC256.pro)
-  - this option gives an integrated library approach to the say statement
-* espeak (if using the LINUX_ESPEAK_EXECUTE option in BASIC256.pro)
-  - use this option and install if the library use of portaudio conflicts with other sound systems installed
+* libqt5texttospeech5-dev
+
 
 
 
 ###########################################################
-Raspberry PI - Debian Buster
-###########################################################
-Instructions 2020-03-31
-
-sudo apt-get update
-sudo apt-get install subversion qt5-default bison flex libespeak-dev qtmultimedia5-dev libqt5serialport5-dev libqt5multimedia5-plugins pulseaudio
-
-in your home folder
-svn checkout https://svn.code.sf.net/p/kidbasic/code/trunk basic256
-
-cd basic256
-qmake BASIC256.pro -config release
-make clean
-make
-sudo make install
-
-Audio configuration can be tricky.
-https://www.raspberrypi.org/documentation/configuration/audio-config.md
-
-
-###########################################################
-WINDOWS (QT5.7)
+WINDOWS (QT5.15)
 ###########################################################
 
 Dependencies:
@@ -48,7 +25,7 @@ Dependencies:
 	** Available from: http://qt.io - use the online installer
 	** BE SURE to choose the mingw compiler from tools it will be the correct version
 		for the QT binary support files
-	** add paths C:\Qt\5.7\mingw53_32\bin;C:\Qt\Tools\mingw530_32\bin; to your system environment variable
+	** add paths C:\Qt\5.15\mingw81_32\bin;C:\Qt\Tools\mingw810_32\bin; to your system environment variable
 
 * MSYS developer tools and libraries
 	** Available from:
@@ -57,16 +34,6 @@ Dependencies:
 		YOU DO NOT NEED THE c++ compiler - you already downloaded that as part of the QT bundle
 	** add paths C:\MinGW\bin;C:\MinGW\msys\1.0\bin to your system environment
 
-* libespeak - TTS Library
-	** follow instructions on compiling espeak at
-		http://jarek.katowice.pl/other/forum/viewtopic.php?f=5&t=17
-	** or download binary bundle
-	** copy libspeak.dll, libportaudio-2.dll, libpthread-2.dll
-		to C:\Qt\5.7\mingw53_32\lib
-		and basic256/trunk/debug
-		and basic256/trunk/release
-	** copy portaudio.h and speak_lib.h
-		to C:\Qt\5.7\mingw53_32\include
 
 Release Build (Windows):
   To build a nice WIN32 installer use the nullsoft scriptable install system file

@@ -49,6 +49,8 @@
     #define SETTINGSEDITVISIBLEDEFAULT true
     #define SETTINGSEDITWHITESPACE "Edit/Whitespace/"
     #define SETTINGSEDITWHITESPACEDEFAULT false
+    #define SETTINGSEDITWRAP "Edit/Wrap/"
+    #define SETTINGSEDITWRAPDEFAULT true
 
     #define SETTINGSOUTVISIBLE "Out/Visible/"
     #define SETTINGSOUTVISIBLEDEFAULT true
@@ -135,14 +137,6 @@
     #define SETTINGSSOUNDSAMPLERATE "Sound/SampleRate"
     #define SETTINGSSOUNDSAMPLERATEDEFAULT 22050
 
-	
-	// espeak - library
-	#define SETTINGSESPEAKVOICE "eSpeak/Voice"
-	#define SETTINGSESPEAKVOICEDEFAULT "default"
-	
-	// espeak - statement
-	#define SETTINGSESPEAKSTATEMENT "eSpeak/Statement"
-	#define SETTINGSESPEAKSTATEMENTDEFAULT "espeak \"WORD\""
 	
 	// printersettings
 	#define SETTINGSPRINTERPRINTER "Printer/Printer"

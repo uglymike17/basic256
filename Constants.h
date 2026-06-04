@@ -76,9 +76,7 @@
 	#define SLICE_ALL 0
 	#define SLICE_PAINT 1
 	#define SLICE_SPRITE 2
-	
-	// Transparency Color used in Interperter
-	#define COLOR_CLEAR 0
+
 	
 	// Constants used in seralize and unserialize
 	#define SERALIZE_DELIMITER ':'

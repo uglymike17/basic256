@@ -28,14 +28,14 @@ class DataElementArray
     public:
         int xdim;
         int ydim;
-        std::vector<DataElement> data;
+        std::vector<DataElement*> data;
 };
 
 
 class DataElementMap
 {
     public:
-        std::map<QString, DataElement> data;
+        std::map<std::string, DataElement*> data;
 };
 
 class DataElement
@@ -57,7 +57,8 @@ class DataElement
 		DataElement(double);
 		DataElement(long);
 		DataElement(int);
-
+		DataElement(DataElement *);
+		
 		QString debug();
 		void copy(DataElement *);
 		
@@ -73,19 +74,14 @@ class DataElement
 		void mapDim();
 		DataElement* mapGetData(QString);
 		void mapSetData(QString, DataElement *);
+		void mapSetData(std::string, DataElement *);
 		void mapUnassign(QString);
 		int mapLength();
 		bool mapKey(QString);
 		
-		static int getError() {
-			return getError(false);
-		}
-
-		static int getError(int clear) {
-			int olde = e;
-			if (clear) e = ERROR_NONE;
-			return olde;
-		}
+		static int getError();
+		static int getError(int);
+		static int getType(DataElement*);
 
 	private:
 		static int e;		// error number thrown - will be 0 if no error

@@ -46,7 +46,6 @@
 QMutex* mymutex;
 QMutex* mydebugmutex;
 QWaitCondition* waitCond;
-QWaitCondition* inputWaitCond;
 QWaitCondition* waitDebugCond;
 BasicIcons *basicIcons;
 
@@ -81,7 +80,6 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     mymutex = new QMutex(QMutex::NonRecursive);
     mydebugmutex = new QMutex(QMutex::NonRecursive);
     waitCond = new QWaitCondition();
-	inputWaitCond = new QWaitCondition();
     waitDebugCond = new QWaitCondition();
 
     setWindowIcon(basicIcons->basic256Icon);
@@ -296,7 +294,10 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     edit_whitespace_act = viewmenu->addAction(QObject::tr("Show &Whitespace Characters"));
     edit_whitespace_act->setCheckable(true);
     edit_whitespace_act->setChecked(SETTINGSEDITWHITESPACEDEFAULT);
-
+    edit_wrap_act = viewmenu->addAction(QObject::tr("W&rap Long Lines"));
+    edit_wrap_act->setCheckable(true);
+    edit_wrap_act->setChecked(SETTINGSEDITWRAPDEFAULT);
+    
     // Toolbars
     viewmenu->addSeparator();
     QMenu *viewtbars = viewmenu->addMenu(QObject::tr("&Toolbars"));
@@ -492,9 +493,11 @@ void MainWindow::loadCustomizations() {
     v = settings.value(SETTINGSTOOLBARVISIBLE + QString::number(guiState), SETTINGSTOOLBARVISIBLEDEFAULT).toBool();
     main_toolbar_visible_act->setChecked(v);
 
-    // edit whitespace
+    // edit whitespace and wrap
     v = settings.value(SETTINGSEDITWHITESPACE + QString::number(guiState), SETTINGSEDITWHITESPACEDEFAULT).toBool();
     edit_whitespace_act->setChecked(v);
+    v = settings.value(SETTINGSEDITWRAP + QString::number(guiState), SETTINGSEDITWRAPDEFAULT).toBool();
+    edit_wrap_act->setChecked(v);
 
     // graph toolbar and grid
     v = settings.value(SETTINGSGRAPHGRIDLINES + QString::number(guiState), SETTINGSGRAPHGRIDLINESDEFAUT).toBool();
@@ -530,6 +533,7 @@ void MainWindow::saveCustomizations() {
     // edit
 	settings.setValue(SETTINGSEDITVISIBLE + QString::number(guiState), editwin_visible_act->isChecked());
 	settings.setValue(SETTINGSEDITWHITESPACE + QString::number(guiState), edit_whitespace_act->isChecked());
+	settings.setValue(SETTINGSEDITWRAP + QString::number(guiState), edit_wrap_act->isChecked());
 
     // graph
 	settings.setValue(SETTINGSGRAPHVISIBLE + QString::number(guiState), graphwin_visible_act->isChecked());
@@ -554,7 +558,6 @@ MainWindow::~MainWindow() {
     delete rc;
     delete mymutex;
     delete waitCond;
-	delete inputWaitCond;
     delete outwin;
     delete graphwin;
     delete main_toolbar;
@@ -623,6 +626,7 @@ void MainWindow::configureGuiState() {
 		stepact->setVisible(false);
 		bpact->setVisible(false);
 		edit_whitespace_act->setVisible(false);
+		edit_wrap_act->setVisible(false);
 		clearbreakpointsact->setVisible(false);
         windowmenu->menuAction()->setVisible(false);
 
@@ -675,26 +679,34 @@ void MainWindow::ifGuiStateClose(bool ok) {
 
 
 void MainWindow::closeEvent(QCloseEvent *e) {
-    // quit the application but ask if there are unsaved changes
-    bool doquit = closeAllPrograms();
-    if (doquit) {
-        // save current screen posision, visibility and floating
-        saveCustomizations();
-        // actually quitting
-        e->accept();
-        QTimer::singleShot(0, qApp, SLOT(quit()));
-        // close app as soon as the event loop is idle instead of using qApp->quit() to allow dispach of other events
-        // This prevent app to not closing properly in rare situations like:
-        // Interpreter emit() a blocking function in Controller (using QWaitCondition or BlockingQueuedConnection).
-        // User request to close app while function is runnig in main loop. So, closeEvent is put in queue.
-        // Function ends and return control to Interpreter. Interpreter request to run another code in main loop using emit().
-        // Instead of running this code, the previous closeEvent() from queue is run.
-        // Using qApp->quit() this will block forever Interpreter (never return), so, i->wait() will never return.
-        // This is an old issue. It takes me a lot to manage it. (Florin)
-    } else {
-        // not quitting
-        e->ignore();
-    }
+	//qDebug() << "MainWindow::CloseEvent runState" << runState;
+	if(runState == RUNSTATERUN) {
+		// cause interpreter to do a controlled stop and wait for stop to finish
+		rc->stopRun();
+		e->ignore();
+	} else {
+		//
+		// quit the application but ask if there are unsaved changes
+		bool doquit = closeAllPrograms();
+		if (doquit) {
+			// save current screen posision, visibility and floating
+			saveCustomizations();
+			// actually quitting
+			e->accept();
+			QTimer::singleShot(0, qApp, SLOT(quit()));
+			// close app as soon as the event loop is idle instead of using qApp->quit() to allow dispach of other events
+			// This prevent app to not closing properly in rare situations like:
+			// Interpreter emit() a blocking function in Controller (using QWaitCondition or BlockingQueuedConnection).
+			// User request to close app while function is runnig in main loop. So, closeEvent is put in queue.
+			// Function ends and return control to Interpreter. Interpreter request to run another code in main loop using emit().
+			// Instead of running this code, the previous closeEvent() from queue is run.
+			// Using qApp->quit() this will block forever Interpreter (never return), so, i->wait() will never return.
+			// This is an old issue. It takes me a lot to manage it. (Florin)
+		} else {
+			// not quitting
+			e->ignore();
+		}
+	}
 }
 
 //Buttons section
@@ -785,6 +797,14 @@ void MainWindow::setRunState(int state) {
     // Clear command for toolbars
     outwin->clearAct->setEnabled(userCanInteractWithGUI && !outwin->toPlainText().isEmpty());
     graphwin->clearAct->setEnabled(userCanInteractWithGUI);
+    
+    // Change display of word state
+	if (runState==RUNSTATESTOP) statusBar()->showMessage(tr("Ready"));
+	if (runState==RUNSTATERUN) statusBar()->showMessage(tr("Running"));
+	if (runState==RUNSTATEDEBUG) statusBar()->showMessage(tr("Debug"));
+	if (runState==RUNSTATESTOPING) statusBar()->showMessage(tr("Stoping"));
+	if (runState==RUNSTATERUNDEBUG) statusBar()->showMessage(tr("Running in Debug"));
+	
 
     updateRecent();
 }
@@ -1125,9 +1145,13 @@ BasicEdit* MainWindow::newEditor(QString title){
     if(guiState!=GUISTATEAPP){
         editor->setFont(editorFont);
         editor->slotWhitespace(edit_whitespace_act->isChecked());
+        editor->slotWrap(edit_wrap_act->isChecked());
+        outwin->slotWrap(edit_wrap_act->isChecked());
         editsyntax = new EditSyntaxHighlighter(editor->document());
         // connect the signals
         QObject::connect(edit_whitespace_act, SIGNAL(toggled(bool)), editor, SLOT(slotWhitespace(bool)));
+        QObject::connect(edit_wrap_act, SIGNAL(toggled(bool)), editor, SLOT(slotWrap(bool)));
+        QObject::connect(edit_wrap_act, SIGNAL(toggled(bool)), outwin, SLOT(slotWrap(bool)));
         QObject::connect(editor, SIGNAL(changeStatusBar(QString)), this, SLOT(updateStatusBar(QString)));
         QObject::connect(editor, SIGNAL(updateWindowTitle(BasicEdit*)), this, SLOT(updateWindowTitle(BasicEdit*)));
         QObject::connect(this, SIGNAL(setEditorRunState(int)), editor, SLOT(setEditorRunState(int)));
