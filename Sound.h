@@ -132,10 +132,8 @@ public slots:
 
 private slots:
         void handleAudioStateChanged(QAudio::State);
-        void onAudioStateChanged(QAudio::State state);
         void onStateChanged(QAudio::State state);
         void handleMediaStateChanged(QMediaPlayer::State);
-        void onMediaStateChanged(QMediaPlayer::State);
         void handleMediaDurationChanged(qint64);
         void handleMediaStatusChanged(QMediaPlayer::MediaStatus);
         void handleMediaError(QMediaPlayer::Error);

@@ -410,7 +410,7 @@ void Sound::prepareConnections() {
 	}
 }
 
-void Sound::handlePositionChanged(qint64 position){
+void Sound::handlePositionChanged(qint64 /*position*/){
 	//Signal the position of the content has changed to position, expressed in milliseconds.
 	isPositionChanged = true;
 	//This flag is usefull because we need to wait before make another seek
@@ -435,7 +435,7 @@ void Sound::handleMediaDurationChanged(qint64 d){
 	}
 }
 
-void Sound::handleMediaError(QMediaPlayer::Error err) {
+void Sound::handleMediaError(QMediaPlayer::Error /*err*/) {
 	if(needValidation){
 		isValidated=media->duration()>0.0;
 		needValidation=false;
@@ -1159,7 +1159,7 @@ QByteArray*  SoundSystem::generateSound(std::vector<std::vector<double>> soundda
 		double max=SOUND_HALFWAVE; // max value of mixed sounds. If is greater, then normalize
 		const int normalizestandby = sound_samplerate * sound_normalize_ms / 1000; // the period to keep normalize (1 sec)
 		const int normalizefade = sound_samplerate * sound_fade_ms / 1000; //the time period  to fade volume to normal value after a normalize period (eceeded sound)
-		double fadebit; // this will keep the value to substract from max (volume) in the fade sequence
+		double fadebit = 0.0; // this will keep the value to substract from max (volume) in the fade sequence
 		int counter=0; //used to count the normalize standby period
 		long int lastexceeded = - 10;
 
