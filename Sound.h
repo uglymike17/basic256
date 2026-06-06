@@ -117,6 +117,7 @@ private:
         void waitLastMediaSeekTakeAction();
         bool isReady;
         void waitMediaStatusChanged();
+        bool waitingForFinish;n
 
 signals:
         void exitWaitingLoop();
@@ -129,7 +130,9 @@ public slots:
 
 private slots:
         void handleAudioStateChanged(QAudio::State);
+        void onAudioStateChanged(QAudio::State state);
         void handleMediaStateChanged(QMediaPlayer::State);
+        void onMediaStateChanged(QMediaPlayer::State);
         void handleMediaDurationChanged(qint64);
         void handleMediaStatusChanged(QMediaPlayer::MediaStatus);
         void handleMediaError(QMediaPlayer::Error);
@@ -187,6 +190,7 @@ Q_OBJECT
 signals:
         void stopsSoundsAndWaiting();
         void systemMassCommand(int);
+        void soundFinished(int id);       
 
 private slots:
         void deleteMe(int);

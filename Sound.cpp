@@ -51,6 +51,7 @@ Sound::Sound(QObject *parent) :
 	isReady = false;
 	error = NULL;
 	isPausedBySystem = false;
+	waitingForFinish = false;
 }
 
 Sound::~Sound() {
@@ -451,7 +452,7 @@ void Sound::handleMediaStateChanged(QMediaPlayer::State newState){
 			if(!isPlayer){
 				isStopping=true;
 				media->disconnect(this);
-				emit(exitWaitingLoop());
+				emit soundFinished(id);
 				media->setMedia(QMediaContent());
 				emit(deleteMe(id));
 				this->disconnect();
@@ -482,7 +483,7 @@ void Sound::handleAudioStateChanged(QAudio::State newState){
 			if(!isPlayer){
 				isStopping=true;
 				audio->disconnect(this);
-				emit(exitWaitingLoop());
+				emit soundFinished(id);
 				emit(deleteMe(id));
 				this->disconnect();
 			}else{
@@ -505,7 +506,7 @@ void Sound::handleAudioStateChanged(QAudio::State newState){
 				isStopping=true;
 				audio->disconnect(this);
 				audio->stop();
-				emit(exitWaitingLoop());
+				emit soundFinished(id);
 				emit(deleteMe(id));
 				this->disconnect();
 			}else{
@@ -568,13 +569,13 @@ void Sound::stopsSoundsAndWaiting(){
 			audio->start(buffer);
 		}
 		audio->stop();
-		emit(exitWaitingLoop());
+		emit soundFinished(id);
 		emit(deleteMe(id));
 		this->disconnect();
 	}else if(media){
 		media->disconnect(this);
 		media->stop();
-		emit(exitWaitingLoop());
+		emit soundFinished(id);
 		media->setMedia(QMediaContent());
 		emit(deleteMe(id));
 		this->disconnect();
