@@ -24,8 +24,9 @@
 #include <QHostInfo>
 #include <QNetworkInterface>
 #include <QElapsedTimer>
-QRandomGenerator
-qDebug()
+#include <QRandomGenerator>
+#include <QDebug>
+#include <QTimer>
 
 #include <QString>
 #include <QPainter>

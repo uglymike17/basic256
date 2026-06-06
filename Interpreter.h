@@ -49,7 +49,8 @@
 #include <QtSql/QSqlQuery>
 #include <QtSql/QSqlRecord>
 #include <QtSql/QSqlError>
-
+#include <QTcpSocket>
+#include <QTcpServer>
 #ifndef ANDROID
     // includes for all ports EXCEPT android
     #include <QSerialPort>
