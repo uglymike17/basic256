@@ -172,25 +172,50 @@ void Sound::pause() {
 	}
 }
 
-void Sound::wait() {
-	//Wait till the end of sound or till the end of program
-	if(soundStateExpected==1){
-		QEventLoop *loop = new QEventLoop();
-		QObject::connect(this, SIGNAL(exitWaitingLoop()), loop, SLOT(quit()));
-		if(audio){
-			QObject::connect(audio, SIGNAL(stateChanged(QAudio::State)), loop, SLOT(quit()));
-			while(!isStopping && audio && audio->state() == QAudio::ActiveState){
-				loop->exec(QEventLoop::WaitForMoreEvents);
-			}
-		}else if(media){
-			QObject::connect(media, SIGNAL(stateChanged(QMediaPlayer::State)), loop, SLOT(quit()));
-			while(!isStopping && media && (media->state() == QMediaPlayer::PlayingState || (media->state() == QMediaPlayer::PausedState && soundStateExpected==1))){
-				loop->exec(QEventLoop::WaitForMoreEvents);
-			}
-		}
-		delete (loop);
-	}
+void Sound::wait()
+{
+    if(soundStateExpected != 1)
+        return;
+
+    waitingForFinish = true;
+
+    // SAFETY: never block interpreter thread again
 }
+
+
+void Sound::onStateChanged(QAudio::State state)
+{
+    soundState = state;
+
+    if(waitingForFinish &&
+       (state == QAudio::IdleState ||
+        state == QAudio::StoppedState))
+    {
+        waitingForFinish = false;
+
+        emit exitWaitingLoop();   // optional legacy support
+    }
+}
+
+// void Sound::wait() {
+// 	//Wait till the end of sound or till the end of program
+// 	if(soundStateExpected==1){
+// 		QEventLoop *loop = new QEventLoop();
+// 		QObject::connect(this, SIGNAL(exitWaitingLoop()), loop, SLOT(quit()));
+// 		if(audio){
+// 			QObject::connect(audio, SIGNAL(stateChanged(QAudio::State)), loop, SLOT(quit()));
+// 			while(!isStopping && audio && audio->state() == QAudio::ActiveState){
+// 				loop->exec(QEventLoop::WaitForMoreEvents);
+// 			}
+// 		}else if(media){
+// 			QObject::connect(media, SIGNAL(stateChanged(QMediaPlayer::State)), loop, SLOT(quit()));
+// 			while(!isStopping && media && (media->state() == QMediaPlayer::PlayingState || (media->state() == QMediaPlayer::PausedState && soundStateExpected==1))){
+// 				loop->exec(QEventLoop::WaitForMoreEvents);
+// 			}
+// 		}
+// 		delete (loop);
+// 	}
+// }
 
 bool Sound::waitLoadedMediaValidation() {
 	//this function waits a bit after play command to check if buffer contain a valid media file
