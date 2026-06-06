@@ -104,7 +104,6 @@ extern "C" {
 Interpreter::Interpreter(QLocale *applocale) {
 	//yydebug = 1;
 	fastgraphics = false;
-	directorypointer=NULL;
 	status = R_STOPPED;
 	printing = false;
 	sleeper = new Sleeper();
@@ -135,7 +134,7 @@ Interpreter::Interpreter(QLocale *applocale) {
 		}
 	}
 #endif
-#endif
+
 }
 
 Interpreter::~Interpreter() {
@@ -1391,9 +1390,8 @@ Interpreter::execByteCode() {
 		}
 	}
 
-Here is the fully corrected block:
-cpp#ifdef DEBUG
-{
+	#ifdef DEBUG 
+	{
     // displays the opcode - its argument and the stack (Before) execution
     qDebug() << "stackbefore -" << stack->debug();
     qDebug() << QString("%1 %2")
@@ -2286,8 +2284,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 			}
 		}
-
-		case OPTYPE_NONE: {
+			break;
+			 case OPTYPE_NONE: {
 			switch(opcode) {
 				case OP_NOP:
 					break;
