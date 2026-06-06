@@ -24,7 +24,6 @@
 #include <QFile>
 #include <QDir>
 #include <QTime>
-#include <stdio.h>
 #include <cmath>
 #include "BasicGraph.h"
 #include "Constants.h"
@@ -37,9 +36,6 @@
 #include "Sleeper.h"
 #include "BasicDownloader.h"
 
-#ifndef _WIN32
-#include <dirent.h>
-#endif
 
 #include <QElapsedTimer>
 #include <QDebug>
@@ -250,7 +246,7 @@ class Interpreter : public QThread
 		QString opname(int);
 		void waitForGraphics();
 		void printError();
-		int netSockClose(int);
+		void netSockClose(int);
 		void netSockCloseAll();
 		Variables *variables;
 		Stack *stack;
@@ -291,10 +287,12 @@ class Interpreter : public QThread
 		
 		void runLoop();
 
-		int listensockfd;				// temp socket used in netlisten
-		int netsockfd[NUMSOCKETS];
+		QVector<QTcpSocket*> sockets;
+		QTcpServer *listenServer;
 
-		DIR *directorypointer;		// used by DIR function
+		QDir directory;		// used by DIR function
+		QStringList directoryEntries;
+		int directoryIndex;
 		QTime runtimer;				// used by MSEC function
 		//SoundSystem *sound;
 		int includeFileNumber;

@@ -16,42 +16,16 @@
  **/
 
 #include <iostream>
-#include <stdlib.h>
-#include <stdio.h>
-#include <time.h>
 #include <math.h>
 #include <string>
-#include <errno.h>
 
-#ifdef WIN32
-#include <winsock.h>
-#include <windows.h>
-
-typedef int socklen_t;
-
-// for parallel port operations
-#ifdef WIN32PORTIO
-	HINSTANCE inpout32dll = NULL;
-	typedef unsigned char (CALLBACK* InpOut32InpType)(short int);
-	typedef void (CALLBACK* InpOut32OutType)(short int, unsigned char);
-	InpOut32InpType Inp32 = NULL;
-	InpOut32OutType Out32 = NULL;
-#endif
-#else
-// unix, mac, android
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <poll.h>
-#include <arpa/inet.h>
-#include <net/if.h>
-#ifndef ANDROID
-#include <ifaddrs.h>
-#endif
-#include <unistd.h>
-#endif
-
+#include <QTcpSocket>
+#include <QTcpServer>
+#include <QHostInfo>
+#include <QNetworkInterface>
+#include <QElapsedTimer>
+QRandomGenerator
+qDebug()
 
 #include <QString>
 #include <QPainter>
@@ -128,7 +102,6 @@ extern "C" {
 
 Interpreter::Interpreter(QLocale *applocale) {
 	//yydebug = 1;
-
 	fastgraphics = false;
 	directorypointer=NULL;
 	status = R_STOPPED;
@@ -138,16 +111,13 @@ Interpreter::Interpreter(QLocale *applocale) {
 	locale = applocale;
 	downloader = NULL;
 	sys = NULL;
+	sockets.resize(NUMSOCKETS);
+	for (int i = 0; i < NUMSOCKETS; i++)
+    	sockets[i] = nullptr;
 
-#ifdef WIN32
-	// WINDOWS
-	// initialize the winsock network library
-	WSAData wsaData;
-	int nCode;
-	if ((nCode = WSAStartup(MAKEWORD(1, 1), &wsaData)) != 0) {
-		emit(outputReady(tr("ERROR - Unable to initialize Winsock library.\n")));
-	}
-	//
+	// arrays to return warnings from compiler
+	listenServer = nullptr;
+
 #ifdef WIN32PORTIO
 	// initialize the inpout32 dll
 	inpout32dll  = LoadLibrary(L"inpout32.dll");
@@ -168,10 +138,6 @@ Interpreter::Interpreter(QLocale *applocale) {
 }
 
 Interpreter::~Interpreter() {
-	// on a windows box stop winsock
-#ifdef WIN32
-	WSACleanup();
-#endif
 	delete downloader;
 	delete sleeper;
 	delete error;
@@ -538,29 +504,28 @@ void Interpreter::printError() {
 }
 
 
-int Interpreter::netSockClose(int fd) {
-	// tidy up a network socket and return NULL to assign to the
-	// fd variable to mark as closed as closed
-	// call  f = netSockClose(f);
-	if(fd>=0) {
-#ifdef WIN32
-		shutdown(fd,2);
-		closesocket(fd);
-#else
-		shutdown(fd,2);
-		close(fd);
-#endif
-	}
-	return(-1);
+void Interpreter::netSockClose(int fn)
+{
+    // fn is the BASIC256 socket slot index (0 to NUMSOCKETS-1)
+    if (fn >= 0 && fn < sockets.size() && sockets[fn]) {
+        sockets[fn]->disconnectFromHost();
+        sockets[fn]->close();
+        delete sockets[fn];
+        sockets[fn] = nullptr;
+    }
 }
 
+void Interpreter::netSockCloseAll()
+{
+    if (listenServer) {
+        listenServer->close();
+        delete listenServer;
+        listenServer = nullptr;
+    }
 
-void Interpreter::netSockCloseAll() {
-	// close network connections
-	listensockfd = netSockClose(listensockfd);
-	for (int t=0; t<NUMSOCKETS; t++) {
-		netsockfd[t] = netSockClose(netsockfd[t]);
-	}
+    for (int t = 0; t < sockets.size(); t++) {
+        netSockClose(t);   // reuse the single-close logic, don't duplicate it
+    }
 }
 
 void Interpreter::setInputString(QString s) {
@@ -914,9 +879,6 @@ Interpreter::initialize() {
 	variables = new Variables(numsyms);
 	arraybase = 0;
 
-	// initialize the sockets to nothing
-	listensockfd = -1;
-	for (int t=0; t<NUMSOCKETS; t++) netsockfd[t]=-1;
 
 	// initialize pointers used for database recordsets (querries)
 	for (int t=0; t<NUMDBCONN; t++) {
@@ -926,11 +888,11 @@ Interpreter::initialize() {
 	}
 
 	// initialize files to NULL (closed)
-	filehandle = (QIODevice**) malloc(NUMFILES * sizeof(QIODevice*));
-	filehandletype = (int*) malloc(NUMFILES * sizeof(int));
+	filehandle = new QIODevice*[NUMFILES];
+	filehandletype = new int[NUMFILES];
 	for (int t=0; t<NUMFILES; t++) {
-		filehandle[t] = NULL;
-		filehandletype[t] = 0;
+    	filehandle[t] = nullptr;
+    	filehandletype[t] = 0;
 	}
 	
 	// save IDE path so that it can be restored after program terminates
@@ -993,18 +955,12 @@ Interpreter::cleanup() {
 			filehandletype[t] = 0;
 		}
 	}
-	free(filehandle);
-	free(filehandletype);
+	delete[] filehandle;
+	delete[] filehandletype;
 
 	// close open database connections and record sets
 	for (int t=0; t<NUMDBCONN; t++) {
 		closeDatabase(t);
-	}
-
-	// close the currently open folder
-	if(directorypointer != NULL) {
-		closedir(directorypointer);
-		directorypointer = NULL;
 	}
 
 	// close and delete painter
@@ -1142,7 +1098,7 @@ void Interpreter::clearsprites() {
 				sprites[i].transformed_image = NULL;
 			}
 		}
-		free(sprites);
+		delete[] sprites;
 		sprites = NULL;
 		nsprites = 0;
 		graphwin->draw_sprites_flag = false;
@@ -1434,36 +1390,45 @@ Interpreter::execByteCode() {
 		}
 	}
 
-#ifdef DEBUG
+Here is the fully corrected block:
+cpp#ifdef DEBUG
 {
-	// displays the opcode - its argument and the stack (Before) execution
-	fprintf(stderr,"stackbefore - %s\n",stack->debug().toUtf8().data());
-	fprintf(stderr,"%08x %s ",(unsigned int) (op-wordCode), opname(*op).toUtf8().data());
-	if(optype(*op)==OPTYPE_INT) {
-		if ((*op)==OP_CURRLINE) {
-			int includeFileNumber = (long) *(op+1) >> 24;
-			int currentLine = (long) *(op+1) & 0xffffff;
-			fprintf(stderr, "%d %d", includeFileNumber, currentLine);
-		} else {
-			fprintf(stderr, "%ld", (long) *(op+1));
-		}
-	}
-	if(optype(*op)==OPTYPE_FLOAT) fprintf(stderr, "%f", (float) *(op+1));
-	if(optype(*op)==OPTYPE_STRING) fprintf(stderr, "'%s'", (char *) (op+1));
-	if(optype(*op)==OPTYPE_LABEL){
-		int v = *(op+1);
-		fprintf(stderr, "lbl %s", ((v>=0&&v<numsyms)?symtable[v]:"__unknown__") );
-	}
-	if(optype(*op)==OPTYPE_VARIABLE) {
-		int v = *(op+1);
-		fprintf(stderr, "%s", ((v>=0&&v<numsyms)?symtable[v]:"__unknown__"));
-	}
-	if(optype(*op)==OPTYPE_VAR_VAR) {
-		int v = *(op+1);
-		int v2 = *(op+2);
-		fprintf(stderr, "%s %s", ((v>=0&&v<numsyms)?symtable[v]:"__unknown__"), ((v2>=0&&v2<numsyms)?symtable[v2]:"__none__"));
-	}
-	fprintf(stderr, "\n");
+    // displays the opcode - its argument and the stack (Before) execution
+    qDebug() << "stackbefore -" << stack->debug();
+    qDebug() << QString("%1 %2")
+                .arg((unsigned int)(op - wordCode), 8, 16, QChar('0'))
+                .arg(opname(*op));
+
+    if (optype(*op) == OPTYPE_INT) {
+        if ((*op) == OP_CURRLINE) {
+            int includeFileNumber = (long) *(op+1) >> 24;
+            int currentLine       = (long) *(op+1) & 0xffffff;
+            qDebug() << includeFileNumber << currentLine;
+        } else {
+            qDebug() << (long) *(op+1);
+        }
+    }
+    if (optype(*op) == OPTYPE_FLOAT)
+        qDebug() << (float) *(op+1);
+
+    if (optype(*op) == OPTYPE_STRING)
+        qDebug() << QString::fromUtf8((char *)(op+1));
+
+    if (optype(*op) == OPTYPE_LABEL) {
+        int v = *(op+1);
+        qDebug() << "lbl" << ((v >= 0 && v < numsyms) ? symtable[v] : "__unknown__");
+    }
+    if (optype(*op) == OPTYPE_VARIABLE) {
+        int v = *(op+1);
+        qDebug() << ((v >= 0 && v < numsyms) ? symtable[v] : "__unknown__");
+    }
+    if (optype(*op) == OPTYPE_VAR_VAR) {
+        int v  = *(op+1);
+        int v2 = *(op+2);
+        qDebug() << ((v  >= 0 && v  < numsyms) ? symtable[v]  : "__unknown__")
+                 << ((v2 >= 0 && v2 < numsyms) ? symtable[v2] : "__none__");
+    }
+    qDebug() << "---"; // replaces the bare fprintf(stderr, "\n") line separator
 }
 #endif
 
@@ -2517,50 +2482,35 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 
 				case OP_READ: {
-					int fn = stack->popInt();
-					if (fn<0||fn>=NUMFILES) {
-						error->q(ERROR_FILENUMBER);
-						stack->pushInt(0);
-					} else {
-						char c = ' ';
-						if (filehandle[fn] == NULL) {
-							error->q(ERROR_FILENOTOPEN);
-							stack->pushInt(0);
-						} else {
-							int maxsize = 256;
-							char * strarray = (char *) malloc(maxsize);
-							memset(strarray, 0, maxsize);
-							int offset = 0;
-							bool readmore = true;
-							// get the first char - Remove leading whitespace
-							do {
-								filehandle[fn]->waitForReadyRead(FILEREADTIMEOUT);
-								readmore = filehandle[fn]->getChar(&c);
-							} while (c == ' ' || c == '\t' || c == '\n' || !readmore);
-							// read token - we already have the first char
-							// get next letter until we crap-out or get white space
-							if (readmore) {
-								do {
-									strarray[offset] = c;
-									offset++;
-									// grow the buffer if we need to
-									if (offset+2 >= maxsize) {
-										maxsize *= 2;
-										strarray = (char *) realloc(strarray, maxsize);
-										memset(strarray + offset, 0, maxsize - offset);
-									}
-									// get next char
-									filehandle[fn]->waitForReadyRead(FILEREADTIMEOUT);
-									readmore = filehandle[fn]->getChar(&c);
-								} while (c != ' ' && c != '\t' && c != '\n' && readmore);
-							}
-							// finish the string, decode and push to stack
-							strarray[offset] = 0;
-							stack->pushQString(QString::fromUtf8(strarray));
-							free(strarray);
-							return 0;	// nextop
-						}
-					}
+    				int fn = stack->popInt();
+    				if (fn < 0 || fn >= NUMFILES) {
+        				error->q(ERROR_FILENUMBER);
+        				stack->pushInt(0);
+    				} else {
+        				if (filehandle[fn] == nullptr) {
+            				error->q(ERROR_FILENOTOPEN);
+            				stack->pushInt(0);
+        				} else {
+            				char c = ' ';
+            				bool readmore = true;
+            				// Skip leading whitespace
+            				do {
+                				filehandle[fn]->waitForReadyRead(FILEREADTIMEOUT);
+                				readmore = filehandle[fn]->getChar(&c);
+            				} while (readmore && (c == ' ' || c == '\t' || c == '\n'));
+            				// Read token into QByteArray — grows automatically, no manual realloc
+            				QByteArray token;
+            				if (readmore) {
+                				do {
+                    				token.append(c);
+                    				filehandle[fn]->waitForReadyRead(FILEREADTIMEOUT);
+                    				readmore = filehandle[fn]->getChar(&c);
+                				} while (readmore && c != ' ' && c != '\t' && c != '\n');
+            				}
+            				stack->pushQString(QString::fromUtf8(token));
+            				return 0; // nextop
+        				}
+    				}
 				}
 				break;
 
@@ -5068,7 +5018,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					clearsprites();
 					// create new ones that are not visible, active, and are at origin
 					if (n > 0) {
-						sprites = (sprite*) malloc(sizeof(sprite) * n);
+						sprites = new sprite[n];
 						nsprites = n;
 						while (n>0) {
 							n--;
@@ -5544,232 +5494,179 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_NETLISTEN: {
-					struct sockaddr_in serv_addr, cli_addr;
-					socklen_t clilen;
+				    int port = stack->popInt();
+    				int fn   = stack->popInt();
 
-					int port = stack->popInt();
-					int fn = stack->popInt();
-					if (fn<0||fn>=NUMSOCKETS) {
-						error->q(ERROR_NETSOCKNUMBER);
-					} else {
-						if (netsockfd[fn] >= 0) {
-							netsockfd[fn] = netSockClose(netsockfd[fn]);
-						}
+    				if (fn < 0 || fn >= NUMSOCKETS) {
+        				error->q(ERROR_NETSOCKNUMBER);
+    				} else {
+        				// Close any existing socket on this slot
+        				if (sockets[fn]) {
+            				sockets[fn]->disconnectFromHost();
+            				sockets[fn]->close();
+            				sockets[fn]->deleteLater();
+            				sockets[fn] = nullptr;
+        				}
 
-						// SOCK_DGRAM = UDP  SOCK_STREAM = TCP
-						listensockfd = socket(AF_INET, SOCK_STREAM, 0);
-						if (listensockfd < 0) {
-							error->q(ERROR_NETSOCK, strerror(errno));
-						} else {
-							int optval = 1;
-							if (setsockopt(listensockfd,SOL_SOCKET,SO_REUSEADDR,(char *)&optval,sizeof(int))) {
-								error->q(ERROR_NETSOCKOPT, strerror(errno));
-								listensockfd = netSockClose(listensockfd);
-							} else {
-								memset((char *) &serv_addr, 0, sizeof(serv_addr));
-								serv_addr.sin_family = AF_INET;
-								serv_addr.sin_addr.s_addr = INADDR_ANY;
-								serv_addr.sin_port = htons(port);
-								if (bind(listensockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
-									error->q(ERROR_NETBIND, strerror(errno));
-									listensockfd = netSockClose(listensockfd);
-								} else {
-									listen(listensockfd,5);
-									clilen = sizeof(cli_addr);
-									netsockfd[fn] = accept(listensockfd, (struct sockaddr *) &cli_addr, &clilen);
-									if (netsockfd[fn] < 0) {
-										error->q(ERROR_NETACCEPT, strerror(errno));
-									}
-									listensockfd = netSockClose(listensockfd);
-								}
-							}
-						}
-					}
+        				QTcpServer server;
+        				if (!server.listen(QHostAddress::Any, port)) {
+            				error->q(ERROR_NETBIND, server.errorString());
+        				} else {
+            				// Block here waiting for one incoming connection
+            				if (!server.waitForNewConnection(30000)) {  // 30 second timeout
+                				error->q(ERROR_NETACCEPT, server.errorString());
+            				} else {
+                				sockets[fn] = server.nextPendingConnection();
+                				// Detach socket from server so it survives server going out of scope
+                				sockets[fn]->setParent(nullptr);
+            				}
+        				}
+        				server.close();
+    				}
 				}
 				break;
 
 				case OP_NETCONNECT: {
+    				int port       = stack->popInt();
+    				QString address = stack->popQString();
+    				int fn         = stack->popInt();
 
-					struct sockaddr_in serv_addr;
-					struct hostent *server;
+    				if (fn < 0 || fn >= NUMSOCKETS) {
+        				error->q(ERROR_NETSOCKNUMBER);
+    				} else {
+        				// Close any existing connection on this slot
+        				if (sockets[fn]) {
+            				sockets[fn]->disconnectFromHost();
+            				sockets[fn]->close();
+            				sockets[fn]->deleteLater();
+            				sockets[fn] = nullptr;
+        				}
 
-					int port = stack->popInt();
-					QString address = stack->popQString();
-					int fn = stack->popInt();
+        				// Create a new socket and attempt connection
+        				QTcpSocket *sock = new QTcpSocket();
+        				sock->connectToHost(address, port);
 
-					if (fn<0||fn>=NUMSOCKETS) {
-						error->q(ERROR_NETSOCKNUMBER);
-					} else {
-
-						if (netsockfd[fn] >= 0) {
-							netsockfd[fn] = netSockClose(netsockfd[fn]);
-						}
-
-						netsockfd[fn] = socket(AF_INET, SOCK_STREAM, 0);
-						if (netsockfd[fn] < 0) {
-							error->q(ERROR_NETSOCK, strerror(errno));
-						} else {
-
-							server = gethostbyname(address.toUtf8().data());
-							if (server == NULL) {
-								error->q(ERROR_NETHOST, strerror(errno));
-								netsockfd[fn] = netSockClose(netsockfd[fn]);
-							} else {
-								memset((char *) &serv_addr, 0, sizeof(serv_addr));
-								serv_addr.sin_family = AF_INET;
-								memcpy((char *)&serv_addr.sin_addr.s_addr, (char *)server->h_addr, server->h_length);
-								serv_addr.sin_port = htons(port);
-								if (::connect(netsockfd[fn],(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) {
-									error->q(ERROR_NETCONN, strerror(errno));
-									netsockfd[fn] = netSockClose(netsockfd[fn]);
-								}
-							}
-						}
-					}
+        				if (!sock->waitForConnected(30000)) {  // 30 second timeout
+            				// Host lookup failed or connection refused
+            				if (sock->error() == QAbstractSocket::HostNotFoundError) {
+               				 error->q(ERROR_NETHOST, sock->errorString());
+            				} else {
+                				error->q(ERROR_NETCONN, sock->errorString());
+            				}
+            				delete sock;
+        				} else {
+            				sockets[fn] = sock;
+        				}
+    				}
 				}
 				break;
 
 				case OP_NETREAD: {
-					int MAXSIZE = 2048;
-					int n;
-					char * strarray = (char *) malloc(MAXSIZE);
-
-					int fn = stack->popInt();
-					if (fn<0||fn>=NUMSOCKETS) {
-						error->q(ERROR_NETSOCKNUMBER);
-						stack->pushQString("");
-					} else {
-						if (netsockfd[fn] < 0) {
-							error->q(ERROR_NETNONE);
-							stack->pushQString("");
-						} else {
-							memset(strarray, 0, MAXSIZE);
-							n = recv(netsockfd[fn],strarray,MAXSIZE-1,0);
-							if (n < 0) {
-								error->q(ERROR_NETREAD, strerror(errno));
-								stack->pushQString("");
-							} else {
-								stack->pushQString(QString::fromUtf8(strarray));
-							}
-						}
-					}
-					free(strarray);
+    				int fn = stack->popInt();
+    				if (fn < 0 || fn >= NUMSOCKETS) {
+       					error->q(ERROR_NETSOCKNUMBER);
+        				stack->pushQString("");
+    				} else {
+        				if (!sockets[fn]) {
+            				error->q(ERROR_NETNONE);
+            				stack->pushQString("");
+        				} else {
+            				// Wait up to 1 second for data to arrive if none buffered yet
+            				if (sockets[fn]->bytesAvailable() == 0) {
+                				sockets[fn]->waitForReadyRead(1000);
+            				}
+            				if (sockets[fn]->bytesAvailable() == 0) {
+                				error->q(ERROR_NETREAD, sockets[fn]->errorString());
+                				stack->pushQString("");
+            				} else {
+                				QByteArray data = sockets[fn]->read(2048);
+                				stack->pushQString(QString::fromUtf8(data));
+            				}
+        				}
+    				}
 				}
 				break;
 
 				case OP_NETWRITE: {
-					QString data = stack->popQString();
-					int fn = stack->popInt();
-					if (fn<0||fn>=NUMSOCKETS) {
-						error->q(ERROR_NETSOCKNUMBER);
-					} else {
-						if (netsockfd[fn]<0) {
-							error->q(ERROR_NETNONE);
-						} else {
-							int n = send(netsockfd[fn],data.toUtf8().data(),data.length(),0);
-							if (n < 0) {
-								error->q(ERROR_NETWRITE, strerror(errno));
-							}
-						}
-					}
+    				QString data = stack->popQString();
+    				int fn = stack->popInt();
+    				if (fn < 0 || fn >= NUMSOCKETS) {
+        				error->q(ERROR_NETSOCKNUMBER);
+    				} else {
+        				if (!sockets[fn]) {
+            				error->q(ERROR_NETNONE);
+        				} else {
+            				QByteArray bytes = data.toUtf8();
+            				qint64 n = sockets[fn]->write(bytes);
+            				if (n < 0) {
+                				error->q(ERROR_NETWRITE, sockets[fn]->errorString());
+            				} else {
+                				// Flush to ensure data is actually sent before continuing
+                				sockets[fn]->flush();
+            				}
+        				}
+    				}
 				}
 				break;
 
 				case OP_NETCLOSE: {
-					int fn = stack->popInt();
-					if (fn<0||fn>=NUMSOCKETS) {
-						error->q(ERROR_NETSOCKNUMBER);
-					} else {
-						if (netsockfd[fn]<0) {
-							error->q(ERROR_NETNONE);
-						} else {
-							netsockfd[fn] = netSockClose(netsockfd[fn]);
-						}
-					}
+    				int fn = stack->popInt();
+    				if (fn < 0 || fn >= NUMSOCKETS) {
+        				error->q(ERROR_NETSOCKNUMBER);
+    				} else {
+        				if (!sockets[fn]) {
+            				error->q(ERROR_NETNONE);
+        				} else {
+            				netSockClose(fn);   // pass the slot index, not a file descriptor
+        				}
+    				}
 				}
 				break;
 
 				case OP_NETDATA: {
-					// push 1 if there is data to read on network connection
-					// wait 1 ms for each poll
-					int fn = stack->popInt();
-					if (fn<0||fn>=NUMSOCKETS) {
-						stack->pushInt(0);
-						error->q(ERROR_NETSOCKNUMBER);
-					} else {
-#ifdef WIN32
-						unsigned long n;
-						if (ioctlsocket(netsockfd[fn], FIONREAD, &n)!=0) {
-							stack->pushInt(0);
-						} else {
-							if (n==0L) {
-								stack->pushInt(0);
-							} else {
-								stack->pushInt(1);
-							}
-						}
-#else
-						struct pollfd p[1];
-						p[0].fd = netsockfd[fn];
-						p[0].events = POLLIN | POLLPRI;
-						if(poll(p, 1, 1)<0) {
-							stack->pushInt(0);
-						} else {
-							if (p[0].revents & POLLIN || p[0].revents & POLLPRI) {
-								stack->pushInt(1);
-							} else {
-								stack->pushInt(0);
-							}
-						}
-#endif
-					}
+    				// Push 1 if there is data available to read, 0 if not
+    				int fn = stack->popInt();
+    				if (fn < 0 || fn >= NUMSOCKETS) {
+        				stack->pushInt(0);
+        				error->q(ERROR_NETSOCKNUMBER);
+    				} else {
+        				if (!sockets[fn]) {
+            				stack->pushInt(0);
+            				error->q(ERROR_NETNONE);
+        				} else {
+            				// Mirror the original: wait up to 1ms before deciding no data
+            				if (sockets[fn]->bytesAvailable() == 0) {
+                				sockets[fn]->waitForReadyRead(1);
+            				}
+            				stack->pushInt(sockets[fn]->bytesAvailable() > 0 ? 1 : 0);
+       					}
+    				}
 				}
 				break;
 
 				case OP_NETADDRESS: {
-					// get first non "lo" ip4 address
-#ifdef WIN32
-					char szHostname[100];
-					HOSTENT *pHostEnt;
-					int nAdapter = 0;
-					struct sockaddr_in sAddr;
-					gethostname( szHostname, sizeof( szHostname ));
-					pHostEnt = gethostbyname( szHostname );
-					memcpy ( &sAddr.sin_addr.s_addr, pHostEnt->h_addr_list[nAdapter], pHostEnt->h_length);
-					stack->pushQString(QString::fromUtf8(inet_ntoa(sAddr.sin_addr)));
-#else
-#ifdef ANDROID
-					error->q(ERROR_NOTIMPLEMENTED);
-					// on error give local loopback
-					stack->pushQString(QString("127.0.0.1"));
-#else
-					bool good = false;
-					struct ifaddrs *myaddrs, *ifa;
-					void *in_addr;
-					char buf[64];
-					if(getifaddrs(&myaddrs) != 0) {
-						error->q(ERROR_NETNONE);
-					} else {
-						for (ifa = myaddrs; ifa != NULL && !good; ifa = ifa->ifa_next) {
-							if (ifa->ifa_addr == NULL) continue;
-							if (!(ifa->ifa_flags & IFF_UP)) continue;
-							if (ifa->ifa_addr->sa_family == AF_INET && strcmp(ifa->ifa_name, "lo") !=0 ) {
-								struct sockaddr_in *s4 = (struct sockaddr_in *)ifa->ifa_addr;
-								in_addr = &s4->sin_addr;
-								if (inet_ntop(ifa->ifa_addr->sa_family, in_addr, buf, sizeof(buf))) {
-									stack->pushQString(QString::fromUtf8(buf));
-									good = true;
-								}
-							}
-						}
-						freeifaddrs(myaddrs);
-					}
-					if (!good) {
-						// on error give local loopback
-						stack->pushQString(QString("127.0.0.1"));
-					}
-#endif
-#endif
+    				// Return the first non-loopback IPv4 address of this machine.
+    				// QNetworkInterface works identically on Windows, Linux, macOS, and Android —
+    				// the entire #ifdef WIN32 / #ifdef ANDROID / #else split is gone.
+    				QString found;
+    				const QList<QNetworkInterface> ifaces = QNetworkInterface::allInterfaces();
+    				for (const QNetworkInterface &iface : ifaces) {
+        				// Skip loopback and interfaces that are not up
+        				if (iface.flags().testFlag(QNetworkInterface::IsLoopBack)) continue;
+        				if (!iface.flags().testFlag(QNetworkInterface::IsUp)) continue;
+        				for (const QNetworkAddressEntry &entry : iface.addressEntries()) {
+            				if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol) {
+                				found = entry.ip().toString();
+                				break;
+            				}
+        				}
+        				if (!found.isEmpty()) break;
+    				}
+    				if (found.isEmpty()) {
+        				// Fall back to loopback, matching original behaviour on failure
+        				found = QStringLiteral("127.0.0.1");
+    				}
+    				stack->pushQString(found);
 				}
 				break;
 
@@ -6076,31 +5973,32 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_DIR: {
-					// Get next directory entry - id path send start a new folder else get next file name
-					// return "" if we have no names on list - skippimg . and ..
-					QString folder = stack->popQString();
-					if (folder.length()>0) {
-						if(directorypointer != NULL) {
-							closedir(directorypointer);
-							directorypointer = NULL;
-						}
-						directorypointer = opendir( folder.toUtf8().data() );
-					}
-					if (directorypointer != NULL) {
-						struct dirent *dirp;
-						dirp = readdir(directorypointer);
-						while(dirp != NULL && dirp->d_name[0]=='.') dirp = readdir(directorypointer);
-						if (dirp) {
-							stack->pushQString(QString::fromUtf8(dirp->d_name));
-						} else {
-							stack->pushQString(QString(""));
-							closedir(directorypointer);
-							directorypointer = NULL;
-						}
-					} else {
-						error->q(ERROR_FOLDER);
-						stack->pushQString(QString(""));
-					}
+				    QString folder = stack->popQString();
+
+    				// New folder requested: build fresh directory listing
+    				if (!folder.isEmpty()) {
+       				 	directory = QDir(folder);
+
+        				if (!directory.exists()) {
+            				error->q(ERROR_FOLDER);
+            				stack->pushQString(QString(""));
+           		 			break;
+        				}
+
+        				directoryEntries = directory.entryList(
+            				QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot,
+            				QDir::Name
+        				);
+
+        				directoryIndex = 0;
+    				}
+
+    				// Return next entry
+    				if (directoryIndex < directoryEntries.size()) {
+        				stack->pushQString(directoryEntries[directoryIndex++]);
+    				} else {
+        				stack->pushQString(QString(""));
+    				}
 				}
 				break;
 
@@ -6274,7 +6172,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					// return the next free network socket number - throw error if not free sockets
 					int f=-1;
 					for (int t=0; (t<NUMSOCKETS)&&(f==-1); t++) {
-						if (netsockfd[t]==-1) f = t;
+						if (sockets[t] == nullptr) f = t;
 					}
 					if (f==-1) {
 						error->q(ERROR_FREENET);
