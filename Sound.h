@@ -117,7 +117,7 @@ private:
         void waitLastMediaSeekTakeAction();
         bool isReady;
         void waitMediaStatusChanged();
-        bool waitingForFinish;n
+        bool waitingForFinish;
 
 signals:
         void exitWaitingLoop();
