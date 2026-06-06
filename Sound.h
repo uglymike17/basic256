@@ -123,6 +123,8 @@ signals:
         void exitWaitingLoop();
         void deleteMe(int);
         void validateLoadedSound(QString, bool);
+        void soundStateChanged(int);
+        void soundFinished(int);
 
 public slots:
         void stopsSoundsAndWaiting();
@@ -131,6 +133,7 @@ public slots:
 private slots:
         void handleAudioStateChanged(QAudio::State);
         void onAudioStateChanged(QAudio::State state);
+        void onStateChanged(QAudio::State state);
         void handleMediaStateChanged(QMediaPlayer::State);
         void onMediaStateChanged(QMediaPlayer::State);
         void handleMediaDurationChanged(qint64);
