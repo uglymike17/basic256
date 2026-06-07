@@ -76,7 +76,7 @@ jobs:
       run: |
         sudo apt-get update && sudo apt-get install -y \
           build-essential cmake flex bison \
-          libflite1 libflite-dev flite \
+          flite libflite1 \
           espeak-ng libespeak-ng-dev \          
           qtbase5-dev qttools5-dev-tools qttools5-dev qtmultimedia5-dev libqt5multimedia5 libqt5texttospeech5 \
           libqt5texttospeech5-dev libqt5serialport5 libqt5serialport5-dev libgl1-mesa-dev \
