@@ -104,22 +104,22 @@ jobs:
         QT_LIB_DIR="/usr/lib/aarch64-linux-gnu"
 
         # 4. Copy Qt runtime libraries
-        #cp $QT_LIB_DIR/libQt5Core.so.*          dist/lib/
-        #cp $QT_LIB_DIR/libQt5Gui.so.*           dist/lib/
-        #cp $QT_LIB_DIR/libQt5Widgets.so.*       dist/lib/
+        cp $QT_LIB_DIR/libQt5Core.so.*          dist/lib/
+        cp $QT_LIB_DIR/libQt5Gui.so.*           dist/lib/
+        cp $QT_LIB_DIR/libQt5Widgets.so.*       dist/lib/
         cp $QT_LIB_DIR/libQt5Multimedia.so.*    dist/lib/
         cp $QT_LIB_DIR/libQt5SerialPort.so.*    dist/lib/
         cp $QT_LIB_DIR/libQt5TextToSpeech.so.*  dist/lib/
-        #cp $QT_LIB_DIR/libQt5PrintSupport.so.*  dist/lib/
-        #cp $QT_LIB_DIR/libQt5Sql.so.*           dist/lib/
-        #cp $QT_LIB_DIR/libQt5XcbQpa.so.*        dist/lib/
-        #cp $QT_LIB_DIR/libQt5DBus.so.*          dist/lib/
-        #cp $QT_LIB_DIR/libQt5Network.so.*       dist/lib/
-        #cp $QT_LIB_DIR/libssl.so.*              dist/lib/
-        #cp $QT_LIB_DIR/libcrypto.so.*           dist/lib/
-        #cp $QT_LIB_DIR/libxcb.so.*              dist/lib/ 2>/dev/null || true
-        #cp $QT_LIB_DIR/libxcb-*.so.*            dist/lib/ 2>/dev/null || true
-        #cp $QT_LIB_DIR/libxkbcommon*.so.*       dist/lib/ 2>/dev/null || true
+        cp $QT_LIB_DIR/libQt5PrintSupport.so.*  dist/lib/
+        cp $QT_LIB_DIR/libQt5Sql.so.*           dist/lib/
+        cp $QT_LIB_DIR/libQt5XcbQpa.so.*        dist/lib/
+        cp $QT_LIB_DIR/libQt5DBus.so.*          dist/lib/
+        cp $QT_LIB_DIR/libQt5Network.so.*       dist/lib/
+        cp $QT_LIB_DIR/libssl.so.*              dist/lib/
+        cp $QT_LIB_DIR/libcrypto.so.*           dist/lib/
+        cp $QT_LIB_DIR/libxcb.so.*              dist/lib/ 2>/dev/null || true
+        cp $QT_LIB_DIR/libxcb-*.so.*            dist/lib/ 2>/dev/null || true
+        cp $QT_LIB_DIR/libxkbcommon*.so.*       dist/lib/ 2>/dev/null || true
 
         # 5. Platform plugins
         mkdir -p dist/plugins/platforms
