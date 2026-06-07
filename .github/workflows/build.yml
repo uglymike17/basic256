@@ -76,8 +76,6 @@ jobs:
       run: |
         sudo apt-get update && sudo apt-get install -y \
           build-essential cmake flex bison \
-          speech-dispatcher \
-          libspeechd-dev libspeechd2 \
           libespeak-ng-dev \
           qtbase5-dev qttools5-dev-tools qttools5-dev qtmultimedia5-dev libqt5multimedia5 libqt5texttospeech5 \
           libqt5texttospeech5-dev libqt5serialport5 libqt5serialport5-dev libgl1-mesa-dev \
@@ -130,9 +128,6 @@ jobs:
 
         # 6. Text-to-speech plugins
         mkdir -p dist/plugins/texttospeech
-
-        cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_speechd.so \
-          dist/plugins/texttospeech/ || true
 
         cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_flite.so \
           dist/plugins/texttospeech/ || true
@@ -286,6 +281,8 @@ jobs:
         DIR="$(cd "$(dirname "$0")" && pwd)"
         export LD_LIBRARY_PATH="$DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
         export QT_PLUGIN_PATH="$DIR/plugins"
+        export QT_DEBUG_PLUGINS=1
+        export QT_TTS_ENGINE=flite
         export QT_QPA_PLATFORM_PLUGIN_PATH="$DIR/plugins/platforms"
         export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
         exec "$DIR/basic256" "$@"
