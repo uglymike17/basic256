@@ -126,12 +126,11 @@ jobs:
         cp $QT_PLUGIN_DIR/platforms/libqwayland-generic.so  dist/plugins/platforms/ || true
         cp $QT_PLUGIN_DIR/platforms/libqwayland-egl.so      dist/plugins/platforms/ || true
         cp $QT_PLUGIN_DIR/platforms/libqoffscreen.so        dist/plugins/platforms/ || true
+        
 
         # 6. Text-to-speech plugins
         mkdir -p dist/plugins/texttospeech
-
-        cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_flite.so \
-          dist/plugins/texttospeech/ || true
+        cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_*.so dist/plugins/texttospeech/ || true
 
         # 7. espeak-ng and libjpeg runtime libs (outside any if-block)
         cp $QT_LIB_DIR/libespeak-ng.so.*  dist/lib/ || true
@@ -288,6 +287,7 @@ jobs:
         export QT_TTS_ENGINE=flite
         export QT_QPA_PLATFORM_PLUGIN_PATH="$DIR/plugins/platforms"
         export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
+        export QT_TEXTTOSPEECH_PLUGINS="$DIR/plugins/texttospeech"
         exec "$DIR/basic256" "$@"
         EOF
         chmod +x dist/run.sh
