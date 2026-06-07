@@ -97,7 +97,7 @@ jobs:
         find dist/plugins -name "*.so" | while read f; do
           patchelf --set-rpath '$ORIGIN/../../lib:$ORIGIN/../lib:$ORIGIN' "$f" || true
         done
-        #printf '[Paths]\nPlugins=plugins\nLibraries=lib\n' > dist/qt.conf
+        printf '[Paths]\nPlugins=plugins\n' > dist/qt.conf
 
         # 3. Define plugin dir once, used throughout
         QT_PLUGIN_DIR="/usr/lib/aarch64-linux-gnu/qt5/plugins"
@@ -286,6 +286,7 @@ jobs:
         DIR="$(cd "$(dirname "$0")" && pwd)"
         export LD_LIBRARY_PATH="$DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
         export QT_PLUGIN_PATH="$DIR/plugins"
+        export QT_QPA_PLATFORM_PLUGIN_PATH="$DIR/plugins/platforms"
         export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
         exec "$DIR/basic256" "$@"
         EOF
