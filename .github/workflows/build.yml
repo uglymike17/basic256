@@ -76,7 +76,8 @@ jobs:
       run: |
         sudo apt-get update && sudo apt-get install -y \
           build-essential cmake flex bison \
-          libespeak-ng-dev \
+          libflite1 libflite-dev flite \
+          espeak-ng libespeak-ng-dev \          
           qtbase5-dev qttools5-dev-tools qttools5-dev qtmultimedia5-dev libqt5multimedia5 libqt5texttospeech5 \
           libqt5texttospeech5-dev libqt5serialport5 libqt5serialport5-dev libgl1-mesa-dev \
           libx11-dev patchelf
@@ -256,7 +257,9 @@ jobs:
         cp /usr/lib/aarch64-linux-gnu/libicuuc.so.*   dist/lib/
         cp /usr/lib/aarch64-linux-gnu/libicudata.so.* dist/lib/
         cp /usr/lib/aarch64-linux-gnu/libicui18n.so.* dist/lib/
-        cp /usr/lib/aarch64-linux-gnu/libspeechd.so.* dist/lib/
+        cp /usr/lib/aarch64-linux-gnu/libflite.so.* dist/lib/ || true
+        cp /usr/lib/aarch64-linux-gnu/libflite_cmu_us_kal.so.* dist/lib/ || true
+        cp /usr/lib/aarch64-linux-gnu/libflite_usenglish.so.* dist/lib/ || true
 
         # Patch ALL bundled libs so they resolve dependencies within dist/lib only
         for lib in dist/lib/*.so.* ; do
