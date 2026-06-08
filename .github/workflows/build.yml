@@ -102,6 +102,9 @@ jobs:
 
         # 3. Define plugin dir once, used throughout
         QT_PLUGIN_DIR="/usr/lib/aarch64-linux-gnu/qt5/plugins"
+        echo "QT_PLUGIN_DIR=$QT_PLUGIN_DIR"
+        echo "=== Available Qt plugin directories ==="
+        find "$QT_PLUGIN_DIR" -maxdepth 1 -type d | sort
         QT_LIB_DIR="/usr/lib/aarch64-linux-gnu"
 
         # 4. Copy Qt runtime libraries
@@ -269,6 +272,11 @@ jobs:
           cp $QT_PLUGIN_DIR/audio/* dist/plugins/audio/
         fi
 
+        mkdir -p dist/plugins/mediaservice
+        if [ -d $QT_PLUGIN_DIR/mediaservice ]; then
+          cp $QT_PLUGIN_DIR/mediaservice/* dist/plugins/mediaservice/
+        fi
+
         # Patch ALL bundled libs so they resolve dependencies within dist/lib only
         for lib in dist/lib/*.so.* ; do
           [ -f "$lib" ] && patchelf --set-rpath '$ORIGIN' "$lib" 2>/dev/null || true
@@ -317,7 +325,11 @@ jobs:
         ldd dist/plugins/texttospeech/*.so || true
 
         echo "=== Media plugins ==="
-        find dist/plugins/mediaservice -name "*.so"
+        if [ -d dist/plugins/mediaservice ]; then
+          find dist/plugins/mediaservice -name "*.so"
+        else
+          echo "No mediaservice directory found"
+        fi
 
         echo "=== Media dependencies ==="
         ldd dist/plugins/mediaservice/*.so || true
