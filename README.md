@@ -1,12 +1,12 @@
 BASIC-256 is an easy to use version of BASIC designed to teach anybody how to program. It was/is aimed at teaching the beginnings of programming to youngsters. 
 In fact the original name of Basic256 was Kidbasic and it started in 2007, but today in its current state, it is already quite capable for everyday hobby use.
 A Qt5-based program, it has a 3-pane IDE with edit-, output- and graphics-windows. 
-The original code and current downloadable version resides on SourceForge (https://sourceforge.net/projects/kidbasic/) and is at version 2.0.0.11, which launched in 2020. It has an example directory but all programs there need to be updated. There is also a Testsuite that works on the official SourceForge release but blocks on the one here.
+The original code and current downloadable version resides on SourceForge (https://sourceforge.net/projects/kidbasic/) and is at version 2.0.0.11, which launched in 2020. It has an example directory but all programs there need to be updated. There is also a Testsuite.
 
 Unfortunately, development of Basic256 has stopped apparently after a failed attempt to port it to Qt6.
-Some have tried to get involved with development (RiOn and comick) and a most recent try has even moved sourceforge to github ( GitHub - comick/basic256)
+Some have tried to get involved with development (RiOn and comick) and a comick has even moved sourceforge to github ( GitHub - comick/basic256)
 
-This new  GitHub repository is my attempt to restart Basic256 and takes the r934 branch of the original code (the branch from which resulted the 2.0.0.11 version) with the aim of trying to modernize the codebase.
+This new  GitHub repository is my attempt to restart Basic256 and takes the 2.0.99.10.2 the branch with the aim of trying to modernize the codebase.
 
 The aim for this branch is
  - make it compile on Windows, Linux-Intel and Linux-ARM (RPi) from a single Actions pipeline. (Qt being cross-platform, MacOS port may also be looked at).
@@ -17,14 +17,14 @@ The aim for this branch is
  ==> synchronious ESpeak has been replaced by asynchronious Qt texttoSpeech at least on Windows
 
  Current status as of 03/06/2026
- The is a monolitic build.yml file that builds everything together. It just provides zipped .tar balls for Linux x86 and Raspberry Pi and a selfcontained .zip file for win32.
- Linux x86 seems to be working (say command is horrible though..) but has issues (ie bugs) in some cases.
- Raspberry Pi is still problematic on Trixie as it either complains on mixed Qt versions when I copy the Qt files for the build or Trixie is missing some modules when I try to rely on the host system's Qt installation
- Win32 is working, although the test suite does not run but blocks at the first input prompt.
-
- Next steps:
-   Figure out how to deliver a complete Raspberry Pi build that works on Trixie. Once done I will consder this build.yml complete (Of course most Linux distros - x86 and ARM - provide their own version of Basic256 2.0.0.11)
-
+ The is a monolitic build.yml file that builds everything together. It just provides a selfcontained .zip file for win32 and zipped .tar balls for Linux x86 and Raspberry Pi.
+ 1.Win32 seems to be working. (more testing required)
+ 2.Linux x86 seems to be working. (more testing required)
+ 3.Raspberry Pi is problematic on Trixie. Github runner Ubuntu-24.4-ARM has Qt5.15.15 while Trixie has Qt5.15.13. These do not mix and as Trixie does not include several required Qt5 libraries, I have to bundle all the Qt5.15.15 libs. Even with this, speech does not work since Trixie does not come with speech-dispatcher. Flite would be an alternative, but the Github runner does not provide that, only libQt5texttospeech. So RPi build works but the tar ball is large and is without speech.
+ I would then consider this build.yml to be complete and save a copy before making further changes.
+ 
+  Next, I would like to add a MacOS Metal build. Unfortunately, as I do not have a Mac, this will be more of a theoretical build as even if it compiles, I have no way of testing this.
+  
    Then I would like to break up the build.yml to make it more readable and mainainable by having it use shell scripts, so using following structure:
     .github/
     ├── workflows/
@@ -47,14 +47,13 @@ The aim for this branch is
 
     Once there, I would like to look at making a Windows installer by updating the .nsi file which was last updated in 2020. A debian file would be nice but is of lower priority (need to update the debian directory)
 
-    After that (or possibly before...) I would like to add a MacOS on ARM silicon build to the .github/workflows and scripts directory.
 
     Once there (dreaming), then I can start at trying the move to Qt6 for the next major release. 
 
 
-I asked Clause.com to do an Audit and show a way forward for this. I previously asked ChatGPTs for an audit. Windows, Linux x86 and RPi are included although Linux x86 and RPi are still to be tested.  Once these 3 are up and running, I'll make an official release and spread the word...
+ Windows, Linux x86 and RPi are included although Linux x86 and RPi are still to be tested.  Once these 3 are up and running, I'll make an official release and spread the word...
 
-Here is Claude's feedback:
+I asked Clause.com to do an Audit and show a way forward for this. I previously asked ChatGPTs for an audit. Here is Claude's feedback with the remaining issues:
 
 # BASIC256 Project — Deep Analysis & Roadmap
 
@@ -140,41 +139,13 @@ The workflow has a matrix that currently runs: Raspberry Pi ARM64 via QEMU emula
 
 ### What is outdated or problematic
 
-**QEMU emulation for ARM is the wrong approach in 2025/2026.**  
-GitHub Actions now has native ARM64 runners: `ubuntu-24.04-arm`. QEMU-emulated builds are dramatically slower (often 10-20x), hit memory limits (hence `j1` in your build command), and are harder to debug. The `uraimo/run-on-arch-action` approach was the only option before 2024, but it is now obsolete for your use case.
-
-Replace this entire block:
-```yaml
-- os: ubuntu-latest
-  arch: arm64
-  use_jurplel: false
-  artifact_name: BASIC256-RaspberryPi-ARM64
-```
-...and the QEMU step with:
-```yaml
-- os: ubuntu-24.04-arm
-  artifact_name: BASIC256-RaspberryPi-ARM64
-```
-Then use a standard apt-install + cmake build, just like Linux x86. No QEMU, no container, no `j1`.
-
-**No launcher script in the ARM dist.**  
-The Windows packaging creates `basic256.bat` that sets environment variables before launching. The ARM packaging has no equivalent. A `run.sh` launcher that sets `LD_LIBRARY_PATH` and `QT_PLUGIN_PATH` is the belt-and-suspenders safety net for systems that ignore rpath.
-
-**The `Package Linux ARM` step references `ubuntu-24.04-arm` but the matrix uses `ubuntu-latest`.**  
-These are different runner names. The packaging step has `if: matrix.os == 'ubuntu-24.04-arm'` — which will never be true under the current matrix definition of `os: ubuntu-latest`. This step is dead code and will never execute.
-
-**`env: QT_VERSION: 5.15.2` is declared but never used in the active ARM build path.**  
-The ARM path installs Qt via `apt`, not `jurplel`, so this env var is unused. It's leftover from the commented-out blocks and causes confusion.
-
-**The `release:` job uses `ubuntu-22.04` as its runner.**  
+**The `release:` job for Linux x86 uses `ubuntu-22.04` as its runner.**  
 Ubuntu 22.04 will reach end-of-life for GitHub Actions runners. Change to `ubuntu-24.04`.
-
-**`jurplel/install-qt-action@v3` is outdated.**  
-Version 4 of this action has been available since late 2024 and fixes several Qt module installation issues. The `qt_arch: linux_gcc_arm64` arch string also only works in v4 — v3 does not support ARM Linux at all.
 
 ### Overall build.yml verdict
 
-**C+ — The structure is reasonable but the active ARM build path has multiple bugs that cause exactly the runtime library problems you are experiencing. The QEMU approach should be abandoned entirely in favor of native ARM64 runners.**
+**C+ — The structure is reasonable and the steps are well-defined.**
+
 
 ---
 
@@ -239,11 +210,6 @@ The README includes a detailed ChatGPT audit. That audit was largely sound advic
 
 **ChatGPT's advice that you should follow now:**
 
-- Switch ARM64 CI from QEMU to `ubuntu-24.04-arm` native runner — this is a one-line change with major impact.
-- Fix the `qt.conf` generation in packaging — five lines.
-- Fix the missing `libQt5XcbQpa` and `libQt5DBus` copies — two lines.
-- Add a launcher `run.sh` script to the ARM dist — six lines.
-- Delete the legacy `.pro`, `.sln`, `.vcproj` files.
 - Update `COMPILING.txt`.
 
 **ChatGPT's advice that is correct but non-urgent:**
@@ -259,43 +225,32 @@ The README includes a detailed ChatGPT audit. That audit was largely sound advic
 
 These are ordered by impact and difficulty, for someone who cannot write C++.
 
-### Immediate — fix the RPi build (no C++ required)
-
-1. Add `qt.conf` generation to the ARM packaging step in `build.yml`.
-2. Add `libQt5XcbQpa.so.*` and `libQt5DBus.so.*` to the `cp` commands.
-3. Add a `run.sh` launcher script to the dist folder.
-4. Add `INSTALL_RPATH` and `BUILD_WITH_INSTALL_RPATH` to `CMakeLists.txt` (copy-paste from section 2 above).
-
 ### Short-term — modernize the CI
 
-5. Replace the QEMU ARM build with `ubuntu-24.04-arm` native runner.
-6. Uncomment and fix the Linux x86 build (update from `ubuntu-22.04` to `ubuntu-24.04`, update `jurplel` to v4).
-7. Uncomment the Windows build and test it.
-8. Add a `TestSuite` execution step after building.
+1. Fix the Linux x86 build (update from `ubuntu-22.04` to `ubuntu-24.04`).
+2. Add a `TestSuite` execution step after building.
 
 ### Clean-up — reduce confusion and legacy weight
 
-9. Delete `BASIC256.pro`, `BASIC256Portable.pro`, `basic256.sln`, `basic256.vcproj`, `BASIC256PortableSupportFileCopy.bat`, `ziplinuxsource.sh`.
-10. Update `COMPILING.txt` with CMake build instructions.
-11. Resolve the `wikihelp/` missing directory situation.
-12. Fix the `qt5_add_translation` Qt5/Qt6 conditional in `CMakeLists.txt`.
+3. Update `COMPILING.txt` with CMake build instructions.
+4. Resolve the `wikihelp/` missing directory situation.
 
 ### Medium-term — distribution quality
 
-13. Update the `debian/` packaging to use CMake as the build system.
-14. Add a GitHub Actions step that builds a `.deb` package.
-15. Create a proper GitHub Release with the first working ARM64 tarball.
-16. Write a `README` section explaining how to run the binary from the tarball.
+5. Update the `debian/` packaging to use CMake as the build system.
+6. Add a GitHub Actions step that builds a `.deb` package.
+7. Create a proper GitHub Release with the first working ARM64 tarball.
+8. Write a `README` section explaining how to run the binary from the tarball.
 
 ### Long-term — future-proofing (requires C++ help or AI assistance)
 
-17. Replace `qt5_add_translation` with the dual Qt5/Qt6 version.
-18. Work through the deprecated Qt API list (QRegExp → QRegularExpression, etc.).
-19. Port to Qt6 once the deprecated API cleanup is done.
-20. Reorganize source into logical subdirectories.
+9. Work through the deprecated Qt API list (QRegExp → QRegularExpression, etc.).
+10. Port to Qt6 once the deprecated API cleanup is done.
+11. Reorganize source into logical subdirectories.
 
 ---
 
 ## 7. One-paragraph summary
 
-The project has successfully completed the hardest part — migrating from qmake to CMake and getting the interpreter to compile under a modern toolchain. The remaining problems are all in the build and packaging layer, not in the C++ code itself. The QEMU-based ARM build should be replaced with GitHub's native ARM64 runner, which would also eliminate the `j1` serial build workaround and dramatically speed up CI. Once these fixes are in place, BASIC256 would have genuinely distributable Windows, Linux x86 and ARM64 packages — which is the stated goal of the project.
+The project has successfully completed the hardest part — migrating from qmake to CMake and getting the interpreter to compile under a modern toolchain. The remaining problems are all in the build and packaging layer, not in the C++ code itself.
+ Once these fixes are in place, BASIC256 would have genuinely distributable Windows, Linux x86 and ARM64 packages — which is the stated goal of the project.

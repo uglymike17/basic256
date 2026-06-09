@@ -17,16 +17,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - os: ubuntu-22.04  # <-- Change from ubuntu-latest to ubuntu-22.04
-          #   arch: x86_64
-          #   use_jurplel: false
-          #   qt_arch: gcc_64
-          #   artifact_name: BASIC256-Linux-x86_64
-          # - os: windows-latest
-          #   arch: x86_64
-          #   use_jurplel: false
-          #   qt_arch: win64_msvc2019_64  # Updated for MSVC 2019 / 2022 compatibility
-          #   artifact_name: BASIC256-Windows
+          - os: ubuntu-22.04  # <-- Change from ubuntu-latest to ubuntu-22.04
+            arch: x86_64
+            use_jurplel: false
+            qt_arch: gcc_64
+            artifact_name: BASIC256-Linux-x86_64
+          - os: windows-latest
+            arch: x86_64
+            use_jurplel: false
+            qt_arch: win64_msvc2019_64  # Updated for MSVC 2019 / 2022 compatibility
+            artifact_name: BASIC256-Windows
           - os: ubuntu-24.04-arm
             arch: arm64
             use_jurplel: false
@@ -40,15 +40,6 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: '3.x'
-
-    ## Install Qt via jurplel for x86_64 Linux and Windows
-    #- name: Install Qt (jurplel)
-    #  if: matrix.use_jurplel == true
-    #  uses: jurplel/install-qt-action@v3
-    #  with:
-    #    version: ${{ env.QT_VERSION }}
-    #    arch: ${{ matrix.qt_arch }}
-    #    cache: true
   
     # ---------------------------
     # Linux x86_64 Build
@@ -136,8 +127,6 @@ jobs:
         # 6. Text-to-speech plugins
         mkdir -p dist/plugins/texttospeech
         cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_*.so dist/plugins/texttospeech/ || true
-        echo "=== TextToSpeech plugins ==="
-        ls -l dist/plugins/texttospeech/
 
         # 7. espeak-ng and libjpeg runtime libs (outside any if-block)
         cp $QT_LIB_DIR/libespeak-ng.so.*  dist/lib/ || true
@@ -321,18 +310,12 @@ jobs:
         echo "=== TTS plugins ==="
         find dist/plugins/texttospeech -name "*.so"
 
-        echo "=== Dependencies ==="
-        ldd dist/plugins/texttospeech/*.so || true
-
         echo "=== Media plugins ==="
         if [ -d dist/plugins/mediaservice ]; then
           find dist/plugins/mediaservice -name "*.so"
         else
           echo "No mediaservice directory found"
         fi
-
-        echo "=== Media dependencies ==="
-        ldd dist/plugins/mediaservice/*.so || true
         
     # ---------------------------
     # Packaging Windows (MSVC Migration)
