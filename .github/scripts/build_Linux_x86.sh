@@ -10,5 +10,5 @@ sudo apt install -y build-essential cmake libgl1-mesa-dev libx11-dev libxext-dev
   libspeechd-dev libspeechd2 speech-dispatcher libespeak-ng-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
 
 #cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${Qt5_DIR:-$Qt5_Dir}"
-cmake -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="${Qt5_DIR:-$Qt5_Dir}"
+cmake -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="${Qt5_DIR:-/usr/lib/x86_64-linux-gnu/qt5}"
 cmake --build build --config Release -j"$(nproc)"
