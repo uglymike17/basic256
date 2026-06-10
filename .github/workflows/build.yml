@@ -89,7 +89,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: 
-        ./.github/scripts/package_windows_build.ps1
+        ./.github/scripts/package_windows.ps1
 
     # ---------------------------
     # Upload Artifacts Step
