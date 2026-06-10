@@ -8,7 +8,7 @@ gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gst
 gstreamer1.0-libav gstreamer1.0-pipewire pipewire pipewire-pulse \
 libpipewire-0.3-0 libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 \
 libasound2-dev espeak-ng libespeak-ng-dev libspeechd-dev speech-dispatcher \
-qtbase5-dev qttools5-dev-tools qttools5-dev qtmultimedia5-dev \
+qtbase5-dev qttools5-dev-tools qttools5-dev qtmultimedia5-dev libqt5multimedia libqt5multimedia-plugins libqt5multimedia5 libqt5multimedia5-plugins \
  libqt5texttospeech5 libqt5texttospeech5-dev libqt5serialport5 libqt5serialport5-dev \
 libgl1-mesa-dev libx11-dev patchelf
 
