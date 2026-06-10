@@ -68,7 +68,8 @@ jobs:
         sudo apt-get update && sudo apt-get install -y \
           build-essential cmake flex bison \
           flite libflite1 \
-          gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-alsa gstreamer1.0-pipewire pipewire pipewire-pulse \
+          gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-alsa \
+          gstreamer1.0-libav gstreamer1.0-pipewire pipewire pipewire-pulse \
           libpipewire-0.3-0 libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 \
           libasound2-dev espeak-ng libespeak-ng-dev libspeechd-dev speech-dispatcher \
           qtbase5-dev qttools5-dev-tools qttools5-dev qtmultimedia5-dev libqt5multimedia5 libqt5multimedia5-plugins \
@@ -103,7 +104,7 @@ jobs:
         cp $QT_LIB_DIR/libQt5Gui.so.*           dist/lib/
         cp $QT_LIB_DIR/libQt5Widgets.so.*       dist/lib/
         cp $QT_LIB_DIR/libQt5Multimedia.so.*    dist/lib/
-        cp $QT_LIB_DIR/libQt5MultimediaGsTools.so.*    dist/lib/
+        cp $QT_LIB_DIR/libQt5MultimediaGstTools.so.*    dist/lib/
         cp $QT_LIB_DIR/libQt5SerialPort.so.*    dist/lib/
         cp $QT_LIB_DIR/libQt5TextToSpeech.so.*  dist/lib/
         cp $QT_LIB_DIR/libQt5PrintSupport.so.*  dist/lib/
@@ -251,19 +252,6 @@ jobs:
         # Compress everything into your final delivery asset
         tar -czf ${{ matrix.artifact_name }}.tar.gz dist
 
-    - name: Verify Qt audio plugin
-      run: |
-        echo "=== Audio plugins ==="
-        find dist/plugins/audio -type f
-
-        echo
-        echo "=== Checking libqtmedia_pulse.so ==="
-        ldd dist/plugins/audio/libqtmedia_pulse.so
-
-        echo
-        echo "=== Missing dependencies ==="
-        ldd dist/plugins/audio/libqtmedia_pulse.so | grep "not found" || true
-
     # ---------------------------
     # Packaging Linux ARM
     # ---------------------------
@@ -346,13 +334,14 @@ jobs:
         DIR="$(cd "$(dirname "$0")" && pwd)"
 
         export LD_LIBRARY_PATH="$DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-        export QT_PLUGIN_PATH="$DIR/plugins"
-        export QT_QPA_PLATFORM_PLUGIN_PATH="$DIR/plugins/platforms"
+        export QT_PLUGIN_PATH=/home/pi/Downloads/dist/plugins
+        export QT_QPA_PLATFORM_PLUGIN_PATH=/home/pi/Downloads/dist//plugins/platforms
         export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
         export QT_TEXTTOSPEECH_PLUGINS="$DIR/plugins/texttospeech"
         export PIPEWIRE_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
         export GST_PLUGIN_PATH="$DIR/gstreamer-1.0"
         export GST_REGISTRY="$DIR/gstreamer-1.0/registry.bin"
+        export QT_DEBUG_PLUGINS=1
 
         exec "$DIR/basic256" "$@"
         EOF
