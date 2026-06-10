@@ -90,6 +90,8 @@ jobs:
     - name: Package Windows Build
       if: runner.os == 'Windows'
       shell: pwsh
+      env:
+        ARTIFACT_NAME: ${{ matrix.artifact_name }}.zip
       run: 
         ./.github/scripts/package_windows.ps1
 
