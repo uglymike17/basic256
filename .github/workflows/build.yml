@@ -103,6 +103,7 @@ jobs:
         cp $QT_LIB_DIR/libQt5Gui.so.*           dist/lib/
         cp $QT_LIB_DIR/libQt5Widgets.so.*       dist/lib/
         cp $QT_LIB_DIR/libQt5Multimedia.so.*    dist/lib/
+        cp $QT_LIB_DIR/libQt5MultimediaGsTools.so.*    dist/lib/
         cp $QT_LIB_DIR/libQt5SerialPort.so.*    dist/lib/
         cp $QT_LIB_DIR/libQt5TextToSpeech.so.*  dist/lib/
         cp $QT_LIB_DIR/libQt5PrintSupport.so.*  dist/lib/
@@ -226,6 +227,7 @@ jobs:
         cp /usr/lib/x86_64-linux-gnu/libpulse.so.* dist/lib/ || true
         cp /usr/lib/x86_64-linux-gnu/libpulse-mainloop-glib.so.* dist/lib/ || true
         cp /usr/lib/x86_64-linux-gnu/libpipewire-0.3.so.* dist/lib/ || true
+        cp /usr/lib/x86_64-linux-gnu/libQt5MultimediaGstTools.so* dist/lib/ || true
 
 
         # Download linuxdeployqt asset
