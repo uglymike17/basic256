@@ -47,24 +47,154 @@ jobs:
     - name: Build Linux x86_64
       if: matrix.os == 'ubuntu-22.04'
       run: |
-        bash .github/scripts/build-linux-x86_64.sh
+        sudo apt update
+        sudo apt-get remove -y libunwind-14-dev 
+        sudo apt install -y build-essential cmake libgl1-mesa-dev libx11-dev libxext-dev \
+          libxrender-dev libxi-dev libxkbcommon-x11-0 flex bison \
+          qtbase5-dev qttools5-dev-tools qttools5-dev qtmultimedia5-dev libqt5multimedia5 libqt5multimedia5-plugins\
+          libqt5multimedia libqt5multimedia-plugins libqt5texttospeech5-dev libqt5serialport5-dev \
+          libspeechd-dev libspeechd2 speech-dispatcher libespeak-ng-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+        
+        # Configure and Build using CMake
+        #cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${Qt5_DIR:-$Qt5_Dir}"
+        cmake -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="${Qt5_DIR:-$Qt5_Dir}"
+        cmake --build build --config Release -j$(nproc)
 
     # -----------------------------------------------------------------
     # Raspberry Pi ARM64 Native Build Flow
     # -----------------------------------------------------------------
-    - name: Build RPi 4 (Trixie)
+    - name: Install dependencies (ARM64)
       if: matrix.arch == 'arm64'
       run: |
-        bash .github/scripts/build_Linux_RPi_Trixie.sh
+        sudo apt-get update && sudo apt-get install -y \
+          build-essential cmake flex bison \
+          flite libflite1 \
+          gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-alsa \
+          gstreamer1.0-libav gstreamer1.0-pipewire pipewire pipewire-pulse \
+          libpipewire-0.3-0 libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 \
+          libasound2-dev espeak-ng libespeak-ng-dev libspeechd-dev speech-dispatcher \
+          qtbase5-dev qttools5-dev-tools qttools5-dev qtmultimedia5-dev libqt5multimedia5 libqt5multimedia5-plugins \
+          libqt5multimedia libqt5multimedia-plugins libqt5texttospeech5 libqt5texttospeech5-dev libqt5serialport5 libqt5serialport5-dev \
+          libgl1-mesa-dev libx11-dev patchelf
+
+    - name: Build Raspberry Pi ARM64
+      if: matrix.arch == 'arm64'
+      run: |
+        # 1. Compile using native ARM64 tools
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
+        cmake --build build --config Release -j$(nproc)
+
+        # 2. Create standalone relocatable distribution folder
+        mkdir -p dist/lib dist/plugins
+        cp build/basic256 dist/
+        patchelf --set-rpath '$ORIGIN/lib' dist/basic256
+        find dist/plugins -name "*.so" | while read f; do
+          patchelf --set-rpath '$ORIGIN/../../lib:$ORIGIN/../lib:$ORIGIN' "$f" || true
+        done
+        printf '[Paths]\nPlugins=plugins\n' > dist/qt.conf
+
+        # 3. Define plugin dir once, used throughout
+        QT_PLUGIN_DIR="/usr/lib/aarch64-linux-gnu/qt5/plugins"
+        echo "QT_PLUGIN_DIR=$QT_PLUGIN_DIR"
+        echo "=== Available Qt plugin directories ==="
+        find "$QT_PLUGIN_DIR" -maxdepth 1 -type d | sort
+        QT_LIB_DIR="/usr/lib/aarch64-linux-gnu"
+
+        # 4. Copy Qt runtime libraries
+        cp $QT_LIB_DIR/libQt5Core.so.*          dist/lib/
+        cp $QT_LIB_DIR/libQt5Gui.so.*           dist/lib/
+        cp $QT_LIB_DIR/libQt5Widgets.so.*       dist/lib/
+        cp $QT_LIB_DIR/libQt5Multimedia.so.*    dist/lib/
+        cp $QT_LIB_DIR/libQt5MultimediaGstTools.so.*    dist/lib/
+        cp $QT_LIB_DIR/libQt5SerialPort.so.*    dist/lib/
+        cp $QT_LIB_DIR/libQt5TextToSpeech.so.*  dist/lib/
+        cp $QT_LIB_DIR/libQt5PrintSupport.so.*  dist/lib/
+        cp $QT_LIB_DIR/libQt5Sql.so.*           dist/lib/
+        cp $QT_LIB_DIR/libQt5XcbQpa.so.*        dist/lib/
+        cp $QT_LIB_DIR/libQt5DBus.so.*          dist/lib/
+        cp $QT_LIB_DIR/libQt5Network.so.*       dist/lib/
+        cp $QT_LIB_DIR/libssl.so.*              dist/lib/
+        cp $QT_LIB_DIR/libcrypto.so.*           dist/lib/
+        cp $QT_LIB_DIR/libxcb.so.*              dist/lib/ 2>/dev/null || true
+        cp $QT_LIB_DIR/libxcb-*.so.*            dist/lib/ 2>/dev/null || true
+        cp $QT_LIB_DIR/libxkbcommon*.so.*       dist/lib/ 2>/dev/null || true
+
+        # 5. Platform plugins
+        mkdir -p dist/plugins/platforms
+        cp $QT_PLUGIN_DIR/platforms/libqxcb.so              dist/plugins/platforms/ || true
+        cp $QT_PLUGIN_DIR/platforms/libqwayland-generic.so  dist/plugins/platforms/ || true
+        cp $QT_PLUGIN_DIR/platforms/libqwayland-egl.so      dist/plugins/platforms/ || true
+        cp $QT_PLUGIN_DIR/platforms/libqoffscreen.so        dist/plugins/platforms/ || true
+        
+
+        # 6. Text-to-speech plugins
+        mkdir -p dist/plugins/texttospeech
+        cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_*.so dist/plugins/texttospeech/ || true
+
+        # 7. espeak-ng and libjpeg runtime libs (outside any if-block)
+        cp $QT_LIB_DIR/libespeak-ng.so.*  dist/lib/ || true
+        cp $QT_LIB_DIR/libjpeg.so.*       dist/lib/ || true
+
+        # 8. Media service and image format plugins
+        if [ -d $QT_PLUGIN_DIR/mediaservice ]; then
+          mkdir -p dist/plugins/mediaservice
+          cp $QT_PLUGIN_DIR/mediaservice/* dist/plugins/mediaservice/
+        fi
+
+        if [ -d $QT_PLUGIN_DIR/imageformats ]; then
+          mkdir -p dist/plugins/imageformats
+          cp $QT_PLUGIN_DIR/imageformats/* dist/plugins/imageformats/
+        fi
+
+        if [ -d $QT_PLUGIN_DIR/audio ]; then
+          mkdir -p dist/plugins/audio
+          cp $QT_PLUGIN_DIR/audio/* dist/plugins/audio/
+        fi
+
+        cp -r Examples dist/
 
     # ---------------------------
     # Windows Build
     # ---------------------------
-    - name: Build Windows x86_64
+    - name: Install flex and bison (Windows)
       if: runner.os == 'Windows'
-      shell: pwsh
-      run: 
-        ./.github/scripts/build_windows.ps1
+      run: choco install winflexbison3 -y
+
+    - name: Install Qt
+      if: runner.os == 'Windows'
+      run: |
+        pip install aqtinstall
+        aqt install-qt windows desktop 5.15.2 win64_msvc2019_64
+
+    - name: Set Qt5_Dir (Windows)
+      if: runner.os == 'Windows'
+      run: echo "Qt5_Dir=${{ github.workspace }}\5.15.2\msvc2019_64" >> $env:GITHUB_ENV      
+
+    - name: Run Build (Windows)
+      if: runner.os == 'Windows'
+      env:
+        BISON_PKGDATADIR: C:\ProgramData\chocolatey\lib\winflexbison3\tools\data
+      run: |
+        $bisonBin = "C:\ProgramData\chocolatey\lib\winflexbison3\tools"
+        
+        # Mirror flex/bison executables so names match standard conventions
+        Copy-Item "$bisonBin\win_flex.exe" "$bisonBin\flex.exe" -Force
+        Copy-Item "$bisonBin\win_bison.exe" "$bisonBin\bison.exe" -Force
+        
+        # Add bison tools to path for the lexer build step
+        $env:Path = "$bisonBin;" + $env:Path
+
+        # Generate LEX parser files manually using flex/bison direct execution
+        cd LEX
+        & "$bisonBin\bison.exe" -d -v -l basicParse.y
+        & "$bisonBin\flex.exe" -L basicParse.l
+        cd ..
+
+        # Configure using MSVC (Omitting -G defaults to the installed Visual Studio version)
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ github.workspace }}\5.15.2\msvc2019_64"
+        
+        # Build using MSVC compiler pipeline natively via CMake
+        cmake --build build --config Release
 
     # ---------------------------
     # Packaging Linux x86_64
