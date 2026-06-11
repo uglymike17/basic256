@@ -31,11 +31,6 @@ jobs:
             arch: arm64
             use_jurplel: false
             artifact_name: BASIC256-RaspberryPi-ARM64  
-          - os: macos-latest
-            arch: arm64
-            use_jurplel: false
-            qt_arch: clang_64
-            artifact_name: BASIC256-MacOS  
 
     steps:
     - name: Checkout
@@ -74,18 +69,6 @@ jobs:
         ./.github/scripts/build_windows.ps1
 
     # ---------------------------
-    # MacOS Build
-    # ---------------------------
-    - name: Build MacOS ARM64
-      if: runner.os == 'macos'
-      shell: bash
-      env:
-        ARTIFACT_NAME: ${{ matrix.artifact_name }}.zip
-      run: 
-        ./.github/scripts/build_macos.sh
-
-
-    # ---------------------------
     # Packaging Linux x86_64
     # ---------------------------
     - name: Package Linux x86_64
@@ -111,17 +94,6 @@ jobs:
         ARTIFACT_NAME: ${{ matrix.artifact_name }}.zip
       run: 
         ./.github/scripts/package_windows.ps1
-
-    # ---------------------------
-    # Packaging MacOS
-    # ---------------------------
-    - name: Package MacOS Build
-      if: runner.os == 'macos'
-      shell: bash
-      env:
-        ARTIFACT_NAME: ${{ matrix.artifact_name }}.zip
-      run: 
-        ./.github/scripts/package_macos.sh
 
     # ---------------------------
     # Upload Artifacts Step
