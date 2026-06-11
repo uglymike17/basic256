@@ -82,7 +82,8 @@ jobs:
       env:
         ARTIFACT_NAME: ${{ matrix.artifact_name }}.zip
       run: 
-        ./.github/scripts/build_macos.sh
+        chmod +x ./.github/scripts/build_macos.sh
+        bash ./.github/scripts/build_macos.sh
 
 
     # ---------------------------
@@ -90,6 +91,8 @@ jobs:
     # ---------------------------
     - name: Package Linux x86_64
       if: matrix.os == 'ubuntu-22.04'
+      env:
+        ARTIFACT_NAME: ${{ matrix.artifact_name }}
       run: |
         bash .github/scripts/package_Linux_x86.sh
 
@@ -98,6 +101,8 @@ jobs:
     # ---------------------------
     - name: Package Linux ARM
       if: matrix.os == 'ubuntu-24.04-arm'
+      env:
+        ARTIFACT_NAME: ${{ matrix.artifact_name }}
       run: |
         bash .github/scripts/package_Linux_RPi_Trixie.sh
         

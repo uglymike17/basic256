@@ -88,4 +88,4 @@ EOF
         chmod +x dist/run.sh
 
         # Compress everything into your final delivery asset
-        tar -czf ${{ matrix.artifact_name }}.tar.gz dist
+        tar -czf "${ARTIFACT_NAME}.tar.gz" dist/

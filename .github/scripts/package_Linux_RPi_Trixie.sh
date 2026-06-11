@@ -91,4 +91,4 @@ set -euo pipefail
 EOF
         chmod +x dist/run.sh
 
-        tar -czf ${{ matrix.artifact_name }}.tar.gz dist
+        tar -czf "${ARTIFACT_NAME}.tar.gz" dist/
