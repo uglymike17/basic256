@@ -59,6 +59,9 @@ set -euo pipefail
             EXTRA_ARGS="$EXTRA_ARGS -executable=$plugin"
           fi
         done
+
+        # Force linuxdeployqt to look at the system Qt5 path
+        export PATH="/usr/lib/qt5/bin:$PATH"
         
         # Run linuxdeployqt with the plugin arguments
         ./linuxdeployqt-continuous-x86_64.AppImage dist/basic256 \
@@ -66,17 +69,22 @@ set -euo pipefail
           -extra-plugins=texttospeech,mediaservice,audio,imageformats \
           --appimage-extract-and-run
 
+        # Ensure the binary actually lives in dist/ alongside the libraries
+        if [ ! -f "dist/basic256" ] && [ -f "build/basic256" ]; then
+            cp build/basic256 dist/
+        fi
+
         #Launcher script
         cat > dist/run.sh << 'EOF'
-        #!/bin/sh
-        DIR="$(cd "$(dirname "$0")" && pwd)"
-        export LD_LIBRARY_PATH="$DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-        export QT_PLUGIN_PATH="$DIR/plugins"
-        export GST_PLUGIN_PATH="$DIR/gstreamer-1.0"
-        export GST_PLUGIN_SYSTEM_PATH=""
-        export GST_REGISTRY="$DIR/gstreamer-1.0/registry.bin"
-        exec "$DIR/basic256" "$@"
-        EOF
+#!/bin/sh
+DIR="$(cd "$(dirname "$0")" && pwd)"
+export LD_LIBRARY_PATH="$DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export QT_PLUGIN_PATH="$DIR/plugins"
+export GST_PLUGIN_PATH="$DIR/gstreamer-1.0"
+export GST_PLUGIN_SYSTEM_PATH=""
+export GST_REGISTRY="$DIR/gstreamer-1.0/registry.bin"
+exec "$DIR/basic256" "$@"
+EOF
         chmod +x dist/run.sh
 
         # Compress everything into your final delivery asset

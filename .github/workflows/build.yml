@@ -58,7 +58,7 @@ jobs:
     # Raspberry Pi ARM64 Native Build Flow
     # -----------------------------------------------------------------
     - name: Build RPi 4 (Trixie)
-      if: matrix.arch == 'arm64'
+      if: matrix.os == 'ubuntu-24.04-arm'
       run: |
         bash .github/scripts/build_Linux_RPi_Trixie.sh
 
@@ -77,7 +77,7 @@ jobs:
     # MacOS Build
     # ---------------------------
     - name: Build MacOS ARM64
-      if: runner.os == 'macos'
+      if: runner.os == 'macOS'
       shell: bash
       env:
         ARTIFACT_NAME: ${{ matrix.artifact_name }}.zip
@@ -116,7 +116,7 @@ jobs:
     # Packaging MacOS
     # ---------------------------
     - name: Package MacOS Build
-      if: runner.os == 'macos'
+      if: runner.os == 'macOS'
       shell: bash
       env:
         ARTIFACT_NAME: ${{ matrix.artifact_name }}.zip

@@ -20,7 +20,6 @@ set -euo pipefail
         cp /usr/lib/aarch64-linux-gnu/libgstpbutils-1.0.so.*       dist/lib/ || true
         cp /usr/lib/aarch64-linux-gnu/libpipewire-0.3.so.*         dist/lib/ || true
         cp /usr/lib/aarch64-linux-gnu/libasound.so.*         dist/lib/ || true
-        cp /usr/lib/aarch64-linux-gnu/libspa-*.so*                 dist/lib/ || true
         cp /usr/lib/aarch64-linux-gnu/libgstapp-1.0.so.*           dist/lib/ || true
         cp /usr/lib/aarch64-linux-gnu/libglib-2.0.so.*             dist/lib/ || true
         cp /usr/lib/aarch64-linux-gnu/libgobject-2.0.so.*          dist/lib/ || true
@@ -89,7 +88,7 @@ set -euo pipefail
         export QT_DEBUG_PLUGINS=1
 
         exec "$DIR/basic256" "$@"
-        EOF
+EOF
         chmod +x dist/run.sh
 
         tar -czf ${{ matrix.artifact_name }}.tar.gz dist
