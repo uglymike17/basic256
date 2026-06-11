@@ -20,9 +20,17 @@
  ** as a label- flex is greedy and will match the stmt: first
  **/
 
+%option nounistd
+
 %{
+#ifdef _WIN32
+#include <io.h>
+#define isatty _isatty
+#else
 #include <unistd.h>
-%} 
+#endif
+%}
+
 %{
 #include "basicParse.tab.h"
 #include "../CompileErrors.h"

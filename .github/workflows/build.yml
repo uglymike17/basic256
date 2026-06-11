@@ -125,8 +125,9 @@ jobs:
       shell: bash
       env:
         ARTIFACT_NAME: ${{ matrix.artifact_name }}.zip
-      run: 
-        ./.github/scripts/package_macos.sh
+      run: |
+        chmod +x ./.github/scripts/package_macos.sh
+        bash ./.github/scripts/package_macos.sh
 
     # ---------------------------
     # Upload Artifacts Step
