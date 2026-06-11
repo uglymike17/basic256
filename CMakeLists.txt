@@ -202,15 +202,6 @@ elseif(APPLE)
     list(APPEND SOURCES resources/basic256.icns)
     set_source_files_properties(resources/basic256.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
     set(MACOSX_BUNDLE_ICON_FILE basic256.icns)
-    set_target_properties(Basic256 PROPERTIES
-        MACOSX_BUNDLE TRUE
-        MACOSX_BUNDLE_BUNDLE_NAME "Basic256"
-        MACOSX_BUNDLE_GUI_IDENTIFIER "org.basic256.basic256"
-        MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
-        MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
-        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/macos/Info.plist"
-        MACOSX_BUNDLE_ICON_FILE "basic256.icns"
-    )
 
 elseif(UNIX AND NOT APPLE)
     set(PLATFORM_DEFS LINUX USE_QT_TEXTTOSPEECH)
@@ -235,6 +226,18 @@ if(QT_VERSION_MAJOR EQUAL 6)
 else()
     qt5_add_translation(QM_FILES ${TS_FILES})
     target_sources(basic256 PRIVATE ${QM_FILES})
+endif()
+
+if(APPLE)
+    set_target_properties(basic256 PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_BUNDLE_NAME "basic256"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "org.basic256.basic256"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/macos/Info.plist"
+        MACOSX_BUNDLE_ICON_FILE "basic256.icns"
+    )
 endif()
 
 if(UNIX AND NOT APPLE)

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_TARGET="Basic256"
+APP_TARGET="basic256"
 APP_BUNDLE="build/${APP_TARGET}.app"
-ARTIFACT_NAME="${ARTIFACT_NAME:-Basic256-MacOS.zip}"
+ARTIFACT_NAME="${ARTIFACT_NAME:-basic256-MacOS.zip}"
 
 echo "==> Installing Qt5 via Homebrew..."
 brew install qt@5
