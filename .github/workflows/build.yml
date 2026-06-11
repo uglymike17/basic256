@@ -81,7 +81,7 @@ jobs:
       shell: bash
       env:
         ARTIFACT_NAME: ${{ matrix.artifact_name }}.zip
-      run: 
+      run: |
         chmod +x ./.github/scripts/build_macos.sh
         bash ./.github/scripts/build_macos.sh
 
