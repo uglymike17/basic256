@@ -19,7 +19,10 @@
  ** colon.  this is so that if the stmt with a : and no space between them is not interperted
  ** as a label- flex is greedy and will match the stmt: first
  **/
- 
+
+%{
+#include <unistd.h>
+%} 
 %{
 #include "basicParse.tab.h"
 #include "../CompileErrors.h"
