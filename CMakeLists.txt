@@ -202,7 +202,7 @@ elseif(APPLE)
     list(APPEND SOURCES resources/basic256.icns)
     set_source_files_properties(resources/basic256.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
     set(MACOSX_BUNDLE_ICON_FILE basic256.icns)
-    set_target_properties(basic256 PROPERTIES
+    set_target_properties(Basic256 PROPERTIES
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_BUNDLE_NAME "Basic256"
         MACOSX_BUNDLE_GUI_IDENTIFIER "org.basic256.basic256"
