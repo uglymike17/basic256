@@ -1059,7 +1059,7 @@ Interpreter::run() {
 	mediaplayer_id_legacy = 0;
 	//link sound system to error mechanism
 	sound->error = &error;
-	srand(time(NULL)+QElapsedTimer::currentTime().msec()*911L); rand(); rand(); 	// initialize the random number generator for this thread
+	srand(time(NULL)+QTime::currentTime().msec()*911L); rand(); rand(); 	// initialize the random number generator for this thread
 	runtimer.start(); // used by MSEC function
 	runLoop();			// run the opcodes
 	debugMode = 0;
@@ -3914,7 +3914,11 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						error->q(ERROR_PERMISSION);
 					}else if(doit==SETTINGSALLOWYES) {
 						sys = new QProcess();
-						sys->startCommand(temp);
+						QStringList args = QProcess::splitCommand(temp);
+						if (!args.isEmpty()) {
+						    QString program = args.takeFirst();
+						    sys->start(program, args);
+						}
 						if (sys->waitForStarted(-1)) {
 							if (!sys->waitForFinished(-1)) {
 								//QByteArray result = sy.readAll();
