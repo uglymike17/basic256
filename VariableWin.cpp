@@ -120,7 +120,7 @@ void VariableWin::varWinAssign(Variables **variables, int varnum, int level, int
 	QTreeWidgetItem *parentItem = NULL;
 	QTreeWidgetItem *childItem = NULL;
 	QString parentname, childname;
-	DataElement *d;
+	//DataElement *d;
 	QList<QTreeWidgetItem *> list;
 
 	if(*variables){
@@ -158,7 +158,7 @@ void VariableWin::varWinAssign(Variables **variables, int varnum, int level, QSt
 	QTreeWidgetItem *parentItem = NULL;
 	QTreeWidgetItem *childItem = NULL;
 	QString parentname, childname;
-	DataElement *d;
+	//DataElement *d;
 	QList<QTreeWidgetItem *> list;
 
 	if(*variables){

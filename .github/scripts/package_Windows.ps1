@@ -13,11 +13,6 @@ Copy-Item -Path "Examples" -Destination "dist\Examples" -Recurse -Force
   --no-translations `
   dist\basic256.exe
 
-if (Test-Path "dist\translations") {
-    Move-Item "dist\translations" "dist\Translations_Temp"
-    Move-Item "dist\Translations_Temp" "dist\Translations" -Force
-}
-
 if (-not (Test-Path "dist\Translations")) {
     New-Item -ItemType Directory -Path "dist\Translations" | Out-Null
 }

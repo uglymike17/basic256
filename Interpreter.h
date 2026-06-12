@@ -168,7 +168,7 @@ typedef struct {
 
 class Interpreter : public QThread
 {
-	Q_OBJECT;
+	Q_OBJECT
 	public:
 		Interpreter(QLocale*);
 		~Interpreter();

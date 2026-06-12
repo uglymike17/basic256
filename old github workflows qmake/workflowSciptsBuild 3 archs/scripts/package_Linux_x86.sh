@@ -22,6 +22,7 @@ set -euo pipefail
         cp -r $QT_PLUGIN_DIR/mediaservice/*.so dist/plugins/mediaservice/ 2>/dev/null || true
         cp -r $QT_PLUGIN_DIR/audio/*.so dist/plugins/audio/ 2>/dev/null || true
         cp -r $QT_PLUGIN_DIR/imageformats/*.so dist/plugins/imageformats/ 2>/dev/null || true
+        cp -r /usr/lib/x86_64-linux-gnu/espeak-ng-data dist/lib/espeak-ng-data || true
         cp /usr/lib/x86_64-linux-gnu/libespeak-ng.so.* dist/lib/ || true
         cp /usr/lib/x86_64-linux-gnu/libspeechd.so.* dist/lib/ || true
         cp /usr/lib/x86_64-linux-gnu/libasound.so.* dist/lib/ || true
@@ -48,17 +49,22 @@ set -euo pipefail
           cp "$GSTPLUG/${p}.so" dist/gstreamer-1.0/ 2>/dev/null || true
         done
 
+        # Patch ALL bundled libs so they resolve dependencies within dist/lib only
+        for lib in dist/lib/*.so.* ; do
+          [ -f "$lib" ] && patchelf --set-rpath '$ORIGIN' "$lib" 2>/dev/null || true
+        done
+
         # Download linuxdeployqt asset
         wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
         chmod a+x linuxdeployqt-continuous-x86_64.AppImage
         
-        # Force linuxdeployqt to trace dependencies for our manually copied plugins
-        EXTRA_ARGS=""
-        for plugin in dist/plugins/*/*.so; do
-          if [ -f "$plugin" ]; then
-            EXTRA_ARGS="$EXTRA_ARGS -executable=$plugin"
-          fi
-        done
+        # # Force linuxdeployqt to trace dependencies for our manually copied plugins
+        # EXTRA_ARGS=""
+        # for plugin in dist/plugins/*/*.so; do
+        #   if [ -f "$plugin" ]; then
+        #     EXTRA_ARGS="$EXTRA_ARGS -executable=$plugin"
+        #   fi
+        # done
         
         # Run linuxdeployqt with the plugin arguments
         ./linuxdeployqt-continuous-x86_64.AppImage dist/basic256 \
@@ -68,15 +74,16 @@ set -euo pipefail
 
         #Launcher script
         cat > dist/run.sh << 'EOF'
-        #!/bin/sh
-        DIR="$(cd "$(dirname "$0")" && pwd)"
-        export LD_LIBRARY_PATH="$DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-        export QT_PLUGIN_PATH="$DIR/plugins"
-        export GST_PLUGIN_PATH="$DIR/gstreamer-1.0"
-        export GST_PLUGIN_SYSTEM_PATH=""
-        export GST_REGISTRY="$DIR/gstreamer-1.0/registry.bin"
-        exec "$DIR/basic256" "$@"
-        EOF
+#!/bin/sh
+DIR="$(cd "$(dirname "$0")" && pwd)"
+export LD_LIBRARY_PATH="$DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export QT_PLUGIN_PATH="$DIR/plugins"
+export ESPEAK_DATA_PATH="$DIR/lib/espeak-ng-data"
+export GST_PLUGIN_PATH="$DIR/gstreamer-1.0"
+export GST_PLUGIN_SYSTEM_PATH=""
+export GST_REGISTRY="$DIR/gstreamer-1.0/registry.bin"
+exec "$DIR/basic256" "$@"
+EOF
         chmod +x dist/run.sh
 
         # Compress everything into your final delivery asset

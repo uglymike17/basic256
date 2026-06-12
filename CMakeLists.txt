@@ -27,6 +27,7 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS
     Multimedia
     TextToSpeech
     LinguistTools
+    Network
 )
 
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS
@@ -39,6 +40,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS
     Multimedia
     TextToSpeech
     LinguistTools
+    Network
 )
 
 
@@ -260,7 +262,6 @@ target_include_directories(basic256 PRIVATE
 if(UNIX AND NOT APPLE)
     install(TARGETS basic256 DESTINATION ${CMAKE_INSTALL_BINDIR})
     install(DIRECTORY ./Examples DESTINATION ${CMAKE_INSTALL_DATADIR}/basic256)
-    install(DIRECTORY ./wikihelp/help DESTINATION ${CMAKE_INSTALL_DATADIR}/basic256)
     install(FILES ${QM_FILES} DESTINATION ${CMAKE_INSTALL_DATADIR}/basic256)
 endif()
 
@@ -297,6 +298,7 @@ target_link_libraries(basic256
         Qt${QT_VERSION_MAJOR}::SerialPort
         Qt${QT_VERSION_MAJOR}::Multimedia
         Qt${QT_VERSION_MAJOR}::TextToSpeech
+        Qt${QT_VERSION_MAJOR}::Network
         ${PLATFORM_LIBS}
 )
 

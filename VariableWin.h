@@ -30,7 +30,7 @@
 #include "Convert.h"
 
 class VariableWin : public QTreeWidget, public ViewWidgetIFace {
-    Q_OBJECT;
+    Q_OBJECT
 
 public:
     VariableWin();
@@ -61,11 +61,35 @@ public:
     TreeWidgetItem():QTreeWidgetItem(){}
 
 private:
-    bool operator<(const QTreeWidgetItem &other)const {
+    static bool variantLessThan(const QVariant &a, const QVariant &b) {
+        // Treat an invalid QVariant as "less than" anything valid,
+        // and equal to another invalid QVariant.
+        if (!a.isValid() || !b.isValid())
+            return !a.isValid() && b.isValid();
+
+        // If both sides are numeric (int/longlong/double/etc.), compare numerically.
+        const bool aNumeric = a.canConvert<double>() &&
+            (a.typeId() == QMetaType::Int  || a.typeId() == QMetaType::UInt ||
+             a.typeId() == QMetaType::LongLong || a.typeId() == QMetaType::ULongLong ||
+             a.typeId() == QMetaType::Double);
+        const bool bNumeric = b.canConvert<double>() &&
+            (b.typeId() == QMetaType::Int  || b.typeId() == QMetaType::UInt ||
+             b.typeId() == QMetaType::LongLong || b.typeId() == QMetaType::ULongLong ||
+             b.typeId() == QMetaType::Double);
+
+        if (aNumeric && bNumeric)
+            return a.toDouble() < b.toDouble();
+
+        // Fall back to string comparison for everything else
+        // (text types, mixed types, references, etc.)
+        return a.toString() < b.toString();
+    }
+
+    bool operator<(const QTreeWidgetItem &other) const {
         const int column = treeWidget()->sortColumn();
-        if(column==COLUMNTYPE)
-            return data(column,Qt::EditRole) < other.data(column,Qt::EditRole);
-        return data(column,Qt::UserRole + 1) < other.data(column,Qt::UserRole + 1);
+        if (column == COLUMNTYPE)
+            return variantLessThan(data(column, Qt::EditRole), other.data(column, Qt::EditRole));
+        return variantLessThan(data(column, Qt::UserRole + 1), other.data(column, Qt::UserRole + 1));
     }
 };
 

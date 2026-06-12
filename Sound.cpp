@@ -657,7 +657,8 @@ SoundSystem::SoundSystem() :
 	}
 
 	int i;
-	double bit, pos;
+	double bit;
+	//double pos;
 
 	//Generate sin waveform
 	waveformsin = new int16_t[sound_samplerate];

@@ -22,7 +22,7 @@ class Variable
 
 class Variables: public QObject
 {
-	Q_OBJECT;
+	Q_OBJECT
 	public:
 		Variables(int);
 		~Variables();

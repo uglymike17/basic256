@@ -11,7 +11,9 @@ set -euo pipefail
         cp /usr/lib/aarch64-linux-gnu/libflite_cmu_us_kal.so.* dist/lib/ || true
         cp /usr/lib/aarch64-linux-gnu/libflite_usenglish.so.* dist/lib/ || true
         cp /usr/lib/aarch64-linux-gnu/libspeechd.so.* dist/lib/ || true
+        cp /usr/lib/aarch64-linux-gnu/libespeak.so.*/*.so dist/lib/ || true
         cp /usr/lib/aarch64-linux-gnu/speech-dispatcher/*.so dist/lib/ || true
+        cp -r /usr/lib/aarch64-linux-gnu/espeak-ng-data dist/lib/espeak-ng-data || true
         # GStreamer runtime (needed by libqtmedia_gstreamer.so)
         cp /usr/lib/aarch64-linux-gnu/libgstreamer-1.0.so.*        dist/lib/ || true
         cp /usr/lib/aarch64-linux-gnu/libgstbase-1.0.so.*          dist/lib/ || true
@@ -75,21 +77,20 @@ set -euo pipefail
 
         # Launcher script
         cat > dist/run.sh << 'EOF'
-        #!/bin/sh
-        DIR="$(cd "$(dirname "$0")" && pwd)"
-
-        export LD_LIBRARY_PATH="$DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-        export QT_PLUGIN_PATH=/home/pi/Downloads/dist/plugins
-        export QT_QPA_PLATFORM_PLUGIN_PATH=/home/pi/Downloads/dist//plugins/platforms
-        export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
-        export QT_TEXTTOSPEECH_PLUGINS="$DIR/plugins/texttospeech"
-        export PIPEWIRE_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-        export GST_PLUGIN_PATH="$DIR/gstreamer-1.0"
-        export GST_REGISTRY="$DIR/gstreamer-1.0/registry.bin"
-        export QT_DEBUG_PLUGINS=1
-
-        exec "$DIR/basic256" "$@"
-        EOF
+#!/bin/sh
+DIR="$(cd "$(dirname "$0")" && pwd)"
+export LD_LIBRARY_PATH="$DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export QT_PLUGIN_PATH="$DIR/plugins"
+export QT_QPA_PLATFORM_PLUGIN_PATH="$DIR/plugins/platforms"
+export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
+export QT_TEXTTOSPEECH_PLUGINS="$DIR/plugins/texttospeech"
+export ESPEAK_DATA_PATH="$DIR/lib/espeak-ng-data"
+export PIPEWIRE_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export GST_PLUGIN_PATH="$DIR/gstreamer-1.0"
+export GST_REGISTRY="$DIR/gstreamer-1.0/registry.bin"
+#! export QT_DEBUG_PLUGINS=1
+exec "$DIR/basic256" "$@"
+EOF
         chmod +x dist/run.sh
 
         tar -czf ${{ matrix.artifact_name }}.tar.gz dist

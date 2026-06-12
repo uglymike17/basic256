@@ -9,9 +9,18 @@ ARTIFACT_NAME="${ARTIFACT_NAME:-Basic256-MacOS.zip}"
 # 1. Fix the Qt dependencies inside the .app bundle so it runs on other Macs
 macdeployqt "${APP_BUNDLE}" -always-overwrite
 
-# 2. Bundle the translation (.qm) files into the standard macOS location
-mkdir -p "${APP_BUNDLE}/Contents/Resources/Translations"
-cp Translations/*.qm "${APP_BUNDLE}/Contents/Resources/Translations/"
+# # 2. Bundle the translation (.qm) files into the standard macOS location
+# mkdir -p "${APP_BUNDLE}/Contents/Resources/Translations"
+# cp Translations/*.qm "${APP_BUNDLE}/Contents/Resources/Translations/"
+
+# Compiled translations
+mkdir -p dist/Translations
+if ls build/*.qm 1>/dev/null 2>&1; then
+  cp build/*.qm dist/Translations/
+elif ls Translations/*.qm 1>/dev/null 2>&1; then
+  cp Translations/*.qm dist/Translations/
+fi
+
 
 # 3. Create a clean distribution folder to hold the app and extra documents
 rm -rf "${DIST_DIR}"
