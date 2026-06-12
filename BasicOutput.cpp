@@ -213,7 +213,7 @@ void BasicOutput::insertFromMimeData(const QMimeData* source)
 {
 	if (source->hasText()) {
 		QString s = source->text();
-		QStringList l = s.split(QRegExp("[\r\n]"),QString::SkipEmptyParts);
+		QStringList l = s.split(QRegExp("[\r\n]"), Qt::SkipEmptyParts);
 		textCursor().insertText(l.at(0));
 		setFocus();
 	}

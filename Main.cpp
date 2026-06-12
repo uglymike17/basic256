@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
 #endif
     qapp.installTranslator(&kbTranslator);
 
-    MainWindow mainwin(0, 0, localecode, guimode);
+    MainWindow mainwin(nullptr, Qt::WindowFlags(), localecode, guimode);
     mainwin.setObjectName( "mainwin" );
     mainwin.statusBar()->showMessage(QObject::tr("Ready."));
     mainwin.show();

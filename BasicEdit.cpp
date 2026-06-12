@@ -91,11 +91,10 @@ BasicEdit::~BasicEdit() {
 }
 
 void BasicEdit::setFont(QFont f) {
-	// set the font and the tab stop at EDITOR_TAB_WIDTH spaces
 	QPlainTextEdit::setFont(f);
 	QFontMetrics metrics(f);
-	setTabStopWidth(metrics.width(" ")*EDITOR_TAB_WIDTH);
-    updateLineNumberAreaWidth(blockCount());
+	setTabStopDistance(metrics.horizontalAdvance(QLatin1Char(' ')) * EDITOR_TAB_WIDTH);
+	updateLineNumberAreaWidth(blockCount());
 }
 
 
@@ -508,7 +507,7 @@ int BasicEdit::lineNumberAreaWidth() {
         max /= 10;
         ++digits;
     }
-    int space = 10 + fontMetrics().width(QLatin1Char('9')) * digits;
+    int space = 10 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * digits;
     return space;
 }
 

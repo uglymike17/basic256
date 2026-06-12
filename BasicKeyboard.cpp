@@ -87,7 +87,7 @@ void BasicKeyboard::reset(){
     // releasing keys outside and to be detectes=d as pressed
     lastKey = 0;
     lastText = QString();
-    lastModifiers = 0;
+    lastModifiers = Qt::NoModifier;
     pressedKeysMap.clear();
 }
 

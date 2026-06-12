@@ -24,6 +24,7 @@
 #include <QFile>
 #include <QDir>
 #include <QTime>
+#include <QElapsedTimer>
 #include <cmath>
 #include "BasicGraph.h"
 #include "Constants.h"
@@ -294,7 +295,7 @@ class Interpreter : public QThread
 		QDir directory;		// used by DIR function
 		QStringList directoryEntries;
 		int directoryIndex;
-		QTime runtimer;				// used by MSEC function
+		QElapsedTimer runtimer; 				// used by MSEC function
 		//SoundSystem *sound;
 		int includeFileNumber;
 		bool regexMinimal;			// flag to tell QRegExp to be greedy (false) or minimal (true)

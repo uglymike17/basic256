@@ -1059,7 +1059,7 @@ Interpreter::run() {
 	mediaplayer_id_legacy = 0;
 	//link sound system to error mechanism
 	sound->error = &error;
-	srand(time(NULL)+QTime::currentTime().msec()*911L); rand(); rand(); 	// initialize the random number generator for this thread
+	srand(time(NULL)+QElapsedTimer::currentTime().msec()*911L); rand(); rand(); 	// initialize the random number generator for this thread
 	runtimer.start(); // used by MSEC function
 	runLoop();			// run the opcodes
 	debugMode = 0;
@@ -1196,7 +1196,7 @@ bool Interpreter::sprite_collide(int n1, int n2, bool deep) {
 	//check collision comparing only alpha channel
 	const uchar* scanbits = scan->bits();
 	bool flag=false;
-#if QT_VERSION >= 0x051000
+#if QT_VERSION >= QT_VERSION_CHECK(5, 10, 0)
 	const int max = scan->sizeInBytes();
 #else
 	const int max = scan->byteCount();
@@ -3914,7 +3914,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						error->q(ERROR_PERMISSION);
 					}else if(doit==SETTINGSALLOWYES) {
 						sys = new QProcess();
-						sys->start(temp);
+						sys->startCommand(temp);
 						if (sys->waitForStarted(-1)) {
 							if (!sys->waitForFinished(-1)) {
 								//QByteArray result = sy.readAll();
@@ -4560,18 +4560,18 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						graphwin->image->fill(c);
 						if (!fastgraphics) waitForGraphics();
 					}else if(printing){
-						if(printdocument->pageRect()==printdocument->paperRect()){
+						if(printdocument->pageLayout().paintRectPixels(printdocument->resolution())==printdocument->pageLayout().fullRectPixels(printdocument->resolution())){
 							//printer is in full page mode already
-							painter->fillRect(printdocument->paperRect(),c);
+							painter->fillRect(printdocument->pageLayout().fullRectPixels(printdocument->resolution()),c);
 						}else{
 							//a good solution is to end painter and begin after setFullPage(true)
 							//this will reset origins for painter to top-left of the page
 							//but swiching back setFullPage(false) and starting again painter (begin) to page
 							//clear the page entirely.
-							QRect r = printdocument->pageRect();
+							QRect r = printdocument->pageLayout().fullRectPixels(printdocument->resolution());
 							printdocument->setFullPage(true);
 							painter->translate(-r.left(),-r.top());
-							painter->fillRect(printdocument->paperRect(),c);
+							painter->fillRect(printdocument->pageLayout().fullRectPixels(printdocument->resolution()),c);
 							printdocument->setFullPage(false);
 							painter->translate(r.topLeft());
 						}
@@ -4984,7 +4984,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 							painter_font_need_update=false;
 						}
 						h = QFontMetrics(painter->font()).height();
-#if QT_VERSION >= 0x051100
+#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
 						w = (int) (QFontMetrics(painter->font()).horizontalAdvance(txt));
 #else
 						w = (int) (QFontMetrics(painter->font()).width(txt));
@@ -6143,7 +6143,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						painter->setFont(font);
 						painter_font_need_update=false;
 					}
-#if QT_VERSION >= 0x051100
+#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
 					width = (int) (QFontMetrics(painter->font()).horizontalAdvance(txt));
 #else
 					width = (int) (QFontMetrics(painter->font()).width(txt));
@@ -6419,8 +6419,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 							if(printdocument->isValid()){
 								printdocument->setCreator(QString(SETTINGSAPP));
 								printdocument->setDocName(editwin->title);
-								printdocument->setPaperSize((QPrinter::PaperSize) settingsPrinterPaper);
-								printdocument->setOrientation((QPrinter::Orientation) settingsPrinterOrient);
+								printdocument->setPageSize(QPageSize(static_cast<QPageSize::PageSizeId>(settingsPrinterPaper)));
+								printdocument->setPageOrientation(static_cast<QPageLayout::Orientation>(settingsPrinterOrient));
 								if (!setPainterTo(printdocument)) {
 									error->q(ERROR_PRINTEROPEN);
 									setGraph(drawto); //if drawing on printer fails, then fall back to graph area
@@ -6787,7 +6787,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 					QStringList list;
 					if(opcode==OP_EXPLODE) {
-						list = qhaystack.split(qneedle, QString::KeepEmptyParts , casesens);
+						//list = qhaystack.split(qneedle, QString::KeepEmptyParts , casesens);
+						list = qhaystack.split(qneedle, Qt::KeepEmptyParts , casesens);
 					} else {
 						QRegExp expr = QRegExp(qneedle);
 						expr.setMinimal(regexMinimal);
@@ -6797,7 +6798,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 							list = expr.capturedTexts();
 						} else {
 							// if it is a simple regex without captures then split
-							list = qhaystack.split(expr, QString::KeepEmptyParts);
+							list = qhaystack.split(expr, Qt::KeepEmptyParts);
 						}
 					}
 					
