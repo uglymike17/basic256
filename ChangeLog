@@ -1,3 +1,18 @@
+2026-06-13 M. Vilain <uglymike17@gmail.com>
+    * Move Sourceforge to Github using build 2.0.99.10.2
+	* replace qmake (*.pro) with CMake (build.yml, CMakeLists.txt)
+	* Replace MinGW with MSYS2 for Windows builds.
+	* Replace deprecated Qt operators
+	* move some Posix structures to Qt structures
+	* provide basic.app for MacOS Silicon (ARM64) using brew with compiler AppleClang 17.0.0.17000013
+	* provide stand-alone tarball for Linux-x86 Using compiler GNU 11.4.0. No Deb yet
+	* provide stand-alone tarball for Linux-ARM (RPi Trixie). Using compiler GNU 13.3.0. No Deb yet
+	* provide standalone zip file for Windows. No .nsi yet
+
+
+2011-2026 No changelog entries although a lot of changes happened over the years.
+
+
 2011-08-08 j.m.reneau <renejm@users.sourceforge.net> 0.9.6.68
 	* added TEXTWIDTH statement to return width of a string i the current font before output to the graphics area
 
@@ -18,7 +33,7 @@
 2011-03-18 j.m.reneau <renejm@users.sourceforge.net> 0.9.6.64
 	* Added option to View menu to hide Edit Widget (program source)
 
-2011-03-17 Javier González
+2011-03-17 Javier Gonzï¿½lez
 	* new Spanish UI translation
 
 2011-03-05 j.m.reneau <renejm@users.sourceforge.net> 0.9.6.63
@@ -502,4 +517,4 @@
 	(main): Pause/Resume button enabled
 
 2006-09-30 ian larsen <drblast@users.sourceforge.net> 0.1
-	* În sourceforge.net uploaded the first version
+	* ï¿½n sourceforge.net uploaded the first version
