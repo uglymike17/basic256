@@ -1325,6 +1325,7 @@ mod							{ count(); return B256MOD; }
 		int pathlen = snprintf(str, sizeof(str), "%s/%s", include_exec_path, filename);
 		if (pathlen >= 0 && (size_t) pathlen < sizeof(str)) {
 			yyin = fopen( str, "r" );
+		}	
 		//fprintf(stderr, "real include %s\n", str);
 	}
 	if ( ! yyin ) {
