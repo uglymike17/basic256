@@ -5685,9 +5685,9 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 				case OP_MD5: {
 					QString stuff = stack->popQString();
-					stack->pushQString(MD5(stuff.toUtf8().data()).hexdigest());
+					char *digest = MD5(stuff.toUtf8().data()).hexdigest();
+					stack->pushQString(digest);
 					free(digest);
-
 				}
 				break;
 
