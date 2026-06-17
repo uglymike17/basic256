@@ -32,6 +32,19 @@ cp -r Examples "${DIST_DIR}/"
 cp -r TestSuite "${DIST_DIR}/"
 cp README.md "${DIST_DIR}/"
 
+#    Code-sign the bundle so macOS Gatekeeper doesn't report it as "damaged".
+#    Set CODESIGN_IDENTITY to a "Developer ID Application: Name (TEAMID)"
+#    identity in CI once a real Apple Developer certificate is configured;
+#    until then this falls back to an ad-hoc signature, which silences the
+#    generic "damaged" message but is NOT sufficient for notarization.
+echo "==> Code-signing app bundle..."
+if [ -n "${CODESIGN_IDENTITY:-}" ]; then
+    codesign --force --deep --options runtime \
+        --sign "${CODESIGN_IDENTITY}" "${DIST_DIR}/${APP_NAME}.app"
+else
+    codesign --force --deep --sign - "${DIST_DIR}/${APP_NAME}.app"
+fi
+
 echo "==> Creating zip artifact..."
 rm -f "${ARTIFACT_NAME}"
 ditto -c -k --sequesterRsrc --keepParent "${DIST_DIR}" "${ARTIFACT_NAME}"

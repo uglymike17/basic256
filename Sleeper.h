@@ -24,6 +24,7 @@
 #else
 #include <time.h>
 #endif
+#include <atomic>   // new
 
 class Sleeper
 {
@@ -35,7 +36,7 @@ public:
 	void wake();
 	
 private:
-	bool wakesleeper;
+	std::atomic<bool> wakesleeper;
 
 };
 

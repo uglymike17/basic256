@@ -632,7 +632,9 @@ int Interpreter::compileProgram(char *code) {
 		emit(outputError(tr("COMPILE ERROR") + QStringLiteral(": ") + tr("Out of memory") + QStringLiteral(".\n")));
 		return -1;
 	}
-	include_exec_path = QCoreApplication::applicationDirPath().toUtf8().data();
+	// include_exec_path = QCoreApplication::applicationDirPath().toUtf8().data();
+	static QByteArray execPathUtf8 = QCoreApplication::applicationDirPath().toUtf8();
+	include_exec_path = execPathUtf8.data();
 		int result = basicParse(code);
 	//
 	// display warnings from compile and free the lexing file name string
@@ -2024,9 +2026,9 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 							emit(seekLine(currentLine));
 							if ((debugMode==1) || (debugMode==2 && debugBreakPoints->contains(currentLine-1))) {
 								// show step and runto options
+								mydebugmutex->lock();
 								emit(debugNextStep());
 								// wait for button if we are stepping or if we are at a break point
-								mydebugmutex->lock();
 								waitDebugCond->wait(mydebugmutex);
 								mydebugmutex->unlock();
 							} else {
@@ -5684,6 +5686,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_MD5: {
 					QString stuff = stack->popQString();
 					stack->pushQString(MD5(stuff.toUtf8().data()).hexdigest());
+					free(digest);
+
 				}
 				break;
 
