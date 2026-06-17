@@ -6,24 +6,24 @@ The original code and current downloadable version resides on SourceForge (https
 Unfortunately, development of Basic256 has stopped apparently after a failed attempt to port it to Qt6.
 Some have tried to get involved with development (RiOn and comick) and a comick has even moved sourceforge to github ( GitHub - comick/basic256)
 
-This new  GitHub repository is my attempt to restart Basic256 and takes the 2.0.99.10.2 the branch with the aim of trying to modernize the codebase.
+This new  GitHub repository (Github - uglymike17/basic256) is my attempt to restart Basic256 and takes the 2.0.99.10.2 the branch with the aim of trying to modernize the codebase.
 
 The aim for this branch is
  - make it compile on Windows, Linux-Intel and Linux-ARM (RPi) and MacOS Silicon.
    ==> All architecture build ok but need more testing.
  - port from qmake to CMake and from minGW to MSVC
-   ==> Seems to have gone ok
+   ==> Seems to have gone ok, although some issues cropped up. (eg: A DIM statement should now always add 'fill 0' to prevent issues)
  - make clean-ups & modernisations where possible. 
-   ==> synchronious ESpeak has been replaced by asynchronious Qt texttoSpeech at least on Windows.
+   ==> fix some leaks
    ==> removed depreciated Qt operands.
 
  Current status as of 13/06/2026
  ********************************
- There is a single build.yml file that builds and packages all architectures via scripts. At the moment I only produce Tar balls and zip files, no deb or nsi
- 1. Windows 64 bit seems to be working. (more testing required)
+ There is a single build.yml file that builds and packages all architectures via scripts. At the moment I only produce Tar balls and zip files, no deb or nsi yet
+ 1. Windows seems to be working. (more testing required)
  2. Linux x86 seems to be working. (more testing required)
  3. Raspberry Pi is problematic on Trixie. Github runner Ubuntu-24.4-ARM has Qt5.15.15 while Trixie has Qt5.15.13. These do not mix and as Trixie does not include several required Qt5 libraries, I have to bundle all the Qt5.15.15 libs. Even with this, speech does not work out-of-the-box since Trixie does not come with speech-dispatcher so this MUST be installed. So RPi build works but the tar ball is very big due to all the bundled libraries.
- 4. MacOS Silicon (M1,M2,M3) resulted in an Homebrew basic256 app, but having no access to a Mac, I have no idea if this works....
+ 4. MacOS Silicon (M1,M2,M3) resulted in an Homebrew basic256 app, but having no developer license, I added an ad-hoc signing. This should prevent the message: "basic256.app" is damaged and can't be opened. This should show the messge "unidentified developer" instead which one can click through. There is however a possibility to add your own Developer ID in the script.
  
 Future actions
 **************************
@@ -33,6 +33,8 @@ Help with these would be very much appreciated
 
 Once there (dreaming), then I (we?) can start at trying the move to Qt6 for the next major release.
 Ideally there should be an uncoupling of interpreter code, GUI code, CLI code (?) etc in order to be able to compile it into WebAssembly. (one can dream...)
+
+Also, example files should be updated, the wiki-based help at doc.basic256.org should be updated and a renewed website would be required.
 
 Remark
 **********************
