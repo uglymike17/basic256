@@ -1,7 +1,7 @@
-name: Build BASIC-256_2.0.99.10.2 CMake
+name: Build BASIC-256_2.1.Alpha CMake
 on:
   push:
-    branches: [ build2.0.99.10.2 ]
+    branches: [ main ]
   pull_request:
   release:
     types: [created]
