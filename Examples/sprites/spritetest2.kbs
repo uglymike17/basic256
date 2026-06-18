@@ -21,4 +21,5 @@ while true
       spritemove t, 5 - rand * 10, 5 - rand * 10
    next t
    refresh
+   pause 0.001
 end while

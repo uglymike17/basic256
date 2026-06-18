@@ -1,4 +1,4 @@
-dim nums(301)
+dim nums(301) fill 0
 
 for i = 1 to 1000000
 x = int(rand * 300)
@@ -8,6 +8,6 @@ next i
 fastgraphics
 clg
 for x = 0 to 300
-plot x, 60 + nums[x] / 100
+plot x, 60 + nums[x] / 50
 next x
 refresh

@@ -64,5 +64,6 @@ while true
       if spritex(i) + spritew(i) / 2 >= 300 or spritex(i)  - spritew(i) / 2 <= 0 then dx[i] = dx[i] * -1
       if spritey(i) + spriteh(i) / 2 >= 300 or spritey(i)  - spriteh(i) / 2 <= 0 then dy[i] = dy[i] * -1
       spritemove i, dx[i], dy[i]
-   next i
+   next i      
+   pause 0.01
 end while

@@ -10,7 +10,7 @@ zuZeichnen=zuWurzeln
 zweiteZahl=1
 delta=0.000001
 
-print "sqrt("; : print zuWurzeln; : print ") =" ;
+print "sqrt("; : print zuWurzeln; : print ") = " ;
 MainLoop:
   clg
   rect 0, 0, zuZeichnen, zweiteZahl

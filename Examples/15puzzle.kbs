@@ -1,69 +1,82 @@
-# 15puzzle.kbs - slide the tiles to get them back in order
-# 2010-01-14 j.m.reneau
+# 15puzzle_new.kbs - slide the tiles to get them back in order
+# this is a conversion from the old gosub to the new function/subroutines
+# 2016-11-02 j.m.reneau
+# 2020-04-27 j.m.reneau rrays pass by value not ref unless specified in 2.0
+
 fastgraphics
+
+global zx, zy, bw, xw, yw
 
 nx = 4 # number of boxes in a row
 ny = 4 # number of boxes in a column
-bw = 5 # border width
-xw = (graphwidth - ((nx+1)*bw)) / nx # calculate size of a box
-yw = (graphheight - ((ny+1)*bw)) / ny
+dim board(nx, ny)
 zx = 0 # position of the empty tile
 zy = 0
 
-dim board(nx, ny)
-
-font "Tahoma", 120/nx, 100
+bw = 5 # border width
+xw = (graphwidth - ((nx+1)*bw)) / nx # calculate size of a box
+yw = (graphheight - ((ny+1)*bw)) / ny
 
 print "slide puzzle"
 print "click on tile to slide.  try to get all tiles in order."
 
-print "shufflle..."
-gosub initialboard
-gosub shuffle
-gosub drawboard
+call initialboard(ref(board))
+call drawboard(board[])
+call shuffle(ref(board))
+call drawboard(board[])
 
 clickclear
 moves = 0
 
 print "click tile to move"
 do
-   gosub getclick
-   gosub makemove
-   gosub drawboard
-   gosub isdone
-until done
+   # wait for click
+   while clickb = 0
+      pause .01
+   end while
+   cx = int(clickx/(xw+bw))
+   if cx >= nx then cx = nx-1
+   cy = int(clicky/(yw+bw))
+   if cy >= ny then cy = ny-1
+   clickclear
+   # if a real click then make move
+   if (zx = cx) or (zy = cy) then
+      call makemove(ref(board), cx, cy)
+      moves = moves + 1
+      call drawboard(board[])
+   end if
+until isdone(board[])
 
 print "Game Over - You solved it in "+ moves +"."
 
 end
 
-shuffle: #
-for t = 1 to nx * ny * 10
-   cx = zx
-   cy = zy
-   r = int(rand*4)
-   if r = 0 and cx > 0 then cx = cx - 1
-   if r = 1 and cx < nx-1 then cx = cx + 1
-   if r = 2 and cy > 0 then cy = cy - 1
-   if r = 3 and cy < ny-1 then cy = cy + 1
-   if cx<>zx or cy<> zy then
-      board[zx, zy] = board[cx, cy]
-      board[cx, cy] = 0
-      zx = cx
-      zy = cy
-   end if
-   gosub drawboard
-   pause .01
-next t
-return
+subroutine shuffle(b[])
+   #for t = 1 to nx * ny * 10
+   for t = 1 to b[,?] * b[?,] * 10
+      x = zx
+      y = zy
+      r = int(rand*4)
+      if r = 0 and x > 0 then x--
+      if r = 1 and x < b[?,]-1 then x++
+      if r = 2 and y > 0 then y--
+      if r = 3 and y < b[,?]-1 then y++
+      if x<>zx or y<> zy then
+         b[zx, zy] = b[x, y]
+         b[x, y] = 0
+         zx = x
+         zy = y
+      end if
+      call drawboard(b[])
+      pause .01
+   next t
+end subroutine
 
-makemove: #
-# shift cells
-if (zx = cx) or (zy = cy) then
-   moves = moves + 1
-   if zx<>cx then
+subroutine makemove(b[],x,y)
+   # shift cells
+   if zx<>x then
       # row shift
-      if cx>zx then
+      if x>zx then
          dx = 1
          dy = 0
       else
@@ -72,7 +85,7 @@ if (zx = cx) or (zy = cy) then
       end if
    else
       # column shift
-      if cy>zy then
+      if y>zy then
          dx = 0
          dy = 1
       else
@@ -81,71 +94,59 @@ if (zx = cx) or (zy = cy) then
       end if
    end if
    # do shift
-   while zx <> cx or zy <> cy
-      board[zx, zy] = board[zx+dx, zy+dy]
-      board[zx+dx, zy+dy] = 0
-      zx = zx + dx
-      zy = zy + dy
+   while zx <> x or zy <> y
+      b[zx, zy] = b[zx+dx, zy+dy]
+      b[zx+dx, zy+dy] = 0
+      zx += dx
+      zy += dy
    end while
-endif
-return
+end subroutine
 
-getclick: #
-# return cx and cy for where the user clicked the board
-while clickb = 0
-   pause .01
-end while
-cx = int(clickx/(xw+bw))
-if cx >= nx then cx = nx-1
-cy = int(clicky/(yw+bw))
-if cy >= ny then cy = ny-1
-clickclear
-return
-
-initialboard: #
-# setup the initial board array
-for x= 0 to nx-1
-   for y = 0 to ny-1
-      board[x, y] = (y*nx+x+1)
-   next y
-next x
-zx = nx-1
-zy = ny-1
-board[zx, zy] = 0
-return
-
-isdone: #
-# return the variable done if we have solved the puzzle
-done = true
-for x= 0 to nx-1
-   for y = 0 to ny-1
-      if board[x, y] <>  (y*nx+x+1)  and (x <> zx or y <> zy) then
-         done = false
-         return
-      end if
-   next y
-next x
-return
-
-drawboard: #
-clg
-color black
-rect 0, 0, graphwidth, graphheight
-for y = 0 to ny-1
-   for x = 0 to nx-1
-      b =  board[x, y]
-      color white
-      rect (x+1)*bw+x*xw, (y+1)*bw+y*yw ,xw, yw
-      
-      if b <> 0 then
-         if zx = x or zy = y then
-            color blue
-         else
-            color darkblue
-         endif
-         text (x+1)*bw+x*xw, (y+1)*bw+y*yw, b
-      end if
+subroutine initialboard(b[])
+   # setup the initial board array
+   for x= 0 to b[?,]-1
+      for y = 0 to b[,?]-1
+         b[x, y] = (y*b[?,]+x+1)
+      next y
    next x
-next y
-refresh
-return
+   zx = b[?,]-1
+   zy = b[,?]-1
+   b[zx, zy] = 0
+end subroutine
+
+subroutine drawboard(b[])
+   font "Tahoma", 24, 100
+   clg
+   color black
+   rect 0, 0, graphwidth, graphheight
+   for y = 0 to b[,?]-1
+      for x = 0 to b[?,]-1
+         cell =  b[x, y]
+         color white
+         rect (x+1)*bw+x*xw, (y+1)*bw+y*yw ,xw, yw
+         
+         if cell<> 0 then
+            if zx = x or zy = y then
+               color blue
+            else
+               color darkblue
+            endif
+            text (x+1)*bw+x*xw, (y+1)*bw+y*yw, cell
+         end if
+      next x
+   next y
+   refresh
+end subroutine
+
+function isdone(b[])
+   # return 1 if we have solved the puzzle
+   for x= 0 to b[?,]-1
+      for y = 0 to b[,?]-1
+         if b[x, y] <>  (y*b[?,]+x+1)  and (x <> zx or y <> zy) then
+            isdone = false
+            return
+         end if
+      next y
+   next x
+   isdone = true
+end function

@@ -21,4 +21,5 @@ for t = 1 to 100
    spritemove 1, 0, 1
    spritemove 2, 1, 1
    refresh
+   pause 0.002
 next t

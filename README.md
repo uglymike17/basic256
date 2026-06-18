@@ -28,13 +28,14 @@ The aim for this branch is
 Future actions
 **************************
 Next, I would like to get the word out so anybody could give their feedback on it. 
-I would like to look at making a Windows installer by updating the .nsi file which was last updated in 2020. A debian file would also be nice but is of lower priority (Linux Distro's provide their own Basic256 package, so this would only become required after major improvements to the code). 
-Help with these would be very much appreciated
+I updated the Windows installer .nsi file which was last updated in 2020. I have not yhet added it to the windws scripts. 
+A debian file would also be nice but is of lower priority (Linux Distro's provide their own Basic256 package, so this would only become required after major improvements to the code). 
+Help with the debian packaging would be very much appreciated
 
 Once there (dreaming), then I (we?) can start at trying the move to Qt6 for the next major release.
 Ideally there should be an uncoupling of interpreter code, GUI code, CLI code (?) etc in order to be able to compile it into WebAssembly. (one can dream...)
 
-Also, example files should be updated, the wiki-based help at doc.basic256.org should be updated and a renewed website would be required.
+Also, example files should be updated to reflect more modern machines, the wiki-based help at doc.basic256.org should be updated and a renewed website would be required.
 
 Remark
 **********************

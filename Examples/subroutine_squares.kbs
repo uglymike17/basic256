@@ -2,14 +2,14 @@
 # 2012-10-04 j.m.reneau
 
 clg
-for n= 1 to 10
+for n= 1 to 100
    call randomsquare()
 
 next n
 end
 
 subroutine randomsquare()
-   color rgb(rnd(256),rnd(256),rnd(256))
+   color rgb(rnd(256),rnd(256),rnd(256),rnd(156)+100)
    hw = rnd(100)
    rect rnd(300-hw),rnd(300-hw),hw,hw
 end subroutine

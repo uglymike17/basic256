@@ -1,4 +1,4 @@
-# dice.kbs - graphical dice 2009-10-31 j.m.reneau
+# dice.kbs - graphical dice 2012-10-06 j.m.reneau
 # doll dice and make a rolling noise while we do it.
 
 clg
@@ -9,85 +9,87 @@ color black
 rect 1,1,graphwidth,graphheight
 
 # Sound file from http://soundbible.com/183-Shake-Dice.html
-wavplay "shakedice.mp3"
+soundplay "shakedice.mp3"
 
 for t = 1 to 10
-    gosub roll
-    pause rand * .4
+   total = 0
+   for die = 1 to 2
+      r = roll()
+      total = total + r
+      call showroll(die,r)
+   next die
+   pause rand * .4
 next t
 print "You Rolled " + total
 pause 1	# let the sound finish
 end
 
-roll:
-color white
-for die = 1 to 2
-	# set x and y to the top corner of the die
-	gosub setdie
-	rect x,y,100,100
-next die
-total = 0
-for die = 1 to 2
-	# set x and y to the top corner of the die
-	gosub setdie
-	roll = int(rand * 6) + 1
-	total = total + roll
-	if roll = 1 then gosub drawone
-	if roll = 2 then gosub drawtwo
-	if roll = 3 then gosub drawthree
-	if roll = 4 then gosub drawfour
-	if roll = 5 then gosub drawfive
-	if roll = 6 then gosub drawsix
-next die
-refresh
-return
+function roll()
+roll = int(rand * 6) + 1
+end function
 
-setdie:
-x = 40
-y = 40
-if die = 2 then x = 160
-if die = 2 then y = 160
-if die = 3 then x = 40
-if die = 2 then y = 160
-if die = 2 then x = 160
-if die = 4 then y = 40
-return
+function getx(location)
+   if location = 2 then getx = 160: return
+   if location = 3 then getx = 40: return
+   if location = 4 then getx = 160: return
+   getx = 40
+endfunction
 
+function gety(location)
+   if location = 2 then gety = 160: return
+   if location = 3 then gety = 160: return
+   if location = 4 then gety = 40: return
+   gety = 40
+endfunction
 
-drawone:
-color red
-rect x + 40, y + 40, 20, 20
-return
+subroutine showroll(location, roll)
+   color white
+   # set x and y to the top corner of the die
+   x = getx(location)
+   y = gety(location)
+   rect x,y,100,100
+   if roll = 1 then call drawone(x,y)
+   if roll = 2 then call drawtwo(x,y)
+   if roll = 3 then call drawthree(x,y)
+   if roll = 4 then call drawfour(x,y)
+   if roll = 5 then call drawfive(x,y)
+   if roll = 6 then call drawsix(x,y)
+end subroutine
 
-drawtwo:
-color black
-rect x + 10, y + 10, 20, 20
-rect x + 70, y + 70, 20, 20
-return
+subroutine drawone(x,y)
+   color red
+   rect x + 40, y + 40, 20, 20
+end subroutine
 
-drawthree:
-gosub drawtwo
-gosub drawone
-return
+subroutine drawtwo(x,y)
+   color black
+   rect x + 10, y + 10, 20, 20
+   rect x + 70, y + 70, 20, 20
+end subroutine
 
-drawfour:
-gosub drawtwo
-color black
-rect x + 10, y + 70, 20, 20
-rect x + 70, y + 10, 20, 20
-return
+subroutine drawthree(x,y)
+   call drawtwo(x,y)
+   call drawone(x,y)
+end subroutine
 
-drawfive:
-gosub drawfour
-gosub drawone
-return
+subroutine drawfour(x,y)
+   call drawtwo(x,y)
+   color black
+   rect x + 10, y + 70, 20, 20
+   rect x + 70, y + 10, 20, 20
+end subroutine
 
-drawsix:
-gosub drawfour
-color black
-rect x + 10, y + 40, 20, 20
-rect x + 70, y + 40, 20, 20
-return
+subroutine drawfive(x,y)
+   call drawfour(x,y)
+   call drawone(x,y)
+end subroutine
+
+subroutine drawsix(x,y)
+   call drawfour(x,y)
+   color black
+   rect x + 10, y + 40, 20, 20
+   rect x + 70, y + 40, 20, 20
+end subroutine
 
 
 

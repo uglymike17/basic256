@@ -15,13 +15,14 @@ clg
 color red
 gosub randomdraw
 refresh
+pause 1
 slice = getslice(100,100,100,100)
 
 # draw a screen of yellow and black to
 # draw slice onto
 color yellow
 rect 0,0,300,300
-color black
+color red
 gosub randomdraw
 refresh
 

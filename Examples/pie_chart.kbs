@@ -1,8 +1,8 @@
 # pie_chart.kbs
 # 2012-12-29 j.m.reneau - example of pie statement added on 0.9.9.25
 # 2016-09-08 j.m.reneau - added bounding circle example 1.99.99.65
-#
-# 
+# first pie chart:  pie x, y, width, height, startAngle, angle
+# second pie chart: pie centerX, centerY, radius, startAngle, angle
 
 dim data(5)
 data = {1,3,5,7,10}

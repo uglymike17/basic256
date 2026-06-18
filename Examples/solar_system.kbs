@@ -92,6 +92,7 @@ while keyboard <>32
 	#
 	# Draw everything
 	refresh
+	pause 0.005
 	#
 end while
 print

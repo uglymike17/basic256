@@ -13,7 +13,7 @@ spritedim 2
 spriteload 0, "ball.png"
 spriteplace 0,10,10
 spriteshow 0
-spriteload 1, "paddle"
+spriteload 1, "paddle.png"
 spriteplace 1,150,270
 spriteshow 1
 
@@ -26,6 +26,7 @@ while spritey(0) < 295
       dx = (dx + (spritex(1)-spritex(0)) * .05) * -1
       dy = dy * -1.05
    end if
+   pause 0.001
 end while
 
 print "you missed."

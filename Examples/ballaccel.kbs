@@ -1,5 +1,7 @@
 print "Using Newton's laws to make the ball bounce realistically"
 
+# updated 2012-10-06 j.m.reneau using loops and subroutines for 0.9.9.x
+
 rem set up initial ball position and speed
 x = 20
 y = 100
@@ -8,9 +10,8 @@ yvel = -1.0
 xvel = 1.10
 yacc = .0098
 fastgraphics
-
  
-loop1:
+do
   clg
   rem change the downward velocity according to the acceleration
   yvel = yvel + yacc
@@ -25,17 +26,17 @@ loop1:
   if x < 10 then xvel = -xvel : x = 10
   
   rem draw the ball
+  call drawBall(x,y,r)
+until xvel * xvel < 0.0001
+end
+ 
+subroutine drawBall(x,y,r)
   color darkblue
   rect 0,0,300,300
-  gosub drawBall
-  if xvel * xvel < 0.0001 then end
-  goto loop1
- 
-drawBall:
   color darkgray
   circle x, y, r
   color gray
   circle x, y, r - 2
   refresh
-  return
+end subroutine
 

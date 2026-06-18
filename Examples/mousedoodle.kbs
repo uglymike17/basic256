@@ -29,7 +29,7 @@ circle mousex, mousey, 2
 return
 
 clearline:
-color clear
-circle mousex, mousey, 2
+color white
+circle mousex, mousey, 5
 return
 

@@ -25,4 +25,5 @@ line x,y,x,ey
 line ex,ey,ex,y
 line ex,ey,x,ey
 refresh
+pause 0.01
 goto ring

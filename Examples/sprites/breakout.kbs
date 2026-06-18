@@ -41,17 +41,17 @@ while spritey(ball) < 295 and blocksleft > 0
    spriteplace paddle, mousex, spritey(paddle)
    if spritex(ball) < 5 or spritex(ball) > 295 then
       dx = dx * -1
-      wavplay "click.mp3"
+      soundplay "click.mp3"
    end if
    if spritey(ball) < 5 then
       dy = dy * -1
-      wavplay "toggle.mp3"
+      soundplay "toggle.mp3"
    end if
    if spritecollide(ball, paddle) then
       # bounce back and speed up the falling a bit
       dy = (dy + speedup) * -1
       dx = dx + ((spritex(ball)-spritex(paddle))/(spritew(paddle/2)))
-      wavplay "beep.mp3"
+      soundplay "beep.mp3"
    end if
    spritemove ball, dx, dy
    
@@ -64,11 +64,11 @@ while spritey(ball) < 295 and blocksleft > 0
             spritehide(block)
             dx = dx * -1
             dy = dy * -1
-            wavplay "beep.mp3"
+            soundplay "beep.mp3"
          end if
       end if
    next block
-   
+   pause 0.01
 end while
 
 print "game over."

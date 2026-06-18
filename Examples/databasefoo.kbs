@@ -4,7 +4,7 @@
 dbopen "dbtest.sqlite3"
 
 # delete old foo table - trap error if new database
-onerror errortrap
+onerror errortrap()
 dbexecute "drop table foo;"
 offerror
 
