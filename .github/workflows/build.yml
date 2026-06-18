@@ -118,6 +118,15 @@ jobs:
         ./.github/scripts/package_windows.ps1
 
     # ---------------------------
+    # Build Windows Installer (NSIS)
+    # ---------------------------
+    - name: Build Windows Installer
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run:
+        ./.github/scripts/build_installer_Windows.ps1   
+
+    # ---------------------------
     # Packaging MacOS
     # ---------------------------
     - name: Package MacOS Build
@@ -140,6 +149,7 @@ jobs:
         path: |
           ${{ github.workspace }}/*.tar.gz
           ${{ github.workspace }}/*.zip
+          ${{ github.workspace }}/*.exe
 
   release:
     name: Publish Release
@@ -157,5 +167,6 @@ jobs:
         files: |
           **/*.tar.gz
           **/*.zip
+          **/*.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
