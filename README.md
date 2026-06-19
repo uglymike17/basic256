@@ -19,11 +19,12 @@ The aim for this branch is
 
  Current status as of 13/06/2026
  ********************************
- There is a single build.yml file that builds and packages all architectures via scripts. At the moment I only produce Tar balls and zip files, no deb or nsi yet
- 1. Windows seems to be working. (more testing required)
+ There is a single build.yml file that builds and packages all architectures via scripts. At the moment I produce an install .exe for Windows (nsi based) and a standalone Windows .zip file, a tarball for Linux-x86 and one for Linux-ARM and a zip file for MacOS, no deb yet
+ 1. Windows .zip file seems to be working. (more testing required)
+ 2. Windows .exe file seems to be working. (more testing required)
  2. Linux x86 seems to be working. (more testing required)
- 3. Raspberry Pi is problematic on Trixie. Github runner Ubuntu-24.4-ARM has Qt5.15.15 while Trixie has Qt5.15.13. These do not mix and as Trixie does not include several required Qt5 libraries, I have to bundle all the Qt5.15.15 libs. Even with this, speech does not work out-of-the-box since Trixie does not come with speech-dispatcher so this MUST be installed. So RPi build works but the tar ball is very big due to all the bundled libraries.
- 4. MacOS Silicon (M1,M2,M3) resulted in an Homebrew basic256 app, but having no developer license, I added an ad-hoc signing. This should prevent the message: "basic256.app" is damaged and can't be opened. This should show the messge "unidentified developer" instead which one can click through. There is however a possibility to add your own Developer ID in the script.
+ 3. Raspberry Pi is problematic on Trixie. Github runner Ubuntu-24.4-ARM has a different Qt5 than Trixie. These do not mix and as Trixie does not include several required Qt5 libraries, I have to bundle all the runner's Qt5 libs. Even with this, speech does not work out-of-the-box since Trixie does not come with speech-dispatcher so this MUST be installed. So RPi build works but the tar ball is very big due to all the bundled libraries.
+ 4. MacOS Silicon (M1,M2,M3) resulted in an Homebrew basic256 app, but having no developer license, I added an ad-hoc signing. This should prevent the message: "basic256.app" is damaged and can't be opened. This should show the messge "unidentified developer" instead which one can hopefully click through. Most recent MacOS' do not allow this, I'm told. There is however a possibility to add your own Developer ID in the script.
  
 Future actions
 **************************

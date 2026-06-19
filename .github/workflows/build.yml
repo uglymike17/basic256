@@ -141,15 +141,34 @@ jobs:
     # ---------------------------
     # Upload Artifacts Step
     # ---------------------------
-    - name: Upload artifacts
+    # Linux / macOS — single artifact, unchanged
+    - name: Upload artifacts (non-Windows)
+      if: runner.os != 'Windows'
       uses: actions/upload-artifact@v5
       with:
         name: ${{ matrix.artifact_name }}
-        if-no-files-found: ignore  # Tells the runner to not crash if one of the extensions is missing
+        if-no-files-found: ignore
         path: |
           ${{ github.workspace }}/*.tar.gz
           ${{ github.workspace }}/*.zip
-          ${{ github.workspace }}/*.exe
+
+    # Windows portable — the dist/ zip only
+    - name: Upload Windows portable
+      if: runner.os == 'Windows'
+      uses: actions/upload-artifact@v5
+      with:
+        name: ${{ matrix.artifact_name }}
+        if-no-files-found: ignore
+        path: ${{ github.workspace }}/*.zip
+
+    # Windows installer — the .exe as its own artifact
+    - name: Upload Windows installer
+      if: runner.os == 'Windows'
+      uses: actions/upload-artifact@v5
+      with:
+        name: ${{ matrix.artifact_name }}-Installer
+        if-no-files-found: ignore
+        path: ${{ github.workspace }}/*.exe
 
   release:
     name: Publish Release
