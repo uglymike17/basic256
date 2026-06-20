@@ -287,7 +287,8 @@ RunController::startRun() {
 
 		i->debugMode = 0;
 		outputClear();
-		QDir::setCurrent(currentEditor->path);
+		if (!currentEditor->path.isEmpty())
+    		QDir::setCurrent(currentEditor->path);
 		// Start Compile
 		int result = i->compileProgram((currentEditor->toPlainText() + "\n").toUtf8().data());
 		if (result < 0) {

@@ -3373,8 +3373,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_INTDIV: {
-					long oneval = stack->popLong();
-					long twoval = stack->popLong();
+					qint64 oneval = stack->popLong();
+					qint64 twoval = stack->popLong();
 					if (oneval==0) {
 						error->q(ERROR_DIVZERO);
 						stack->pushLong(0);
@@ -3385,11 +3385,11 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_MOD: {
-					long oneval = stack->popLong();
-					long twoval = stack->popLong();
+					qint64 oneval = stack->popLong();
+					qint64 twoval = stack->popLong();
 					if (oneval==0) {
 						error->q(ERROR_DIVZERO);
-						stack->pushInt(0);
+						stack->pushLong(0);
 					} else {
 						stack->pushLong(twoval % oneval);
 					}
