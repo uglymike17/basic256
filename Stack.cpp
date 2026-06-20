@@ -95,7 +95,7 @@ void Stack::pushInt(int i) {
 
 void Stack::pushBool(bool i) {
 	if (stackpointer >= stacksize)  stackGrow();
-	stackdata[stackpointer++] = new DataElement(i?1L:0L);
+	stackdata[stackpointer++] = new DataElement(i?1LL:0LL);
 }
 
 void Stack::pushUnassigned() {
