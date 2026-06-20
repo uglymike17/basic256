@@ -30,7 +30,7 @@ DataElement::DataElement(int i) {
     intval = i;
 }
 
-DataElement::DataElement(long l) {
+DataElement::DataElement(qint64 l) {
 	init();
 	type = T_INT;
 	intval = l;

@@ -988,7 +988,7 @@ array_indexing:
 
 variable:
 	B256VARIABLE {
-		varnumber[nvarnumber++] = $1;
+		varnumber[nvarnumber++] = (unsigned int)$1;
 	}
 	| '(' variable ')'
 	;

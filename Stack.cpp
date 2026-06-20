@@ -67,7 +67,7 @@ void Stack::pushDE(DataElement *source) {
 
 void Stack::pushLong(qint64 i) {
 	if (stackpointer >= stacksize)  stackGrow();
-	stackdata[stackpointer++] = new DataElement(i);
+	stackdata[stackpointer++] = new DataElement((qint64)i);
 }
 
 void Stack::pushRef(int i, int level) {

@@ -41,7 +41,7 @@ class Variables: public QObject
 		DataElement *getData(int);
 
 		void setData(int, DataElement *);
-		void setData(int, long);
+		void setData(int, qint64);
 		void setData(int, double);
 		void setData(int, QString);
 		void setData(int, std::string);

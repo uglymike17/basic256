@@ -161,7 +161,7 @@ void Variables::setData(int varnum, DataElement* d) {
 	v->data->copy(d);
 }
 
-void Variables::setData(int varnum, long l) {
+void Variables::setData(int varnum, qint64 l) {
 	Variable *v = get(varnum);
 	v->data->clear();
 	v->data->type = T_INT;

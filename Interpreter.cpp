@@ -6865,7 +6865,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 										dat = new DataElement(list[i*2+3].mid(1).toDouble());
 										break;
 									case SERALIZE_INT:
-										dat = new DataElement(list[i*2+3].mid(1).toLong());
+										dat = new DataElement(list[i*2+3].mid(1).toLongLong());
 										break;
 									case SERALIZE_UNASSIGNED:
 										dat = new DataElement();
@@ -6898,7 +6898,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 												dat = new DataElement(list[i].mid(1).toDouble());
 												break;
 											case SERALIZE_INT:
-												dat = new DataElement(list[i].mid(1).toLong());
+												dat = new DataElement(list[i].mid(1).toLongLong());
 												break;
 											case SERALIZE_UNASSIGNED:
 												dat = new DataElement();
