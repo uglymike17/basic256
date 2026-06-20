@@ -65,7 +65,7 @@ void Stack::pushDE(DataElement *source) {
 	stackpointer++;
 }
 
-void Stack::pushLong(long i) {
+void Stack::pushLong(qint64 i) {
 	if (stackpointer >= stacksize)  stackGrow();
 	stackdata[stackpointer++] = new DataElement(i);
 }
@@ -90,7 +90,7 @@ void Stack::pushQString(QString string) {
 
 void Stack::pushInt(int i) {
 	if (stackpointer >= stacksize)  stackGrow();
-	stackdata[stackpointer++] = new DataElement((long)i);
+	stackdata[stackpointer++] = new DataElement((qint64)i);
 }
 
 void Stack::pushBool(bool i) {
@@ -160,12 +160,12 @@ int Stack::popInt() {
 	return i;
 }
 
-long Stack::popLong() {
+qint64 Stack::popLong() {
 	if (stackpointer==0) {
 		e = ERROR_STACKUNDERFLOW;
 		return 0;
 	}
-	long l = convert->getLong(stackdata[--stackpointer]);
+	qint64 l = convert->getLong(stackdata[--stackpointer]);
 	delete stackdata[stackpointer];
 	return l;
 }

@@ -80,17 +80,17 @@ int Convert::getInt(DataElement *d) {
 	return (int) l;
 }
 
-long Convert::getLong(DataElement *d) {
-	long i=0;
+qint64 Convert::getLong(DataElement *d) {
+	qint64 i=0;
 	if (d) {
 		if (d->type == T_INT) {
 			i = d->intval;
 		} else if (d->type == T_FLOAT) {
 			double f = d->floatval + (d->floatval>0.0?EPSILON:-EPSILON);
-			if (f<LONG_MIN||f>LONG_MAX) {
+			if (f<LLONG_MIN||f>LLONG_MAX) {
 				e = ERROR_LONGRANGE;
 			} else {
-				i = (long) f;
+				i = (qint64) f;
 			}
 		} else if (d->type == T_STRING) {
 			if (d->stringval.length()!=0) {
@@ -271,7 +271,7 @@ int Convert::compare(DataElement *one, DataElement* two) {
 	if (one&&two) {
 		if (one->type == T_INT && two->type == T_INT) {
 			// if both are integers comapre as integers
-			long ans = one->intval - two->intval;
+			qint64 ans = one->intval - two->intval;
 			if (ans==0) return 0;
 			else if (ans<0) return -1;
 			else return 1;

@@ -34,7 +34,7 @@ class Stack
 		void pushBool(bool);
 		void pushQString(QString);
 		void pushInt(int);
-		void pushLong(long);
+		void pushLong(qint64);
 		void pushRef(int, int);
 		void pushDouble(double);
 		void pushUnassigned();
@@ -49,7 +49,7 @@ class Stack
 		int popInt();
 		int popBool();
 		QColor popQColor();
-		long popLong();
+		qint64 popLong();
 		double popDouble();
 		double popMusicalNote();
 		QString popQString();

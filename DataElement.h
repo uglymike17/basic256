@@ -44,7 +44,7 @@ class DataElement
 		int type;	// type from BasicTypes.h
 		QString stringval;
 		double floatval;
-		long intval;
+		qint64 intval;
 		int level;
 		DataElementArray *arr;
 		DataElementMap *map;
@@ -55,7 +55,7 @@ class DataElement
 		
 		DataElement(QString);
 		DataElement(double);
-		DataElement(long);
+		DataElement(qint64);
 		DataElement(int);
 		DataElement(DataElement *);
 		

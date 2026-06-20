@@ -359,6 +359,7 @@ QString Interpreter::opname(int op) {
 	case OP_PROMPT : return QString("OP_PROMPT");
 	case OP_PUSHFLOAT : return QString("OP_PUSHFLOAT");
 	case OP_PUSHINT : return QString("OP_PUSHINT");
+	case OP_PUSHLONG: return QString("OP_PUSHLONG");
 	case OP_PUSHLABEL : return QString("OP_PUSHLABEL");
 	case OP_PUSHSTRING : return QString("OP_PUSHSTRING");
 	case OP_PUTSLICE : return QString("OP_PUTSLICE");
@@ -1412,6 +1413,8 @@ Interpreter::execByteCode() {
     if (optype(*op) == OPTYPE_FLOAT)
         qDebug() << (float) *(op+1);
 
+
+
     if (optype(*op) == OPTYPE_STRING)
         qDebug() << QString::fromUtf8((char *)(op+1));
 
@@ -1429,6 +1432,9 @@ Interpreter::execByteCode() {
         qDebug() << ((v  >= 0 && v  < numsyms) ? symtable[v]  : "__unknown__")
                  << ((v2 >= 0 && v2 < numsyms) ? symtable[v2] : "__none__");
     }
+	if (optype(*op) == OPTYPE_LONG) {
+    	qDebug() << *(qint64*)(op+1);
+	}	
     qDebug() << "---"; // replaces the bare fprintf(stderr, "\n") line separator
 }
 #endif
@@ -2070,6 +2076,17 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 			}
+		}
+		break;
+
+		case OPTYPE_LONG: {
+    		qint64 *ll = (qint64 *) op;
+    		op += bytesToFullWords(sizeof(qint64));     // advance by 2 words
+    		switch(opcode) {
+        		case OP_PUSHLONG:
+            		stack->pushLong(*ll);
+            		break;
+    		}
 		}
 		break;
 
@@ -3194,7 +3211,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						// else if both are numbers then convert and add as floats
 						// otherwise concatenate (string & number or strings)
 						if (DataElement::getType(one)==T_INT && DataElement::getType(two)==T_INT) {
-							long a = two->intval + one->intval;
+							qint64 a = two->intval + one->intval;
 							if((two->intval<=0||one->intval<=0||a>=0)&&(two->intval>=0||one->intval>=0||a<=0)) {
 								// integer add - without overflow
 								stack->pushLong(a);
@@ -3244,7 +3261,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						DataElement *one = stack->popDE();			// RELEASE
 						DataElement *two = stack->popDE();			// RELEASE
 						if (DataElement::getType(one)==T_INT &&DataElement::getType(two)==T_INT) {
-							long a = two->intval - one->intval;
+							qint64 a = two->intval - one->intval;
 							if((two->intval<=0||one->intval>0||a>=0)&&(two->intval>=0||one->intval<0||a<=0)) {
 								// integer subtract - without overflow
 								stack->pushLong(a);
@@ -3279,7 +3296,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 								delete two;
 								break;
 							} else {
-								if (labs(one->intval)<=LONG_MAX/labs(two->intval)) {
+								if (llabs(one->intval) <= INT64_MAX / llabs(two->intval)) {
 									long a = two->intval * one->intval;
 									// integer multiply - without overflow
 									stack->pushLong(a);
@@ -3314,7 +3331,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				{
 					DataElement *one = stack->popDE();			// RELEASE
 					if (DataElement::getType(one)==T_INT) {
-						stack->pushLong(labs(one->intval));
+						stack->pushLong(llabs(one->intval));
 					} else {
 						stack->pushDouble(fabs(convert->getFloat(one)));
 					}
@@ -6533,6 +6550,9 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 										emit(outputReady(QString("%1 %2 \"%3\"\n").arg(offset,8,16,QChar('0')).arg(opname(currentop),-20).arg((char*) o)));
 										int len = bytesToFullWords(strlen((char*) o) + 1);
 										o += len;
+									} else if (optype(currentop) == OPTYPE_LONG) {
+    									emit(outputReady(QString("%1 %2 %3\n").arg(offset,8,16,QChar('0')).arg(opname(currentop),-20).arg(*(qint64*)o)));
+    									o += bytesToFullWords(sizeof(qint64));          // o += 2
 									}
 									waitCond->wait(mymutex);
 									mymutex->unlock();
@@ -7495,7 +7515,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						switch (temp->forFrameType) {
 							case FORFRAMETYPE_INT:
 							{
-								const long val = convert->getLong(variables->getData(temp->forVarnum))+temp->intStep;
+								const qint64 val = convert->getLong(variables->getData(temp->forVarnum))+temp->intStep;
 								variables->setData(temp->forVarnum, val);
 								watchvariable(debugMode, temp->forVarnum);
 								if ((temp->intStep > 0 && val <= temp->intEnd) ||

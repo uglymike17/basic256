@@ -174,6 +174,16 @@
 		wordOffset += wlen;
 	}
 
+	void addLongLongOp(int op, long long data) {
+    	addOp(op);
+    	unsigned int wlen = bytesToFullWords(sizeof(long long));  // = 2
+    	checkWordMem(wlen);
+    	long long *temp = (long long *)(wordCode + wordOffset);
+    	*temp = data;
+    	wordOffset += wlen;
+	}
+
+
 	void addStringOp(int op, char *data) {
 		addOp(op);
 		unsigned int len = strlen(data) + 1;
@@ -856,7 +866,7 @@
 %token B256ZFILL
 
 %union anytype {
-	int number;
+	long long number;
 	double floatnum;
 	char *string;
 }
@@ -1666,7 +1676,13 @@ expr_errors:
    ### numeric expressions                 ###
    ########################################### */
 expr_numeric:
-	B256INTEGER { addIntOp(OP_PUSHINT, $1); }
+	B256INTEGER {
+    	if ($1 >= INT_MIN && $1 <= INT_MAX)
+        	addIntOp(OP_PUSHINT, (int)$1);     // stays 32-bit in bytecode
+    	else
+       		addLongLongOp(OP_PUSHLONG, $1);    // 64-bit in bytecode
+	}
+
 	| B256FLOAT   {
 		if(isfinite($1)){
 			addFloatOp(OP_PUSHFLOAT, $1);
@@ -1677,8 +1693,10 @@ expr_numeric:
 	}
 
 	| '+' B256INTEGER %prec B256UNARY {
-		 // accept/eat unary plus only for numbers
-		 addIntOp(OP_PUSHINT, $2);
+    	if ($2 >= INT_MIN && $2 <= INT_MAX)
+        	addIntOp(OP_PUSHINT, (int)$2);
+    	else
+        	addLongLongOp(OP_PUSHLONG, $2);
 	}
 
 	| '+' B256FLOAT %prec B256UNARY {
@@ -2006,7 +2024,13 @@ expr_numeric:
 		addOp(OP_FROMRADIX);
 	}
 	| B256BINCONST {
-		addIntOp(OP_PUSHINT,strtoul($1, NULL, 2));
+		errno = 0;
+		unsigned long long v = strtoull($1, NULL, 16);
+		if (errno == ERANGE) { errorcode = COMPERR_NUMBERTOOLARGE; return -1; }
+		if (v <= (unsigned long long)INT_MAX)
+    		addIntOp(OP_PUSHINT, (int)v);
+		else
+    		addLongLongOp(OP_PUSHLONG, (long long)v);
 		if(errno==ERANGE){
 			errorcode = COMPERR_NUMBERTOOLARGE;
 			return -1;
@@ -2016,7 +2040,13 @@ expr_numeric:
 		//addOp(OP_FROMRADIX);
 	}
 	| B256HEXCONST {
-		addIntOp(OP_PUSHINT,strtoul($1, NULL, 16));
+		errno = 0;
+		unsigned long long v = strtoull($1, NULL, 16);
+		if (errno == ERANGE) { errorcode = COMPERR_NUMBERTOOLARGE; return -1; }
+		if (v <= (unsigned long long)INT_MAX)
+    		addIntOp(OP_PUSHINT, (int)v);
+		else
+    		addLongLongOp(OP_PUSHLONG, (long long)v);
 		if(errno==ERANGE){
 			errorcode = COMPERR_NUMBERTOOLARGE;
 			return -1;
@@ -2026,7 +2056,13 @@ expr_numeric:
 		//addOp(OP_FROMRADIX);
 	}
 	| B256OCTCONST {
-		addIntOp(OP_PUSHINT,strtoul($1, NULL, 8));
+		errno = 0;
+		unsigned long long v = strtoull($1, NULL, 16);
+		if (errno == ERANGE) { errorcode = COMPERR_NUMBERTOOLARGE; return -1; }
+		if (v <= (unsigned long long)INT_MAX)
+    		addIntOp(OP_PUSHINT, (int)v);
+		else
+    		addLongLongOp(OP_PUSHLONG, (long long)v);
 		if(errno==ERANGE){
 			errorcode = COMPERR_NUMBERTOOLARGE;
 			return -1;

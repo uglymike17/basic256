@@ -109,7 +109,7 @@ void unputcolon();
 %x INCLUDE
 %x INCLUDE_FILE
 
-constinteger ([0-9]{1,9}|1[0-9]{9}|2(0[0-9]{8}|1([0-3][0-9]{7}|4([0-6][0-9]{6}|7([0-3][0-9]{5}|4([0-7][0-9]{4}|8([0-2][0-9]{3}|3([0-5][0-9]{2}|6([0-3][0-9]|4[0-7])))))))))
+constinteger [0-9]+
 constdecimal [0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?
 constbinary 0[bB][01]+
 consthex 0[xX][0-9a-fA-F]+
@@ -607,7 +607,13 @@ zfill [Zz][Ff][Ii][Ll][Ll]
 
 {constfalse}				{ count(); return B256BOOLFALSE; }
 {consttrue}					{ count(); return B256BOOLTRUE; }
-{constinteger}				{ count(); yylval.number = atoi(yytext); return B256INTEGER; }
+{constinteger}  {
+    count();
+    errno = 0;
+    yylval.number = strtoll(yytext, NULL, 10);
+    if (errno == ERANGE) return B256ERROR_INTEGERRANGE;
+    return B256INTEGER;
+}
 {constdecimal}				{ count(); yylval.floatnum = atof(yytext); return B256FLOAT; }
 {constbinary}				{
 								count();

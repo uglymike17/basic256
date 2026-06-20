@@ -142,9 +142,9 @@ struct forframe {
     double floatStart;
     double floatEnd;
     double floatStep;
-    long intStart;
-    long intEnd;
-    long intStep;
+    qint64 intStart;
+    qint64 intEnd;
+    qint64 intStep;
     DataElement* foreach_de;		// copy of data used for the foreach
     std::vector<DataElement*>::iterator arrayIter;
     std::vector<DataElement*>::iterator arrayIterEnd;

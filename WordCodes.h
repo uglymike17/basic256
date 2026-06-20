@@ -26,6 +26,8 @@
 #define OPTYPE_LABEL			0x04000000		// label number (int) - converted to address at runtime
 #define OPTYPE_VARIABLE			0x05000000		// variable number (int)
 #define OPTYPE_VAR_VAR			0x06000000		// two variable numbers (int*2)
+#define OPTYPE_LONG             0x07000000   // two trailing int words = one qint64
+#define OP_PUSHLONG             (OPTYPE_LONG + 0x000001)
 #define	OPTYPE_MASK				0xff000000		// and mask to strip optype out of opcode
 
 
