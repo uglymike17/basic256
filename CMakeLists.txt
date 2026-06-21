@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(basic256 VERSION 1.0 LANGUAGES C CXX)
+project(basic256 VERSION 2.1.0 LANGUAGES C CXX)
 
 # Force C++17 standard 
 set(CMAKE_CXX_STANDARD 17)
@@ -215,7 +215,7 @@ endif()
 # -------------------------------------------------------------------
 
 # Define the executable target 
-add_executable(basic256 
+add_executable(basic256 WIN32
     ${SOURCES} 
     ${HEADERS} 
     ${RESOURCES}

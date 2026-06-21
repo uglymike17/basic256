@@ -44,7 +44,9 @@ set -euo pipefail
         GSTPLUG="/usr/lib/x86_64-linux-gnu/gstreamer-1.0"
         for p in libgstautodetect libgstaudioconvert libgstaudioresample \
           libgstplayback libgstalsa libgstpulseaudio libgstpipewire \
-          libgstvolume libgstcoreelements; do
+          libgstvolume libgstcoreelements \
+          libgstwavparse libgstaudioparsers libgstmpegaudioparse \
+          libgstmpg123 libgstlibav libgstogg libgstvorbis libgstisomp4; do
           cp "$GSTPLUG/${p}.so" dist/gstreamer-1.0/ 2>/dev/null || true
         done
 

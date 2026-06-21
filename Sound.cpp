@@ -178,9 +178,19 @@ void Sound::wait()
     if(soundStateExpected != 1)
         return;
 
-    waitingForFinish = true;
+    // Block the caller (interpreter thread) until this sound finishes or is stopped.
+    // exitWaitingLoop() is emitted by handleAudioStateChanged / handleMediaStateChanged /
+    // stopsSoundsAndWaiting() when the sound truly ends, ensuring we always wake up.
+    // A 60-second safety timer prevents an infinite block if a signal is ever missed.
+    QEventLoop loop;
+    QTimer safety;
+    safety.setSingleShot(true);
+    safety.start(60000);
+    connect(&safety,  &QTimer::timeout,       &loop, &QEventLoop::quit);
+    connect(this,     &Sound::exitWaitingLoop, &loop, &QEventLoop::quit);
 
-    // SAFETY: never block interpreter thread again
+    while (!isStopping && soundStateExpected == 1)
+        loop.exec(QEventLoop::WaitForMoreEvents);
 }
 
 
@@ -453,6 +463,7 @@ void Sound::handleMediaStateChanged(QMediaPlayer::State newState){
 				isStopping=true;
 				media->disconnect(this);
 				emit soundFinished(id);
+				emit exitWaitingLoop(); // wake any pending soundwait
 				media->setMedia(QMediaContent());
 				emit(deleteMe(id));
 				this->disconnect();
@@ -484,6 +495,7 @@ void Sound::handleAudioStateChanged(QAudio::State newState){
 				isStopping=true;
 				audio->disconnect(this);
 				emit soundFinished(id);
+				emit exitWaitingLoop(); // wake any pending soundwait
 				emit(deleteMe(id));
 				this->disconnect();
 			}else{
@@ -507,6 +519,7 @@ void Sound::handleAudioStateChanged(QAudio::State newState){
 				audio->disconnect(this);
 				audio->stop();
 				emit soundFinished(id);
+				emit exitWaitingLoop(); // wake any pending soundwait
 				emit(deleteMe(id));
 				this->disconnect();
 			}else{
@@ -570,12 +583,14 @@ void Sound::stopsSoundsAndWaiting(){
 		}
 		audio->stop();
 		emit soundFinished(id);
+		emit exitWaitingLoop(); // wake any pending soundwait
 		emit(deleteMe(id));
 		this->disconnect();
 	}else if(media){
 		media->disconnect(this);
 		media->stop();
 		emit soundFinished(id);
+		emit exitWaitingLoop(); // wake any pending soundwait
 		media->setMedia(QMediaContent());
 		emit(deleteMe(id));
 		this->disconnect();
@@ -658,7 +673,7 @@ SoundSystem::SoundSystem() :
 
 	int i;
 	double bit;
-	//double pos;
+	double pos;
 
 	//Generate sin waveform
 	waveformsin = new int16_t[sound_samplerate];
@@ -668,59 +683,59 @@ SoundSystem::SoundSystem() :
 	}
 
 	//Generate square waveform
-	//waveformsquare = new int16_t[sound_samplerate];
-	//for(i = 0; i < sound_samplerate/2; i++) {
-	//   waveformsquare[i]=(int16_t) SOUND_HALFWAVE;
-	//}
-	//for(; i < sound_samplerate; i++) {
-	//    waveformsquare[i]=(int16_t) -SOUND_HALFWAVE;
-	//}
+	waveformsquare = new int16_t[sound_samplerate];
+	for(i = 0; i < sound_samplerate/2; i++) {
+	   waveformsquare[i]=(int16_t) SOUND_HALFWAVE;
+	}
+	for(; i < sound_samplerate; i++) {
+	    waveformsquare[i]=(int16_t) -SOUND_HALFWAVE;
+	}
 
 	//Generate triangle waveform
-	//waveformtriangle = new int16_t[sound_samplerate];
-	//bit = SOUND_HALFWAVE / ((double) sound_samplerate) * 4.0;
-	//pos=0.0;
-	//for(i = 0; i < sound_samplerate/4; i++) {
-	//    waveformtriangle[i]=(int16_t) pos;
-	//    pos+=bit;
-	//}
-	//for(; i < sound_samplerate/4*3; i++) {
-	//    waveformtriangle[i]=(int16_t) pos;
-	//    pos-=bit;
-	//}
-	//for(; i < sound_samplerate; i++) {
-	//    waveformtriangle[i]=(int16_t) pos;
-	//    pos+=bit;
-	//}
+	waveformtriangle = new int16_t[sound_samplerate];
+	bit = SOUND_HALFWAVE / ((double) sound_samplerate) * 4.0;
+	pos=0.0;
+	for(i = 0; i < sound_samplerate/4; i++) {
+	    waveformtriangle[i]=(int16_t) pos;
+	    pos+=bit;
+	}
+	for(; i < sound_samplerate/4*3; i++) {
+	    waveformtriangle[i]=(int16_t) pos;
+	    pos-=bit;
+	}
+	for(; i < sound_samplerate; i++) {
+	    waveformtriangle[i]=(int16_t) pos;
+	    pos+=bit;
+	}
 
 	//Generate saw waveform
-	//waveformsaw = new int16_t[sound_samplerate];
-	//bit = SOUND_HALFWAVE * 2.0 / ((double) sound_samplerate);
-	//pos=0.0;
-	//for(i = 0; i < sound_samplerate/2; i++) {
-	//    waveformsaw[i]=(int16_t) pos;
-	//    pos+=bit;
-	//}
-	//pos=-SOUND_HALFWAVE;
-	//for(; i < sound_samplerate; i++) {
-	//    waveformsaw[i]=(int16_t) pos;
-	//    pos+=bit;
-	//}
+	waveformsaw = new int16_t[sound_samplerate];
+	bit = SOUND_HALFWAVE * 2.0 / ((double) sound_samplerate);
+	pos=0.0;
+	for(i = 0; i < sound_samplerate/2; i++) {
+	    waveformsaw[i]=(int16_t) pos;
+	    pos+=bit;
+	}
+	pos=-SOUND_HALFWAVE;
+	for(; i < sound_samplerate; i++) {
+	    waveformsaw[i]=(int16_t) pos;
+	    pos+=bit;
+	}
 
 	//Generate pulse waveform
-	//waveformpulse = new int16_t[sound_samplerate];
-	//for(i = 0; i < sound_samplerate/10; i++) {
-	//    waveformpulse[i]=(int16_t) SOUND_HALFWAVE;
-	//}
-	//for(; i < sound_samplerate; i++) {
-	//    waveformpulse[i]=(int16_t) -SOUND_HALFWAVE;
-	//}
+	waveformpulse = new int16_t[sound_samplerate];
+	for(i = 0; i < sound_samplerate/10; i++) {
+	    waveformpulse[i]=(int16_t) SOUND_HALFWAVE;
+	}
+	for(; i < sound_samplerate; i++) {
+	    waveformpulse[i]=(int16_t) -SOUND_HALFWAVE;
+	}
 
 	//Allocate space for waveformcustom (created by user)
-	//waveformcustom = new int16_t[sound_samplerate];
+	waveformcustom = new int16_t[sound_samplerate];
 
 	//Allocate space for sound wave mixed with harmonics
-	//waveformmixedwithharmonics = new int16_t[sound_samplerate];
+	waveformmixedwithharmonics = new int16_t[sound_samplerate];
 
 	currentwaveform = waveformsin; //default waveform = sin
 	mustUpdateWaveformSample = false;
@@ -737,12 +752,12 @@ SoundSystem::~SoundSystem() {
 	}
 	loadedsounds.clear();
 	delete[] waveformsin;
-	//delete[] waveformsquare;
-	//delete[] waveformtriangle;
-	//delete[] waveformsaw;
-	//delete[] waveformpulse;
-	//delete[] waveformcustom;
-	//delete[] waveformmixedwithharmonics;
+	delete[] waveformsquare;
+	delete[] waveformtriangle;
+	delete[] waveformsaw;
+	delete[] waveformpulse;
+	delete[] waveformcustom;
+	delete[] waveformmixedwithharmonics;
 }
 
 void SoundSystem::deleteMe(int id){
