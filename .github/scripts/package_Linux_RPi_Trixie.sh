@@ -2,6 +2,7 @@
 set -euo pipefail
 
         cp README.md dist/ || true
+        cp Basic256.png dist/ || true
 
         # ICU libraries - required by Qt5Core at runtime for Unicode/locale support
         cp /usr/lib/aarch64-linux-gnu/libicuuc.so.*   dist/lib/
@@ -78,8 +79,8 @@ set -euo pipefail
         DIR="$(cd "$(dirname "$0")" && pwd)"
 
         export LD_LIBRARY_PATH="$DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-        export QT_PLUGIN_PATH=/home/pi/Downloads/dist/plugins
-        export QT_QPA_PLATFORM_PLUGIN_PATH=/home/pi/Downloads/dist//plugins/platforms
+        export QT_PLUGIN_PATH="$DIR/plugins"
+        export QT_QPA_PLATFORM_PLUGIN_PATH="$DIR/plugins/platforms"
         export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
         export QT_TEXTTOSPEECH_PLUGINS="$DIR/plugins/texttospeech"
         export PIPEWIRE_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"

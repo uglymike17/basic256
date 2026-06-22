@@ -4,8 +4,11 @@ New-Item -ItemType Directory -Force -Path "dist" | Out-Null
 Set-Content -Path "dist\basic256.bat" -Value "@echo off`r`nset QT_OPENGL=desktop`r`nstart basic256.exe"
 
 Copy-Item build\Release\basic256.exe dist\
+Copy-Item README.md                  dist\
+Copy-Item Basic256.png dist\
 
 Copy-Item -Path "Examples" -Destination "dist\Examples" -Recurse -Force
+Copy-Item -Path "TestSuite" -Destination "dist\TestSuite" -Recurse -Force
 
 & "$env:Qt5_Dir\bin\windeployqt.exe" `
   --dir dist `

@@ -13,6 +13,7 @@ set -euo pipefail
         cp -r Examples dist/
         cp -r TestSuite dist/ || true
         cp README.md dist/ || true
+        cp Basic256.png dist/ || true
 
         # Point PATH to the exact folder containing the jurplel-installed Qt binaries
         export QT_PLUGIN_DIR="${Qt5_DIR:-/usr/lib/x86_64-linux-gnu/qt5}/plugins"

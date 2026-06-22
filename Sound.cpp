@@ -203,7 +203,7 @@ void Sound::onStateChanged(QAudio::State state)
         state == QAudio::StoppedState))
     {
         waitingForFinish = false;
-
+		soundStateExpected = 0;
         emit exitWaitingLoop();   // optional legacy support
     }
 }

@@ -31,6 +31,7 @@ mv "${APP_BUNDLE}" "${DIST_DIR}/"
 cp -r Examples "${DIST_DIR}/"
 cp -r TestSuite "${DIST_DIR}/"
 cp README.md "${DIST_DIR}/"
+cp Basic256.png "${DIST_DIR}/"
 
 #    Code-sign the bundle so macOS Gatekeeper doesn't report it as "damaged".
 #    Set CODESIGN_IDENTITY to a "Developer ID Application: Name (TEAMID)"
