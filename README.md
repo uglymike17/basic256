@@ -16,6 +16,11 @@ It can also be called from the command-line/Terminal with the following options:
 |-t|--text|Run specified .kbs with only Text window | 
 |-l|--lang --languageset|Start BASIC-256 using the specified language.|
 
+One can even make shortcut on the desktop with a .bat file like:
+      @echo off
+      C:\PATH_TO_BASIC256\basic256.exe -g Mandelbrot-256.kbs
+to have a file run as if it was an application.
+
 The original code and current downloadable version resides on SourceForge (https://sourceforge.net/projects/kidbasic/) and is at version 2.0.0.11, which launched in 2020. It comes with an Example directory but most programs there need to be updated. There is also a Testsuite directory but this does not come with the Installer.
 
 Unfortunately, development of Basic256 has apparently been stopped  after a failed attempt to port it to Qt6.
@@ -47,13 +52,12 @@ First thing on the agenda is to get the word out so anybody could give their fee
 A debian file would also be nice but is of lower priority (Linux Distro's provide their own Basic256 package, so this would only become required after major improvements to the code). 
 Help with the debian packaging would be very much appreciated
 
-Once this main branch is stable enough, I (we?) can start at trying the move to Qt6 for the next major release.
-Another big whishlist item would be to switch to the qscintilla editor, but this is not urgent.
-Ideally there should later be an uncoupling of interpreter code, GUI code, CLI code (?) etc in order to be able to compile it into WebAssembly. (one can dream...)
+Once this main branch is stable enough, I (we?) can start adding small features/bugfixes. A big whishlist item would be to switch to the qscintilla editor, but this is not urgent.
+Ideally there should later be an uncoupling of interpreter code, GUI code, CLI code (?) etc in order to be able to compile it into WebAssembly. (one can dream...). Finally, a Qt6 migration is long overdue
 
 Also, example files should be updated to reflect more modern machines, the wiki-based help at doc.basic256.org should be updated and a renewed website would be required. Neither of these is under my control...
 
 Remark
 **********************
-I'm just a Basic256 fan (see https://uglymike.static.domains/) and have practically no knowledge of github, c++ or 'real' programming and project managment.
+I'm mainly a Basic256 fan (see https://uglymike.static.domains/) and have practically no knowledge of github, c++ or 'real' programming and project managment.
 I'm using free accounts on chatGPT, Claude, Google's Gemini and Perplexity to get where I am now.

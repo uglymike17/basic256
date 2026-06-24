@@ -1206,7 +1206,7 @@ BasicEdit* MainWindow::newEditor(QString title){
             QObject::connect(editor, SIGNAL(addFileToRecentList(QString)), this, SLOT(addFileToRecentList(QString)));
             QObject::connect(editor, SIGNAL(setCurrentEditorTab(BasicEdit*)), this, SLOT(setCurrentEditorTab(BasicEdit*)));
             QObject::connect(this, SIGNAL(saveAllStep(int)), editor, SLOT(saveAllStep(int)));
-            QObject::connect(fileSystemWatcher, SIGNAL(fileChanged(QString)), editor, SLOT(fileChangedOnDiskSlot(QString)) );
+            if(fileSystemWatcher) QObject::connect(fileSystemWatcher, SIGNAL(fileChanged(QString)), editor, SLOT(fileChangedOnDiskSlot(QString)) );
         }
     }
     return editor;
