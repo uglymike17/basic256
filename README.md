@@ -1,22 +1,36 @@
-BASIC-256 is a fun and easy to use version of BASIC designed to teach anybody how to program. It was/is aimed at teaching the beginnings of programming to youngsters. 
-It was originally called Kidbasic and started in 2007, but today in its current state, it is already quite capable for everyday hobby use.
+BASIC-256 is modern retro BASIC programming environment for learning coding and having fun. 
+It was originally called Kidbasic and was started in 2007, but today in its current state, it is already quite capable for everyday hobby use.
 A Qt5-based program, it has a 3-pane IDE with edit-, output- and graphics-windows. 
 ![Interface](Basic256.png)
 
-The original code and current downloadable version resides on SourceForge (https://sourceforge.net/projects/kidbasic/) and is at version 2.0.0.11, which launched in 2020. It has an example directory but all programs there need to be updated. There is also a Testsuite.
+It can also be called from the command-line/Terminal with the following options:
 
-Unfortunately, development of Basic256 has stopped apparently after a failed attempt to port it to Qt6.
+| Short | Long  | #2    |
+| :---: | :---: | :---: |
+|-? -h|--help|Display command-line help.|  
+||--help-all|Display command-line help including Qt-specific options.|  
+|-v|--version|Display the BASIC-256 version.|
+|-r|--run|Load and immediately run the specified .kbs program. Must precede the filename.|
+|-a|--app|Run specified .kbs without Edit window | 
+|-g|--graph|Run specified .kbs with only Graphics window | 
+|-t|--text|Run specified .kbs with only Text window | 
+|-l|--lang --languageset|Start BASIC-256 using the specified language.|
+
+The original code and current downloadable version resides on SourceForge (https://sourceforge.net/projects/kidbasic/) and is at version 2.0.0.11, which launched in 2020. It comes with an Example directory but most programs there need to be updated. There is also a Testsuite directory but this does not come with the Installer.
+
+Unfortunately, development of Basic256 has apparently been stopped  after a failed attempt to port it to Qt6.
 
 This new  GitHub repository (Github - uglymike17/basic256) is my attempt to restart Basic256 and takes the v2.0.99.10.2 the branch with the aim of trying to modernize the codebase into a v2.1.
 
-The initial aim for this branch is
- - make it compile on Windows, Linux-Intel and Linux-ARM (RPi) and MacOS Silicon.
-   ==> All architecture build ok but need more testing.
+The initial aim for this branch is to provide a modern toolchain and stabilisation
+ 
  - port from qmake to CMake and from minGW to MSVC
    ==> Seems to have gone ok, although some issues cropped up. (eg: A DIM statement should now always add 'fill 0' to prevent issues)
  - make clean-ups & modernisations where possible. 
    ==> fix some leaks
    ==> removed depreciated Qt operands.
+ - make it compile on Windows, Linux-x86 and Linux-ARM (RPi) and MacOS Silicon.
+   ==> All architecture build ok but need more testing.
 
  Current status as of 20/06/2026
  ********************************

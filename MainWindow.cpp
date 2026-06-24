@@ -369,6 +369,7 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     main_toolbar->addAction(pasteact);
 	//
 
+    //resize(800, 800);  // your preferred default
 	loadCustomizations();
     configureGuiState();
 
@@ -470,7 +471,14 @@ void MainWindow::loadCustomizations() {
 	SETTINGS;
     bool v, restoreWindows;
 
-    restoreWindows = settings.value(SETTINGSWINDOWSRESTORE, SETTINGSWINDOWSRESTOREDEFAULT).toBool();
+    //restoreWindows = settings.value(SETTINGSWINDOWSRESTORE, SETTINGSWINDOWSRESTOREDEFAULT).toBool();
+    QByteArray geo = settings.value(
+        SETTINGSMAINGEOMETRY + QString::number(guiState)).toByteArray();
+    if (!geo.isEmpty() && geo.size() > 4) {
+        restoreGeometry(geo);   // silently no-ops if data is wrong format
+    }
+
+
     if(restoreWindows){
         restoreGeometry(settings.value(SETTINGSMAINGEOMETRY + QString::number(guiState)).toByteArray());
         QByteArray state = settings.value(SETTINGSMAINSTATE + QString::number(guiState)).toByteArray();
@@ -605,64 +613,107 @@ void MainWindow::about() {
 
 
 void MainWindow::configureGuiState() {
-	//disable everything except what is needed to quit, stop and run a program.
-	if (guiState==GUISTATERUN||guiState==GUISTATEAPP) {
-		// common UI changes for both states
-		filemenu_new_act->setVisible(false);
-		filemenu_open_act->setVisible(false);
-		filemenu_save_act->setVisible(false);
+
+    // ── TIER 1: common to every non-normal mode ────────────────────────────
+    bool isRestricted = (guiState == GUISTATERUN  ||
+                         guiState == GUISTATEAPP  ||
+                         guiState == GUISTATEGRAPH||
+                         guiState == GUISTATETEXT);
+
+    if (isRestricted) {
+        filemenu_new_act->setVisible(false);
+        filemenu_open_act->setVisible(false);
+        filemenu_save_act->setVisible(false);
         filemenu_saveas_act->setVisible(false);
         filemenu_saveall_act->setVisible(false);
         filemenu_close_act->setVisible(false);
         filemenu_closeall_act->setVisible(false);
         filemenu_print_act->setVisible(false);
         editmenu->menuAction()->setVisible(false);
-		undoact->setVisible(false);
-		redoact->setVisible(false);
-		cutact->setVisible(false);
-		copyact->setVisible(false);
-		pasteact->setVisible(false);
-		debugact->setVisible(false);
-		stepact->setVisible(false);
-		bpact->setVisible(false);
-		edit_whitespace_act->setVisible(false);
-		edit_wrap_act->setVisible(false);
-		clearbreakpointsact->setVisible(false);
+        undoact->setVisible(false);
+        redoact->setVisible(false);
+        cutact->setVisible(false);
+        copyact->setVisible(false);
+        pasteact->setVisible(false);
+        debugact->setVisible(false);
+        stepact->setVisible(false);
+        bpact->setVisible(false);
+        edit_whitespace_act->setVisible(false);
+        clearbreakpointsact->setVisible(false);
         windowmenu->menuAction()->setVisible(false);
-
         findact->blockSignals(true);
-		findagain->blockSignals(true);
-		replaceact->blockSignals(true);
-		helpthis->blockSignals(true);
-		varwin_visible_act->setVisible(false);
-
-        for (int i=0; i<SETTINGSGROUPHISTN; i++) {
+        findagain->blockSignals(true);
+        replaceact->blockSignals(true);
+        helpthis->blockSignals(true);
+        varwin_visible_act->setVisible(false);
+        for (int i = 0; i < SETTINGSGROUPHISTN; i++) {
             recentfiles_act[i]->setEnabled(false);
             recentfiles_act[i]->setVisible(false);
         }
         filemenu_recentfiles->menuAction()->setVisible(false);
+    }
 
-        // application state additional changes
-		if (guiState==GUISTATEAPP) {
-            onlinehact->setVisible(false);
-            editwin_visible_act->setChecked(false);
-            editwin_visible_act->setVisible(false);
-            main_toolbar_visible_act->setVisible(false);
-            main_toolbar_visible_act->setChecked(false);
-			runact->setVisible(false);
-            stopact->setVisible(false);
-            runmenu->menuAction()->setVisible(false);
-		}
+    // ── TIER 2: extra cleanup for app/graph/text modes (no IDE at all) ─────
+    bool isKioskMode = (guiState == GUISTATEAPP  ||
+                        guiState == GUISTATEGRAPH ||
+                        guiState == GUISTATETEXT);
+
+    if (isKioskMode) {
+        onlinehact->setVisible(false);
+        editwin_visible_act->setChecked(false);
+        editwin_visible_act->setVisible(false);
+        main_toolbar_visible_act->setVisible(false);
+        main_toolbar_visible_act->setChecked(false);
+        runact->setVisible(false);
+        stopact->setVisible(false);
+        runmenu->menuAction()->setVisible(false);
+    }
+
+    // ── TIER 3: single-output-window modes ────────────────────────────────
+    if (guiState == GUISTATEGRAPH) {
+        // Hide the text-output and variable-watch docks
+        outwin_dock->hide();
+        outwin_visible_act->setVisible(false);
+        varwin_dock->hide();
+        // Also hide the view menu items that no longer apply
+        viewmenu->menuAction()->setVisible(false);
+
+        // Promote graphwin_widget from dock to central widget
+        // so it fills the entire main window.
+        removeDockWidget(graphwin_dock);        // detach dock from layout
+        graphwin_dock->setWidget(nullptr);      // release graphwin_widget from dock
+        QWidget *old = takeCentralWidget();     // unhook editwintabs
+        old->hide();
+        setCentralWidget(graphwin_widget);      // graphwin fills the window
+        graphwin_dock->hide();                  // the empty dock shell is no longer needed
+
+    } else if (guiState == GUISTATETEXT) {
+        // Hide the graphics and variable-watch docks
+        graphwin_dock->hide();
+        graphwin_visible_act->setVisible(false);
+        varwin_dock->hide();
+        viewmenu->menuAction()->setVisible(false);
+
+        // Promote outwin_widget from dock to central widget
+        removeDockWidget(outwin_dock);
+        outwin_dock->setWidget(nullptr);
+        QWidget *old = takeCentralWidget();
+        old->hide();
+        setCentralWidget(outwin_widget);
+        outwin_dock->hide();
     }
 }
 
 
 void MainWindow::ifGuiStateRun() {
-		// start run if app or run  state
-		// called from main if code is loaded
-		if (guiState==GUISTATEAPP || guiState==GUISTATERUN) {
-			runact->activate(QAction::Trigger);
-		}
+	// start run if app or run  state
+	// called from main if code is loaded
+    if (guiState == GUISTATEAPP  ||
+        guiState == GUISTATERUN  ||
+        guiState == GUISTATEGRAPH||
+        guiState == GUISTATETEXT) {
+        runact->activate(QAction::Trigger);
+    }
 }
 
 void MainWindow::ifGuiStateClose(bool ok) {

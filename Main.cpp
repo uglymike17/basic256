@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
     f.setPointSize(9);
     qapp.setFont(f);
     qRegisterMetaType<std::vector<std::vector<double>>>("std::vector<std::vector<double>>");
-    int guimode = 0;		// 0=normal, 1- r option, 2- app option
+    int guimode = 0;		// 0=normal, 1- r option, 2- app option, 3=-g graph-only, 4=-t text-only
     QString localecode;		// either lang or the system localle - stored on mainwin for help display
 
     QCoreApplication::setOrganizationName(SETTINGSORG);
@@ -114,11 +114,17 @@ int main(int argc, char *argv[]) {
     parser.addVersionOption();
     parser.addPositionalArgument("file", QObject::tr("BASIC file in format <name.kbs>"));
     // Run option
-    QCommandLineOption setRunOption(QStringList() << "r" << "run", QObject::tr("Run specified file"));
+    QCommandLineOption setRunOption(QStringList() << "r" << "run", QObject::tr("Run specified file in IDE"));
     parser.addOption(setRunOption);
     // Application option
-    QCommandLineOption setAppOption(QStringList() << "a" << "app" << "application", QObject::tr("Run specified file as an application"));
+    QCommandLineOption setAppOption(QStringList() << "a" << "app" << "application", QObject::tr("Run specified file as an application (No Edit window)"));
     parser.addOption(setAppOption);
+    // Graphics-only option 
+    QCommandLineOption setGraphOption(QStringList() << "g" << "graph", QObject::tr("Run specified file showing only the Graphics Output window."));
+    parser.addOption(setGraphOption);
+    // Text-only option   (NEW)
+    QCommandLineOption setTextOption(QStringList() << "t" << "text", QObject::tr("Run specified file showing only the Text Output window."));
+    parser.addOption(setTextOption);
     // Language option
     QCommandLineOption setLanguageOption(QStringList() << "l" << "lang" << "language", QObject::tr("Set language to <language>."), QObject::tr("language"));
     parser.addOption(setLanguageOption);
@@ -142,6 +148,12 @@ int main(int argc, char *argv[]) {
 
     if (parser.isSet(setAppOption) and !fileName.isEmpty()) {
         guimode=2;
+    }
+    if (parser.isSet(setGraphOption) && !fileName.isEmpty()) {
+        guimode = 3;
+    }
+    if (parser.isSet(setTextOption) && !fileName.isEmpty()) {
+        guimode = 4;
     }
 
     QTranslator qtTranslator;

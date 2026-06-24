@@ -43,8 +43,10 @@
 
 	// command line states that define how the GUI is laid-out and reacts
 	#define GUISTATENORMAL 0
-	#define GUISTATERUN 1
-	#define GUISTATEAPP 2
+	#define GUISTATERUN 1		// -r / --run : All three IDE windows shown
+	#define GUISTATEAPP 2		// -a / --app : Text and Graphics Output only
+	#define GUISTATEGRAPH   3   // -g / --graph : Graphics Output only
+	#define GUISTATETEXT    4   // -t / --text  : Text Output only
 
 	// states of a program
 	#define RUNSTATESTOP 0
