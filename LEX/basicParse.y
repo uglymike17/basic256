@@ -17,7 +17,14 @@
 
 %{
 //#define YYDEBUG 1
+#ifdef _MSC_VER
+/* Suppress C4244: bison generates YY_CAST(long, yystacksize) in its
+   stack-growth diagnostic code, where yystacksize is YYPTRDIFF_T =
+   ptrdiff_t (64-bit on MSVC x64) cast to long (32-bit on Windows).
+   This is a false positive warning. */
 
+#pragma warning(disable: 4244)
+#endif
 	#ifdef __cplusplus
 		extern "C" {
 	#endif

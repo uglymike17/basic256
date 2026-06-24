@@ -374,10 +374,14 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     configureGuiState();
 
     //Display windows and toolbars acording their final settings
-    editwintabs->setVisible(editwin_visible_act->isChecked());
-    graphwin_dock->setVisible(graphwin_visible_act->isChecked());
-    outwin_dock->setVisible(outwin_visible_act->isChecked());
-    varwin_dock->setVisible(varwin_visible_act->isChecked());
+    // Single-output modes have their layout owned entirely by configureGuiState();
+    // restoring dock visibility from saved settings would undo that work.
+    if (guiState != GUISTATEGRAPH && guiState != GUISTATETEXT) {
+        editwintabs->setVisible(editwin_visible_act->isChecked());
+        graphwin_dock->setVisible(graphwin_visible_act->isChecked());
+        outwin_dock->setVisible(outwin_visible_act->isChecked());
+        varwin_dock->setVisible(varwin_visible_act->isChecked());
+    }
     main_toolbar->setVisible(main_toolbar_visible_act->isChecked());
     graphwin_widget->slotShowToolBar(graphwin_toolbar_visible_act->isChecked());
     outwin_widget->slotShowToolBar(outwin_toolbar_visible_act->isChecked());
