@@ -3,7 +3,10 @@ $ErrorActionPreference = "Stop"
 # Install NSIS
 choco install nsis -y --no-progress
 if ($LASTEXITCODE -ne 0) { throw "choco install nsis failed (exit $LASTEXITCODE)" }
-
+# Download VC++ 2015-2022 Redistributable for bundling into the installer
+Write-Host "Downloading vc_redist.x64.exe..."
+Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" `
+                  -OutFile "vc_redist.x64.exe"
 # Compile the installer
 # Qt5_Dir is already in the environment, exported by build_Windows.ps1
 # makensis reads $%Qt5_Dir% from the environment at compile time
