@@ -64,6 +64,7 @@ int main(int argc, char *argv[]) {
         freopen_s(&fp, "CONIN$",  "r", stdin);
     }
 #endif
+}
 
 #if defined(WIN32) && !defined(WIN32PORTABLE)
 static void associateFileTypes(const QStringList &fileTypes)
