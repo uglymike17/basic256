@@ -287,6 +287,7 @@ endif()
 if(MSVC)
     target_compile_options(basic256 PRIVATE /W4 /permissive-)
     target_compile_definitions(basic256 PRIVATE strcasecmp=_stricmp)
+    target_compile_definitions(basic256 PRIVATE $<$<COMPILE_LANGUAGE:C>:_CRT_SECURE_NO_WARNINGS>)
 else()
     target_compile_options(basic256 PRIVATE
         -Wall

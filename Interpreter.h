@@ -314,8 +314,8 @@ class Interpreter : public QThread
 		bool setPainterTo(QPaintDevice *destination);
 		QPen drawingpen;
 		QBrush drawingbrush;
-		int CompositionModeClear;
-		int PenColorIsClear;
+		bool CompositionModeClear;
+		bool PenColorIsClear;
 		bool drawingOnScreen;
 
 		QFont font;

@@ -7122,8 +7122,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_IMAGERESIZE: {
-					int h, w, nr;
-					double s;
+					int h = 0, w = 0, nr;
+					double s = 0.0;
 					nr = stack->popInt();
 					if(nr==3){
 						h = stack->popInt();

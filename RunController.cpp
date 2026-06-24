@@ -212,7 +212,10 @@ RunController::executeSystem(QString text) {
 
 	QProcess sy;
 
-	sy.start(text);
+	QStringList parts = QProcess::splitCommand(text);
+	if (!parts.isEmpty()) {
+		sy.start(parts.takeFirst(), parts);
+	}
 	if (sy.waitForStarted()) {
 		if (!sy.waitForFinished()) {
 			//QByteArray result = sy.readAll();
@@ -634,44 +637,44 @@ void RunController::loadSoundFromArray(QString s, QByteArray* arr){
 	mymutex->unlock();
 }
 
-void RunController::soundStop(int i){
+void RunController::soundStop(int n){
 	mymutex->lock();
-	sound->stop(i);
+	sound->stop(n);
 	waitCond->wakeAll();
 	mymutex->unlock();
 }
 
-void RunController::soundPlayerOff(int i){
+void RunController::soundPlayerOff(int n){
 	mymutex->lock();
-	sound->playerOff(i);
+	sound->playerOff(n);
 	waitCond->wakeAll();
 	mymutex->unlock();
 }
 
-void RunController::soundPlay(int i){
+void RunController::soundPlay(int n){
 	mymutex->lock();
-	sound->play(i);
+	sound->play(n);
 	waitCond->wakeAll();
 	mymutex->unlock();
 }
 
-void RunController::soundFade(int i, double v, int ms, int delay){
+void RunController::soundFade(int n, double v, int ms, int delay){
 	mymutex->lock();
-	sound->fade(i, v, ms, delay);
+	sound->fade(n, v, ms, delay);
 	waitCond->wakeAll();
 	mymutex->unlock();
 }
 
-void RunController::soundVolume(int i, double v){
+void RunController::soundVolume(int n, double v){
 	mymutex->lock();
-	sound->volume(i, v);
+	sound->volume(n, v);
 	waitCond->wakeAll();
 	mymutex->unlock();
 }
 
-void RunController::soundSystem(int i){
+void RunController::soundSystem(int n){
 	mymutex->lock();
-	sound->system(i);
+	sound->system(n);
 	waitCond->wakeAll();
 	mymutex->unlock();
 }

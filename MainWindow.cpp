@@ -471,7 +471,7 @@ void MainWindow::loadCustomizations() {
 	SETTINGS;
     bool v, restoreWindows;
 
-    //restoreWindows = settings.value(SETTINGSWINDOWSRESTORE, SETTINGSWINDOWSRESTOREDEFAULT).toBool();
+    restoreWindows = settings.value(SETTINGSWINDOWSRESTORE, SETTINGSWINDOWSRESTOREDEFAULT).toBool();
     QByteArray geo = settings.value(
         SETTINGSMAINGEOMETRY + QString::number(guiState)).toByteArray();
     if (!geo.isEmpty() && geo.size() > 4) {
@@ -1265,7 +1265,7 @@ bool MainWindow::loadFile(QString s) {
                     if (doload) {
                         //replace empty document created by default (if exists)
                         bool replaceEmptyDoc = false;
-                        BasicEdit *neweditor;
+                        BasicEdit *neweditor = nullptr;
                         if(untitledNumber==2){
                             BasicEdit *e = (BasicEdit*)editwintabs->currentWidget();
                             if(e){
