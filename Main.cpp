@@ -48,8 +48,66 @@
 extern MainWindow * mainwin;
 extern BasicEdit * editwin;
 
-int main(int argc, char *argv[]) {
 
+#if defined(WIN32) && !defined(WIN32PORTABLE)
+static void associateFileTypes(const QStringList &fileTypes)
+{
+    QString displayName = QGuiApplication::applicationDisplayName();
+    QString filePath    = QCoreApplication::applicationFilePath();
+    QString fileName    = QFileInfo(filePath).fileName();
+
+    // Application entry: registers the exe itself and its supported types
+    QSettings s("HKEY_CURRENT_USER\\Software\\Classes\\Applications\\" + fileName,
+                QSettings::NativeFormat);
+    s.setValue("FriendlyAppName", displayName);
+
+    s.beginGroup("SupportedTypes");
+        foreach (const QString &fileType, fileTypes)
+            s.setValue(fileType, QString());
+    s.endGroup();                   // SupportedTypes
+
+    s.beginGroup("shell");
+        s.beginGroup("open");
+            s.setValue("FriendlyAppName", displayName);
+            s.beginGroup("Command");
+                s.setValue(".", QChar('"') + QDir::toNativeSeparators(filePath)
+                                           + QString("\" \"%1\""));
+            s.endGroup();           // Command
+        s.endGroup();               // open
+    s.endGroup();                   // shell
+
+    // Associate .kbs extension → BASIC-256 (per-user, no admin required)
+    QSettings ss("HKEY_CURRENT_USER\\Software\\Classes\\",
+                 QSettings::NativeFormat);
+
+    ss.beginGroup(".kbs");
+        ss.setValue(".", fileName + QString(".kbs"));
+    ss.endGroup();                  // .kbs
+
+    ss.beginGroup(fileName + QString(".kbs"));
+        ss.beginGroup("shell");
+
+            ss.beginGroup("open");
+                ss.beginGroup("Command");
+                    ss.setValue(".", QChar('"') + QDir::toNativeSeparators(filePath)
+                                               + QString("\" \"%1\""));
+                ss.endGroup();      // Command
+            ss.endGroup();          // open
+
+            ss.beginGroup("run");
+                ss.setValue(".", QString("&Run"));
+                ss.beginGroup("Command");
+                    ss.setValue(".", QChar('"') + QDir::toNativeSeparators(filePath)
+                                               + QString("\" -r \"%1\""));
+                ss.endGroup();      // Command
+            ss.endGroup();          // run
+
+        ss.endGroup();              // shell
+    ss.endGroup();                  // fileName+".kbs"
+}
+#endif
+
+int main(int argc, char *argv[]) {
 #ifdef Q_OS_WIN
     // With /SUBSYSTEM:WINDOWS there is no console window, but if the user
     // launched us from cmd.exe or a batch file we should still be able to
@@ -63,53 +121,8 @@ int main(int argc, char *argv[]) {
         freopen_s(&fp, "CONOUT$", "w", stderr);
         freopen_s(&fp, "CONIN$",  "r", stdin);
     }
-#endif
-}
+#endif  
 
-#if defined(WIN32) && !defined(WIN32PORTABLE)
-static void associateFileTypes(const QStringList &fileTypes)
-{
-    QString displayName = QGuiApplication::applicationDisplayName();
-    QString filePath = QCoreApplication::applicationFilePath();
-    QString fileName = QFileInfo(filePath).fileName();
-
-    //Application
-    QSettings s("HKEY_CURRENT_USER\\Software\\Classes\\Applications\\" + fileName, QSettings::NativeFormat);
-    s.setValue("FriendlyAppName", displayName);
-    s.beginGroup("SupportedTypes");
-    foreach (const QString& fileType, fileTypes)
-        s.setValue(fileType, QString());
-    s.endGroup();
-    s.beginGroup("shell");
-    s.beginGroup("open");
-    s.setValue("FriendlyAppName", displayName);
-    s.beginGroup("Command");
-    s.setValue(".", QChar('"') + QDir::toNativeSeparators(filePath) + QString("\" \"%1\""));
-
-
-    //Associate .kbs files to BASIC-256 (Windows)
-    QSettings ss("HKEY_CURRENT_USER\\Software\\Classes\\" , QSettings::NativeFormat);
-    ss.beginGroup(".kbs");
-    ss.setValue(".",fileName + QString(".kbs"));
-    ss.endGroup();
-    ss.beginGroup(fileName + QString(".kbs"));
-    ss.beginGroup("shell");
-    ss.beginGroup("open");
-    ss.beginGroup("Command");
-    ss.setValue(".", QChar('"') + QDir::toNativeSeparators(filePath) + QString("\" \"%1\""));
-    ss.endGroup();
-    ss.endGroup();
-    ss.beginGroup("run");
-    ss.setValue(".", QString("&Run"));
-    ss.beginGroup("Command");
-    ss.setValue(".", QChar('"') + QDir::toNativeSeparators(filePath) + QString("\" -r \"%1\""));
-}
-#endif
-
-
-
-
-int main(int argc, char *argv[]) {
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QApplication qapp(argc, argv);
     QFont f = qapp.font();
