@@ -22,7 +22,9 @@
 #if !defined(WIN32) || defined(__MINGW32__)
 #include <unistd.h>
 #endif
-
+#ifdef Q_OS_WIN
+#  include <windows.h>
+#endif
 
 #include <QApplication>
 #include <QCommandLineOption>
@@ -45,6 +47,23 @@
 
 extern MainWindow * mainwin;
 extern BasicEdit * editwin;
+
+int main(int argc, char *argv[]) {
+
+#ifdef Q_OS_WIN
+    // With /SUBSYSTEM:WINDOWS there is no console window, but if the user
+    // launched us from cmd.exe or a batch file we should still be able to
+    // write --help / --version / error output to that existing window.
+    // AttachConsole fails silently when there is no parent console
+    // (e.g. double-click from Explorer or a -g / -t shortcut) — exactly
+    // what we want.
+    if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+        FILE *fp;
+        freopen_s(&fp, "CONOUT$", "w", stdout);
+        freopen_s(&fp, "CONOUT$", "w", stderr);
+        freopen_s(&fp, "CONIN$",  "r", stdin);
+    }
+#endif
 
 #if defined(WIN32) && !defined(WIN32PORTABLE)
 static void associateFileTypes(const QStringList &fileTypes)

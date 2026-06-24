@@ -671,39 +671,34 @@ void MainWindow::configureGuiState() {
 
     // ── TIER 3: single-output-window modes ────────────────────────────────
     if (guiState == GUISTATEGRAPH) {
-        // Hide the text-output and variable-watch docks
         outwin_dock->hide();
         outwin_visible_act->setVisible(false);
         varwin_dock->hide();
-        // Also hide the view menu items that no longer apply
         viewmenu->menuAction()->setVisible(false);
 
-        // Promote graphwin_widget from dock to central widget
-        // so it fills the entire main window.
-        removeDockWidget(graphwin_dock);        // detach dock from layout
-        graphwin_dock->setWidget(nullptr);      // release graphwin_widget from dock
-        QWidget *old = takeCentralWidget();     // unhook editwintabs
+        QWidget *gw = graphwin_dock->widget();   // ← capture before detaching
+        removeDockWidget(graphwin_dock);
+        graphwin_dock->setWidget(nullptr);
+        QWidget *old = takeCentralWidget();
         old->hide();
-        setCentralWidget(graphwin_widget);      // graphwin fills the window
-        graphwin_dock->hide();                  // the empty dock shell is no longer needed
+        setCentralWidget(gw);                    // ← use local, no naming ambiguity
+        graphwin_dock->hide();
 
     } else if (guiState == GUISTATETEXT) {
-        // Hide the graphics and variable-watch docks
         graphwin_dock->hide();
         graphwin_visible_act->setVisible(false);
         varwin_dock->hide();
         viewmenu->menuAction()->setVisible(false);
 
-        // Promote outwin_widget from dock to central widget
+        QWidget *tw = outwin_dock->widget();     // ← capture before detaching
         removeDockWidget(outwin_dock);
         outwin_dock->setWidget(nullptr);
         QWidget *old = takeCentralWidget();
         old->hide();
-        setCentralWidget(outwin_widget);
+        setCentralWidget(tw);                    // ← use local, no naming ambiguity
         outwin_dock->hide();
     }
 }
-
 
 void MainWindow::ifGuiStateRun() {
 	// start run if app or run  state

@@ -215,13 +215,24 @@ endif()
 # -------------------------------------------------------------------
 
 # Define the executable target 
-add_executable(basic256 WIN32
+if(WIN32)
+    # WIN32 = /SUBSYSTEM:WINDOWS → no console window ever allocated by Windows.
+    # stdout/stderr are reconnected to the parent console in Main.cpp via AttachConsole.
+    add_executable(basic256 WIN32
     ${SOURCES} 
     ${HEADERS} 
     ${RESOURCES}
     ${QM_FILES}
 )
-
+else()
+    add_executable(basic256
+    ${SOURCES} 
+    ${HEADERS} 
+    ${RESOURCES}
+    ${QM_FILES}
+    )
+endif()
+    
 # Process TS files into QM files
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_add_translations(basic256 TS_FILES ${TS_FILES})
