@@ -487,7 +487,7 @@ void MainWindow::loadCustomizations() {
         restoreGeometry(settings.value(SETTINGSMAINGEOMETRY + QString::number(guiState)).toByteArray());
         QByteArray state = settings.value(SETTINGSMAINSTATE + QString::number(guiState)).toByteArray();
         if (guiState != GUISTATEGRAPH && guiState != GUISTATETEXT) {
-            restoreState(settings.value(...).toByteArray());
+            restoreState(state);
         }
         // edit window
         v = settings.value(SETTINGSEDITVISIBLE + QString::number(guiState), SETTINGSEDITVISIBLEDEFAULT).toBool();
