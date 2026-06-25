@@ -19,7 +19,11 @@ It can also be called from the command-line/Terminal with the following options:
 One can even make shortcut on the desktop with a .bat file like:
       @echo off
       C:\PATH_TO_BASIC256\basic256.exe -g Mandelbrot-256.kbs
-to have a file run as if it was an application.
+to have a file run as if it was an application. Make sure to set the "Run" property to Minimized to prevent a terminal window from popping up.
+Maybe a better way would be to but a shortcut to a .vbs file on the desktop:
+    ' run_mandelbrot.vbs  — no console window, ever
+    Set sh = CreateObject("WScript.Shell")
+    sh.Run """C:\PATH_TO_BASIC256\basic256.exe"" -g ""C:\PATH_TO_KBS\Mandelbrot-256.kbs""", 1, False
 
 The original code and current downloadable version resides on SourceForge (https://sourceforge.net/projects/kidbasic/) and is at version 2.0.0.11, which launched in 2020. It comes with an Example directory but most programs there need to be updated. There is also a Testsuite directory but this does not come with the Installer.
 
@@ -41,7 +45,7 @@ The initial aim for this branch is to provide a modern toolchain and stabilisati
  ********************************
  There is a single build.yml file that builds and packages all architectures via scripts. At the moment I produce an install .exe for Windows (nsi based) and a standalone Windows .zip file, a tarball for Linux-x86 and one for Linux-ARM and a zip file for MacOS, no deb yet
  1. Windows .zip file seems to be working. (more testing required)
- 2. Windows .exe file seems to be working. (more testing required)
+ 2. Windows installer .exe file seems to be working although coming from an unknown source. (more testing required)
  2. Linux x86 seems to be working. (more testing required)
  3. Raspberry Pi is problematic on Trixie. Github runner Ubuntu-24.4-ARM has a different Qt5 than Trixie. These do not mix and as Trixie does not include several required Qt5 libraries, I have to bundle all the runner's Qt5 libs. Even with this, speech does not work out-of-the-box since Trixie does not come with speech-dispatcher so this MUST be installed. So RPi build works but the tar ball is very big due to all the bundled libraries.
  4. MacOS Silicon (M1,M2,M3) resulted in an Homebrew basic256 app, but having no developer license, I added an ad-hoc signing. This should prevent the message: "basic256.app" is damaged and can't be opened. This should show the messge "unidentified developer" instead which one can hopefully click through. Most recent MacOS' do not allow this, I'm told. There is however a possibility to add your own Developer ID in the script and so to open a path to notarisation which would allow installation on modern MacOS versions.

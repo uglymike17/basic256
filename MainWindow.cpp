@@ -486,7 +486,9 @@ void MainWindow::loadCustomizations() {
     if(restoreWindows){
         restoreGeometry(settings.value(SETTINGSMAINGEOMETRY + QString::number(guiState)).toByteArray());
         QByteArray state = settings.value(SETTINGSMAINSTATE + QString::number(guiState)).toByteArray();
-        restoreState(state);
+        if (guiState != GUISTATEGRAPH && guiState != GUISTATETEXT) {
+            restoreState(settings.value(...).toByteArray());
+        }
         // edit window
         v = settings.value(SETTINGSEDITVISIBLE + QString::number(guiState), SETTINGSEDITVISIBLEDEFAULT).toBool();
         editwin_visible_act->setChecked(v);
@@ -686,6 +688,7 @@ void MainWindow::configureGuiState() {
         QWidget *old = takeCentralWidget();
         old->hide();
         setCentralWidget(gw);                    // ← use local, no naming ambiguity
+        gw->show();
         graphwin_dock->hide();
 
     } else if (guiState == GUISTATETEXT) {
@@ -700,6 +703,7 @@ void MainWindow::configureGuiState() {
         QWidget *old = takeCentralWidget();
         old->hide();
         setCentralWidget(tw);                    // ← use local, no naming ambiguity
+        tw->show();
         outwin_dock->hide();
     }
 }
