@@ -27,8 +27,8 @@
 #include <QKeyEvent>
 #include "ViewWidgetIFace.h"
 
-#define GSIZE_INITIAL_WIDTH   300
-#define GSIZE_INITIAL_HEIGHT   300
+#define GSIZE_INITIAL_WIDTH   500
+#define GSIZE_INITIAL_HEIGHT   500
 
 class BasicGraph : public QWidget, public ViewWidgetIFace
 {
