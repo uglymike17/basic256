@@ -48,7 +48,7 @@
  public:
 	LineNumberArea(BasicEdit *editor);
 
-	 QSize sizeHint();
+	 QSize sizeHint() const override;
      
  protected:
 	void paintEvent(QPaintEvent *event);

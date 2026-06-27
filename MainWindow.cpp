@@ -33,7 +33,6 @@
 #include <QtWidgets/QDialog>
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QShortcut>
-#include <QtWidgets/QDesktopWidget>
 
 #include "MainWindow.h"
 #include "Settings.h"

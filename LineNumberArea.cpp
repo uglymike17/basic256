@@ -54,7 +54,7 @@ LineNumberArea::LineNumberArea(BasicEdit *editor) : QWidget(editor) {
     be = editor;
 }
 
-QSize LineNumberArea::sizeHint() {
+QSize LineNumberArea::sizeHint() const {
     return QSize(be->lineNumberAreaWidth(), 0);
 }
 

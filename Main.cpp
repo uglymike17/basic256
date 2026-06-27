@@ -123,7 +123,6 @@ int main(int argc, char *argv[]) {
     }
 #endif  
 
-    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QApplication qapp(argc, argv);
     QFont f = qapp.font();
     f.setPointSize(9);

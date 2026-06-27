@@ -17,6 +17,7 @@
 
 
 
+#include <cmath>
 #include <iostream>
 
 #include <QClipboard>
@@ -29,7 +30,7 @@
 #include <QtWidgets/QScrollArea>
 #include <QtWidgets/QToolBar>
 #include <QDockWidget>
-#include <QDesktopWidget>
+#include <QScreen>
 
 #include "BasicWidget.h"
 #include "BasicGraph.h"
@@ -159,8 +160,8 @@ void BasicGraph::setTrasformationMaps() {
 void BasicGraph::resizeWindowToFitContent() {
 // NOT android - Android - FULL screen
 #ifndef ANDROID
-    int winw = labs((qreal)gwidth * gscale * gzoom);
-    int winh = labs((qreal)gheight * gscale * gzoom);
+    int winw = static_cast<int>(std::abs((qreal)gwidth  * gscale * gzoom));
+    int winh = static_cast<int>(std::abs((qreal)gheight * gscale * gzoom));
     setFixedSize(winw, winh);
 
     //force resize
@@ -185,7 +186,7 @@ void BasicGraph::resizeWindowToFitContent() {
                 dock->setMaximumSize(QWIDGETSIZE_MAX ,QWIDGETSIZE_MAX );
 
                 // make graph window visible in screen range (ignoring taskbar area)
-                QRect screen (QApplication::desktop()->availableGeometry(this));
+                QRect screen (QApplication::primaryScreen()->availableGeometry());
                 QPoint win_position = dock->pos();
                 QSize win_size = dock->size();
                 int w = win_size.width()+win_position.x();

@@ -644,7 +644,7 @@ int Interpreter::compileProgram(char *code) {
 		// because in debugMode it already call goToLine(1) at start
 		for(int i=0; i<numparsewarnings; i++) {
 		QString msg = tr("COMPILE WARNING");
-		if (parsewarningtablelexingfilenumber!=0) {
+		if (parsewarningtablelexingfilenumber[i]!=0) {
 			msg += tr(" in included file '") + QString(include_filenames[parsewarningtablelexingfilenumber[i]]) + QStringLiteral("'");
 		} else if(gotowarning){
 			emit(goToLine(parsewarningtablelinenumber[i]));
