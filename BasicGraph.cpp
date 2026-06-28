@@ -316,6 +316,7 @@ bool BasicGraph::initActions(QMenu * vMenu, QToolBar * vToolBar) {
     clearAct = vMenu->addAction(clearIcon, QObject::tr("Clear"));
 
     vToolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    vToolBar->setFont(QApplication::font());
 	vToolBar->addAction(copyAct);
 	vToolBar->addAction(printAct);
     vToolBar->addAction(clearAct);
