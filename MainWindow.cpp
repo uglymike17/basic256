@@ -151,7 +151,6 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     // Main window toolbar
     main_toolbar = new QToolBar();
     main_toolbar->setObjectName("main_toolbar");
-    main_toolbar->setFont(QApplication::font());
     addToolBar(main_toolbar);
 
     // File menu

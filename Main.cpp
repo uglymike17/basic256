@@ -123,6 +123,11 @@ int main(int argc, char *argv[]) {
     }
 #endif  
 
+    // Enable per-monitor DPI awareness so Windows text-size settings are
+    // reflected in Qt's system font. Must be set before QApplication is created.
+    // QT_ENABLE_HIGHDPI_SCALING is the non-deprecated Qt 5.14+ replacement for
+    // the Qt::AA_EnableHighDpiScaling attribute that was removed in commit e673dad.
+    qputenv("QT_ENABLE_HIGHDPI_SCALING", "1");
     QApplication qapp(argc, argv);
     qRegisterMetaType<std::vector<std::vector<double>>>("std::vector<std::vector<double>>");
     int guimode = 0;		// 0=normal, 1- r option, 2- app option, 3=-g graph-only, 4=-t text-only

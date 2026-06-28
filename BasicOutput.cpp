@@ -155,7 +155,6 @@ bool BasicOutput::initActions(QMenu * vMenu, QToolBar * vToolBar) {
     clearAct->setEnabled(false);
 
     vToolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    vToolBar->setFont(QApplication::font());
 	vToolBar->addAction(copyAct);
 	vToolBar->addAction(pasteAct);
     vToolBar->addAction(printAct);
