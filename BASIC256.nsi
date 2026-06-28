@@ -19,8 +19,8 @@
 
  !include nsDialogs.nsh
 
- !define VERSION "2.1.Alpha01"
- !define VERSIONDATE "2026-06-21"
+ !define VERSION "2.1.Alpha02"
+ !define VERSIONDATE "2026-06-28"
  !define SDK_BIN "$%Qt5_Dir%\bin"
  !define SDK_LIB "$%Qt5_Dir%\lib"
  !define SDK_PLUGINS "$%Qt5_Dir%\plugins"
