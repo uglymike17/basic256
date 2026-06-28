@@ -124,9 +124,6 @@ int main(int argc, char *argv[]) {
 #endif  
 
     QApplication qapp(argc, argv);
-    QFont f = qapp.font();
-    f.setPointSize(9);
-    qapp.setFont(f);
     qRegisterMetaType<std::vector<std::vector<double>>>("std::vector<std::vector<double>>");
     int guimode = 0;		// 0=normal, 1- r option, 2- app option, 3=-g graph-only, 4=-t text-only
     QString localecode;		// either lang or the system localle - stored on mainwin for help display

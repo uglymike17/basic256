@@ -67,6 +67,7 @@ public:
     void dropEvent(QDropEvent *event);
     void dragEnterEvent(QDragEnterEvent *event);
     bool loadFile(QString);
+    void resizeToFitGraph(int canvasW, int canvasH);
 
     
 

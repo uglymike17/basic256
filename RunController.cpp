@@ -67,6 +67,7 @@ extern QWaitCondition* waitCond;
 extern QWaitCondition* waitDebugCond;
 
 extern MainWindow * mainwin;
+extern int guiState;
 extern BasicEdit * editwin;
 extern BasicOutput * outwin;
 extern BasicGraph * graphwin;
@@ -542,6 +543,11 @@ void RunController::mainWindowsResize(int w, int width, int height) {
 void RunController::resizeGraphWindow(int width, int height, qreal scale) {
 	mymutex->lock();
 	graphwin->resize(width, height, scale);
+	if (guiState == GUISTATEGRAPH) {
+		int canvasW = (int)(qAbs((qreal)width  * scale * graphwin->getZoom()));
+		int canvasH = (int)(qAbs((qreal)height * scale * graphwin->getZoom()));
+		mainwin->resizeToFitGraph(canvasW, canvasH);
+	}
 	waitCond->wakeAll();
 	mymutex->unlock();
 }

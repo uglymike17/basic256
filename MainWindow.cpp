@@ -567,6 +567,21 @@ void MainWindow::saveCustomizations() {
     settings.setValue(SETTINGSZOOM, QString::number(graphwin->getZoom()));
 }
 
+void MainWindow::resizeToFitGraph(int canvasW, int canvasH) {
+    // Compute the chrome height: everything between the OS client area and the
+    // scroll-area viewport that holds graphwin.
+    // = menu bar + status bar  (main window level)
+    // + graphwin_widget toolbar (BasicWidget level)
+    // graph_scroll sits inside graphwin_widget; the height difference is the toolbar.
+    int chromeH = 0;
+    if (menuBar() && menuBar()->isVisible())
+        chromeH += menuBar()->height();
+    if (statusBar() && statusBar()->isVisible())
+        chromeH += statusBar()->height();
+    chromeH += graphwin_widget->height() - graph_scroll->height();
+    resize(canvasW, canvasH + chromeH);
+}
+
 MainWindow::~MainWindow() {
     delete rc;
     delete mymutex;
