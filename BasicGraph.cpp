@@ -26,6 +26,7 @@
 #include <QtPrintSupport/QPrinter>
 #include <QtWidgets/QAction>
 #include <QtWidgets/QApplication>
+#include <QIcon>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QScrollArea>
 #include <QtWidgets/QToolBar>
@@ -302,10 +303,19 @@ bool BasicGraph::initActions(QMenu * vMenu, QToolBar * vToolBar) {
 
 	vToolBar->setObjectName("graphtoolbar");
 
-    copyAct = vMenu->addAction(QObject::tr("Copy"));
-    printAct = vMenu->addAction(QObject::tr("Print"));
-    clearAct = vMenu->addAction(QObject::tr("Clear"));
+    QIcon copyIcon, printIcon, clearIcon;
+    copyIcon.addFile(":icons/16x16/copy.png",  QSize(16, 16));
+    copyIcon.addFile(":icons/22x22/copy.png",  QSize(22, 22));
+    printIcon.addFile(":icons/16x16/print.png", QSize(16, 16));
+    printIcon.addFile(":icons/22x22/print.png", QSize(22, 22));
+    clearIcon.addFile(":icons/16x16/clear.png", QSize(16, 16));
+    clearIcon.addFile(":icons/24x24/clear.png", QSize(24, 24));
 
+    copyAct = vMenu->addAction(copyIcon, QObject::tr("Copy"));
+    printAct = vMenu->addAction(printIcon, QObject::tr("Print"));
+    clearAct = vMenu->addAction(clearIcon, QObject::tr("Clear"));
+
+    vToolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 	vToolBar->addAction(copyAct);
 	vToolBar->addAction(printAct);
     vToolBar->addAction(clearAct);

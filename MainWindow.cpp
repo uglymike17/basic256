@@ -350,7 +350,7 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     QAction *aboutact = helpmenu->addAction(basicIcons->infoIcon, QObject::tr("&About BASIC-256..."));
 
     // Add actions to main window toolbar
-    main_toolbar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    main_toolbar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     main_toolbar->addAction(filemenu_new_act);
     main_toolbar->addAction(filemenu_open_act);
     main_toolbar->addAction(filemenu_save_act);
