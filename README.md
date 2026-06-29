@@ -21,7 +21,8 @@ It can also be called from the command-line/Terminal with the following options:
 |-t|--text|Run specified .kbs with only Text window | 
 |-l|--lang --languageset|Start BASIC-256 using the specified language.|
 
-The -a, -g, -t options allow you to run the program in kiosk mode, without showing the actual code window.
+The -a, -g, -t options allow you to run the program in kiosk mode, without showing the actual code window.  
+Additionally the -g option will automatically size the Graphics Windows to the graphsize settings of your .kbs file
 
 One can even make shortcut on the desktop with a .bat file like:
  ```console
@@ -62,7 +63,7 @@ The initial aim for this branch is to provide a modern toolchain and stabilisati
 
  **Current status as of 27/06/2026**
  ********************************
- There is a single build.yml file that builds and packages all architectures via scripts. At the moment I produce an install .exe for Windows (nsi based) and a standalone Windows .zip file, a tarball for Linux-x86 and one for Linux-ARM and a zip file for MacOS. No deb yet.
+ There is a single build.yml file that builds and packages all architectures via scripts. At the moment I produce an install .exe for Windows (nsi based) and a standalone Windows .zip file, a tarball and an AppImage for Linux-x86 and a tarball and and an AppImage  for Linux-ARM and a zip file for MacOS. No deb yet.
  1. Windows .zip file seems to be working and can be extracted anywhere you like. (more testing required)
  2. Windows installer .exe file seems to be working although coming from an unknown source. (more testing required) A signed version mght be coming thanks to https://signpath.io/solutions/open-source-community 
  2. Linux x86 seems to be working but is very large. (more testing required)
@@ -82,8 +83,7 @@ The initial aim for this branch is to provide a modern toolchain and stabilisati
 Future actions
 **************************
 First thing on the agenda is to get the word out so anybody could give their feedback on it. 
-A debian file would also be nice but is of lower priority (Linux Distro's provide their own 'old' Basic256 package, so this would only become required after major improvements to the code). 
-Help with the debian packaging would be very much appreciated
+Linux Distro's provide their own 'old' Basic256 package, so contacting the maintainers would only become required after major improvements to the code. For this, AppImage files are being prepared
 
 Once this main branch is stable enough, I (we?) can start adding small features like new functions or commands  (ATAN2, Perlin Noise, Clamp,...). A big whishlist item would be to switch to the qscintilla editor, but this is not urgent.
 Ideally there should later be an uncoupling of interpreter code, GUI code, CLI code (?) etc in order to be able to compile it into WebAssembly. (one can dream...). Finally, a Qt6 migration is long overdue

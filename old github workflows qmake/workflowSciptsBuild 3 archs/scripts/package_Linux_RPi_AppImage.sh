@@ -185,14 +185,11 @@ done
 mkdir -p "${APPDIR}/usr/share/basic256/Translations"
 cp build/*.qm "${APPDIR}/usr/share/basic256/Translations/" 2>/dev/null || true
 
-# ── Download linuxdeploy tools into /tmp ─────────────────────────────────────
-TOOLS_DIR="/tmp/linuxdeploy_tools"
-mkdir -p "${TOOLS_DIR}"
-echo "==> Downloading linuxdeploy tools (aarch64) to ${TOOLS_DIR}"
-wget -q -P "${TOOLS_DIR}" "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${ARCH}.AppImage"
-wget -q -P "${TOOLS_DIR}" "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-${ARCH}.AppImage"
-chmod +x "${TOOLS_DIR}/linuxdeploy-${ARCH}.AppImage" \
-         "${TOOLS_DIR}/linuxdeploy-plugin-qt-${ARCH}.AppImage"
+# ── Download linuxdeploy tools ────────────────────────────────────────────────
+echo "==> Downloading linuxdeploy tools (aarch64)"
+wget -q "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${ARCH}.AppImage"
+wget -q "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-${ARCH}.AppImage"
+chmod +x "linuxdeploy-${ARCH}.AppImage" "linuxdeploy-plugin-qt-${ARCH}.AppImage"
 
 # ── Deploy Qt dependencies and produce .AppImage ──────────────────────────────
 export QMAKE="${QT_LIB}/qt5/bin/qmake"
@@ -202,15 +199,14 @@ export VERSION
 VERSION="$(git describe --tags --always 2>/dev/null || echo 'dev')"
 
 echo "==> Running linuxdeploy (VERSION=${VERSION})"
-"${TOOLS_DIR}/linuxdeploy-${ARCH}.AppImage" \
-    --appdir "${APPDIR}"                     \
-    --plugin qt                              \
-    --output appimage
+"./linuxdeploy-${ARCH}.AppImage"  \
+    --appdir  "${APPDIR}"          \
+    --plugin  qt                   \
+    --output  appimage
 
 # ── Rename output ─────────────────────────────────────────────────────────────
-# With the tools in /tmp, the only *.AppImage in the workspace root is the
-# one linuxdeploy just built.
 for f in ./*.AppImage; do
+    case "${f##*/}" in linuxdeploy*) continue ;; esac
     mv "${f}" "${ARTIFACT_NAME}.AppImage"
     echo "==> Created ${ARTIFACT_NAME}.AppImage"
     break

@@ -124,25 +124,16 @@ done
 mkdir -p "${APPDIR}/usr/share/basic256/Translations"
 cp build/*.qm "${APPDIR}/usr/share/basic256/Translations/" 2>/dev/null || true
 
-# ── Download linuxdeploy tools into /tmp ─────────────────────────────────────
-# Downloading to /tmp (not the workspace root) keeps the workspace clean so
-# the CI upload glob "*.AppImage" only picks up the final BASIC256 AppImage.
-# linuxdeploy searches for the plugin in the same directory as itself, so
-# both files must share the same directory.
-TOOLS_DIR="/tmp/linuxdeploy_tools"
-mkdir -p "${TOOLS_DIR}"
-echo "==> Downloading linuxdeploy tools to ${TOOLS_DIR}"
-wget -q -P "${TOOLS_DIR}" "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${ARCH}.AppImage"
-wget -q -P "${TOOLS_DIR}" "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-${ARCH}.AppImage"
-chmod +x "${TOOLS_DIR}/linuxdeploy-${ARCH}.AppImage" \
-         "${TOOLS_DIR}/linuxdeploy-plugin-qt-${ARCH}.AppImage"
+# ── Download linuxdeploy + Qt plugin ─────────────────────────────────────────
+echo "==> Downloading linuxdeploy tools"
+wget -q "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${ARCH}.AppImage"
+wget -q "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-${ARCH}.AppImage"
+chmod +x "linuxdeploy-${ARCH}.AppImage" "linuxdeploy-plugin-qt-${ARCH}.AppImage"
 
 # ── Deploy Qt dependencies and produce .AppImage ──────────────────────────────
 # QMAKE: tells the Qt plugin where to find Qt's own tools and plugin dirs.
 # EXTRA_QT_PLUGINS: forces the Qt plugin to deploy TTS / media / audio even
 #   when they are not directly linked (they are dlopen'd at runtime).
-# --output appimage always writes to the current working directory (workspace
-#   root), regardless of where the tool binary lives.
 export QMAKE="${QT_LIB}/qt5/bin/qmake"
 export QML_SOURCES_PATHS="."
 export EXTRA_QT_PLUGINS="texttospeech;mediaservice;audio;imageformats"
@@ -150,16 +141,17 @@ export VERSION
 VERSION="$(git describe --tags --always 2>/dev/null || echo 'dev')"
 
 echo "==> Running linuxdeploy (VERSION=${VERSION})"
-"${TOOLS_DIR}/linuxdeploy-${ARCH}.AppImage" \
-    --appdir "${APPDIR}"                     \
-    --plugin qt                              \
-    --output appimage
+"./linuxdeploy-${ARCH}.AppImage"  \
+    --appdir  "${APPDIR}"          \
+    --plugin  qt                   \
+    --output  appimage
 
 # ── Rename output to expected artifact name ───────────────────────────────────
 # linuxdeploy names the AppImage after the desktop Name + version + arch,
-# e.g. "BASIC-256-2.1.0-x86_64.AppImage".  With the tools now in /tmp, the
-# only *.AppImage in the workspace root is the one we just built.
+# e.g. "BASIC-256-2.1.0-x86_64.AppImage".  Rename it to what the CI upload
+# step expects (value of ARTIFACT_NAME env var).
 for f in ./*.AppImage; do
+    case "${f##*/}" in linuxdeploy*) continue ;; esac   # skip the tools
     mv "${f}" "${ARTIFACT_NAME}.AppImage"
     echo "==> Created ${ARTIFACT_NAME}.AppImage"
     break
