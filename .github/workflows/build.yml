@@ -97,6 +97,16 @@ jobs:
         bash .github/scripts/package_Linux_x86.sh
 
     # ---------------------------
+    # AppImage Linux x86_64
+    # ---------------------------
+    - name: Package AppImage Linux x86_64
+      if: matrix.os == 'ubuntu-22.04'
+      env:
+        ARTIFACT_NAME: ${{ matrix.artifact_name }}
+      run: |
+        bash .github/scripts/package_Linux_x86_AppImage.sh
+
+    # ---------------------------
     # Packaging Linux ARM
     # ---------------------------
     - name: Package Linux ARM
@@ -105,6 +115,18 @@ jobs:
         ARTIFACT_NAME: ${{ matrix.artifact_name }}
       run: |
         bash .github/scripts/package_Linux_RPi_Trixie.sh
+
+    # ---------------------------
+    # AppImage Linux ARM64
+    # ---------------------------
+    - name: Package AppImage Linux ARM64
+      if: matrix.os == 'ubuntu-24.04-arm'
+      env:
+        ARTIFACT_NAME: ${{ matrix.artifact_name }}
+      run: |
+        bash .github/scripts/package_Linux_RPi_AppImage.sh
+
+    
         
     # ---------------------------
     # Packaging Windows (MSVC Migration)
@@ -151,6 +173,7 @@ jobs:
         path: |
           ${{ github.workspace }}/*.tar.gz
           ${{ github.workspace }}/*.zip
+          ${{ github.workspace }}/*.AppImage
 
     # Windows portable — the dist/ zip only
     - name: Upload Windows portable
@@ -187,5 +210,6 @@ jobs:
           **/*.tar.gz
           **/*.zip
           **/*.exe
+          **/*.AppImage
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
