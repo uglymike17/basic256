@@ -129,6 +129,31 @@ int main(int argc, char *argv[]) {
     // the Qt::AA_EnableHighDpiScaling attribute that was removed in commit e673dad.
     qputenv("QT_ENABLE_HIGHDPI_SCALING", "1");
     QApplication qapp(argc, argv);
+
+#ifdef Q_OS_WIN
+    // Qt 5 reads QApplication::font() from SPI_GETICONTITLELOGFONT (icon
+    // title font). On some Windows builds this source does not reliably
+    // reflect the text-size accessibility setting (TextScaleFactor), while
+    // SPI_GETNONCLIENTMETRICS::lfMessageFont always does (Windows 10 RS4+).
+    // Explicitly override the default app font so that toolbar buttons and
+    // every other widget that inherits the app font scale correctly.
+    {
+        NONCLIENTMETRICSW ncm = {};
+        ncm.cbSize = sizeof(ncm);
+        if (SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, 0)) {
+            HDC hdc = GetDC(nullptr);
+            const int dpi = hdc ? GetDeviceCaps(hdc, LOGPIXELSY) : 96;
+            if (hdc) ReleaseDC(nullptr, hdc);
+            const LOGFONTW &lf = ncm.lfMessageFont;
+            if (lf.lfHeight < 0 && dpi > 0) {
+                QFont f(QString::fromWCharArray(lf.lfFaceName));
+                f.setPointSizeF(-lf.lfHeight * 72.0 / dpi);
+                qapp.setFont(f);
+            }
+        }
+    }
+#endif
+
     qRegisterMetaType<std::vector<std::vector<double>>>("std::vector<std::vector<double>>");
     int guimode = 0;		// 0=normal, 1- r option, 2- app option, 3=-g graph-only, 4=-t text-only
     QString localecode;		// either lang or the system localle - stored on mainwin for help display
