@@ -51,9 +51,13 @@ set -euo pipefail
           cp "$GSTPLUG/${p}.so" dist/gstreamer-1.0/ 2>/dev/null || true
         done
 
-        # Download linuxdeployqt asset
-        wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
-        chmod a+x linuxdeployqt-continuous-x86_64.AppImage
+        # Download linuxdeployqt asset into /tmp — NOT the workspace root.
+        # This is a build tool, not a deliverable; downloading it to the
+        # workspace would cause it to be swept up by the CI upload step's
+        # "*.AppImage" glob alongside the actual BASIC256 AppImage.
+        LDQT="/tmp/linuxdeployqt-continuous-x86_64.AppImage"
+        wget -c -nv -O "${LDQT}" "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
+        chmod a+x "${LDQT}"
         
         # Force linuxdeployqt to trace dependencies for our manually copied plugins
         EXTRA_ARGS=""
@@ -67,7 +71,7 @@ set -euo pipefail
         export PATH="/usr/lib/qt5/bin:$PATH"
         
         # Run linuxdeployqt with the plugin arguments
-        ./linuxdeployqt-continuous-x86_64.AppImage dist/basic256 \
+        "${LDQT}" dist/basic256 \
           -bundle-non-qt-libs \
           -extra-plugins=texttospeech,mediaservice,audio,imageformats \
           --appimage-extract-and-run
