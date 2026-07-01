@@ -1,34 +1,34 @@
 $ErrorActionPreference = "Stop"
 
-New-Item -ItemType Directory -Force -Path "dist" | Out-Null
-Set-Content -Path "dist\basic256.bat" -Value "@echo off`r`nset QT_OPENGL=desktop`r`nstart basic256.exe"
+New-Item -ItemType Directory -Force -Path "Basic256" | Out-Null
+Set-Content -Path "Basic256\basic256.bat" -Value "@echo off`r`nset QT_OPENGL=desktop`r`nstart basic256.exe"
 
-Copy-Item build\Release\basic256.exe dist\
-Copy-Item README.md                  dist\
-Copy-Item Basic256.png dist\
+Copy-Item build\Release\basic256.exe Basic256\
+Copy-Item README.md                  Basic256\
+Copy-Item Basic256.png Basic256\
 
-Copy-Item -Path "Examples" -Destination "dist\Examples" -Recurse -Force
-Copy-Item -Path "TestSuite" -Destination "dist\TestSuite" -Recurse -Force
+Copy-Item -Path "Examples" -Destination "Basic256\Examples" -Recurse -Force
+Copy-Item -Path "TestSuite" -Destination "Basic256\TestSuite" -Recurse -Force
 
 & "$env:Qt5_Dir\bin\windeployqt.exe" `
-  --dir dist `
+  --dir Basic256 `
   --multimedia `
   --no-translations `
-  dist\basic256.exe
+  Basic256\basic256.exe
 
-if (-not (Test-Path "dist\Translations")) {
-    New-Item -ItemType Directory -Path "dist\Translations" | Out-Null
+if (-not (Test-Path "Basic256\Translations")) {
+    New-Item -ItemType Directory -Path "Basic256\Translations" | Out-Null
 }
 
 if (Test-Path "build\basic256_en.qm") {
-    Copy-Item "build\*.qm" "dist\Translations\" -Force
+    Copy-Item "build\*.qm" "Basic256\Translations\" -Force
 } elseif (Test-Path "Translations") {
-    Copy-Item "Translations\*.qm" "dist\Translations\" -Force
+    Copy-Item "Translations\*.qm" "Basic256\Translations\" -Force
 }
 
-Remove-Item "dist\libGLESv2.dll", "dist\libEGL.dll", "dist\opengl32sw.dll" -ErrorAction SilentlyContinue
-Copy-Item "$env:Qt5_Dir\bin\Qt5OpenGL.dll" dist\ -Force
-Copy-Item "$env:Qt5_Dir\bin\Qt5MultimediaWidgets.dll" dist\ -Force
-Copy-Item "$env:Qt5_Dir\bin\Qt5PrintSupport.dll" dist\ -Force
+Remove-Item "Basic256\libGLESv2.dll", "Basic256\libEGL.dll", "Basic256\opengl32sw.dll" -ErrorAction SilentlyContinue
+Copy-Item "$env:Qt5_Dir\bin\Qt5OpenGL.dll" Basic256\ -Force
+Copy-Item "$env:Qt5_Dir\bin\Qt5MultimediaWidgets.dll" Basic256\ -Force
+Copy-Item "$env:Qt5_Dir\bin\Qt5PrintSupport.dll" Basic256\ -Force
 
-Compress-Archive -Path dist -DestinationPath $env:ARTIFACT_NAME
+Compress-Archive -Path Basic256 -DestinationPath $env:ARTIFACT_NAME

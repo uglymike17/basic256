@@ -14,11 +14,11 @@ macdeployqt "${APP_BUNDLE}" -always-overwrite
 # cp Translations/*.qm "${APP_BUNDLE}/Contents/Resources/Translations/"
 
 # Compiled translations
-mkdir -p dist/Translations
+mkdir -p Basic256/Translations
 if ls build/*.qm 1>/dev/null 2>&1; then
-  cp build/*.qm dist/Translations/
+  cp build/*.qm Basic256/Translations/
 elif ls Translations/*.qm 1>/dev/null 2>&1; then
-  cp Translations/*.qm dist/Translations/
+  cp Translations/*.qm Basic256/Translations/
 fi
 
 
