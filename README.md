@@ -18,7 +18,8 @@ It can also be called from the command-line/Terminal with the following options:
 |-r|--run|Load and immediately run the specified .kbs program. Must precede the filename.|
 |-a|--app|Run specified .kbs without Edit window | 
 |-g|--graph|Run specified .kbs with only Graphics window | 
-|-t|--text|Run specified .kbs with only Text window | 
+|-t|--text|Run specified .kbs with only Text window |
+|-f|--full|When used with -r/ -a/ -t, the full screen area will be used. When used with -g, the Graphics window will be not resized, but centered |
 |-l|--lang --languageset|Start BASIC-256 using the specified language.|
 
 The -a, -g, -t options allow you to run the program in kiosk mode, without showing the actual code window.  
@@ -63,11 +64,11 @@ The initial aim for this branch is to provide a modern toolchain and stabilisati
 
  **Current status as of 27/06/2026**
  ********************************
- There is a single build.yml file that builds and packages all architectures via scripts. At the moment I produce an install .exe for Windows (nsi based) and a standalone Windows .zip file, a tarball and an AppImage for Linux-x86 and a tarball and and an AppImage  for Linux-ARM and a zip file for MacOS. No deb yet.
+ There is a single build.yml file that builds and packages all architectures via scripts. At the moment I produce an install .exe for Windows (nsi based) and a standalone Windows .zip file, a tarball and an AppImage for Linux-x86 and a tarball and and an AppImage  for Linux-ARM and a zip file for MacOS.
  1. Windows .zip file seems to be working and can be extracted anywhere you like. (more testing required)
  2. Windows installer .exe file seems to be working although coming from an unknown source. (more testing required) A signed version mght be coming thanks to https://signpath.io/solutions/open-source-community 
- 2. Linux x86 seems to be working but is very large. (more testing required)
- 3. Raspberry Pi is problematic on Trixie. Github runner Ubuntu-24.4-ARM has a different Qt5 than Trixie. These do not mix and as Trixie does not include several required Qt5 libraries, I have to bundle all the runner's Qt5 libs. Even with this, speech does not work out-of-the-box since Trixie does not come with speech-dispatcher so this MUST be installed. So RPi build works but the tar ball is very big due to all the bundled libraries.
+ 2. Linux x86 tarball and AppImage seem to be working. Tarball however is very large. (more testing required)
+ 3. Raspberry Pi tarball is problematic on Trixie. Github runner Ubuntu-24.4-ARM has a different Qt5 than Trixie. These do not mix and as Trixie does not include several required Qt5 libraries, I have to bundle all the runner's Qt5 libs. AppImage is a lot smaller. In any case, speech does not work out-of-the-box since Trixie does not come with speech-dispatcher so this MUST be installed. 
  4. MacOS Silicon (M1,M2,M3) resulted in an Homebrew basic256 app, but having no developer license, I added an ad-hoc signing. This should prevent the message: "basic256.app" is damaged and can't be opened. This should show the messge "unidentified developer" instead. If this happens, try the command to strip the quarantine flag:
     ```console
     xattr -cr /Applications/BASIC256.app

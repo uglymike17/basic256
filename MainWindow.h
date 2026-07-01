@@ -58,7 +58,7 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 public:
-  	MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring, int guistate);
+  	MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring, int guistate, bool fullscreen = false);
 	~MainWindow();
 	void ifGuiStateRun();
     void ifGuiStateClose(bool ok);
@@ -182,6 +182,7 @@ private:
 	// SEE GUISTATE* Constants
 	void configureGuiState();
     bool autoCheckForUpdate;
+    bool guiFullScreen;
 	
 	void loadCustomizations();
 	void saveCustomizations();

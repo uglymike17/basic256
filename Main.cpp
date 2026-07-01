@@ -156,6 +156,7 @@ int main(int argc, char *argv[]) {
 
     qRegisterMetaType<std::vector<std::vector<double>>>("std::vector<std::vector<double>>");
     int guimode = 0;		// 0=normal, 1- r option, 2- app option, 3=-g graph-only, 4=-t text-only
+    bool fullScreen = false;
     QString localecode;		// either lang or the system localle - stored on mainwin for help display
 
     QCoreApplication::setOrganizationName(SETTINGSORG);
@@ -184,11 +185,18 @@ int main(int argc, char *argv[]) {
     // Text-only option   (NEW)
     QCommandLineOption setTextOption(QStringList() << "t" << "text", QObject::tr("Run specified file showing only the Text Output window."));
     parser.addOption(setTextOption);
+    // Full-screen / centre option
+    QCommandLineOption setFullOption(QStringList() << "f" << "full",
+        QObject::tr("With -r or -a: resize window to full available screen. "
+                    "With -t: same. With -g: centre the window on screen (size unchanged). "
+                    "Ignored when used without -r, -a, -g, or -t."));
+    parser.addOption(setFullOption);
     // Language option
     QCommandLineOption setLanguageOption(QStringList() << "l" << "lang" << "language", QObject::tr("Set language to <language>."), QObject::tr("language"));
     parser.addOption(setLanguageOption);
     // Process the actual command line arguments given by the user
     parser.process(qapp);
+    fullScreen = parser.isSet(setFullOption);
     const QStringList args = parser.positionalArguments();
 
     // file is args.at(0)
@@ -233,7 +241,7 @@ int main(int argc, char *argv[]) {
 #endif
     qapp.installTranslator(&kbTranslator);
 
-    MainWindow mainwin(nullptr, Qt::WindowFlags(), localecode, guimode);
+    MainWindow mainwin(nullptr, Qt::WindowFlags(), localecode, guimode, fullScreen);
     mainwin.setObjectName( "mainwin" );
     mainwin.statusBar()->showMessage(QObject::tr("Ready."));
     mainwin.show();

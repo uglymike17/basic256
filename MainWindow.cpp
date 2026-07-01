@@ -34,6 +34,9 @@
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QShortcut>
 
+#include <QScreen>
+#include <QTimer>
+
 #include "MainWindow.h"
 #include "Settings.h"
 #include "Version.h"
@@ -60,12 +63,13 @@ BasicKeyboard * basicKeyboard;
 int guiState;
 
 
-MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring, int guistate)
+MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring, int guistate, bool fullscreen)
     :	QMainWindow(parent, f) {
 
     localecode = localestring;
 	locale = new QLocale(localecode);
     guiState = guistate;
+    guiFullScreen = fullscreen;
     mainwin = this;
     setAcceptDrops(true);
     untitledNumber = 1;
@@ -719,6 +723,22 @@ void MainWindow::configureGuiState() {
         setCentralWidget(tw);                    // ← use local, no naming ambiguity
         tw->show();
         outwin_dock->hide();
+    }
+
+    // --full: apply after restoreGeometry() so it always wins over saved state.
+    // Only meaningful alongside -r / -a / -g / -t; silently ignored otherwise.
+    if (guiFullScreen) {
+        QRect avail = QGuiApplication::primaryScreen()->availableGeometry();
+        if (guiState == GUISTATERUN || guiState == GUISTATEAPP || guiState == GUISTATETEXT) {
+            setGeometry(avail);
+        } else if (guiState == GUISTATEGRAPH) {
+            // Keep graphsize; centre once the window has been laid out
+            QTimer::singleShot(0, this, [this, avail]() {
+                int x = avail.x() + (avail.width()  - width())  / 2;
+                int y = avail.y() + (avail.height() - height()) / 2;
+                move(x, y);
+            });
+        }
     }
 }
 
