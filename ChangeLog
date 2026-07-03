@@ -1,18 +1,23 @@
-2026-06-30 M. Vilain <uglymike17@gmail.com>
-	* Provide AppImage files for Linux-x86 and Linux-ARM in addition to the tar.gz files
-	* Improved: CLI option -g will now open the Graphics window in the size you defined it (either 500x500 or by the graphsize you specified)
-	* Small bugfix: on Windows, Iconlabels in Toolbars now follow the system settings..
+2026-07-02 M. Vilain <uglymike17@gmail.com>  
+	* Added: CLI option -f when used with -r/-a/-g/-t will now open the program fullscreen
+	* Added: CLI option -s when used will supress all screen output. Mainly used during testing but could be used to read/write/change a file/DB,...
 
 
-2026-06-13 M. Vilain <uglymike17@gmail.com>
-    * Move Sourceforge to Github using build 2.0.99.10.2
-	* replace qmake (*.pro) with CMake (build.yml, CMakeLists.txt)
-	* Replace MinGW with MSYS2 for Windows builds.
-	* Replace deprecated Qt operators
-	* move some Posix structures to Qt structures
-	* provide basic.app for MacOS Silicon (ARM64) using brew with compiler AppleClang 17.0.0.17000013
-	* provide stand-alone tarball for Linux-x86 Using compiler GNU 11.4.0. No Deb yet
-	* provide stand-alone tarball for Linux-ARM (RPi Trixie). Using compiler GNU 13.3.0. No Deb yet
+2026-06-30 M. Vilain <uglymike17@gmail.com>  
+	* Provide AppImage files for Linux-x86 and Linux-ARM in addition to the tar.gz files  
+	* Improved: CLI option -g will now open the Graphics window in the size you defined it (either 500x500 or by the graphsize you specified)  
+	* Small bugfix: on Windows, Iconlabels in Toolbars now follow the system settings..  
+
+
+2026-06-13 M. Vilain <uglymike17@gmail.com>  
+    * Copy Sourceforge build 2.0.99.10.2 over to Github    
+	* replace qmake (*.pro) with CMake (build.yml, CMakeLists.txt)  
+	* Replace MinGW with MSYS2 for Windows builds.  
+	* Replace deprecated Qt operators  
+	* move some Posix structures to Qt structures  
+	* provide basic.app for MacOS Silicon (ARM64) using brew with compiler AppleClang 17.0.0.17000013  
+	* provide stand-alone tarball for Linux-x86 Using compiler GNU 11.4.0.  
+	* provide stand-alone tarball for Linux-ARM (RPi Trixie). Using compiler GNU 13.3.0.  
 	* provide standalone zip file for Windows. No .nsi yet
 
 

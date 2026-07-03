@@ -8,7 +8,7 @@ It was originally called Kidbasic and was started in 2007, but after years of up
 This Qt5-based C++ program, when started simply with the basic256.exe command (or by clicking on its icon), opens with a 3-pane IDE with edit-, output- and graphics-windows. 
 ![Interface](Basic256.png)
 
-It can also be called from the command-line/Terminal with the following options:
+Basic256 however can also be called from the command-line/Terminal with the following options:
 
 | Short | Long  | #2    |
 | :---: | :---: | :---: |
@@ -19,19 +19,27 @@ It can also be called from the command-line/Terminal with the following options:
 |-a|--app|Run specified .kbs without Edit window | 
 |-g|--graph|Run specified .kbs with only Graphics window | 
 |-t|--text|Run specified .kbs with only Text window |
-|-f|--full|When used with -r/ -a/ -t, the full screen area will be used. When used with -g, the Graphics window will be not resized, but centered |
+|-f|--full|When used with -r/ -a/ -t/ -g, the full screen area will be used.|
 |-l|--lang --languageset|Start BASIC-256 using the specified language.|
 
 The -a, -g, -t options allow you to run the program in kiosk mode, without showing the actual code window.  
-Additionally the -g option will automatically size the Graphics Windows to the graphsize settings of your .kbs file
+(Carefull: if you add  edit/graph/outputvisible flags in your .kbs, these will override you CLI option)
 
 One can even make shortcut on the desktop with a .bat file like:
  ```console
 @echo off
 C:\PATH_TO_BASIC256\basic256.exe -g Mandelbrot-256.kbs
  ```
-to have a file run as if it was an application. Make sure to set the "Run" property to Minimized to prevent a terminal window from popping up.  
-Maybe a better way in Windows to use a .vbs file instead of a:
+to have a file run as if it was an application.  
+Make sure to set the "Run" property to Minimized to prevent a terminal window from popping up.  
+When writing a purely text-based adventure, you could create a batch file like:
+ ```console
+@echo off
+C:\PATH_TO_BASIC256\basic256.exe -f -t Zork256.kbs
+ ```
+ This way, there is no visible distraction from the text adventure.  
+
+ Maybe a better way in Windows to use a .vbs file instead of a:
  ```console
 ' run_mandelbrot.vbs  — no console window, ever
 Set sh = CreateObject("WScript.Shell")

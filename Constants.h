@@ -47,6 +47,7 @@
 	#define GUISTATEAPP 2		// -a / --app : Text and Graphics Output only
 	#define GUISTATEGRAPH   3   // -g / --graph : Graphics Output only
 	#define GUISTATETEXT    4   // -t / --text  : Text Output only
+	#define GUISTATESILENT  5   // -s / --silent : no GUI at all, text to stdout, errors to stderr
 
 	// states of a program
 	#define RUNSTATESTOP 0

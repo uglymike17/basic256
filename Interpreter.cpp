@@ -16,6 +16,7 @@
  **/
 
 #include <iostream>
+#include <cstdlib>
 #include <math.h>
 #include <string>
 
@@ -67,6 +68,7 @@ extern QWaitCondition* waitDebugCond;
 extern BasicGraph * graphwin;
 extern BasicEdit * editwin;
 extern BasicKeyboard * basicKeyboard;
+extern int guiState;
 
 Error *error;	// define the extern here
 
@@ -1302,6 +1304,10 @@ void Interpreter::update_sprite_screen(){
 }
 
 void Interpreter::waitForGraphics() {
+	// --silent: nothing is ever shown, so skip sprite compositing and the
+	// cross-thread screen-image update entirely rather than doing that work
+	// against a window nobody will ever see.
+	if (guiState == GUISTATESILENT) return;
 	update_sprite_screen();
 	// wait for graphics operation to complete
 	mymutex->lock();
@@ -1317,6 +1323,14 @@ bool Interpreter::setPainterTo(QPaintDevice *destination) {
 	painter_brush_need_update=true;
 	painter_font_need_update=painter_custom_font_flag; //need update only if there is a custom font loaded
 	painter_last_compositionModeClear=false;
+	if (guiState == GUISTATESILENT && drawingOnScreen) {
+		// --silent: never paint onto the (never shown) on-screen canvas. Leaving
+		// painter inactive makes every subsequent painter->drawXXX()/setXXX() call
+		// a documented Qt no-op, so plot/circle/rect/etc. are skipped for free
+		// without needing to touch every opcode. Drawing to an in-memory "image:"
+		// resource (drawingOnScreen==false) is unaffected and still works normally.
+		return true;
+	}
 	return (painter->begin(destination));
 }
 
@@ -2369,6 +2383,10 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_OPENFILEDIALOG: {
+					if (guiState == GUISTATESILENT) {
+						std::cerr << "OPENFILEDIALOG not supported in --silent mode." << std::endl;
+						std::exit(1);
+					}
 					QString filter = stack->popQString();
 					QString path = stack->popQString();
 					QString prompt = stack->popQString();
@@ -2379,8 +2397,12 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					stack->pushQString(inputString);
 				}
 				break;
-				
+
 				case OP_SAVEFILEDIALOG: {
+					if (guiState == GUISTATESILENT) {
+						std::cerr << "SAVEFILEDIALOG not supported in --silent mode." << std::endl;
+						std::exit(1);
+					}
 					QString filter = stack->popQString();
 					QString path = stack->popQString();
 					QString prompt = stack->popQString();
@@ -3923,11 +3945,18 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					QString temp = stack->popQString();
 					int doit = settingsAllowSystem;
 					if(doit==SETTINGSALLOWASK){
-						mymutex->lock();
-						emit(dialogAllowSystem(temp));
-						waitCond->wait(mymutex);
-						mymutex->unlock();
-						doit = returnInt;
+						if (guiState == GUISTATESILENT) {
+							// --silent: no one to ask, so fail closed (same
+							// outcome as the user clicking "No") rather than
+							// hanging on a dialog that will never appear.
+							doit = SETTINGSALLOWNO;
+						} else {
+							mymutex->lock();
+							emit(dialogAllowSystem(temp));
+							waitCond->wait(mymutex);
+							mymutex->unlock();
+							doit = returnInt;
+						}
 					}
 					if(doit==SETTINGSALLOWNO){
 						error->q(ERROR_PERMISSION);
@@ -4580,8 +4609,13 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					QColor c = QColor::fromRgba((QRgb) clearcolor);
 
 					if (drawingOnScreen){
-						graphwin->image->fill(c);
-						if (!fastgraphics) waitForGraphics();
+						// --silent: skip the direct fill too (it bypasses the
+						// painter no-op in setPainterTo since it writes straight
+						// to the image buffer).
+						if (guiState != GUISTATESILENT) {
+							graphwin->image->fill(c);
+							if (!fastgraphics) waitForGraphics();
+						}
 					}else if(printing){
 						if(printdocument->pageLayout().paintRectPixels(printdocument->resolution())==printdocument->pageLayout().fullRectPixels(printdocument->resolution())){
 							//printer is in full page mode already
@@ -4697,6 +4731,14 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_INPUT: {
+					if (guiState == GUISTATESILENT) {
+						// --silent is non-interactive: never block waiting for
+						// input the user has no way to provide. Exit the whole
+						// process immediately (not a catchable BASIC error) so
+						// automated test runners get a clear non-zero status.
+						std::cerr << "INPUT not supported in --silent mode." << std::endl;
+						std::exit(1);
+					}
 					inputType = stack->popInt();
 					inputString.clear();
 					QString prompt = stack->popQString();
@@ -5837,11 +5879,17 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 #ifdef WIN32PORTIO
 					int doit = settingsAllowPort;
 					if(doit==SETTINGSALLOWASK){
-						mymutex->lock();
-						emit(dialogAllowPortInOut(QString("PORTOUT ") + QString::number(port) + ", " + QString::number(data)));
-						waitCond->wait(mymutex);
-						mymutex->unlock();
-						doit = returnInt;
+						if (guiState == GUISTATESILENT) {
+							// --silent: no one to ask, so fail closed rather than
+							// hanging on a dialog that will never appear.
+							doit = SETTINGSALLOWNO;
+						} else {
+							mymutex->lock();
+							emit(dialogAllowPortInOut(QString("PORTOUT ") + QString::number(port) + ", " + QString::number(data)));
+							waitCond->wait(mymutex);
+							mymutex->unlock();
+							doit = returnInt;
+						}
 					}
 					if(doit>0) {
 						if (Out32==NULL) {
@@ -5864,11 +5912,17 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 #ifdef WIN32PORTIO
 					int doit = settingsAllowPort;
 					if(doit==SETTINGSALLOWASK){
-						mymutex->lock();
-						emit(dialogAllowPortInOut(QString("PORTIN ") + QString::number(port)));
-						waitCond->wait(mymutex);
-						mymutex->unlock();
-						doit = returnInt;
+						if (guiState == GUISTATESILENT) {
+							// --silent: no one to ask, so fail closed rather than
+							// hanging on a dialog that will never appear.
+							doit = SETTINGSALLOWNO;
+						} else {
+							mymutex->lock();
+							emit(dialogAllowPortInOut(QString("PORTIN ") + QString::number(port)));
+							waitCond->wait(mymutex);
+							mymutex->unlock();
+							doit = returnInt;
+						}
 					}
 
 					if(doit==SETTINGSALLOWNO){
@@ -6348,6 +6402,10 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_ALERT: {
+					if (guiState == GUISTATESILENT) {
+						std::cerr << "ALERT not supported in --silent mode." << std::endl;
+						std::exit(1);
+					}
 					QString temp = stack->popQString();
 					mymutex->lock();
 					emit(dialogAlert(temp));
@@ -6357,6 +6415,10 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_CONFIRM: {
+					if (guiState == GUISTATESILENT) {
+						std::cerr << "CONFIRM not supported in --silent mode." << std::endl;
+						std::exit(1);
+					}
 					int dflt = stack->popInt();
 					QString temp = stack->popQString();
 					mymutex->lock();
@@ -6368,6 +6430,10 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_PROMPT: {
+					if (guiState == GUISTATESILENT) {
+						std::cerr << "PROMPT not supported in --silent mode." << std::endl;
+						std::exit(1);
+					}
 					QString dflt = stack->popQString();
 					QString msg = stack->popQString();
 					mymutex->lock();

@@ -155,7 +155,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     qRegisterMetaType<std::vector<std::vector<double>>>("std::vector<std::vector<double>>");
-    int guimode = 0;		// 0=normal, 1- r option, 2- app option, 3=-g graph-only, 4=-t text-only
+    int guimode = 0;		// 0=normal, 1- r option, 2- app option, 3=-g graph-only, 4=-t text-only, 5=-s silent (no GUI)
     bool fullScreen = false;
     QString localecode;		// either lang or the system localle - stored on mainwin for help display
 
@@ -185,10 +185,16 @@ int main(int argc, char *argv[]) {
     // Text-only option   (NEW)
     QCommandLineOption setTextOption(QStringList() << "t" << "text", QObject::tr("Run specified file showing only the Text Output window."));
     parser.addOption(setTextOption);
-    // Full-screen / centre option
+    // Silent option (no GUI at all)
+    QCommandLineOption setSilentOption(QStringList() << "s" << "silent",
+        QObject::tr("Run specified file with no GUI at all: PRINT output goes to stdout, "
+                    "errors go to stderr, and the process exit code reflects success/failure. "
+                    "Requires a filename argument. Cannot be combined with -r, -a, -g, or -t "
+                    "(that combination is a hard error)."));
+    parser.addOption(setSilentOption);
+    // Full-screen option
     QCommandLineOption setFullOption(QStringList() << "f" << "full",
-        QObject::tr("With -r or -a: resize window to full available screen. "
-                    "With -t: same. With -g: centre the window on screen (size unchanged). "
+        QObject::tr("With -r, -a, -g, or -t: resize window to full available screen. "
                     "Ignored when used without -r, -a, -g, or -t."));
     parser.addOption(setFullOption);
     // Language option
@@ -209,6 +215,24 @@ int main(int argc, char *argv[]) {
     if(localecode.isEmpty())
         localecode = QLocale::system().name();
 
+    // -s/--silent is mutually exclusive with -r, -a, -g, and -t: fail fast,
+    // before any window/interpreter setup begins.
+    if (parser.isSet(setSilentOption)) {
+        if (parser.isSet(setRunOption) || parser.isSet(setAppOption) ||
+            parser.isSet(setGraphOption) || parser.isSet(setTextOption)) {
+            std::cerr << QObject::tr(
+                "Error: -s/--silent cannot be combined with -r, -a, -g, or -t.")
+                .toStdString() << std::endl;
+            return 1;
+        }
+        if (fileName.isEmpty()) {
+            std::cerr << QObject::tr(
+                "Error: -s/--silent requires a filename argument.")
+                .toStdString() << std::endl;
+            return 1;
+        }
+    }
+
     if (parser.isSet(setRunOption) and !fileName.isEmpty()) {
         guimode=1;
     }
@@ -221,6 +245,13 @@ int main(int argc, char *argv[]) {
     }
     if (parser.isSet(setTextOption) && !fileName.isEmpty()) {
         guimode = 4;
+    }
+    if (parser.isSet(setSilentOption)) {
+        guimode = GUISTATESILENT;
+        // Suppress Qt's own internal diagnostic output (e.g. "Painter not active"
+        // warnings from graphics calls that are intentionally no-ops in this mode)
+        // so stderr carries only script/runtime errors for automated test runners.
+        qInstallMessageHandler([](QtMsgType, const QMessageLogContext &, const QString &) {});
     }
 
     QTranslator qtTranslator;
@@ -243,8 +274,13 @@ int main(int argc, char *argv[]) {
 
     MainWindow mainwin(nullptr, Qt::WindowFlags(), localecode, guimode, fullScreen);
     mainwin.setObjectName( "mainwin" );
-    mainwin.statusBar()->showMessage(QObject::tr("Ready."));
-    mainwin.show();
+    // --silent: MainWindow and its child windows (Edit/Graphics/Text Output) are
+    // still constructed internally (the interpreter is wired to them), but they
+    // are never shown, so no window ever appears on screen.
+    if (guimode != GUISTATESILENT) {
+        mainwin.statusBar()->showMessage(QObject::tr("Ready."));
+        mainwin.show();
+    }
 
     bool loaded=false;
  
@@ -258,6 +294,10 @@ int main(int argc, char *argv[]) {
     if (!fileName.isEmpty()) {
             QFileInfo fi(fileName);
         loaded = mainwin.loadFile(fi.absoluteFilePath());
+        if (guimode == GUISTATESILENT && !loaded) {
+            std::cerr << QObject::tr("Error: unable to load file '%1'.").arg(fileName).toStdString() << std::endl;
+            return 1;
+        }
         if(guimode!=0 && !loaded){
             return 0;
         }

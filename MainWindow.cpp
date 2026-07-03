@@ -379,7 +379,8 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     //Display windows and toolbars acording their final settings
     // Single-output modes have their layout owned entirely by configureGuiState();
     // restoring dock visibility from saved settings would undo that work.
-    if (guiState != GUISTATEGRAPH && guiState != GUISTATETEXT) {
+    // --silent never shows anything, so it is excluded here too.
+    if (guiState != GUISTATEGRAPH && guiState != GUISTATETEXT && guiState != GUISTATESILENT) {
         editwintabs->setVisible(editwin_visible_act->isChecked());
         graphwin_dock->setVisible(graphwin_visible_act->isChecked());
         outwin_dock->setVisible(outwin_visible_act->isChecked());
@@ -489,7 +490,9 @@ void MainWindow::loadCustomizations() {
     if(restoreWindows){
         restoreGeometry(settings.value(SETTINGSMAINGEOMETRY + QString::number(guiState)).toByteArray());
         QByteArray state = settings.value(SETTINGSMAINSTATE + QString::number(guiState)).toByteArray();
-        if (guiState != GUISTATEGRAPH && guiState != GUISTATETEXT) {
+        // Skipping restoreState() here also prevents a previously-floating dock
+        // from being recreated as its own top-level window in --silent mode.
+        if (guiState != GUISTATEGRAPH && guiState != GUISTATETEXT && guiState != GUISTATESILENT) {
             restoreState(state);
         }
         // edit window
@@ -642,7 +645,8 @@ void MainWindow::configureGuiState() {
     bool isRestricted = (guiState == GUISTATERUN  ||
                          guiState == GUISTATEAPP  ||
                          guiState == GUISTATEGRAPH||
-                         guiState == GUISTATETEXT);
+                         guiState == GUISTATETEXT ||
+                         guiState == GUISTATESILENT);
 
     if (isRestricted) {
         filemenu_new_act->setVisible(false);
@@ -680,7 +684,8 @@ void MainWindow::configureGuiState() {
     // ── TIER 2: extra cleanup for app/graph/text modes (no IDE at all) ─────
     bool isKioskMode = (guiState == GUISTATEAPP  ||
                         guiState == GUISTATEGRAPH ||
-                        guiState == GUISTATETEXT);
+                        guiState == GUISTATETEXT ||
+                        guiState == GUISTATESILENT);
 
     if (isKioskMode) {
         onlinehact->setVisible(false);
@@ -729,15 +734,9 @@ void MainWindow::configureGuiState() {
     // Only meaningful alongside -r / -a / -g / -t; silently ignored otherwise.
     if (guiFullScreen) {
         QRect avail = QGuiApplication::primaryScreen()->availableGeometry();
-        if (guiState == GUISTATERUN || guiState == GUISTATEAPP || guiState == GUISTATETEXT) {
+        if (guiState == GUISTATERUN || guiState == GUISTATEAPP ||
+            guiState == GUISTATETEXT || guiState == GUISTATEGRAPH) {
             setGeometry(avail);
-        } else if (guiState == GUISTATEGRAPH) {
-            // Keep graphsize; centre once the window has been laid out
-            QTimer::singleShot(0, this, [this, avail]() {
-                int x = avail.x() + (avail.width()  - width())  / 2;
-                int y = avail.y() + (avail.height() - height()) / 2;
-                move(x, y);
-            });
         }
     }
 }
@@ -748,7 +747,8 @@ void MainWindow::ifGuiStateRun() {
     if (guiState == GUISTATEAPP  ||
         guiState == GUISTATERUN  ||
         guiState == GUISTATEGRAPH||
-        guiState == GUISTATETEXT) {
+        guiState == GUISTATETEXT ||
+        guiState == GUISTATESILENT) {
         runact->activate(QAction::Trigger);
     }
 }
@@ -756,6 +756,15 @@ void MainWindow::ifGuiStateRun() {
 void MainWindow::ifGuiStateClose(bool ok) {
 	// optionally force close if application
 	// from runtimecontroller when interperter stopps
+    if (guiState==GUISTATESILENT){
+        // No window was ever shown, so there is no close/GUI-close-event path
+        // and no modal dialogs. Defer the exit like the GUISTATEAPP close path
+        // below does (see the closeEvent() comment): quitting immediately from
+        // inside this queued slot can race with any events the interpreter has
+        // already posted.
+        QTimer::singleShot(0, this, [ok]() { qApp->exit(ok ? 0 : 1); });
+        return;
+    }
     if (guiState==GUISTATEAPP){
         if(!ok){
             statusBar()->showMessage("Error.");
@@ -1293,13 +1302,16 @@ bool MainWindow::loadFile(QString s) {
                     QMimeType mime = db.mimeTypeForFile(fi);
                     // Get user confirmation for non-text files
                     //Remember that empty ".kbs" files are detected as non-text files
+                    // --silent: there is no user to confirm anything and no window
+                    // should ever appear, so always proceed rather than showing a
+                    // modal dialog that would otherwise hang the process forever.
                     if (!(mime.inherits("text/plain") && !(fi.fileName().endsWith(".kbs",Qt::CaseInsensitive) && fi.size()==0))) {
-                        doload = ( QMessageBox::Yes == QMessageBox::warning(this, QObject::tr("Load File"),
+                        doload = (guiState == GUISTATESILENT) || ( QMessageBox::Yes == QMessageBox::warning(this, QObject::tr("Load File"),
                             QObject::tr("It does not seem to be a text file.")+ "\n" + QObject::tr("Load it anyway?"),
                             QMessageBox::Yes | QMessageBox::No,
                             QMessageBox::No));
                     }else if (!fi.fileName().endsWith(".kbs",Qt::CaseInsensitive)) {
-                        doload = ( QMessageBox::Yes == QMessageBox::warning(this, QObject::tr("Load File"),
+                        doload = (guiState == GUISTATESILENT) || ( QMessageBox::Yes == QMessageBox::warning(this, QObject::tr("Load File"),
                             QObject::tr("You're about to load a file that does not end with the .kbs extension.")+ "\n" + QObject::tr("Load it anyway?"),
                             QMessageBox::Yes | QMessageBox::No,
                             QMessageBox::No));
@@ -1347,14 +1359,21 @@ bool MainWindow::loadFile(QString s) {
                     }
                     f.close();
                 } else {
-                    QMessageBox::warning(this, QObject::tr("Load File"),
-                        QObject::tr("Unable to open program file")+" \""+s+"\".\n"+QObject::tr("File permissions problem or file open by another process."),
-                        QMessageBox::Ok, QMessageBox::Ok);
+                    // --silent: skip the modal (no user to dismiss it, no window
+                    // should ever appear); Main.cpp reports the load failure on
+                    // stderr and exits non-zero instead.
+                    if (guiState != GUISTATESILENT) {
+                        QMessageBox::warning(this, QObject::tr("Load File"),
+                            QObject::tr("Unable to open program file")+" \""+s+"\".\n"+QObject::tr("File permissions problem or file open by another process."),
+                            QMessageBox::Ok, QMessageBox::Ok);
+                    }
                 }
             } else {
-                QMessageBox::warning(this, QObject::tr("Load File"),
-                    QObject::tr("Program file does not exist.")+" \""+s+QObject::tr("\"."),
-                    QMessageBox::Ok, QMessageBox::Ok);
+                if (guiState != GUISTATESILENT) {
+                    QMessageBox::warning(this, QObject::tr("Load File"),
+                        QObject::tr("Program file does not exist.")+" \""+s+QObject::tr("\"."),
+                        QMessageBox::Ok, QMessageBox::Ok);
+                }
             }
         }
 return false;

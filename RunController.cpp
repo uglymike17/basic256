@@ -341,16 +341,26 @@ RunController::outputClear() {
 
 void RunController::outputReady(QString text) {
 	mymutex->lock();
-	mainWindowsVisible(2,true);
-	outwin->outputText(text);
+	if (guiState == GUISTATESILENT) {
+		std::cout << text.toStdString();
+		std::cout.flush();
+	} else {
+		mainWindowsVisible(2,true);
+		outwin->outputText(text);
+	}
 	waitCond->wakeAll();
 	mymutex->unlock();
 }
 
 void RunController::outputError(QString text) {
 	mymutex->lock();
-	mainWindowsVisible(2,true);
-	outwin->outputText(text, Qt::red);
+	if (guiState == GUISTATESILENT) {
+		std::cerr << text.toStdString();
+		std::cerr.flush();
+	} else {
+		mainWindowsVisible(2,true);
+		outwin->outputText(text, Qt::red);
+	}
 	waitCond->wakeAll();
 	mymutex->unlock();
 }
