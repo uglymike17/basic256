@@ -484,6 +484,16 @@ void MainWindow::loadCustomizations() {
         SETTINGSMAINGEOMETRY + QString::number(guiState)).toByteArray();
     if (!geo.isEmpty() && geo.size() > 4) {
         restoreGeometry(geo);   // silently no-ops if data is wrong format
+    } else {
+        // First time this mode has ever run: without an explicit default,
+        // QMainWindow sizes itself from its Expanding-policy dock widgets'
+        // sizeHint (which tends to end up close to the whole screen) and
+        // always lands at Qt's default top-left placement. Pick a sane,
+        // centered default instead.
+        QRect avail = QGuiApplication::primaryScreen()->availableGeometry();
+        QSize defaultSize(qMin(1024, avail.width()), qMin(768, avail.height()));
+        resize(defaultSize);
+        move(avail.center() - QPoint(defaultSize.width() / 2, defaultSize.height() / 2));
     }
 
 
@@ -575,6 +585,9 @@ void MainWindow::saveCustomizations() {
 }
 
 void MainWindow::resizeToFitGraph(int canvasW, int canvasH) {
+    // -f wins: don't shrink a fullscreen window back down to the canvas size.
+    if (guiFullScreen) return;
+
     // Compute the chrome height: everything between the OS client area and the
     // scroll-area viewport that holds graphwin.
     // = menu bar + status bar  (main window level)
@@ -587,6 +600,11 @@ void MainWindow::resizeToFitGraph(int canvasW, int canvasH) {
         chromeH += statusBar()->height();
     chromeH += graphwin_widget->height() - graph_scroll->height();
     resize(canvasW, canvasH + chromeH);
+
+    // resize() doesn't reposition, so without this the window is left wherever
+    // it happened to be before shrinking down to the canvas size.
+    QRect avail = QGuiApplication::primaryScreen()->availableGeometry();
+    move(avail.center() - QPoint(width() / 2, height() / 2));
 }
 
 MainWindow::~MainWindow() {
