@@ -1,6 +1,7 @@
-2026-07-02 M. Vilain <uglymike17@gmail.com>  
+2026-07-04 M. Vilain <uglymike17@gmail.com>  
 	* Added: CLI option -f when used with -r/-a/-g/-t will now open the program fullscreen
 	* Added: CLI option -s when used will supress all screen output. Mainly used during testing but could be used to read/write/change a file/DB,...
+	* Small bugfix: Windows Installer created spurious basic256 directory with Examples and TestSuite.
 
 
 2026-06-30 M. Vilain <uglymike17@gmail.com>  
