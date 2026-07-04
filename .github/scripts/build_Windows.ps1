@@ -11,8 +11,11 @@ choco install winflexbison3 -y
 python -m pip install aqtinstall
 aqt install-qt windows desktop 6.7.3 win64_msvc2019_64 -m qtmultimedia qtserialport qtspeech qt5compat
 
-#set Qt6 dir
-"QT_DIR=$env:GITHUB_WORKSPACE\6.7.3\msvc2019_64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+#set Qt6 dir (also export for later steps, e.g. packaging - $GITHUB_ENV only
+#takes effect starting from the *next* step, not later in this same script)
+$qtDir = "$env:GITHUB_WORKSPACE\6.7.3\msvc2019_64"
+$env:QT_DIR = $qtDir
+"QT_DIR=$qtDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
 #Build Windows
 $bisonBin = "C:\ProgramData\chocolatey\lib\winflexbison3\tools"
