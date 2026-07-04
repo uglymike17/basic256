@@ -18,7 +18,7 @@ Convert::Convert(QLocale *applocale) {
 	// build international safe regular expression for numbers
 	locale = applocale;
 	replaceDecimalPoint = replaceDecimalPoint && locale->decimalPoint()!='.'; //use locale decimal point only if !="."
-	decimalPoint = (replaceDecimalPoint?locale->decimalPoint():QChar('.'));
+	decimalPoint = (replaceDecimalPoint?QString(locale->decimalPoint()).at(0):QChar('.'));
 	isnumericexpression = QString("^[-+]?[0-9]*") + decimalPoint + QString("?[0-9]+([eE][-+]?[0-9]+)?$");
 	musicalnote.setPattern("^(do|re|mi|fa|sol|la|si|c|d|e|f|g|a|b|h|ni|pa|vu|ga|di|ke|zo)([-]?[0-9]+)?(#{1,2}|b{1,2})?$");
 	musicalnote.setPatternOptions(QRegularExpression::CaseInsensitiveOption);

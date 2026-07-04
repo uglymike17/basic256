@@ -212,10 +212,12 @@ Per-file (each is `#include <QRegularExpression>` + convert usage):
       `if (regexMinimal) expr.setPatternOptions(QRegularExpression::InvertedGreedinessOption);`
       at each site.
 - [x] **`BasicOutput.cpp`** – `split(QRegExp(...))` converted.
-- [x] **`Convert.cpp`** – `replace(QRegExp(...))` converted. Also fixed an
-      unrelated char→QString ternary (`decimalPoint()` vs `'.'`) that only
-      surfaced as a hard error once QRegExp-related errors upstream stopped
-      masking it — wrapped the literal as `QChar('.')`.
+- [x] **`Convert.cpp`** – `replace(QRegExp(...))` converted. Also has a
+      char/QString ternary (`decimalPoint()` vs `'.'`) at line 21 assigning
+      into the `QChar decimalPoint` member — see session log for the actual
+      fix (the earlier `QChar('.')`-wrap attempt did not resolve it; the real
+      cause is `QLocale::decimalPoint()` returning `QString` in Qt6 instead
+      of `QChar` as in Qt5).
 - [x] **`MainWindow.cpp` (line ~975)** – version-string check converted to
       `QRegularExpression` + `match().captured(0)`.
 
@@ -369,3 +371,20 @@ top to bottom:
   run by Claude Code — maintainer runs it per standing session instruction.
   Phase 3 (VariableWin.h QVariant::type warnings, LineNumberArea.cpp wheel
   event verification) is next, then Phase 4.
+
+2026-07-04 (later still) Maintainer fed back a second real Qt6 MSVC build log.
+Everything from the previous pass compiled clean; the build now fails only at
+`Convert.cpp(21,2)`: `QChar &QChar::operator=(QString)` — no viable
+conversion. Root cause: `decimalPoint` (`Convert.h:68`) is declared `QChar`,
+and the ternary `replaceDecimalPoint ? locale->decimalPoint() : QChar('.')`
+mixes a `QString` (Qt6's `QLocale::decimalPoint()` return type) with a
+`QChar`; the previous session's fix wrapped the *literal* (`QChar('.')`),
+which was already the literal's type and did nothing for the actual mismatch
+on the other branch. Since the project's `CMakeLists.txt` still falls back to
+Qt5 (`find_package(QT NAMES Qt6 Qt5 ...)`, Phase 4 not yet done), and Qt5's
+`QLocale::decimalPoint()` returns `QChar` (no `.at()`), the fix needs to
+compile under both: wrapped the call as `QString(locale->decimalPoint()).at(0)`
+— `QString(QChar)` (Qt5) and `QString(QString)` (Qt6) both work, and `.at(0)`
+yields a `QChar` on either branch so the ternary and the assignment into the
+`QChar` member both type-check. Not yet re-verified against an actual build
+by Claude Code — maintainer to re-run CI.
