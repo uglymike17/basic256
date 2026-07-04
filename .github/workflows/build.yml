@@ -1,7 +1,7 @@
 name: Build BASIC-256_2.1.Alpha CMake
 on:
   push:
-    branches: [ main, v2.1.Alpha04Qt6 ]
+    branches: [ v2.1.Alpha04Qt6 ]
   pull_request:
   release:
     types: [created]

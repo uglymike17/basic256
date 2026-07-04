@@ -24,7 +24,10 @@
 #include <QObject>
 #include <QTimer>
 #include <QMediaPlayer>
-#include <QAudioOutput>
+#include <QAudioSink>
+#include <QAudioDevice>
+#include <QMediaDevices>
+#include <QAudioOutput>   // still needed: for the QMediaPlayer audio path (Rule 2)
 #include <QBuffer>
 #include <QEventLoop>
 #include <QFileInfo>
@@ -87,7 +90,8 @@ class Sound : public QObject
         int loopCountdown; //used for loop counting
         int loopSaved; //used for players to remember the initial number of loops
         QMediaPlayer* media;
-        QAudioOutput* audio;
+        QAudioSink* audio;
+        QAudioOutput* mediaAudioOut;
         QBuffer *buffer;
         QByteArray *byteArray;
         Error **error;
@@ -133,7 +137,7 @@ public slots:
 private slots:
         void handleAudioStateChanged(QAudio::State);
         void onStateChanged(QAudio::State state);
-        void handleMediaStateChanged(QMediaPlayer::State);
+        void handleMediaStateChanged(QMediaPlayer::PlaybackState);
         void handleMediaDurationChanged(qint64);
         void handleMediaStatusChanged(QMediaPlayer::MediaStatus);
         void handleMediaError(QMediaPlayer::Error);

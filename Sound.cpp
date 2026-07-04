@@ -290,9 +290,9 @@ bool Sound::seek(double sec) {
 				connect(timer, SIGNAL(timeout()), loop, SLOT(quit()));
 				timer->start(2000);
 				QObject::connect(this, SIGNAL(exitWaitingLoop()), loop, SLOT(quit()));
-				QObject::connect(media, SIGNAL(stateChanged(QMediaPlayer::State)), loop, SLOT(quit()));
+				QObject::connect(media, &QMediaPlayer::playbackStateChanged, loop, &QEventLoop::quit);
 				QObject::connect(media, SIGNAL(seekableChanged(bool)), loop, SLOT(quit()));
-				while(!isStopping && media && !media->isSeekable() && media->state() != QMediaPlayer::StoppedState && timer->isActive()){
+				while(!isStopping && media && !media->isSeekable() && media->playbackState() != QMediaPlayer::StoppedState && timer->isActive()){
 					loop->exec(QEventLoop::WaitForMoreEvents);
 				}
 				delete (loop);
@@ -325,7 +325,7 @@ void Sound::waitLastMediaSeekTakeAction(){
 		connect(timer, SIGNAL(timeout()), loop, SLOT(quit()));
 		timer->start(2000);
 		QObject::connect(this, SIGNAL(exitWaitingLoop()), loop, SLOT(quit()));
-		QObject::connect(media, SIGNAL(stateChanged(QMediaPlayer::State)), loop, SLOT(quit()));
+		QObject::connect(media, &QMediaPlayer::playbackStateChanged, loop, &QEventLoop::quit);
 		QObject::connect(media, SIGNAL(positionChanged(qint64)), loop, SLOT(quit()));
 		while(!isStopping && !isPositionChanged && timer->isActive()){
 			loop->exec(QEventLoop::WaitForMoreEvents);
@@ -373,7 +373,7 @@ double Sound::length() {
 			connect(timer, SIGNAL(timeout()), loop, SLOT(quit()));
 			timer->start(2000);
 			QObject::connect(this, SIGNAL(exitWaitingLoop()), loop, SLOT(quit()));
-			QObject::connect(media, SIGNAL(stateChanged(QMediaPlayer::State)), loop, SLOT(quit()));
+			QObject::connect(media, &QMediaPlayer::playbackStateChanged, loop, &QEventLoop::quit);
 			QObject::connect(media, SIGNAL(durationChanged(qint64)), loop, SLOT(quit()));
 			while(!isStopping && timer->isActive() && media_duration<0.0){
 				loop->exec(QEventLoop::WaitForMoreEvents);
@@ -395,7 +395,7 @@ void Sound::updatedMasterVolume(double v) {
 	if(audio){
 		audio->setVolume((qreal)(v/10.0*individualVolume));
 	}else if(media){
-		media->setVolume(v*10.0*individualVolume);
+		mediaAudioOut->setVolume(v/10.0*individualVolume);   // 0.0..1.0
 	}
 }
 
@@ -413,9 +413,9 @@ void Sound::prepareConnections() {
 		connect(audio, SIGNAL(stateChanged(QAudio::State)), this, SLOT(handleAudioStateChanged(QAudio::State)));
 	}else if(media){
 		connect(media, SIGNAL(mediaStatusChanged(QMediaPlayer::MediaStatus)), this, SLOT(handleMediaStatusChanged(QMediaPlayer::MediaStatus)));
-		connect(media, SIGNAL(stateChanged(QMediaPlayer::State)), this, SLOT(handleMediaStateChanged(QMediaPlayer::State)));
+		connect(media, &QMediaPlayer::playbackStateChanged, this, &Sound::handleMediaStateChanged);
 		connect(media, SIGNAL(durationChanged(qint64)), this, SLOT(handleMediaDurationChanged(qint64)));
-		connect(media, SIGNAL(error(QMediaPlayer::Error)), this, SLOT(handleMediaError(QMediaPlayer::Error)));
+		connect(media, &QMediaPlayer::errorOccurred, this, &Sound::handleMediaError);
 		connect(media, SIGNAL(positionChanged(qint64)), this, SLOT(handlePositionChanged(qint64)));
 	}
 }
@@ -453,7 +453,7 @@ void Sound::handleMediaError(QMediaPlayer::Error /*err*/) {
 	//qDebug() << err;
 }
 
-void Sound::handleMediaStateChanged(QMediaPlayer::State newState){
+void Sound::handleMediaStateChanged(QMediaPlayer::PlaybackState newState){
 	soundState = newState;
 	if(newState==QMediaPlayer::StoppedState){
 		soundStateExpected=0;
@@ -464,7 +464,7 @@ void Sound::handleMediaStateChanged(QMediaPlayer::State newState){
 				media->disconnect(this);
 				emit soundFinished(id);
 				emit exitWaitingLoop(); // wake any pending soundwait
-				media->setMedia(QMediaContent());
+				media->setSourceDevice(nullptr);
 				emit(deleteMe(id));
 				this->disconnect();
 			}else{
@@ -591,7 +591,7 @@ void Sound::stopsSoundsAndWaiting(){
 		media->stop();
 		emit soundFinished(id);
 		emit exitWaitingLoop(); // wake any pending soundwait
-		media->setMedia(QMediaContent());
+		media->setSourceDevice(nullptr);
 		emit(deleteMe(id));
 		this->disconnect();
 	}
@@ -611,7 +611,7 @@ void Sound::timerEvent(QTimerEvent *event){
 				if(audio){
 					audio->setVolume((qreal)(masterVolume/10.0*individualVolume));
 				}else if(media){
-					media->setVolume(masterVolume*10*individualVolume);
+					mediaAudioOut->setVolume(masterVolume/10.0*individualVolume); // 0.0..1.0
 				}
 				if(fadeCountdown<=0 || individualVolume==fadeVolume){
 					fadeTimer.stop();
@@ -652,9 +652,7 @@ SoundSystem::SoundSystem() :
 	// setup the audio format
 	format.setSampleRate(sound_samplerate);
 	format.setChannelCount(1);
-	format.setSampleSize(16);	// 16 bit audio
-	format.setCodec("audio/pcm");
-	format.setSampleType(QAudioFormat::SignedInt);
+	format.setSampleFormat(QAudioFormat::Int16);
 
 // debugging - list available devices
 //QList<QAudioDeviceInfo> devices = QAudioDeviceInfo::availableDevices(QAudio::AudioOutput);
@@ -663,9 +661,9 @@ SoundSystem::SoundSystem() :
 //    fprintf(stderr, "\n");
 //}
 
-	QAudioDeviceInfo info(QAudioDeviceInfo::defaultOutputDevice());
+	QAudioDevice info = QMediaDevices::defaultAudioOutput();
 	if (!info.isFormatSupported(format)) {
-		format = info.nearestFormat(format);
+		format = info.preferredFormat();   // Qt6 has no nearestFormat()
 #ifdef DEBUG
 		fprintf(stderr,"Switching to nearest audio format.\n");
 #endif
@@ -811,6 +809,8 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 				connect(soundsmap[lastIdUsed], SIGNAL(deleteMe(int)), this, SLOT(deleteMe(int)));
 				connect(soundsmap[lastIdUsed], SIGNAL(validateLoadedSound(QString, bool)), this, SLOT(validateLoadedSound(QString, bool)));
 				soundsmap[lastIdUsed]->media = new QMediaPlayer(soundsmap[lastIdUsed]);
+				soundsmap[lastIdUsed]->mediaAudioOut = new QAudioOutput(soundsmap[lastIdUsed]);
+				soundsmap[lastIdUsed]->media->setAudioOutput(soundsmap[lastIdUsed]->mediaAudioOut);
 				soundsmap[lastIdUsed]->individualVolume = loadedsounds[s].individualVolume;
 				soundsmap[lastIdUsed]->updatedMasterVolume(masterVolume);
 				soundsmap[lastIdUsed]->type = SOUNDTYPE_MEMORY;
@@ -821,7 +821,7 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 				soundsmap[lastIdUsed]->buffer->seek(0);
 				soundsmap[lastIdUsed]->needValidation = loadedsounds[s].needValidation;
 				soundsmap[lastIdUsed]->isValidated = loadedsounds[s].isValidated;
-				soundsmap[lastIdUsed]->media->setMedia(QMediaContent(), soundsmap[lastIdUsed]->buffer);
+				soundsmap[lastIdUsed]->media->setSourceDevice(soundsmap[lastIdUsed]->buffer);
 				soundsmap[lastIdUsed]->scheduledFade=loadedsounds[s].scheduledFade;
 				soundsmap[lastIdUsed]->fadeVolume=loadedsounds[s].fadeVolume;
 				soundsmap[lastIdUsed]->fadeCountdown=loadedsounds[s].fadeCountdown;
@@ -854,7 +854,7 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 			soundsmap[lastIdUsed]->buffer = new QBuffer(loadedsounds[s].byteArray);
 			soundsmap[lastIdUsed]->buffer->open(QIODevice::ReadOnly);
 			soundsmap[lastIdUsed]->buffer->seek(0);
-			soundsmap[lastIdUsed]->audio = new QAudioOutput(format,soundsmap[lastIdUsed]);
+			soundsmap[lastIdUsed]->audio = new QAudioSink(format,soundsmap[lastIdUsed]);
 			soundsmap[lastIdUsed]->individualVolume = loadedsounds[s].individualVolume;
 			soundsmap[lastIdUsed]->updatedMasterVolume(masterVolume);
 			soundsmap[lastIdUsed]->sound_samplerate=sound_samplerate;
@@ -886,6 +886,8 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 		connect(this, SIGNAL(systemMassCommand(int)), soundsmap[lastIdUsed], SLOT(systemMassCommand(int)));
 		connect(soundsmap[lastIdUsed], SIGNAL(deleteMe(int)), this, SLOT(deleteMe(int)));
 		soundsmap[lastIdUsed]->media = new QMediaPlayer(soundsmap[lastIdUsed]);
+		soundsmap[lastIdUsed]->mediaAudioOut = new QAudioOutput(soundsmap[lastIdUsed]);
+		soundsmap[lastIdUsed]->media->setAudioOutput(soundsmap[lastIdUsed]->mediaAudioOut);
 		soundsmap[lastIdUsed]->type = SOUNDTYPE_FILE;
 		soundsmap[lastIdUsed]->source = s;
 		soundsmap[lastIdUsed]->prepareConnections();
@@ -899,7 +901,7 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 		//    if i > 0 then goto loop
 		soundsmap[lastIdUsed]->needValidation = true;
 		soundsmap[lastIdUsed]->isValidated = false;
-		soundsmap[lastIdUsed]->media->setMedia(QUrl::fromLocalFile(QFileInfo(s).absoluteFilePath()));
+		soundsmap[lastIdUsed]->media->setSource(QUrl::fromLocalFile(QFileInfo(s).absoluteFilePath()));
 		soundsmap[lastIdUsed]->updatedMasterVolume(masterVolume);
 
 		if(!isPlayer) soundsmap[lastIdUsed]->play(); //if it is a regular sound then play it, if it is a player, then do not play it
@@ -914,10 +916,12 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 		connect(this, SIGNAL(systemMassCommand(int)), soundsmap[lastIdUsed], SLOT(systemMassCommand(int)));
 		connect(soundsmap[lastIdUsed], SIGNAL(deleteMe(int)), this, SLOT(deleteMe(int)));
 		soundsmap[lastIdUsed]->media = new QMediaPlayer(soundsmap[lastIdUsed]);
+		soundsmap[lastIdUsed]->mediaAudioOut = new QAudioOutput(soundsmap[lastIdUsed]);
+		soundsmap[lastIdUsed]->media->setAudioOutput(soundsmap[lastIdUsed]->mediaAudioOut);
 		soundsmap[lastIdUsed]->type = SOUNDTYPE_WEB;
 		soundsmap[lastIdUsed]->source = s;
 		soundsmap[lastIdUsed]->prepareConnections();
-		soundsmap[lastIdUsed]->media->setMedia(QUrl::fromUserInput(s));
+		soundsmap[lastIdUsed]->media->setSource(QUrl::fromUserInput(s));
 		soundsmap[lastIdUsed]->updatedMasterVolume(masterVolume);
 		//see above
 		soundsmap[lastIdUsed]->needValidation = true;
@@ -948,7 +952,7 @@ int SoundSystem::playSound(std::vector<std::vector<double>> sounddata, bool isPl
 	soundsmap[lastIdUsed]->buffer->open(QIODevice::ReadWrite);
 	soundsmap[lastIdUsed]->buffer->seek(0);
 	soundsmap[lastIdUsed]->type = SOUNDTYPE_GENERATED;
-	soundsmap[lastIdUsed]->audio = new QAudioOutput(format,soundsmap[lastIdUsed]);
+	soundsmap[lastIdUsed]->audio = new QAudioSink(format,soundsmap[lastIdUsed]);
 	soundsmap[lastIdUsed]->updatedMasterVolume(masterVolume);
 	soundsmap[lastIdUsed]->sound_samplerate=sound_samplerate;
 	soundsmap[lastIdUsed]->prepareConnections();

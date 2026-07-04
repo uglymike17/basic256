@@ -20,6 +20,7 @@
 #define __BASICMEDIAPLAYER_H
 
 #include <QMediaPlayer>
+#include <QAudioOutput>
 #include <QFileInfo>
 #include <QEventLoop>
 #include <QTimer>
@@ -47,8 +48,9 @@ public slots:
 
 private:
 	Sleeper *mediasleeper;
+	QAudioOutput *audioOutput;
     void waitForSeekable(int);
-    void waitForState(QMediaPlayer::State, int);
+    void waitForState(QMediaPlayer::PlaybackState, int);
 
 };
 
