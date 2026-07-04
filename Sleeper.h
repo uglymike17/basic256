@@ -20,6 +20,9 @@
 #define __SLEEPER_H
 
 #ifdef WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <windows.h>
 #else
 #include <time.h>

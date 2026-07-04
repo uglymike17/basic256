@@ -43,13 +43,6 @@ set(BASIC256_QT_COMPONENTS
     Network
 )
 
-# Qt6 removed QRegExp from Core; Core5Compat is a temporary shim so QRegExp
-# keeps compiling unchanged until the QRegularExpression migration (Phase 2
-# of QT6_MIGRATION_CHECKLIST.md) is complete.
-if(QT_VERSION_MAJOR EQUAL 6)
-    list(APPEND BASIC256_QT_COMPONENTS Core5Compat)
-endif()
-
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS ${BASIC256_QT_COMPONENTS})
 
 
@@ -304,8 +297,4 @@ target_link_libraries(basic256
         Qt${QT_VERSION_MAJOR}::Network
         ${PLATFORM_LIBS}
 )
-
-if(QT_VERSION_MAJOR EQUAL 6)
-    target_link_libraries(basic256 PRIVATE Qt6::Core5Compat)
-endif()
 

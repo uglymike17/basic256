@@ -17,7 +17,8 @@
 
 #include <iostream>
 
-
+#include <QPageSize>
+#include <QPageLayout>
 
 #include "PreferencesWin.h"
 #include "Settings.h"
@@ -416,36 +417,36 @@ PreferencesWin::PreferencesWin (QWidget * parent, bool showAdvanced)
 		paperlabel = new QLabel(tr("Paper:"),this);
 		printertablayout->addWidget(paperlabel,r,1,1,1);
 		papercombo = new QComboBox(this);
-		papercombo->addItem(tr("A0 (841 x 1189 mm)"),	QPrinter::A0);
-		papercombo->addItem(tr("A1 (594 x 841 mm)"), QPrinter::A1);
-		papercombo->addItem(tr("A2 (420 x 594 mm)"), QPrinter::A2);
-		papercombo->addItem(tr("A3 (297 x 420 mm)"), QPrinter::A3);
-		papercombo->addItem(tr("A4 (210 x 297 mm, 8.26 x 11.69 inches)"), QPrinter::A4);
-		papercombo->addItem(tr("A5 (148 x 210 mm)"), QPrinter::A5);
-		papercombo->addItem(tr("A6 (105 x 148 mm)"), QPrinter::A6);
-		papercombo->addItem(tr("A7 (74 x 105 mm)"), QPrinter::A7);
-		papercombo->addItem(tr("A9 (52 x 74 mm)"), QPrinter::A8);
-		papercombo->addItem(tr("A9 (37 x 52 mm)"), QPrinter::A9);
-		papercombo->addItem(tr("B0 (1000 x 1414 mm)"), QPrinter::B0);
-		papercombo->addItem(tr("B1 (707 x 1000 mm)"), QPrinter::B1);
-		papercombo->addItem(tr("B2 (500 x 707 mm)"), QPrinter::B2);
-		papercombo->addItem(tr("B3 (353 x 500 mm)"), QPrinter::B3);
-		papercombo->addItem(tr("B4 (250 x 353 mm)"), QPrinter::B4);
-		papercombo->addItem(tr("B5 (176 x 250 mm, 6.93 x 9.84 inches)"), QPrinter::B5);
-		papercombo->addItem(tr("B6 (125 x 176 mm)"), QPrinter::B6);
-		papercombo->addItem(tr("B7 (88 x 125 mm)"), QPrinter::B7);
-		papercombo->addItem(tr("B8 (62 x 88 mm)"), QPrinter::B8);
-		papercombo->addItem(tr("B9 (33 x 62 mm)"), QPrinter::B9);
-		papercombo->addItem(tr("B10 (31 x 44 mm)"), QPrinter::B10);
-		papercombo->addItem(tr("#5 Envelope (163 x 229 mm)"), QPrinter::C5E);
-		papercombo->addItem(tr("#10 Envelope (105 x 241 mm)"), QPrinter::Comm10E);
-		papercombo->addItem(tr("DLE (110 x 220 mm)"), QPrinter::DLE);
-		papercombo->addItem(tr("Executive (7.5 x 10 inches, 190.5 x 254 mm)"), QPrinter::Executive);
-		papercombo->addItem(tr("Folio (210 x 330 mm)"), QPrinter::Folio);
-		papercombo->addItem(tr("Ledger (431.8 x 279.4 mm)"), QPrinter::Ledger);
-		papercombo->addItem(tr("Legal (8.5 x 14 inches, 215.9 x 355.6 mm)"), QPrinter::Legal);
-		papercombo->addItem(tr("Letter (8.5 x 11 inches, 215.9 x 279.4 mm)"), QPrinter::Letter);
-		papercombo->addItem(tr("Tabloid (279.4 x 431.8 mm)"), QPrinter::Tabloid);
+		papercombo->addItem(tr("A0 (841 x 1189 mm)"),	QPageSize::A0);
+		papercombo->addItem(tr("A1 (594 x 841 mm)"), QPageSize::A1);
+		papercombo->addItem(tr("A2 (420 x 594 mm)"), QPageSize::A2);
+		papercombo->addItem(tr("A3 (297 x 420 mm)"), QPageSize::A3);
+		papercombo->addItem(tr("A4 (210 x 297 mm, 8.26 x 11.69 inches)"), QPageSize::A4);
+		papercombo->addItem(tr("A5 (148 x 210 mm)"), QPageSize::A5);
+		papercombo->addItem(tr("A6 (105 x 148 mm)"), QPageSize::A6);
+		papercombo->addItem(tr("A7 (74 x 105 mm)"), QPageSize::A7);
+		papercombo->addItem(tr("A9 (52 x 74 mm)"), QPageSize::A8);
+		papercombo->addItem(tr("A9 (37 x 52 mm)"), QPageSize::A9);
+		papercombo->addItem(tr("B0 (1000 x 1414 mm)"), QPageSize::B0);
+		papercombo->addItem(tr("B1 (707 x 1000 mm)"), QPageSize::B1);
+		papercombo->addItem(tr("B2 (500 x 707 mm)"), QPageSize::B2);
+		papercombo->addItem(tr("B3 (353 x 500 mm)"), QPageSize::B3);
+		papercombo->addItem(tr("B4 (250 x 353 mm)"), QPageSize::B4);
+		papercombo->addItem(tr("B5 (176 x 250 mm, 6.93 x 9.84 inches)"), QPageSize::B5);
+		papercombo->addItem(tr("B6 (125 x 176 mm)"), QPageSize::B6);
+		papercombo->addItem(tr("B7 (88 x 125 mm)"), QPageSize::B7);
+		papercombo->addItem(tr("B8 (62 x 88 mm)"), QPageSize::B8);
+		papercombo->addItem(tr("B9 (33 x 62 mm)"), QPageSize::B9);
+		papercombo->addItem(tr("B10 (31 x 44 mm)"), QPageSize::B10);
+		papercombo->addItem(tr("#5 Envelope (163 x 229 mm)"), QPageSize::C5E);
+		papercombo->addItem(tr("#10 Envelope (105 x 241 mm)"), QPageSize::Comm10E);
+		papercombo->addItem(tr("DLE (110 x 220 mm)"), QPageSize::DLE);
+		papercombo->addItem(tr("Executive (7.5 x 10 inches, 190.5 x 254 mm)"), QPageSize::Executive);
+		papercombo->addItem(tr("Folio (210 x 330 mm)"), QPageSize::Folio);
+		papercombo->addItem(tr("Ledger (431.8 x 279.4 mm)"), QPageSize::Ledger);
+		papercombo->addItem(tr("Legal (8.5 x 14 inches, 215.9 x 355.6 mm)"), QPageSize::Legal);
+		papercombo->addItem(tr("Letter (8.5 x 11 inches, 215.9 x 279.4 mm)"), QPageSize::Letter);
+		papercombo->addItem(tr("Tabloid (279.4 x 431.8 mm)"), QPageSize::Tabloid);
 		// set setting and select
 		setpaper = settings.value(SETTINGSPRINTERPAPER, SETTINGSPRINTERPAPERDEFAULT).toInt();
 		int index = papercombo->findData(setpaper);
@@ -490,8 +491,8 @@ PreferencesWin::PreferencesWin (QWidget * parent, bool showAdvanced)
 		orientbox->addWidget(orientlandscape);
 		orientgroup->setLayout(orientbox);
 		printertablayout->addWidget(orientgroup,r,2,1,2);
-		orientportrait->setChecked(settings.value(SETTINGSPRINTERORIENT, SETTINGSPRINTERORIENTDEFAULT)==QPrinter::Portrait);
-		orientlandscape->setChecked(settings.value(SETTINGSPRINTERORIENT, SETTINGSPRINTERORIENTDEFAULT)==QPrinter::Landscape);
+		orientportrait->setChecked(settings.value(SETTINGSPRINTERORIENT, SETTINGSPRINTERORIENTDEFAULT)==QPageLayout::Portrait);
+		orientlandscape->setChecked(settings.value(SETTINGSPRINTERORIENT, SETTINGSPRINTERORIENTDEFAULT)==QPageLayout::Landscape);
 	}
 
 
@@ -612,8 +613,8 @@ void PreferencesWin::clickSaveButton() {
 		if (resolutionhigh->isChecked()) settings.setValue(SETTINGSPRINTERRESOLUTION, QPrinter::HighResolution);
 		if (resolutionscreen->isChecked()) settings.setValue(SETTINGSPRINTERRESOLUTION, QPrinter::ScreenResolution);
 		//
-		if (orientportrait->isChecked()) settings.setValue(SETTINGSPRINTERORIENT, QPrinter::Portrait);
-		if (orientlandscape->isChecked()) settings.setValue(SETTINGSPRINTERORIENT, QPrinter::Landscape);
+		if (orientportrait->isChecked()) settings.setValue(SETTINGSPRINTERORIENT, QPageLayout::Portrait);
+		if (orientlandscape->isChecked()) settings.setValue(SETTINGSPRINTERORIENT, QPageLayout::Landscape);
 
 
 		// *******************************************************************************************
@@ -704,7 +705,7 @@ SettingsBrowser::SettingsBrowser (QWidget * parent):QDialog(parent) {
 		settings.beginGroup(app);
 		QStringList keys = settings.childKeys();
 		QTreeWidgetItem *item = new QTreeWidgetItem(treeWidgetSettings, (QStringList() << app << QString::number(keys.count())) );
-		item->setFlags(item->flags() | Qt::ItemIsTristate | Qt::ItemIsUserCheckable);
+		item->setFlags(item->flags() | Qt::ItemIsAutoTristate | Qt::ItemIsUserCheckable);
 		item->setCheckState(0, Qt::Unchecked);
 		item->setIcon(0,iconProvider.icon(QFileIconProvider::Folder));
 		for (int k = 0; k < keys.size(); k++){

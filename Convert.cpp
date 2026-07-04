@@ -2,7 +2,7 @@
 #include "Error.h"
 
 #include <string>
-#include <QRegExp>
+#include <QRegularExpression>
 
 
 int Convert::e = ERROR_NONE;
@@ -18,7 +18,7 @@ Convert::Convert(QLocale *applocale) {
 	// build international safe regular expression for numbers
 	locale = applocale;
 	replaceDecimalPoint = replaceDecimalPoint && locale->decimalPoint()!='.'; //use locale decimal point only if !="."
-	decimalPoint = (replaceDecimalPoint?locale->decimalPoint():'.');
+	decimalPoint = (replaceDecimalPoint?locale->decimalPoint():QChar('.'));
 	isnumericexpression = QString("^[-+]?[0-9]*") + decimalPoint + QString("?[0-9]+([eE][-+]?[0-9]+)?$");
 	musicalnote.setPattern("^(do|re|mi|fa|sol|la|si|c|d|e|f|g|a|b|h|ni|pa|vu|ga|di|ke|zo)([-]?[0-9]+)?(#{1,2}|b{1,2})?$");
 	musicalnote.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
@@ -212,7 +212,7 @@ QString Convert::getString(DataElement *d, int ddigits) {
 				//check if adding of ".0" will exceed the number of digits to print numbers
 				if(((int)xp)==ddigits-1 && floattail){
 					s.setNum(d->floatval,'e',ddigits - 1);
-					s.replace(QRegExp(QStringLiteral("0+e")), QStringLiteral("e"));
+					s.replace(QRegularExpression(QStringLiteral("0+e")), QStringLiteral("e"));
 					s.replace(QStringLiteral(".e"), QStringLiteral(".0e"));
 					if(replaceDecimalPoint){
 						s.replace('.', decimalPoint);

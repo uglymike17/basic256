@@ -35,15 +35,15 @@ void EditSyntaxHighlighter::highlightBlock(const QString &text) {
 	VecHighlightRules::iterator sItEnd = m_standardRules.end();
 	while (sIt != sItEnd) {
 		rule = (*sIt);
-		QRegExp expression(rule.pattern);
-		int index = text.indexOf(expression);
-		while (index >= 0) {
-			int length = expression.matchedLength();
+		QRegularExpressionMatchIterator matchIt = rule.pattern.globalMatch(text);
+		while (matchIt.hasNext()) {
+			QRegularExpressionMatch match = matchIt.next();
+			int index = match.capturedStart();
+			int length = match.capturedLength();
 			if (format(index).foreground().color() != m_quoteFmt.foreground().color()) {
 				// dont set the color if we are in quotes
 				setFormat(index, length, rule.format);
-			}  
-			index = text.indexOf(expression, index + length);
+			}
 		}
 		++sIt;
 	}
@@ -374,7 +374,7 @@ void EditSyntaxHighlighter::initKeywords() {
             ;
 	for (QStringList::iterator it = keywordPatterns.begin(); it != keywordPatterns.end(); ++it) {
 		HighlightRule *rule = new HighlightRule;
-		rule->pattern = QRegExp("\\b" + *it + "\\b", Qt::CaseInsensitive);
+		rule->pattern = QRegularExpression("\\b" + *it + "\\b", QRegularExpression::CaseInsensitiveOption);
 		rule->format  = m_keywordFmt;
 		m_standardRules.append(*rule);
 	}
@@ -553,7 +553,7 @@ void EditSyntaxHighlighter::initConstants() {
 			;
 	for (QStringList::iterator it = constantPatterns.begin(); it != constantPatterns.end(); ++it ) {
 		HighlightRule *rule = new HighlightRule;
-		rule->pattern = QRegExp("\\b" + *it + "\\b", Qt::CaseInsensitive);
+		rule->pattern = QRegularExpression("\\b" + *it + "\\b", QRegularExpression::CaseInsensitiveOption);
 		rule->format  = m_constantFmt;
 		m_standardRules.append(*rule);
 	}
@@ -563,7 +563,7 @@ void EditSyntaxHighlighter::initQuotes() {
 	m_quoteFmt.setForeground(Qt::magenta);
 
 	HighlightRule *rule = new HighlightRule;
-	rule->pattern = QRegExp("(\"[^\"]*\")|(\'[^\']*\')");
+	rule->pattern = QRegularExpression("(\"[^\"]*\")|(\'[^\']*\')");
 	rule->format = m_quoteFmt;
 	m_standardRules.append(*rule);
 }
@@ -572,7 +572,7 @@ void EditSyntaxHighlighter::initLabels() {
 	m_labelFmt.setForeground(Qt::blue);
 
 	HighlightRule *rule = new HighlightRule;
-	rule->pattern = QRegExp("(?:^\\s*)([a-z0-9]+):", Qt::CaseInsensitive);
+	rule->pattern = QRegularExpression("(?:^\\s*)([a-z0-9]+):", QRegularExpression::CaseInsensitiveOption);
 	rule->format = m_labelFmt;
 	m_standardRules.append(*rule);
 }
@@ -581,7 +581,7 @@ void EditSyntaxHighlighter::initNumbers() {
 	m_numberFmt.setForeground(Qt::darkMagenta);
 
 	HighlightRule *rule = new HighlightRule;
-	rule->pattern = QRegExp("(\\b([0-9]*\\.?[0-9]+(e[-+]?[0-9]+)?)\\b)|(\\b0x[0-9a-f]+\\b)|(\\b0b[0-1]+\\b)|(\\b0o[0-7]+\\b)", Qt::CaseInsensitive);
+	rule->pattern = QRegularExpression("(\\b([0-9]*\\.?[0-9]+(e[-+]?[0-9]+)?)\\b)|(\\b0x[0-9a-f]+\\b)|(\\b0b[0-1]+\\b)|(\\b0o[0-7]+\\b)", QRegularExpression::CaseInsensitiveOption);
 	rule->format = m_numberFmt;
 	m_standardRules.append(*rule);
 }
@@ -592,7 +592,7 @@ void EditSyntaxHighlighter::initComments() {
 
 	HighlightRule *rule;
 	rule = new HighlightRule;
-	rule->pattern = QRegExp("(\\bREM\\b.*$)|(#.*$)", Qt::CaseInsensitive);
+	rule->pattern = QRegularExpression("(\\bREM\\b.*$)|(#.*$)", QRegularExpression::CaseInsensitiveOption);
 	rule->format = m_commentFmt;
 	m_standardRules.append(*rule);
 }

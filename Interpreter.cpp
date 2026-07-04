@@ -28,7 +28,7 @@
 #include <QRandomGenerator>
 #include <QDebug>
 #include <QTimer>
-#include <QRegExp>
+#include <QRegularExpression>
 
 #include <QString>
 #include <QPainter>
@@ -2914,29 +2914,28 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				//		 where -1 is the last character position, -2 the second character from the end... and so on
 
 					int start = stack->popInt();
-					QRegExp expr = QRegExp(stack->popQString());
-					expr.setMinimal(regexMinimal);
+					QRegularExpression expr(stack->popQString());
+					if (regexMinimal) expr.setPatternOptions(QRegularExpression::InvertedGreedinessOption);
 					QString qtemp = stack->popQString();
 
 					if(start == 0) {
 						error->q(ERROR_STRSTART);
 						stack->pushQString(QString(""));
 					} else {
-						int pos;
+						QRegularExpressionMatch m;
 						if (start==1) {
-							pos = expr.indexIn(qtemp);
+							m = expr.match(qtemp);
 						} else if (start>1){
-							pos = expr.indexIn(qtemp.mid(start-1));
+							m = expr.match(qtemp.mid(start-1));
 						}else{
-							pos = expr.indexIn(qtemp.mid(qtemp.length()+start));
+							m = expr.match(qtemp.mid(qtemp.length()+start));
 						}
 
-						if (pos==-1) {
+						if (!m.hasMatch()) {
 							// did not find it - return ""
 							stack->pushQString(QString(""));
 						} else {
-							QStringList stuff = expr.capturedTexts();
-							stack->pushQString(stuff[0]);
+							stack->pushQString(m.captured(0));
 						}
 					}
 				}
@@ -3058,20 +3057,20 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						//		 then position is starting from the end of the string,
 						//		 where -1 is the last character position, -2 the second character from the end... and so on
 						int start = stack->popInt();
-						QRegExp expr = QRegExp(stack->popQString());
-						expr.setMinimal(regexMinimal);
+						QRegularExpression expr(stack->popQString());
+						if (regexMinimal) expr.setPatternOptions(QRegularExpression::InvertedGreedinessOption);
 						QString qtemp = stack->popQString();
 
 						int pos=0;
 						if(start == 0) {
 							error->q(ERROR_STRSTART);
 						} else if (start>0){
-							pos = expr.indexIn(qtemp,start-1)+1;
+							pos = qtemp.indexOf(expr,start-1)+1;
 						}else{
 							int p = qtemp.length()+start;
 							if(p<0)
 								p=0;
-							pos = expr.indexIn(qtemp, p)+1;
+							pos = qtemp.indexOf(expr, p)+1;
 						}
 						stack->pushInt(pos);
 					}
@@ -6099,8 +6098,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					// regex replace function
 
 					QString qto = stack->popQString();
-					QRegExp expr = QRegExp(stack->popQString());
-					expr.setMinimal(regexMinimal);
+					QRegularExpression expr(stack->popQString());
+					if (regexMinimal) expr.setPatternOptions(QRegularExpression::InvertedGreedinessOption);
 					QString qhaystack = stack->popQString();
 
 					stack->pushQString(qhaystack.replace(expr, qto));
@@ -6123,8 +6122,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_COUNTX: {
 					// regex count function
 
-					QRegExp expr = QRegExp(stack->popQString());
-					expr.setMinimal(regexMinimal);
+					QRegularExpression expr(stack->popQString());
+					if (regexMinimal) expr.setPatternOptions(QRegularExpression::InvertedGreedinessOption);
 					QString qhaystack = stack->popQString();
 
 					stack->pushInt((int) (qhaystack.count(expr)));
@@ -6885,12 +6884,12 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						//list = qhaystack.split(qneedle, QString::KeepEmptyParts , casesens);
 						list = qhaystack.split(qneedle, Qt::KeepEmptyParts , casesens);
 					} else {
-						QRegExp expr = QRegExp(qneedle);
-						expr.setMinimal(regexMinimal);
+						QRegularExpression expr(qneedle);
+						if (regexMinimal) expr.setPatternOptions(QRegularExpression::InvertedGreedinessOption);
 						if (expr.captureCount()>0) {
 							// if we have captures in our regex then return them
-							expr.indexIn(qhaystack);
-							list = expr.capturedTexts();
+							QRegularExpressionMatch m = expr.match(qhaystack);
+							list = m.capturedTexts();
 						} else {
 							// if it is a simple regex without captures then split
 							list = qhaystack.split(expr, Qt::KeepEmptyParts);

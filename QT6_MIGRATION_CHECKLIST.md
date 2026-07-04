@@ -163,6 +163,15 @@ This is the only phase that currently stops the Qt6 build.
       one that **plays a sound file** (the `QMediaPlayer` path). **Confirm both
       are audible** – Rule 2 failures are silent, not compile errors.
 
+> Note: reaching an actual green Phase 1 build also required fixing several
+> Qt6 breaks outside QtMultimedia that were surfacing in the same build logs
+> (QAction/QShortcut header moves, QActionGroup include, QMutex::NonRecursive
+> removal, Qt::Key+Modifier operator+ deletion, QPrinter page-size/orientation
+> enum moves to QPageSize/QPageLayout, Qt::ItemIsTristate rename, and a
+> NOMINMAX/windows.h vs QtTextToSpeech template-parsing conflict) and doing all
+> of Phase 2 (QRegExp → QRegularExpression) up front, since the errors were
+> interleaved in one build log. See Session log below.
+
 ---
 
 ## PHASE 2 – QRegExp → QRegularExpression
@@ -180,37 +189,43 @@ This is the only phase that currently stops the Qt6 build.
 
 Per-file (each is `#include <QRegularExpression>` + convert usage):
 
-- [ ] **`EditSyntaxHighlighter.h` (line ~38)** – member type:
+- [x] **`EditSyntaxHighlighter.h` (line ~38)** – member type:
       `QRegExp pattern;` → `QRegularExpression pattern;`
-- [ ] **`EditSyntaxHighlighter.cpp` (line ~38)** – this is the hot loop.
-      Convert the `indexIn`/`matchedLength` walk to a
-      `QRegularExpressionMatchIterator` (`globalMatch`) or a
-      `match()` + `capturedStart()/capturedLength()` loop. **Test highlighting
-      visually** – this is the most behavior-sensitive conversion.
-- [ ] **`BasicEdit.cpp`** – many `line.contains(QRegExp("...", Qt::CaseInsensitive))`
-      (auto-indent block ~288–357) and the `indexOf/lastIndexOf(QRegExp(...))`
-      at ~498–499, plus `program.split(QRegExp("\\n"))` at ~288.
-      - `str.contains(QRegExp(pat, Qt::CaseInsensitive))` →
-        `str.contains(QRegularExpression(pat, QRegularExpression::CaseInsensitiveOption))`
-      - `str.split(QRegExp("\\n"))` → `str.split(QRegularExpression("\\n"))`
-      - `indexOf(QRegExp(pat), from)` / `lastIndexOf(QRegExp(pat))` →
-        same call with `QRegularExpression(pat)`.
-      **Test auto-indent** on a program covering for/next/if/while/function/case.
-- [ ] **`Interpreter.h` (line ~301)** – the `regexMinimal` flag comment; find the
-      matching use in `Interpreter.cpp` and map `setMinimal(true)` →
-      `QRegularExpression::InvertedGreedinessOption`.
-- [ ] **`Interpreter.cpp`** – convert its `QRegExp` uses; apply the minimal→
-      InvertedGreediness mapping where `regexMinimal` is honored.
-- [ ] **`BasicOutput.cpp`** – convert its `QRegExp` use(s).
-- [ ] **`Convert.cpp`** – convert its `QRegExp` use(s).
-- [ ] **`MainWindow.cpp` (line ~950)** – version-string check
-      `QRegExp rx("\\d+\\.\\d+\\.\\d+\\.\\d+")`. Convert to `QRegularExpression`
-      and use `match().hasMatch()` instead of `indexIn() != -1`.
+- [x] **`EditSyntaxHighlighter.cpp` (line ~38)** – hot loop converted to a
+      `QRegularExpressionMatchIterator` (`globalMatch`) walk using
+      `capturedStart()/capturedLength()`. All rule-building sites converted
+      (`QRegExp(pat, Qt::CaseInsensitive)` → `QRegularExpression(pat,
+      QRegularExpression::CaseInsensitiveOption)`). **Still needs a visual
+      test of syntax highlighting** — not run this session.
+- [x] **`BasicEdit.cpp`** – all `line.contains(QRegExp(...))` in the auto-indent
+      block, `program.split(QRegExp("\\n"))`, the two `indexOf/lastIndexOf`
+      calls in `getCurrentWord()`, and the two `QRegExp rx(...)` +
+      `indexIn`/`cap` sites (keyPressEvent auto-indent-on-Enter, and the
+      save-file extension check) all converted to `QRegularExpression` +
+      `match()/hasMatch()/captured()`. **Still needs a visual test of
+      auto-indent** — not run this session.
+- [x] **`Interpreter.h` (line ~301)** – comment updated to say
+      `QRegularExpression`.
+- [x] **`Interpreter.cpp`** – all 5 `QRegExp` sites (OP_MIDX, OP_INSTRX,
+      OP_REPLACEX, OP_COUNTX, the explode/split block) converted to
+      `QRegularExpression`; `expr.setMinimal(regexMinimal)` replaced with
+      `if (regexMinimal) expr.setPatternOptions(QRegularExpression::InvertedGreedinessOption);`
+      at each site.
+- [x] **`BasicOutput.cpp`** – `split(QRegExp(...))` converted.
+- [x] **`Convert.cpp`** – `replace(QRegExp(...))` converted. Also fixed an
+      unrelated char→QString ternary (`decimalPoint()` vs `'.'`) that only
+      surfaced as a hard error once QRegExp-related errors upstream stopped
+      masking it — wrapped the literal as `QChar('.')`.
+- [x] **`MainWindow.cpp` (line ~975)** – version-string check converted to
+      `QRegularExpression` + `match().captured(0)`.
 
 ### Phase 2 gate
-- [ ] Qt6 build clean (and, if you didn't use the Core5Compat crutch, **no**
-      `Core5Compat` in the link line).
+- [x] No `QRegExp` remains anywhere in the tree (verified via repo-wide grep).
+- [x] `Core5Compat` dropped from `CMakeLists.txt` (both the `find_package`
+      component list and the `target_link_libraries` block) and from
+      `.github/scripts/build_Windows.ps1`'s `aqt install-qt -m` module list.
 - [ ] Syntax highlighting correct; auto-indent correct; version check works.
+      *(Not run this session — needs a maintainer pass in the actual app.)*
 
 ---
 
@@ -256,18 +271,31 @@ Per-file (each is `#include <QRegularExpression>` + convert usage):
 - [x] `BasicMediaPlayer.cpp`
 - [x] `Sound.h`
 - [x] `Sound.cpp`
-- [ ] `EditSyntaxHighlighter.h`
-- [ ] `EditSyntaxHighlighter.cpp`
-- [ ] `BasicEdit.cpp`
-- [ ] `Interpreter.h`
-- [ ] `Interpreter.cpp`
-- [ ] `BasicOutput.cpp`
-- [ ] `Convert.cpp`
-- [ ] `MainWindow.cpp`
-- [ ] `VariableWin.h`
-- [ ] `LineNumberArea.cpp` (verify only)
-- [ ] `CMakeLists.txt` (Phase 4: drop Qt5 fallback)
+- [x] `EditSyntaxHighlighter.h`
+- [x] `EditSyntaxHighlighter.cpp`
+- [x] `BasicEdit.cpp`
+- [x] `Interpreter.h`
+- [x] `Interpreter.cpp`
+- [x] `BasicOutput.cpp`
+- [x] `Convert.cpp`
+- [x] `MainWindow.cpp` (also: QAction/QShortcut/QActionGroup includes,
+      QMutex::NonRecursive, Qt::Key+Modifier, char→QString ternary,
+      QString!=NULL ambiguity — see session log)
+- [ ] `VariableWin.h` (Phase 3, warnings only, not blocking)
+- [ ] `LineNumberArea.cpp` (verify only, Phase 3)
+- [ ] `CMakeLists.txt` (Phase 4: drop Qt5 fallback — Core5Compat already
+      removed this session, but the Qt5 fallback in `find_package(QT NAMES
+      Qt6 Qt5 ...)` is untouched, per Phase 4 scope)
 - [ ] CI workflow(s) (Phase 4: Qt6 matrix + TestSuite gate)
+- [x] `PreferencesWin.cpp` (not in original per-file list — gap found this
+      session: `QPrinter::A0..Tabloid` → `QPageSize::...`, `QPrinter::Portrait/
+      Landscape` → `QPageLayout::...`, `Qt::ItemIsTristate` → `Qt::ItemIsAutoTristate`)
+- [x] `MainWindow.h` (not in original per-file list — added
+      `QtGui/QActionGroup` include)
+- [x] `Sleeper.h` / `Main.cpp` / `RunController.cpp` (not in original per-file
+      list — added `NOMINMAX` guards around raw `windows.h` includes; without
+      it, leaked `min`/`max` macros corrupted a template in Qt's installed
+      `qtexttospeech.h` later in the same AUTOMOC translation unit)
 
 ---
 
@@ -293,3 +321,51 @@ several string-based stateChanged/error connects on renamed Qt6 signals
 (Rule 1). Build gate (cmake configure+build against Qt6, and audibility check)
 was intentionally left unchecked — maintainer is running the build manually
 per session instruction. Phase 2 (QRegExp) next.
+
+2026-07-04 (later same day) Maintainer ran the real Qt6 MSVC build in CI and
+fed back the actual error log, which was far larger than Phase 1 alone —
+it mixed genuine remaining Phase-1-adjacent gaps with all of Phase 2 and a
+few items not in this checklist at all. Fixed in one pass, from the log,
+top to bottom:
+- Completed Phase 2 in full (see per-file list above): all 8 files migrated
+  from `QRegExp` to `QRegularExpression`, including the `regexMinimal` →
+  `QRegularExpression::InvertedGreedinessOption` mapping in `Interpreter.cpp`.
+  Dropped the `Core5Compat` crutch from `CMakeLists.txt` and from
+  `.github/scripts/build_Windows.ps1`.
+- `MainWindow.h`/`.cpp`: `QAction`/`QShortcut` need `QtGui/` not `QtWidgets/`
+  in Qt6 (fixed in an earlier session pass); `QActionGroup` needed its own
+  `#include <QtGui/QActionGroup>` (only forward-declared via the `QAction`
+  header, so `new QActionGroup(this)` and the `QActionGroup*` connect() were
+  both hitting "incomplete type"). `QMutex::NonRecursive` no longer exists
+  (Qt6 `QMutex` is always non-recursive; dropped the constructor arg).
+  `Qt::Key_0 + int + Qt::CTRL` hit a deleted `operator+(int, Qt::Modifier)` —
+  Qt6 requires `|` once the key expression has been promoted to `int`;
+  rewrote as `QKeySequence(Qt::Key(...) | Qt::CTRL)`. Two char→QString
+  ternaries (`cond ? locale->decimalPoint() : '.'`) needed the `'.'` literal
+  wrapped as `QChar('.')`. `s != NULL` on a `QString` was ambiguous in Qt6
+  (multiple candidate operators); changed to `!s.isNull()`.
+- `PreferencesWin.cpp` (gap — not in original checklist): `QPrinter::A0..
+  Tabloid` and `QPrinter::Portrait/Landscape` no longer exist — moved to
+  `QPageSize::...` / `QPageLayout::...`. Confirmed via `Interpreter.cpp`
+  (which already did `static_cast<QPageSize::PageSizeId>(settingsPrinterPaper)`)
+  that the enum's underlying integer values are unchanged from the old
+  `QPrinter` enums, so stored `Settings` values stay compatible. Also
+  `Qt::ItemIsTristate` → `Qt::ItemIsAutoTristate` (renamed in Qt6).
+- `Sleeper.h` / `Main.cpp` / `RunController.cpp` (gap — not in original
+  checklist): added `#define NOMINMAX` guards before their raw
+  `#include <windows.h>`. Without it, `windows.h`'s `min`/`max` macros leak
+  into the shared `mocs_compilation_Release.cpp` AUTOMOC translation unit and
+  corrupt a fold-expression template in Qt's own installed
+  `QtTextToSpeech/qtexttospeech.h` (`LastIndexOf<T, tuple<...>>`), producing a
+  wall of MSVC C2589/C3878/C2760 parser errors that have nothing to do with
+  our code. This is a best-effort fix based on the well-known
+  windows.h-macro-pollution failure mode for this class of MSVC error —
+  **not verified against an actual Qt6 build this session**, since Claude
+  Code has no local Qt6/MSVC toolchain; flag it back if the real CI log still
+  shows the same qtexttospeech.h errors after this fix.
+- Everything above was verified by code-string/grep inspection only (repo-wide
+  `grep -rl QRegExp` returns empty; no bare `min(`/`max(` calls found that
+  would break under `NOMINMAX`). The Qt6 configure+build itself was **not**
+  run by Claude Code — maintainer runs it per standing session instruction.
+  Phase 3 (VariableWin.h QVariant::type warnings, LineNumberArea.cpp wheel
+  event verification) is next, then Phase 4.

@@ -25,7 +25,7 @@
 #include <QDir>
 #include <QTime>
 #include <QElapsedTimer>
-#include <QRegExp>
+#include <QRegularExpression>
 #include <cmath>
 #include "BasicGraph.h"
 #include "Constants.h"
@@ -299,7 +299,7 @@ class Interpreter : public QThread
 		QElapsedTimer runtimer; 				// used by MSEC function
 		//SoundSystem *sound;
 		int includeFileNumber;
-		bool regexMinimal;			// flag to tell QRegExp to be greedy (false) or minimal (true)
+		bool regexMinimal;			// flag to tell QRegularExpression to be greedy (false) or minimal (true)
 
 		bool printing;
 		QPrinter *printdocument;

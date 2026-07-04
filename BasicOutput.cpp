@@ -22,7 +22,7 @@
 #include <QMutex>
 #include <QClipboard>
 #include <QMimeData>
-#include <QRegExp>
+#include <QRegularExpression>
 
 #include <QtGui/QAction>
 #include <QtWidgets/QToolBar>
@@ -226,7 +226,7 @@ void BasicOutput::insertFromMimeData(const QMimeData* source)
 {
 	if (source->hasText()) {
 		QString s = source->text();
-		QStringList l = s.split(QRegExp("[\r\n]"), Qt::SkipEmptyParts);
+		QStringList l = s.split(QRegularExpression("[\r\n]"), Qt::SkipEmptyParts);
 		textCursor().insertText(l.at(0));
 		setFocus();
 	}

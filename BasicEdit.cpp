@@ -25,7 +25,7 @@
 #include <QPainter>
 #include <QResizeEvent>
 #include <QPaintEvent>
-#include <QRegExp>
+#include <QRegularExpression>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QStatusBar>
 #include <QtPrintSupport/QPrinter>
@@ -169,9 +169,10 @@ BasicEdit::keyPressEvent(QKeyEvent *e) {
 		cur.movePosition(QTextCursor::StartOfBlock);
 		cur.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
 		QString str = cur.selectedText();
-		QRegExp rx("^([\\t ]+)");
-		if(str.indexOf(rx) >= 0)
-			textCursor().insertText(rx.cap(1));
+		QRegularExpression rx("^([\\t ]+)");
+		QRegularExpressionMatch rxmatch = rx.match(str);
+		if(rxmatch.hasMatch())
+			textCursor().insertText(rxmatch.captured(1));
 	}else if(e->key() == Qt::Key_Tab && e->modifiers() == Qt::NoModifier){
 		if(!indentSelection())
 			QPlainTextEdit::keyPressEvent(e);
@@ -192,8 +193,8 @@ void BasicEdit::saveFile(bool overwrite) {
 	}
 
 	if (filename != "") {
-		QRegExp rx("\\.[^\\/]*$");
-		if (rx.indexIn(filename) == -1) {
+		QRegularExpression rx("\\.[^\\/]*$");
+		if (!filename.contains(rx)) {
 			filename += ".kbs";
 		}
 		QFile f(filename);
@@ -286,76 +287,76 @@ void BasicEdit::beautifyProgram() {
 	bool decreaseIndentDouble = false;
 	QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
 	program = this->document()->toPlainText();
-	lines = program.split(QRegExp("\\n"));
+	lines = program.split(QRegularExpression("\\n"));
 	for (int i = 0; i < lines.size(); i++) {
 		QString line = lines.at(i);
 		line = line.trimmed();
         if(line.isEmpty()){
             // label - empty line no indent
             indentThisLine = false;
-        } else if (line.contains(QRegExp("^\\S+[:]"))) {
+        } else if (line.contains(QRegularExpression("^\\S+[:]"))) {
 			// label - one line no indent
 			indentThisLine = false;
-		} else if (line.contains(QRegExp("^(for)|(foreach)\\s", Qt::CaseInsensitive))) {
+		} else if (line.contains(QRegularExpression("^(for)|(foreach)\\s", QRegularExpression::CaseInsensitiveOption))) {
 			// for - indent next (block of code)
 			increaseIndent = true;
-		} else if (line.contains(QRegExp("^next(\\s)", Qt::CaseInsensitive))) {
+		} else if (line.contains(QRegularExpression("^next(\\s)", QRegularExpression::CaseInsensitiveOption))) {
 			// next var - come out of block - reduce indent
 			decreaseIndent = true;
-		} else if (line.contains(QRegExp("^next$", Qt::CaseInsensitive))) {
+		} else if (line.contains(QRegularExpression("^next$", QRegularExpression::CaseInsensitiveOption))) {
 			// next - come out of block - reduce indent
 			decreaseIndent = true;
-		} else if (line.contains(QRegExp("^if\\s.+\\sthen\\s*((#|(rem\\s)).*)?$", Qt::CaseInsensitive))) {
+		} else if (line.contains(QRegularExpression("^if\\s.+\\sthen\\s*((#|(rem\\s)).*)?$", QRegularExpression::CaseInsensitiveOption))) {
 			// if/then (NOTHING FOLLOWING) - indent next (block of code)
 			increaseIndent = true;
-		} else if (line.contains(QRegExp("^else\\s*((#|(rem\\s)).*)?$", Qt::CaseInsensitive))) {
+		} else if (line.contains(QRegularExpression("^else\\s*((#|(rem\\s)).*)?$", QRegularExpression::CaseInsensitiveOption))) {
 			// else - come out of block and start new block
 			decreaseIndent = true;
 			increaseIndent = true;
-		} else if (line.contains(QRegExp("^end\\s*if\\s*((#|(rem\\s)).*)?$", Qt::CaseInsensitive))) {
+		} else if (line.contains(QRegularExpression("^end\\s*if\\s*((#|(rem\\s)).*)?$", QRegularExpression::CaseInsensitiveOption))) {
 			// end if - come out of block - reduce indent
 			decreaseIndent = true;
-		} else if (line.contains(QRegExp("^while\\s", Qt::CaseInsensitive))) {
+		} else if (line.contains(QRegularExpression("^while\\s", QRegularExpression::CaseInsensitiveOption))) {
 			// while - indent next (block of code)
 			increaseIndent = true;
-		} else if (line.contains(QRegExp("^end\\s*while\\s*((#|(rem\\s)).*)?$", Qt::CaseInsensitive))) {
+		} else if (line.contains(QRegularExpression("^end\\s*while\\s*((#|(rem\\s)).*)?$", QRegularExpression::CaseInsensitiveOption))) {
 			// endwhile - come out of block
 			decreaseIndent = true;
-		} else if (line.contains(QRegExp("^function\\s", Qt::CaseInsensitive))) {
+		} else if (line.contains(QRegularExpression("^function\\s", QRegularExpression::CaseInsensitiveOption))) {
 			// function - indent next (block of code)
 			increaseIndent = true;
-		} else if (line.contains(QRegExp("^end\\s*function\\s*((#|(rem\\s)).*)?$", Qt::CaseInsensitive))) {
+		} else if (line.contains(QRegularExpression("^end\\s*function\\s*((#|(rem\\s)).*)?$", QRegularExpression::CaseInsensitiveOption))) {
 			// endfunction - come out of block
 			decreaseIndent = true;
-		} else if (line.contains(QRegExp("^subroutine\\s", Qt::CaseInsensitive))) {
+		} else if (line.contains(QRegularExpression("^subroutine\\s", QRegularExpression::CaseInsensitiveOption))) {
 			// function - indent next (block of code)
 			increaseIndent = true;
-		} else if (line.contains(QRegExp("^end\\s*subroutine\\s*((#|(rem\\s)).*)?$", Qt::CaseInsensitive))) {
+		} else if (line.contains(QRegularExpression("^end\\s*subroutine\\s*((#|(rem\\s)).*)?$", QRegularExpression::CaseInsensitiveOption))) {
 			// endfunction - come out of block
 			decreaseIndent = true;
-		} else if (line.contains(QRegExp("^do\\s*((#|(rem\\s)).*)?$", Qt::CaseInsensitive))) {
+		} else if (line.contains(QRegularExpression("^do\\s*((#|(rem\\s)).*)?$", QRegularExpression::CaseInsensitiveOption))) {
 			// do - indent next (block of code)
 			increaseIndent = true;
-		} else if (line.contains(QRegExp("^until\\s", Qt::CaseInsensitive))) {
+		} else if (line.contains(QRegularExpression("^until\\s", QRegularExpression::CaseInsensitiveOption))) {
 			// until - come out of block
 			decreaseIndent = true;
-		} else if (line.contains(QRegExp("^try\\s*((#|(rem\\s)).*)?$", Qt::CaseInsensitive))) {
+		} else if (line.contains(QRegularExpression("^try\\s*((#|(rem\\s)).*)?$", QRegularExpression::CaseInsensitiveOption))) {
 			// try indent next (block of code)
 			increaseIndent = true;
-		} else if (line.contains(QRegExp("^catch\\s*((#|(rem\\s)).*)?$", Qt::CaseInsensitive))) {
+		} else if (line.contains(QRegularExpression("^catch\\s*((#|(rem\\s)).*)?$", QRegularExpression::CaseInsensitiveOption))) {
 			// catch - come out of block and start new block
 			decreaseIndent = true;
 			increaseIndent = true;
-		} else if (line.contains(QRegExp("^end\\s*try\\s*((#|(rem\\s)).*)?$", Qt::CaseInsensitive))) {
+		} else if (line.contains(QRegularExpression("^end\\s*try\\s*((#|(rem\\s)).*)?$", QRegularExpression::CaseInsensitiveOption))) {
 			// end try - come out of block - reduce indent
 			decreaseIndent = true;
-		} else if (line.contains(QRegExp("^begin\\s*case\\s*((#|(rem\\s)).*)?$", Qt::CaseInsensitive))) {
+		} else if (line.contains(QRegularExpression("^begin\\s*case\\s*((#|(rem\\s)).*)?$", QRegularExpression::CaseInsensitiveOption))) {
 			// begin case double indent next (block of code)
 			increaseIndentDouble = true;
-		} else if (line.contains(QRegExp("^end\\s*case\\s*((#|(rem\\s)).*)?$", Qt::CaseInsensitive))) {
+		} else if (line.contains(QRegularExpression("^end\\s*case\\s*((#|(rem\\s)).*)?$", QRegularExpression::CaseInsensitiveOption))) {
 			// end case double reduce
 			decreaseIndentDouble = true;
-		} else if (line.contains(QRegExp("^case\\s.+\\s*((#|(rem\\s)).*)?$", Qt::CaseInsensitive))) {
+		} else if (line.contains(QRegularExpression("^case\\s.+\\s*((#|(rem\\s)).*)?$", QRegularExpression::CaseInsensitiveOption))) {
 			// case expression - indent one line
 			decreaseIndent = true;
 			increaseIndent = true;
@@ -496,8 +497,8 @@ QString BasicEdit::getCurrentWord() {
     QTextCursor t(textCursor());
     QTextBlock b(t.block());
     w = b.text();
-    w = w.left(w.indexOf(QRegExp("[^a-zA-Z0-9]"),t.positionInBlock()));
-    w = w.mid(w.lastIndexOf(QRegExp("[^a-zA-Z0-9]"))+1);
+    w = w.left(w.indexOf(QRegularExpression("[^a-zA-Z0-9]"),t.positionInBlock()));
+    w = w.mid(w.lastIndexOf(QRegularExpression("[^a-zA-Z0-9]"))+1);
     return w;
 }
 

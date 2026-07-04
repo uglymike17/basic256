@@ -40,6 +40,9 @@
 #include "Sleeper.h"
 
 #ifdef WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <windows.h>
 #include <servprov.h>
 #include <string>

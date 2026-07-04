@@ -5,11 +5,8 @@ choco install winflexbison3 -y
 
 #install Qt6
 # qtmultimedia/qtserialport/qtspeech are separate addon modules in Qt6.
-# qt5compat provides Qt6::Core5Compat, the temporary QRegExp shim (see
-# QT6_MIGRATION_CHECKLIST.md Phase 2) so the rest of the codebase still
-# compiles until the QRegularExpression migration is done.
 python -m pip install aqtinstall
-aqt install-qt windows desktop 6.7.3 win64_msvc2019_64 -m qtmultimedia qtserialport qtspeech qt5compat
+aqt install-qt windows desktop 6.7.3 win64_msvc2019_64 -m qtmultimedia qtserialport qtspeech
 
 #set Qt6 dir (also export for later steps, e.g. packaging - $GITHUB_ENV only
 #takes effect starting from the *next* step, not later in this same script)

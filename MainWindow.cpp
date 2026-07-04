@@ -25,7 +25,7 @@
 #include <QMutex>
 #include <QWaitCondition>
 #include <QDesktopServices>
-#include <QRegExp>
+#include <QRegularExpression>
  
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QGridLayout>
@@ -81,8 +81,8 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
 
 
     // create the global mymutexes and waits
-    mymutex = new QMutex(QMutex::NonRecursive);
-    mydebugmutex = new QMutex(QMutex::NonRecursive);
+    mymutex = new QMutex();
+    mydebugmutex = new QMutex();
     waitCond = new QWaitCondition();
     waitDebugCond = new QWaitCondition();
 
@@ -170,7 +170,7 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     for(int i=0;i<SETTINGSGROUPHISTN;i++){
         recentfiles_act[i] = filemenu_recentfiles->addAction(basicIcons->openIcon, QObject::tr(""));
         if(i<10)
-            recentfiles_act[i]->setShortcut(Qt::Key_0 + ((i+1)%SETTINGSGROUPHISTN) + Qt::CTRL);
+            recentfiles_act[i]->setShortcut(QKeySequence(Qt::Key(Qt::Key_0 + ((i+1)%SETTINGSGROUPHISTN)) | Qt::CTRL));
     }
     filemenu_recentfiles->addSeparator();
     recentfiles_empty_act = filemenu_recentfiles->addAction(basicIcons->clearIcon, QObject::tr("&Clear list"));
@@ -654,7 +654,7 @@ void MainWindow::about() {
     title = QObject::tr("About BASIC-256") +  QObject::tr(" Android");
     message = QObject::tr("BASIC-256") + QObject::tr(" Android") + "\n" +
               QObject::tr("version ") +  VERSION + QObject::tr(" - built with QT ") + QT_VERSION_STR + "\n" +
-            QObject::tr("Locale Name: ") + locale->name() + QObject::tr("Decimal Point: ")+  "'" + (usefloatlocale?locale->decimalPoint():'.') + "'\n" +
+            QObject::tr("Locale Name: ") + locale->name() + QObject::tr("Decimal Point: ")+  "'" + (usefloatlocale?locale->decimalPoint():QChar('.')) + "'\n" +
               QObject::tr("Copyright &copy; 2006-2020, The BASIC-256 Team") + "\n" +
               QObject::tr("Please visit our web site at http://www.basic256.org for tutorials and documentation.") + "\n" +
               QObject::tr("Please see the CONTRIBUTORS file for a list of developers and translators for this project.") + "\n" +
@@ -670,7 +670,7 @@ void MainWindow::about() {
 #endif	// WIN32PORTABLE
 
 	message += QObject::tr("version ") + "<b>" + VERSION + "</b>" + QObject::tr(" - built with QT ") + "<b>" + QT_VERSION_STR + "</b>" +
-            "<br>" + QObject::tr("Locale Name: ") + "<b>" + locale->name() + "</b> "+ QObject::tr("Decimal Point: ") + "<b>'" + (usefloatlocale?locale->decimalPoint():'.') + "'</b>" +
+            "<br>" + QObject::tr("Locale Name: ") + "<b>" + locale->name() + "</b> "+ QObject::tr("Decimal Point: ") + "<b>'" + (usefloatlocale?locale->decimalPoint():QChar('.')) + "'</b>" +
             "<p>" + QObject::tr("Copyright &copy; 2006-2026, The BASIC-256 Team") + "</p>" +
 			"<p>" + QObject::tr("Please visit our web site at <a href=\"https://doc.basic256.org/doku.php\">https://doc.basic256.org/doku.php</a> for documentation.") + "</p>" +
 			"<p>" + QObject::tr("Please see the CONTRIBUTORS file for a list of developers and translators for this project.")  + "</p>" +
@@ -972,11 +972,9 @@ void MainWindow::sourceforgeReplyFinished(QNetworkReply* reply){
         filename = jsonObject["platform_releases"].toObject()["mac"].toObject()["filename"].toString();
         url = jsonObject["platform_releases"].toObject()["mac"].toObject()["url"].toString();
 #endif
-        QRegExp rx("\\d+\\.\\d+\\.\\d+\\.\\d+");
-        rx.indexIn(filename);
-        QString siteversion = rx.cap(0);
-        rx.indexIn(VERSION);
-        QString thisversion = rx.cap(0);
+        QRegularExpression rx("\\d+\\.\\d+\\.\\d+\\.\\d+");
+        QString siteversion = rx.match(filename).captured(0);
+        QString thisversion = rx.match(VERSION).captured(0);
         if(siteversion=="" || thisversion==""){
             //Unknown error
             if(!autoCheckForUpdate)QMessageBox::warning(this, tr("Check for an update"), tr("Unknown error."),QMessageBox::Ok, QMessageBox::Ok);
@@ -1323,7 +1321,7 @@ void MainWindow::loadProgram() {
 
 bool MainWindow::loadFile(QString s) {
     s = s.trimmed();
-    if (s != NULL) {
+    if (!s.isNull()) {
         bool doload = true;
             if (QFile::exists(s)) {
                 QFile f(s);
