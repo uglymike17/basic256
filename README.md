@@ -1,5 +1,5 @@
 ## Introduction  
-BASIC-256 is GPL-licensed, modern retro BASIC programming environment for learning coding and having fun. 
+BASIC-256 is a GPL-licensed, modern retro BASIC programming environment for learning coding and having fun. 
 It was originally called Kidbasic and was started in 2007, but after years of updating by the contributers and a rename to Basic256, it is in its current state quite capable for everyday hobby use.
 
 ## Usage  
