@@ -22,7 +22,7 @@
 #include <qglobal.h>
 
 #include <QtWidgets/QDockWidget>
-#include <QtWidgets/QAction>
+#include <QtGui/QAction>
 #include <QCloseEvent>
 
 

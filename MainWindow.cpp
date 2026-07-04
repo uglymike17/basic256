@@ -32,7 +32,7 @@
 #include <QtWidgets/QStatusBar>
 #include <QtWidgets/QDialog>
 #include <QtWidgets/QLabel>
-#include <QtWidgets/QShortcut>
+#include <QtGui/QShortcut>
 
 #include <QScreen>
 #include <QTimer>

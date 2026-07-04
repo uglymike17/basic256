@@ -23,7 +23,7 @@
 #include <QClipboard>
 #include <QMimeData>
 
-#include <QtWidgets/QAction>
+#include <QtGui/QAction>
 #include <QtWidgets/QToolBar>
 #include <QIcon>
 #include <QtWidgets/QApplication>

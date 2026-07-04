@@ -20,7 +20,7 @@
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QCheckBox>
-#include <QtWidgets/QAction>
+#include <QtGui/QAction>
 #include <QComboBox>
 
 #include "BasicEdit.h"

@@ -27,7 +27,7 @@
 #include <QtWidgets/QCheckBox>
 #include <QtWidgets/QComboBox>
 #include <QtWidgets/QPushButton>
-#include <QtWidgets/QAction>
+#include <QtGui/QAction>
 #include <QtWidgets/QTabWidget>
 #include <QtWidgets/QGroupBox>
 #include <QtWidgets/QRadioButton>

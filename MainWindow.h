@@ -33,9 +33,9 @@
 
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QGridLayout>
-#include <QtWidgets/QAction>
+#include <QtGui/QAction>
 #include <QtWidgets/QMessageBox>
-#include <QtWidgets/QShortcut>
+#include <QtGui/QShortcut>
 #include <QtWidgets/QScrollArea>
 #include <QtWidgets/QFontDialog>
 #include <QtWidgets/QFileDialog>

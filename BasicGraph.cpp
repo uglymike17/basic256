@@ -24,7 +24,7 @@
 #include <QMutex>
 #include <QtPrintSupport/QPrintDialog>
 #include <QtPrintSupport/QPrinter>
-#include <QtWidgets/QAction>
+#include <QtGui/QAction>
 #include <QtWidgets/QApplication>
 #include <QIcon>
 #include <QtWidgets/QMessageBox>
