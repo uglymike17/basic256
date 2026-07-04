@@ -554,8 +554,20 @@ void MainWindow::saveCustomizations() {
     // save user customizations on close
 
     SETTINGS;
-    settings.setValue(SETTINGSMAINGEOMETRY + QString::number(guiState), saveGeometry());
-    settings.setValue(SETTINGSMAINSTATE + QString::number(guiState), saveState());
+    // -f is a one-off, per-invocation request, not a saved preference: if we
+    // persisted the fullscreen geometry here, the next plain (non -f) run of
+    // this same mode would restore it via loadCustomizations() and appear
+    // fullscreen too, since geometry is keyed only by guiState, with no
+    // distinction for whether -f was passed that time. Only guard the modes
+    // where -f actually has an effect (matches configureGuiState()'s check),
+    // so a stray -f with no mode flag doesn't stop normal IDE geometry saves.
+    bool skipGeometrySave = guiFullScreen &&
+        (guiState == GUISTATERUN || guiState == GUISTATEAPP ||
+         guiState == GUISTATETEXT || guiState == GUISTATEGRAPH);
+    if (!skipGeometrySave) {
+        settings.setValue(SETTINGSMAINGEOMETRY + QString::number(guiState), saveGeometry());
+        settings.setValue(SETTINGSMAINSTATE + QString::number(guiState), saveState());
+    }
 
     // main
 	settings.setValue(SETTINGSTOOLBARVISIBLE + QString::number(guiState), main_toolbar->isVisible());
@@ -585,8 +597,20 @@ void MainWindow::saveCustomizations() {
 }
 
 void MainWindow::resizeToFitGraph(int canvasW, int canvasH) {
-    // -f wins: don't shrink a fullscreen window back down to the canvas size.
-    if (guiFullScreen) return;
+    // -f wins: re-assert fullscreen instead of shrinking to the canvas size.
+    // configureGuiState()'s setGeometry(avail) call (at construction time, before
+    // show()) doesn't reliably stick for GUISTATEGRAPH: setCentralWidget() there
+    // posts a deferred layout request that resizes the window down to the small
+    // graph widget's sizeHint once the event loop catches up, which happens after
+    // that setGeometry() call and undoes it. By the time resizeToFitGraph() runs
+    // (script start, window already shown and settled) that layout request has
+    // long since fired, so re-applying fullscreen here is what actually sticks -
+    // equivalent to the user manually maximizing the window afterward.
+    if (guiFullScreen) {
+        QRect avail = QGuiApplication::primaryScreen()->availableGeometry();
+        setGeometry(avail);
+        return;
+    }
 
     // Compute the chrome height: everything between the OS client area and the
     // scroll-area viewport that holds graphwin.

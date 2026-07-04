@@ -164,27 +164,8 @@ set(TS_FILES
     Translations/basic256_it.ts
 )
 
-# -------------------------------------------------
-# Install Examples
-# -------------------------------------------------
-
-install(
-    DIRECTORY ${CMAKE_SOURCE_DIR}/Examples
-    DESTINATION share/basic256
-)
-
-# -------------------------------------------------
-# Install TestSuite
-# -------------------------------------------------
-
-install(
-    DIRECTORY ${CMAKE_SOURCE_DIR}/TestSuite
-    DESTINATION share/basic256
-)
-
-
 # -------------------------------------------------------------------
-# Platform Specific Settings 
+# Platform Specific Settings
 # -------------------------------------------------------------------
 
 if(WIN32)
@@ -273,6 +254,7 @@ target_include_directories(basic256 PRIVATE
 if(UNIX AND NOT APPLE)
     install(TARGETS basic256 DESTINATION ${CMAKE_INSTALL_BINDIR})
     install(DIRECTORY ./Examples DESTINATION ${CMAKE_INSTALL_DATADIR}/basic256)
+    install(DIRECTORY ./TestSuite DESTINATION ${CMAKE_INSTALL_DATADIR}/basic256)
     install(FILES ${QM_FILES} DESTINATION ${CMAKE_INSTALL_DATADIR}/basic256)
 endif()
 

@@ -15,11 +15,15 @@
  ;   2026-06-18   m. vilain          Updated to Qt 5.15.2, _Win64_Install
  ;   2026-06-24   m. vilain          Add dist/Examples/TestSuite uninstall; VC++ redist check
 
- ;   On Windows use notepad.
+ ;   On Windows use notepad or notepad++.
 
  !include nsDialogs.nsh
 
- !define VERSION "2.1.Alpha02"
+ ; VERSION is passed in from the CI build via "makensis /DVERSION=...",
+ ; The hardcoded fallback below is only used for ad-hoc local makensis runs.
+ !ifndef VERSION
+     !define VERSION "2.1.Alpha03"
+ !endif
  !define VERSIONDATE "2026-06-28"
  !define SDK_BIN "$%Qt5_Dir%\bin"
  !define SDK_LIB "$%Qt5_Dir%\lib"
@@ -293,6 +297,10 @@ it manually from:$\nhttps://aka.ms/vs/17/release/vc_redist.x64.exe"
      RMDir /r $INSTDIR\dist
      RMDir /r $INSTDIR\Examples
      RMDir /r $INSTDIR\TestSuite
+     ; Cleanup for installs made before the stray CMake "share/basic256"
+     ; install() rule (containing a duplicate Examples/TestSuite) was removed.
+     RMDir /r $INSTDIR\share
+     RMDir /r $INSTDIR\basic256
      RMDir /r $INSTDIR\help
      RMDir /r $INSTDIR\Translations
      RMDir /r $INSTDIR\Modules
