@@ -22,6 +22,7 @@
 #include <QMutex>
 #include <QClipboard>
 #include <QMimeData>
+#include <QRegExp>
 
 #include <QtGui/QAction>
 #include <QtWidgets/QToolBar>

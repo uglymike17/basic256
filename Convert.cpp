@@ -2,6 +2,7 @@
 #include "Error.h"
 
 #include <string>
+#include <QRegExp>
 
 
 int Convert::e = ERROR_NONE;

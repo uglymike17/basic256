@@ -19,6 +19,7 @@
 
 #include <QSyntaxHighlighter>
 #include <QTextCharFormat>
+#include <QRegExp>
 
 class QTextDocument;
 

@@ -24,7 +24,8 @@
 #include <QString>
 #include <QMutex>
 #include <QWaitCondition>
-#include <QDesktopServices> 
+#include <QDesktopServices>
+#include <QRegExp>
  
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QGridLayout>

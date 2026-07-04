@@ -28,6 +28,7 @@
 #include <QRandomGenerator>
 #include <QDebug>
 #include <QTimer>
+#include <QRegExp>
 
 #include <QString>
 #include <QPainter>

@@ -25,6 +25,7 @@
 #include <QDir>
 #include <QTime>
 #include <QElapsedTimer>
+#include <QRegExp>
 #include <cmath>
 #include "BasicGraph.h"
 #include "Constants.h"

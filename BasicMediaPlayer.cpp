@@ -51,9 +51,14 @@ void BasicMediaPlayer::waitForState(QMediaPlayer::PlaybackState newstate, int ms
 	// if player state is not newstate then wait up to ms
 	if(state()!=newstate) {
 		// thanks http://qt-project.org/forums/viewthread/19869
-		QTimer *timer = new QTimer(this);
-		timer->start (ms);
-		connect(timer, &QTimer::timeout, this, &QMediaPlayer::playbackStateChanged);
+		QEventLoop loop;
+		QTimer timer;
+		timer.setSingleShot(true);
+		timer.setInterval(ms);
+		loop.connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+		loop.connect(this, &QMediaPlayer::playbackStateChanged, &loop, &QEventLoop::quit);
+		timer.start();
+		loop.exec();
 	}
 }
 

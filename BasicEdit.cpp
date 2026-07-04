@@ -25,6 +25,7 @@
 #include <QPainter>
 #include <QResizeEvent>
 #include <QPaintEvent>
+#include <QRegExp>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QStatusBar>
 #include <QtPrintSupport/QPrinter>
