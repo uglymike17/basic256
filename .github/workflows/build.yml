@@ -54,6 +54,15 @@ jobs:
       run: |
         bash .github/scripts/build_Linux_x86.sh
 
+    # ---------------------------
+    # Linux x86_64 TestSuite gate
+    # ---------------------------
+    - name: Run TestSuite (Linux x86_64)
+      if: matrix.os == 'ubuntu-22.04'
+      timeout-minutes: 5
+      run: |
+        bash .github/scripts/run_testsuite.sh build/basic256
+
     # -----------------------------------------------------------------
     # Raspberry Pi ARM64 Native Build Flow
     # -----------------------------------------------------------------
@@ -63,6 +72,15 @@ jobs:
         bash .github/scripts/build_Linux_RPi_Trixie.sh
 
     # ---------------------------
+    # Linux ARM64 TestSuite gate
+    # ---------------------------
+    - name: Run TestSuite (Linux ARM64)
+      if: matrix.os == 'ubuntu-24.04-arm'
+      timeout-minutes: 5
+      run: |
+        bash .github/scripts/run_testsuite.sh build/basic256
+
+    # ---------------------------
     # Windows Build
     # ---------------------------
     - name: Build Windows x86_64
@@ -70,8 +88,18 @@ jobs:
       shell: pwsh
       env:
         ARTIFACT_NAME: ${{ matrix.artifact_name }}.zip
-      run: 
+      run:
         ./.github/scripts/build_windows.ps1
+
+    # ---------------------------
+    # Windows TestSuite gate
+    # ---------------------------
+    - name: Run TestSuite (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      timeout-minutes: 5
+      run:
+        ./.github/scripts/run_testsuite.ps1 -Basic256Exe build\Release\basic256.exe
 
     # ---------------------------
     # MacOS Build
@@ -84,6 +112,16 @@ jobs:
       run: |
         chmod +x ./.github/scripts/build_macos.sh
         bash ./.github/scripts/build_macos.sh
+
+    # ---------------------------
+    # MacOS TestSuite gate
+    # ---------------------------
+    - name: Run TestSuite (macOS)
+      if: runner.os == 'macOS'
+      shell: bash
+      timeout-minutes: 5
+      run: |
+        bash .github/scripts/run_testsuite.sh build/basic256.app/Contents/MacOS/basic256
 
 
     # ---------------------------

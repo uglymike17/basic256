@@ -1,91 +1,104 @@
 Compiling Instructions and Dependencies
 
+BASIC256 builds with CMake against Qt6 (minimum Qt 6.2, the release that
+introduced the current QtMultimedia/QAudioSink API this project uses; CI
+builds and tests against Qt 6.7.3). Qt5 is no longer supported.
+
+The authoritative, continuously-tested build steps for every platform live
+in .github/scripts/ (build_Windows.ps1, build_Linux_x86.sh,
+build_Linux_RPi_Trixie.sh, build_macos.sh) and .github/workflows/build.yml --
+if these instructions and those scripts ever disagree, trust the scripts.
+
+Required Qt6 components: Core, Gui, Widgets, Sql, PrintSupport, SerialPort,
+Multimedia, TextToSpeech, LinguistTools, Network.
 
 ###########################################################
-LINUX
+ALL PLATFORMS - generic CMake build
+###########################################################
+
+Once Qt6 (with the components above), a C++17 compiler, CMake >= 3.21, and
+flex/bison are available:
+
+  cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="<path to your Qt6 install>"
+  cmake --build build --config Release
+
+The resulting binary is build/basic256 (build/basic256.app on macOS,
+build\Release\basic256.exe on Windows).
+
+###########################################################
+WINDOWS
 ###########################################################
 
 Dependencies:
-* g++
-* qt4-dev-tools
-* flex
-* bison
-* libsdl-mixer??-dev
-* libqt5texttospeech5-dev
+* Visual Studio 2022 (MSVC toolchain)
+* winflexbison3 (flex/bison for Windows) -- e.g. "choco install winflexbison3"
+* Qt6 6.7.3, MSVC 2019/2022 64-bit kit, with the Multimedia/SerialPort/Speech
+  addon modules. CI installs it with aqtinstall:
+      pip install aqtinstall
+      aqt install-qt windows desktop 6.7.3 win64_msvc2019_64 -m qtmultimedia qtserialport qtspeech
 
+Build:
+  cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="<qt-install>\6.7.3\msvc2019_64"
+  cmake --build build --config Release
 
-
+To build the Windows installer, see BASIC256.nsi (NSIS >= 3.0) --
+.github/scripts/build_installer_Windows.ps1 shows the full invocation,
+including the packaging step (.github/scripts/package_Windows.ps1) that
+must run first to stage the Qt runtime via windeployqt.
 
 ###########################################################
-WINDOWS (QT5.15)
+LINUX (Ubuntu/Debian-based)
+###########################################################
+
+Dependencies (see .github/scripts/build_Linux_x86.sh for the exact,
+CI-verified apt package list): build-essential, cmake, flex, bison,
+libgl1-mesa-dev, libx11-dev and friends (libxext/libxrender/libxi-dev,
+libxkbcommon-x11-0, libxcb-cursor0 + the libxcb-icccm4/image0/keysyms1/
+randr0/render-util0/shape0/xinerama0/xkb1 runtime set Qt's xcb platform
+plugin needs), libcups2-dev (Qt PrintSupport), libpulse-dev,
+libpipewire-0.3-dev, libspeechd-dev + speech-dispatcher + libespeak-ng-dev
+(TextToSpeech), and libgstreamer1.0-dev + the gstreamer1.0-plugins-* set
+(Multimedia).
+
+Distributions whose packaged Qt6 is incomplete or too old (e.g. Ubuntu
+22.04 "jammy", which has no Qt6TextToSpeech package at all) should install
+Qt6 via aqtinstall instead of apt, exactly as build_Linux_x86.sh does:
+      pip install aqtinstall
+      aqt install-qt linux desktop 6.7.3 linux_gcc_64 -m qtmultimedia qtserialport qtspeech
+
+Distributions with a complete, current Qt6 in their own repos (e.g. Debian
+Trixie) can just install it directly -- see build_Linux_RPi_Trixie.sh:
+      sudo apt install qt6-base-dev qt6-base-dev-tools qt6-tools-dev \
+        qt6-tools-dev-tools qt6-l10n-tools qt6-multimedia-dev \
+        qt6-serialport-dev qt6-speech-dev qt6-declarative-dev
+
+(qt6-declarative-dev is required even though this project has no QML of its
+own -- Qt6TextToSpeech's own CMake package depends on Qt6QmlIntegration.)
+
+Build:
+  cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="<path to Qt6, if not found automatically>"
+  cmake --build build -j"$(nproc)"
+
+###########################################################
+RASPBERRY PI / LINUX ARM64
+###########################################################
+
+See COMPILING_RaspberryPI.txt.
+
+###########################################################
+MACOS
 ###########################################################
 
 Dependencies:
-* QT SDK with MINGW Compiler
-	** Available from: http://qt.io - use the online installer
-	** BE SURE to choose the mingw compiler from tools it will be the correct version
-		for the QT binary support files
-	** add paths C:\Qt\5.15\mingw81_32\bin;C:\Qt\Tools\mingw810_32\bin; to your system environment variable
+* Xcode command line tools
+* Qt6 via Homebrew's unversioned "qt" formula (this is Qt6 -- Homebrew no
+  longer offers a qt@5):
+      brew install qt
 
-* MSYS developer tools and libraries
-	** Available from:
-		http://sourceforge.net/projects/mingw/files/Installer/
-	** install mingw-developer-toolkit bundle from the on-line installer
-		YOU DO NOT NEED THE c++ compiler - you already downloaded that as part of the QT bundle
-	** add paths C:\MinGW\bin;C:\MinGW\msys\1.0\bin to your system environment
+Build:
+  cmake -B build -S . -DCMAKE_PREFIX_PATH=/opt/homebrew/opt/qt \
+        -DCMAKE_OSX_ARCHITECTURES="arm64" -DCMAKE_BUILD_TYPE=Release
+  cmake --build build --config Release
 
-
-Release Build (Windows):
-  To build a nice WIN32 installer use the nullsoft scriptable install system file
-  3.0 or better) called BASIC256.nsi.  You must build a release copy of BASCI256.
-
-  Make sure the dll and library files are copied in the folders as above.
-
-  make clean
-  qmake BASIC256.pro -config release
-  make release
-
-  then run the NSIS script
-
-Portable Build (Windows):
-  This process will populate the BASIC256Portable folder so that the "PortableApps Installer 3.x"
-  will be able to create the *.paf.exe file.
-
-  BE SURE TO EDIT THE VERSION NUMBER IN trunk/BASIC256Portable/App/AppInfo/appinfo.ini
-  before building the PAF file.
-
-  ** TO BUILD THE Portable BINARY and complete the directory **
-
-  delete all files and folders from trunk/BASIC256Portable/App/BASIC256
-  BASIC256PortableSupportFileCopy.bat
-  make clean
-  qmake BASIC256Portable.pro -config release
-  make release
-
-###########################################################
-MAC 10.6.4
-###########################################################
-
-	- QT
-	- XCode (from apple)
-	- MACPorts (Porticus front end is handy)
-		-	flex
-		-	libsdl_dev
-		-	libsdl_dev-framework
-		-	libsdl_mixer
-		-	libsdl_mixer-framework
-
-###########################################################
-Compiling ALL
-###########################################################
-
-  open a command window (cmd)
-  type "make clean" and hit enter
-  type "qmake BASIC256.pro -config debug" and hit enter
-  type "make" and hit enter 
-
-  You'll see an executable called BASIC256 either in this directory or in a "debug" directory, depending on your version of QT.
-
-  linux:  "make install" will install translations, help and binary  You can then create a
-      launcher to "BASIC256" or "BASIC256 -l locale".
-
+  Produces build/basic256.app. See .github/scripts/package_macos.sh for how
+  CI turns that into a signed, distributable .zip (macdeployqt + codesign).

@@ -1,0 +1,120 @@
+# testsuite_ci for BASIC256
+#
+# CI-only aggregate: runs just the "unattended" subset of testsuite.kbs (see
+# section_unattended: in that file) that needs no display, mouse, keyboard
+# input, configured printer, network/serial hardware, or yes/no confirmation
+# dialog -- so it can run headlessly via `basic256 -s testsuite_ci.kbs`.
+# Added for QT6_MIGRATION_CHECKLIST.md Phase 4 ("Run the TestSuite as a
+# required gate on the Qt6 build").
+#
+# IMPORTANT for whoever wires this into CI: a failing test does NOT change
+# the process exit code. BASIC-256's `end` statement is a normal, deliberate
+# stop -- used both on failure (same()/different()/boolean()/q()/npercent()/
+# nclose() in testsuite_common_include.kbs print "fail" then call `end`) and
+# on the success path below. The runner must check the captured stdout for
+# the string "fail" and for the presence of the final
+# "BASIC256_TESTSUITE_CI_PASSED" marker line, not rely on the exit code
+# alone (exit code only distinguishes an interpreter *error* from a normal
+# stop -- a failed assertion is a normal stop).
+
+include "testsuite_common_include.kbs"
+unattended = true
+
+###################################################
+call section("String Assignment/Operations/Functions")
+###################################################
+include "testsuite_string_include.kbs"
+
+###################################################
+call section("RADIX Conversion")
+###################################################
+include "testsuite_radix_include.kbs"
+
+###################################################
+call section("Functions and Subroutines")
+###################################################
+include "testsuite_function_include.kbs"
+
+###################################################
+call section("Error Trapping - OnError and Try/Catch")
+###################################################
+include "testsuite_error_include.kbs"
+
+###################################################
+call section("Integer/Float/Math")
+###################################################
+include "testsuite_math_include.kbs"
+
+###################################################
+call section("File I/O")
+###################################################
+include "testsuite_fileio_include.kbs"
+
+###################################################
+call section("Database")
+###################################################
+include "testsuite_database_include.kbs"
+
+###################################################
+call section("If")
+###################################################
+include "testsuite_if_include.kbs"
+
+###################################################
+call section("remark")
+###################################################
+include "testsuite_remark_include.kbs"
+
+###################################################
+call section("Test Random and fastgraphics")
+###################################################
+include "testsuite_random_include.kbs"
+
+###################################################
+call section("Loops with Exit and Continue")
+###################################################
+include "testsuite_loop_include.kbs"
+
+###################################################
+call section("TestSuite FOR/NEXT")
+###################################################
+include "testsuite_fornext_include.kbs"
+
+###################################################
+call section("Sprites")
+###################################################
+include "testsuite_sprite_include.kbs"
+
+###################################################
+call section("Directory and File-System Checks")
+###################################################
+include "testsuite_dir_include.kbs"
+
+###################################################
+call section("Binary Operations and Type Conversions")
+###################################################
+include "testsuite_binaryop_include.kbs"
+
+###################################################
+call section("Variable and Stack Types Tests")
+###################################################
+include "testsuite_types_include.kbs"
+
+###################################################
+call section("Array index base (arraybase 0/1)")
+###################################################
+include "testsuite_arraybase_include.kbs"
+
+###################################################
+call section("Map")
+###################################################
+include "testsuite_map_include.kbs"
+
+###################################################
+###################################################
+###################################################
+print "BASIC256_TESTSUITE_CI_PASSED"
+end
+###################################################
+###################################################
+###################################################

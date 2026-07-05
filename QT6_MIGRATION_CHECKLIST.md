@@ -157,11 +157,16 @@ This is the only phase that currently stops the Qt6 build.
     `mediaStatusChanged(...)` connects — these signals were not renamed in Qt6.
 
 ### Phase 1 gate
-- [ ] Configure + build against **Qt6** – must compile clean. *(Not run by
-      Claude Code this session — maintainer is running the build manually.)*
+- [x] Configure + build against **Qt6** – must compile clean. Confirmed
+      2026-07-05: all four CI targets (Windows, macOS, Linux x86_64, Linux
+      ARM64/RPi) build *and* package green. Run manually by the maintainer
+      via the real CI logs fed back into this session across many rounds —
+      see Session log below for the full trail of what broke and why.
 - [ ] Run a `.kbs` that uses **BEEP / waveforms** (the `QAudioSink` path) and
       one that **plays a sound file** (the `QMediaPlayer` path). **Confirm both
-      are audible** – Rule 2 failures are silent, not compile errors.
+      are audible** – Rule 2 failures are silent, not compile errors. *(Still
+      outstanding — green CI proves it builds/packages, not that Multimedia
+      is actually audible at runtime.)*
 
 > Note: reaching an actual green Phase 1 build also required fixing several
 > Qt6 breaks outside QtMultimedia that were surfacing in the same build logs
@@ -233,15 +238,27 @@ Per-file (each is `#include <QRegularExpression>` + convert usage):
 
 ## PHASE 3 – Minor cleanups (deprecation, low risk)
 
-- [ ] **`VariableWin.h` (lines ~72–78)** – `QVariant::type()` and the
+- [x] **`VariableWin.h` (lines ~72–78)** – `QVariant::type()` and the
       `QVariant::Int / UInt / LongLong / ULongLong / Double` comparisons are
       deprecated in Qt6. Replace `a.type() == QVariant::Int` style checks with
       `a.typeId() == QMetaType::Int` (and `QMetaType::UInt`, `LongLong`,
       `ULongLong`, `Double`). Compiles either way, but clears the warnings.
-- [ ] **`BasicEdit.cpp` (~769) / `LineNumberArea.cpp` (~69)** – `QWheelEvent`
+      Done 2026-07-05 in `variantLessThan()` (both `a` and `b` branches) —
+      this was also the single source of every repeated
+      `QVariant::Type`/`QVariant::type` warning seen in the Phase 1 build
+      logs across `BasicEdit.cpp`, `Main.cpp`, `MainWindow.cpp`,
+      `PreferencesWin.cpp`, `ReplaceWin.cpp`, `RunController.cpp` — those
+      all just include this header, there was nothing to fix in them
+      individually (confirmed via repo-wide grep, no other
+      `QVariant::Int`/`.type() == QVariant::...` usage anywhere).
+- [x] **`BasicEdit.cpp` (~769) / `LineNumberArea.cpp` (~69)** – `QWheelEvent`
       handlers. **Verify** they use `event->angleDelta().y()` and **not**
-      `event->delta()` (removed in Qt6). The scan found no `.delta()` calls, so
-      this is likely already fine – just confirm and tick.
+      `event->delta()` (removed in Qt6). Confirmed 2026-07-05: neither
+      handler calls `.delta()` at all —
+      `BasicEdit::lineNumberAreaMouseWheelEvent` just forwards to
+      `QPlainTextEdit::wheelEvent(event)`, and `LineNumberArea::wheelEvent`
+      just forwards to that. Repo-wide grep for `QWheelEvent`/`->delta()`
+      turned up nothing else. Already fine, no code change needed.
 
 ### Already-clear (no action – recorded so nobody redoes them)
 - `QFontMetrics::width()` – already `#if QT_VERSION`-guarded with
@@ -254,16 +271,30 @@ Per-file (each is `#include <QRegularExpression>` + convert usage):
 
 ## PHASE 4 – Make Qt6 the default & lock it in CI
 
-- [ ] Flip the CI matrix to build **Qt6** on all four targets
-      (Linux x86, Linux ARM/RPi, Windows, macOS).
-- [ ] Run the **`TestSuite`** as a required gate on the Qt6 build – this is the
+- [x] Flip the CI matrix to build **Qt6** on all four targets
+      (Linux x86, Linux ARM/RPi, Windows, macOS). Done across earlier
+      sessions in this file's own history — all four build *and* package
+      green as of 2026-07-05 (see Phase-1-adjacent session log entries).
+- [x] Run the **`TestSuite`** as a required gate on the Qt6 build – this is the
       defense against Rule 1 silent-connect regressions that don't show at
-      compile time.
-- [ ] Once all four are green on Qt6, drop the Qt5 fallback: change
+      compile time. Done 2026-07-05 — see session log for what this
+      actually runs and why (the full interactive `testsuite.kbs` cannot
+      run headlessly; a new CI-only subset was added instead). **Not yet
+      verified against a real CI run** — no local Qt6/BASIC-256 toolchain
+      to test the new `.kbs` script or the runner scripts against.
+- [x] Once all four are green on Qt6, drop the Qt5 fallback: change
       `find_package(QT NAMES Qt6 Qt5 ...)` → `find_package(QT NAMES Qt6 ...)`
       (or hard-require Qt6). Remove any `Core5Compat` crutch if Phase 2 was
-      finished properly.
-- [ ] Update `COMPILING.txt` / `COMPILING_RaspberryPI.txt` to state Qt6 minimum.
+      finished properly. Done 2026-07-05 — `Core5Compat` was already gone
+      (confirmed via grep, nothing to remove); also simplified the now-dead
+      `qt5_add_translation()` CMake branch to the unconditional Qt6 call.
+- [x] Update `COMPILING.txt` / `COMPILING_RaspberryPI.txt` to state Qt6 minimum.
+      Done 2026-07-05 — both files were rewritten, not just patched: they
+      still described qmake/`BASIC256.pro` (deleted long ago) and, for the
+      RPi file, a 2020 Debian-buster/svn/Qt5/snapcraft process. Patching in
+      "Qt6 minimum" next to instructions that no longer work at all would
+      have been actively misleading, so both now describe the actual
+      CMake+Qt6 process, sourced directly from the CI scripts.
 
 ---
 
@@ -283,8 +314,8 @@ Per-file (each is `#include <QRegularExpression>` + convert usage):
 - [x] `MainWindow.cpp` (also: QAction/QShortcut/QActionGroup includes,
       QMutex::NonRecursive, Qt::Key+Modifier, char→QString ternary,
       QString!=NULL ambiguity — see session log)
-- [ ] `VariableWin.h` (Phase 3, warnings only, not blocking)
-- [ ] `LineNumberArea.cpp` (verify only, Phase 3)
+- [x] `VariableWin.h` (Phase 3, warnings only, not blocking)
+- [x] `LineNumberArea.cpp` (verify only, Phase 3 — confirmed clean, no change needed)
 - [ ] `CMakeLists.txt` (Phase 4: drop Qt5 fallback — Core5Compat already
       removed this session, but the Qt5 fallback in `find_package(QT NAMES
       Qt6 Qt5 ...)` is untouched, per Phase 4 scope)
@@ -572,3 +603,94 @@ because it separately puts `$QT_DIR/bin` on `$PATH` and that older tool
 queries `qmake` directly for Qt's lib dir. Fixed by exporting
 `LD_LIBRARY_PATH="$QT_DIR/lib:$LD_LIBRARY_PATH"` before invoking
 `linuxdeploy` — the standard fix for this exact linuxdeploy+aqt combination.
+
+2026-07-05 (final) **All four CI targets build and package green**: Windows
+(build + windeployqt + NSIS installer), macOS (build + macdeployqt), Linux
+x86_64 (build + tar.gz + AppImage), Linux ARM64/RPi (build + tar.gz +
+AppImage). This closes out the CI-pipeline half of Phase 1 — the app code
+itself has compiled clean since the Convert.cpp fix a few sessions back;
+everything since then was CI/packaging-script fallout from Windows being
+the only platform whose build+package scripts had actually been ported to
+Qt6 before this thread started. Still outstanding before Phase 1 is fully
+done: the manual audibility check (BEEP/waveform + sound-file playback,
+Rule 2) — green CI proves the app builds and the artifacts assemble, not
+that Multimedia audio actually works at runtime. Phase 4 (flip CI to Qt6-only, drop the Qt5 `find_package` fallback) is
+still untouched.
+
+2026-07-05 (Phase 3) Both items done, both low-risk warning cleanups with
+no behavioral change: `VariableWin.h`'s `variantLessThan()` now uses
+`typeId() == QMetaType::...` instead of the deprecated
+`type() == QVariant::...`, and the `QWheelEvent` handlers in
+`BasicEdit.cpp`/`LineNumberArea.cpp` were confirmed to never call the
+removed `.delta()` in the first place (they just forward to
+`QPlainTextEdit::wheelEvent`). Not re-verified against an actual Qt6 build
+by Claude Code this session (no local Qt6 toolchain) — same as every other
+change in this file, verified by code-string/grep inspection; should be a
+no-risk green on the next CI run since neither change alters behavior.
+Phase 3 fully complete. Only Phase 4 remains.
+
+2026-07-05 (Phase 4) All four items done in one pass:
+
+- **TestSuite CI gate.** `TestSuite/testsuite.kbs` (the existing suite) is
+  explicitly interactive: it needs manual printer/PDF setup, prompts
+  `yn("Do TTS/Networking/Serial/WAVPLAY Testing?")` confirm dialogs, real
+  mouse/keyboard input, and ends with a modal `alert`. Checked
+  `Interpreter.cpp` directly: `OP_ALERT`/`OP_CONFIRM`/`OP_PROMPT`/
+  `OP_OPENFILEDIALOG`/`OP_SAVEFILEDIALOG` all `std::exit(1)` immediately in
+  `--silent` mode rather than block — by design, so `-s` can't run the
+  interactive suite at all, and would hard-exit partway through. The file
+  itself already anticipated an unattended run, though: it has a disabled
+  `##goto section_unattended` and a `section_unattended:` label after which
+  every included section (string/radix/function/error/math/fileio/database/
+  if/remark/random/loop/fornext/sprite/dir/binaryop/types/arraybase/map) is
+  free of dialogs/mouse/keyboard/printer/network/serial — confirmed by
+  grepping each of those include files for
+  alert/confirm/prompt/input/key/yn. Added `TestSuite/testsuite_ci.kbs`, a
+  new CI-only aggregate that includes exactly that unattended subset (skips
+  `testsuite_complete_include.kbs`, which has a fragile relative-path
+  dependency-completeness check, and `testsuite_array_include.kbs`, which
+  has real blocking `input` statements despite being listed before the
+  "Interactive tests" heading) and sets `unattended = true` defensively.
+  **Important gotcha documented in the new file and both runner scripts**:
+  a failed assertion does not change the process exit code — BASIC-256's
+  `end` statement is a normal deliberate stop, used both by
+  `testsuite_common_include.kbs`'s `same()`/`different()`/etc. helpers on
+  failure (print "fail" then `end`) and by the success path. So
+  `.github/scripts/run_testsuite.sh` (Linux/macOS) and `run_testsuite.ps1`
+  (Windows) check captured output for the word "fail" and for a
+  `BASIC256_TESTSUITE_CI_PASSED` marker, not just the exit code. Linux
+  additionally needs `QT_QPA_PLATFORM=offscreen` (GitHub's Linux runners
+  have no display server at all, even for the never-shown windows silent
+  mode still constructs). Wired into `build.yml` as a new step right after
+  each platform's build step, before packaging starts, with a 5-minute
+  `timeout-minutes` safety net. **Not run against a real CI/BASIC-256
+  instance this session** — no local Qt6/BASIC-256 toolchain to execute the
+  interpreter and confirm the new `.kbs` script actually parses and the
+  runner scripts' output-matching logic works end-to-end. Flag back any
+  parse errors or unexpected hangs from the next real CI run.
+- **CMakeLists.txt**: `find_package(QT NAMES Qt6 Qt5 ...)` → `Qt6` only
+  (both the `NAMES` line and the redundant `Qt${QT_VERSION_MAJOR}` second
+  `find_package` call, now hardcoded `Qt6`). `Core5Compat` was already gone.
+  Also collapsed the `if(QT_VERSION_MAJOR EQUAL 6) qt_add_translations()
+  else() qt5_add_translation() ...` branch to the unconditional Qt6 call,
+  since the else-branch was now permanently dead code. Left the
+  `Qt${QT_VERSION_MAJOR}::Core` etc. target_link_libraries lines alone —
+  still correct (QT_VERSION_MAJOR is still set to 6), not asked for, no
+  reason to churn them.
+- **COMPILING.txt / COMPILING_RaspberryPI.txt**: rewritten rather than
+  patched. Both predated this entire migration by years — `COMPILING.txt`
+  still told readers to run `qmake BASIC256.pro` (confirmed via glob: no
+  `.pro` file exists anywhere in the repo anymore) with a Qt5.15/MinGW
+  Windows setup; `COMPILING_RaspberryPI.txt` was a 2020 Debian-buster
+  svn-checkout/qmake/Qt5/snapcraft recipe. Both now describe the real
+  CMake+Qt6 process per platform, transcribed directly from the
+  CI-verified `.github/scripts/build_*` scripts (not guessed) and pointing
+  back at those scripts as the source of truth for anyone whose local setup
+  drifts from what's written here.
+- **Explicitly out of scope, left alone**: `package_Linux_RPi_AppImage.sh`
+  and `package_Linux_RPi_Trixie.sh` still reference Qt5 library/plugin
+  names (flagged in earlier session log entries) — that's a packaging
+  detail, not a Phase 4 item, and both are currently CI-green, so untouched
+  per the same "don't fix what isn't reported broken" reasoning as before.
+
+Phase 4 complete pending the TestSuite gate's first real CI run.

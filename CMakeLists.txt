@@ -16,8 +16,8 @@ include(GNUInstallDirs)
 # IDE/Tooling supportsupport for compile_commands.json (e.g. for clangd, VSCode C++ extensions) 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Find Qt 5/6 components 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS
+# Find Qt6 components
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS
     Core
     Gui
     Widgets
@@ -43,7 +43,7 @@ set(BASIC256_QT_COMPONENTS
     Network
 )
 
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS ${BASIC256_QT_COMPONENTS})
+find_package(Qt6 REQUIRED COMPONENTS ${BASIC256_QT_COMPONENTS})
 
 
 
@@ -217,12 +217,7 @@ else()
 endif()
     
 # Process TS files into QM files
-if(QT_VERSION_MAJOR EQUAL 6)
-    qt_add_translations(basic256 TS_FILES ${TS_FILES})
-else()
-    qt5_add_translation(QM_FILES ${TS_FILES})
-    target_sources(basic256 PRIVATE ${QM_FILES})
-endif()
+qt_add_translations(basic256 TS_FILES ${TS_FILES})
 
 if(APPLE)
     set_target_properties(basic256 PROPERTIES

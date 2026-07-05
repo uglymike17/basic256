@@ -1,38 +1,49 @@
-Instructions 2020-10-04b
-Debian buster in Raspberry Pi
+Compiling BASIC256 on Raspberry Pi / Linux ARM64
 
-sudo apt-get update
-sudo apt-get install subversion qt5-default bison flex qtmultimedia5-dev libqt5serialport5-dev libqt5multimedia5-plugins libqt5texttospeech5-dev qtspeech5-flite-plugin pulseaudio
-pulseudio --start
- 
-in your home folder
-svn checkout https://svn.code.sf.net/p/kidbasic/code/trunk basic256
+Requires Qt6 (minimum Qt 6.2; CI builds against whatever Qt6 Debian Trixie
+currently ships, e.g. 6.8.x). Qt5 is no longer supported -- these
+instructions replace the old 2020 Debian "buster" / qmake / svn checkout /
+snapcraft instructions, which built against Qt5 and a build system (qmake,
+BASIC256.pro) this project no longer uses.
 
-cd basic256
-qmake BASIC256.pro -config release
-make clean
-make
-sudo make install
+The authoritative, continuously-tested steps are
+.github/scripts/build_Linux_RPi_Trixie.sh (build) and
+.github/scripts/package_Linux_RPi_Trixie.sh /
+package_Linux_RPi_AppImage.sh (packaging) -- if these instructions and those
+scripts ever disagree, trust the scripts.
 
-RaspberryPi - AUdio
+Tested on: Debian 13 "Trixie", native aarch64 (e.g. Raspberry Pi 4/5).
+
+Dependencies:
+
+  sudo apt-get update && sudo apt-get install -y \
+    build-essential cmake flex bison \
+    flite libflite1 \
+    gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-alsa \
+    gstreamer1.0-libav gstreamer1.0-pipewire pipewire pipewire-pulse \
+    libpipewire-0.3-0 libpipewire-0.3-dev libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 \
+    libasound2-dev espeak-ng libespeak-ng-dev libspeechd-dev speech-dispatcher \
+    qt6-base-dev qt6-base-dev-tools qt6-tools-dev qt6-tools-dev-tools qt6-l10n-tools \
+    qt6-multimedia-dev qt6-serialport-dev qt6-speech-dev qt6-declarative-dev \
+    libgl1-mesa-dev libx11-dev patchelf
+
+Note: qt6-declarative-dev is required even though this project has no QML
+of its own -- Qt6TextToSpeech's own CMake package config depends on
+Qt6QmlIntegration, and find_package(Qt6 ... TextToSpeech) fails without it.
+
+Build (native ARM64 compile, Qt6 found automatically from the apt install):
+
+  cmake -B build -DCMAKE_BUILD_TYPE=Release
+  cmake --build build --config Release -j$(nproc)
+
+The resulting binary is build/basic256.
+
+Packaging into a standalone, relocatable distribution folder (bundles Qt6 +
+GStreamer + speech libraries with patchelf-adjusted rpaths so it runs
+without the dev packages installed) is handled by
+.github/scripts/package_Linux_RPi_Trixie.sh, and an AppImage variant by
+.github/scripts/package_Linux_RPi_AppImage.sh. See those scripts for the
+exact library/plugin list.
+
+Audio on Raspberry Pi:
 https://www.raspberrypi.org/documentation/configuration/audio-config.md
-
-
-svn checkout --username=renejm svn+ssh://renejm@svn.code.sf.net/p/kidbasic/code/trunk kidbasic-code
-
-SNAP:
-based on : https://jonathansblog.co.uk/snapcraft-building-arm-snaps-on-raspberry-pi
-
-setup:
-sudo apt update && sudo apt upgrade
-sudo apt install snapd
-sudo snap install core
-sudo snap install snapcraft --classic
-sudo snap install lxd
-sudo usermod -a -G lxd ${USER}
-lxd init (answer the questions with their defaults)
-reboot (this is important)
-
-making:
-snapcraft --use-lxd
-

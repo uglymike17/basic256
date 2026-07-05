@@ -69,13 +69,13 @@ private:
 
         // If both sides are numeric (int/longlong/double/etc.), compare numerically.
         const bool aNumeric =
-            a.type() == QVariant::Int  || a.type() == QVariant::UInt ||
-            a.type() == QVariant::LongLong || a.type() == QVariant::ULongLong ||
-            a.type() == QVariant::Double;
+            a.typeId() == QMetaType::Int  || a.typeId() == QMetaType::UInt ||
+            a.typeId() == QMetaType::LongLong || a.typeId() == QMetaType::ULongLong ||
+            a.typeId() == QMetaType::Double;
         const bool bNumeric =
-            b.type() == QVariant::Int  || b.type() == QVariant::UInt ||
-            b.type() == QVariant::LongLong || b.type() == QVariant::ULongLong ||
-            b.type() == QVariant::Double;
+            b.typeId() == QMetaType::Int  || b.typeId() == QMetaType::UInt ||
+            b.typeId() == QMetaType::LongLong || b.typeId() == QMetaType::ULongLong ||
+            b.typeId() == QMetaType::Double;
 
         if (aNumeric && bNumeric)
             return a.toDouble() < b.toDouble();
