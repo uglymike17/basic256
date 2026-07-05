@@ -24,6 +24,18 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $testSuiteDir = Resolve-Path (Join-Path $scriptDir "..\..\TestSuite")
 $basic256FullPath = (Resolve-Path $Basic256Exe).Path
 
+# This runs *before* packaging, straight from the raw build tree:
+# windeployqt (which stages Qt6's DLLs *and* its platforms\qwindows.dll
+# plugin next to the exe) only runs in the later packaging step, so without
+# this the exe fails to load at all (STATUS_DLL_NOT_FOUND) because it can't
+# find Qt6Core.dll etc., and even if it could, QApplication would then fail
+# to find a platform plugin. build_windows.ps1 exports QT_DIR pointing at
+# the aqtinstall Qt6 tree; put its bin/ on PATH and point Qt at its plugins.
+if ($env:QT_DIR) {
+    $env:PATH = "$env:QT_DIR\bin;$env:PATH"
+    $env:QT_PLUGIN_PATH = "$env:QT_DIR\plugins"
+}
+
 Write-Host "==> Running TestSuite (unattended subset) via: $basic256FullPath -s testsuite_ci.kbs"
 
 Push-Location $testSuiteDir

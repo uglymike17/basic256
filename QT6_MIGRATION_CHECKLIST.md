@@ -694,3 +694,37 @@ Phase 3 fully complete. Only Phase 4 remains.
   per the same "don't fix what isn't reported broken" reasoning as before.
 
 Phase 4 complete pending the TestSuite gate's first real CI run.
+
+2026-07-05 (later) First real run of the TestSuite gate, on all three
+Linux/Windows targets at once — all three failed, for two separate
+reasons, both boiling down to the same thing: the gate runs *before*
+packaging, straight against the raw, un-deployed build tree, which none of
+the runner scripts had accounted for.
+- **Linux (x86_64 and ARM64)**: `build/basic256: No such file or directory`
+  (exit 127). Bug in `run_testsuite.sh` itself: it `cd`s into `TestSuite/`
+  before invoking the binary, but the caller passes a path relative to the
+  repo root (`build/basic256`) — it stops resolving the moment the working
+  directory changes. Fixed by resolving to an absolute path (via `realpath`,
+  falling back to a manual `cd`+`pwd` if unavailable) before the `cd`.
+- **Windows**: exit code `-1073741515` = `0xC0000135` =
+  `STATUS_DLL_NOT_FOUND`. `windeployqt` (which stages Qt6's DLLs next to
+  the exe) hasn't run yet at this point in the pipeline — packaging happens
+  after this gate — so `build\Release\basic256.exe` can't find `Qt6Core.dll`
+  etc. at all. Fixed by adding `$env:QT_DIR\bin` to `PATH` in
+  `run_testsuite.ps1` (mirrors `package_Windows.ps1`'s own use of `QT_DIR`).
+- **Anticipated same-class failure, fixed proactively on both scripts**:
+  even once the core Qt DLLs/shared-libs are found, `QApplication` still
+  needs to find a platform plugin (`qwindows.dll` / `libqxcb.so` /
+  offscreen), which is *also* only staged next to the binary by
+  packaging/`windeployqt`. Set `QT_PLUGIN_PATH`/`$env:QT_PLUGIN_PATH` to
+  `$QT_DIR/plugins` on both Linux and Windows (only when `QT_DIR` is set —
+  unset on RPi/Trixie, which uses system apt Qt6 with its plugins already
+  in Qt's compiled-in default search path) to head off what would otherwise
+  almost certainly be the very next failure. **Not verified** — this half
+  of the fix is inferred from how Qt plugin loading works, not from an
+  actual observed error yet; flag back if a platform-plugin error still
+  shows up in the next log.
+- Also applied the Linux `LD_LIBRARY_PATH="$QT_DIR/lib"` fix here that was
+  already proven necessary for `linuxdeploy` in the packaging-script session
+  — same root cause (aqtinstall Qt6 isn't `ldconfig`-registered), same fix,
+  now needed here too since this step runs even earlier in the pipeline.

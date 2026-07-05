@@ -16,10 +16,19 @@
 # ─────────────────────────────────────────────────────────────────────────────
 set -uo pipefail
 
-BASIC256_BIN="${1:?Usage: run_testsuite.sh <path-to-basic256-binary>}"
+BASIC256_BIN_ARG="${1:?Usage: run_testsuite.sh <path-to-basic256-binary>}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TESTSUITE_DIR="$(cd "${SCRIPT_DIR}/../../TestSuite" && pwd)"
 LOG_FILE="$(mktemp)"
+
+# Resolve to an absolute path BEFORE cd'ing into TestSuite/ below -- the
+# caller passes a path relative to the repo root (e.g. "build/basic256"),
+# which stops resolving the moment the working directory changes.
+if command -v realpath >/dev/null 2>&1; then
+    BASIC256_BIN="$(realpath "${BASIC256_BIN_ARG}")"
+else
+    BASIC256_BIN="$(cd "$(dirname "${BASIC256_BIN_ARG}")" && pwd)/$(basename "${BASIC256_BIN_ARG}")"
+fi
 
 # GitHub Actions Linux runners have no display server at all; the
 # "offscreen" QPA platform lets Qt widgets construct without one. Harmless
@@ -27,6 +36,22 @@ LOG_FILE="$(mktemp)"
 # but only Linux strictly needs it.
 if [ "$(uname -s)" = "Linux" ]; then
     export QT_QPA_PLATFORM=offscreen
+fi
+
+# This runs *before* packaging, straight from the raw build tree: Qt6 has
+# not been staged next to the binary yet (that's windeployqt/linuxdeployqt's
+# job), and on platforms using an aqtinstall Qt6 (not a system apt package),
+# the shared libs aren't registered with the system loader either, and the
+# platform plugin (offscreen/xcb) won't be found next to the binary either.
+# The binary's own BUILD_WITH_INSTALL_RPATH ("$ORIGIN/lib", see
+# CMakeLists.txt) doesn't help here -- that "lib" directory only exists once
+# packaging has assembled it. QT_DIR is set by build_Linux_x86.sh
+# (aqtinstall); it's unset on RPi/Trixie, which uses ldconfig-registered
+# system Qt6 with its plugins in Qt's own compiled-in default path already
+# findable without this.
+if [ -n "${QT_DIR:-}" ]; then
+    export LD_LIBRARY_PATH="${QT_DIR}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+    export QT_PLUGIN_PATH="${QT_DIR}/plugins"
 fi
 
 echo "==> Running TestSuite (unattended subset) via: ${BASIC256_BIN} -s testsuite_ci.kbs"
