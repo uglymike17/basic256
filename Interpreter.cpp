@@ -17,6 +17,7 @@
 
 #include <iostream>
 #include <cstdlib>
+#include <climits>
 #include <math.h>
 #include <string>
 
@@ -3234,8 +3235,10 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						// otherwise concatenate (string & number or strings)
 						if (DataElement::getType(one)==T_INT && DataElement::getType(two)==T_INT) {
 							qint64 a = two->intval + one->intval;
-							if((two->intval<=0||one->intval<=0||a>=0)&&(two->intval>=0||one->intval>=0||a<=0)) {
-								// integer add - without overflow
+							if(a>=INT_MIN && a<=INT_MAX) {
+								// integer add - fits in the 32-bit int range BASIC-256 promotes to
+								// float beyond (matches tohex()/toradix()/the literal parser's own
+								// 32-bit-wide semantics, not intval's full 64-bit storage capacity)
 								stack->pushLong(a);
 							}else{
 								//overflow
@@ -3284,8 +3287,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						DataElement *two = stack->popDE();			// RELEASE
 						if (DataElement::getType(one)==T_INT &&DataElement::getType(two)==T_INT) {
 							qint64 a = two->intval - one->intval;
-							if((two->intval<=0||one->intval>0||a>=0)&&(two->intval>=0||one->intval<0||a<=0)) {
-								// integer subtract - without overflow
+							if(a>=INT_MIN && a<=INT_MAX) {
+								// integer subtract - fits in the 32-bit int range (see OP_ADD)
 								stack->pushLong(a);
 								delete one;
 								delete two;
@@ -3319,13 +3322,20 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 								break;
 							} else {
 								if (llabs(one->intval) <= INT64_MAX / llabs(two->intval)) {
-									long a = two->intval * one->intval;
-									// integer multiply - without overflow
-									stack->pushLong(a);
-									delete one;
-									delete two;
-									break;
+									qint64 a = two->intval * one->intval;
+									if(a>=INT_MIN && a<=INT_MAX) {
+										// integer multiply - fits in the 32-bit int range (see OP_ADD);
+										// the llabs/INT64_MAX check above only guards against genuine
+										// 64-bit multiplication overflow (undefined behavior), it's not
+										// the promote-to-float boundary itself
+										stack->pushLong(a);
+										delete one;
+										delete two;
+										break;
+									}
+									// else fall through to float multiply (32-bit overflow)
 								}
+								// else fall through to float multiply (would overflow 64-bit qint64 multiplication)
 							}
 						} else if (DataElement::getType(one)==T_INT && DataElement::getType(two)==T_STRING) {
 							// string repeat like python

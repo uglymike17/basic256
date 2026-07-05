@@ -968,3 +968,34 @@ regardless of whether the player had already reached its natural end.
 Not re-verified against a real build/run this session (no local
 toolchain) — awaiting confirmation that the full 5-4-3-2-1 countdown is
 now audible.
+
+2026-07-05 (later still) Binary Operations testing continued: the entire
+31-iteration `for t = 1 to 31` bitwise loop (AND/OR/NOT, tohex/fromhex,
+typeof) passed cleanly end to end, confirming the earlier
+basicParse.y/OP_BINARYAND/OP_BINARYOR/OP_TORADIX/OP_FROMRADIX fixes hold
+across the full range. New failure past that loop: `a = maxi + 1` (a
+32-bit `int` overflow by design, per the test's own `# overflow` comment)
+produced `typeof(a) == 1` (`T_INT`) instead of the expected `2`
+(`T_FLOAT`). Root cause in `OP_ADD`/`OP_SUB`/`OP_MUL` (`Interpreter.cpp`):
+each detects "integer overflow" via a sign-check (`OP_ADD`/`OP_SUB`) or an
+`INT64_MAX`-division check (`OP_MUL`) written for a 32-bit `int`-backed
+`intval` — but `intval` has stored a 64-bit `qint64` since the "updated to
+signed long integer" change referenced in `testsuite_radix_include.kbs`'s
+own header. So these checks now only catch **64-bit** qint64 overflow,
+never the 32-bit boundary the test (and, per the bitwise/literal fixes
+earlier this session, the rest of the type system) actually promotes float
+at. `maxi + 1 = 2147483648` doesn't remotely overflow a 64-bit qint64, so
+it sailed through as a plain `T_INT`. Fixed all three to explicitly check
+`a >= INT_MIN && a <= INT_MAX` (added `#include <climits>`) instead of the
+stale 64-bit-oriented checks — matches the 32-bit-wide semantics already
+established for `tohex`/`toradix`/the literal parser earlier this session.
+`OP_MUL` also had the *other* class of bug in the same neighborhood: `long
+a = two->intval * one->intval` truncates on Windows (32-bit `long`) before
+the overflow check ever runs — changed to `qint64 a` (kept the existing
+`llabs(...)  <= INT64_MAX / llabs(...)` guard as-is, since that one
+legitimately prevents undefined-behavior 64-bit multiplication overflow
+before computing `a`, which is a different concern from the 32-bit
+promote-to-float boundary now checked afterward). Verified by hand against
+the loop's own 8 `typeof(maxi/mini \ ... * ...)` assertions plus all four
+add/sub overflow/non-overflow cases — all consistent with the fix. Not
+re-verified against a real build/run this session (no local toolchain).

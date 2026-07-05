@@ -1,10 +1,7 @@
 Compiling BASIC256 on Raspberry Pi / Linux ARM64
 
 Requires Qt6 (minimum Qt 6.2; CI builds against whatever Qt6 Debian Trixie
-currently ships, e.g. 6.8.x). Qt5 is no longer supported -- these
-instructions replace the old 2020 Debian "buster" / qmake / svn checkout /
-snapcraft instructions, which built against Qt5 and a build system (qmake,
-BASIC256.pro) this project no longer uses.
+currently ships, e.g. 6.8.x). 
 
 The authoritative, continuously-tested steps are
 .github/scripts/build_Linux_RPi_Trixie.sh (build) and
