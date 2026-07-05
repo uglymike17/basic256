@@ -728,3 +728,28 @@ the runner scripts had accounted for.
   already proven necessary for `linuxdeploy` in the packaging-script session
   — same root cause (aqtinstall Qt6 isn't `ldconfig`-registered), same fix,
   now needed here too since this step runs even earlier in the pipeline.
+
+2026-07-05 (later still) Next run got past all of the above (path/DLL/plugin
+fixes worked) and hit a real compile error from the interpreter itself:
+`COMPILE ERROR in included file 'testsuite_radix_include.kbs' on line 39:
+Number too large` for the literal `0b11111111111111111111111111111111`.
+Maintainer confirmed this is **not** a Qt6-migration regression — the same
+error occurs running the TestSuite manually on pre-Qt6 code too, so the new
+CI gate simply surfaced a real, pre-existing bug for the first time (this
+suite was apparently never run end-to-end before). Root cause found in
+`LEX/basicParse.y`: the compile-time literal handlers for `B256BINCONST`,
+`B256HEXCONST`, and `B256OCTCONST` all called `strtoull($1, NULL, 16)` —
+hardcoded base 16 in *all three*, when only the hex one should be. The
+commented-out dead code directly below each rule (`//addIntOp(OP_PUSHINT,2);
+// radix` etc.) still shows the correct originally-intended radix for each,
+confirming a copy-paste bug. Parsing 32 binary '1' digits as hex overflows
+`unsigned long long` (~128-bit value) → `ERANGE` → "Number too large" at
+*compile* time, aborting the whole script before any test even runs. Fixed:
+binary branch now uses base 2, octal branch now uses base 8 (hex was
+already correct). Checked the separate *runtime* `frombinary()`/`fromhex()`/
+`fromoctal()`/`fromradix()` functions (`OP_FROMRADIX` in `Interpreter.cpp`)
+— those correctly use a real runtime `base` parameter already, so the bug
+was isolated to compile-time literals only. No CMake/build changes needed;
+bison regenerates the parser from `basicParse.y` automatically as part of
+the existing build step. Not re-verified against a real build/run this
+session (no local toolchain) — awaiting the next CI log.

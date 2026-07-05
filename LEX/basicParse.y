@@ -2033,7 +2033,7 @@ expr_numeric:
 	}
 	| B256BINCONST {
 		errno = 0;
-		unsigned long long v = strtoull($1, NULL, 16);
+		unsigned long long v = strtoull($1, NULL, 2);
 		if (errno == ERANGE) { errorcode = COMPERR_NUMBERTOOLARGE; return -1; }
 		if (v <= (unsigned long long)INT_MAX)
     		addIntOp(OP_PUSHINT, (int)v);
@@ -2065,7 +2065,7 @@ expr_numeric:
 	}
 	| B256OCTCONST {
 		errno = 0;
-		unsigned long long v = strtoull($1, NULL, 16);
+		unsigned long long v = strtoull($1, NULL, 8);
 		if (errno == ERANGE) { errorcode = COMPERR_NUMBERTOOLARGE; return -1; }
 		if (v <= (unsigned long long)INT_MAX)
     		addIntOp(OP_PUSHINT, (int)v);
