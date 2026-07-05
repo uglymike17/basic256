@@ -118,13 +118,24 @@ int main(int argc, char *argv[]) {
     // AttachConsole fails silently when there is no parent console
     // (e.g. double-click from Explorer or a -g / -t shortcut) — exactly
     // what we want.
-    if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+    //
+    // Skip this entirely if stdout is already redirected to a pipe or file
+    // (e.g. `basic256.exe -s script.kbs > out.txt`, or a CI runner capturing
+    // output via a pipe): AttachConsole+freopen would reopen stdout onto the
+    // parent's console device (CONOUT$), silently discarding that
+    // redirection so nothing the process prints ever reaches the file/pipe
+    // the caller was trying to capture.
+    HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD stdoutType = (hStdOut != NULL && hStdOut != INVALID_HANDLE_VALUE)
+        ? GetFileType(hStdOut) : FILE_TYPE_UNKNOWN;
+    bool stdoutAlreadyRedirected = (stdoutType == FILE_TYPE_DISK || stdoutType == FILE_TYPE_PIPE);
+    if (!stdoutAlreadyRedirected && AttachConsole(ATTACH_PARENT_PROCESS)) {
         FILE *fp;
         freopen_s(&fp, "CONOUT$", "w", stdout);
         freopen_s(&fp, "CONOUT$", "w", stderr);
         freopen_s(&fp, "CONIN$",  "r", stdin);
     }
-#endif  
+#endif
 
     // Enable per-monitor DPI awareness so Windows text-size settings are
     // reflected in Qt's system font. Must be set before QApplication is created.

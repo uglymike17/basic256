@@ -2035,7 +2035,7 @@ expr_numeric:
 		errno = 0;
 		unsigned long long v = strtoull($1, NULL, 2);
 		if (errno == ERANGE) { errorcode = COMPERR_NUMBERTOOLARGE; return -1; }
-		if (v <= (unsigned long long)INT_MAX)
+		if (v <= 0xFFFFFFFFULL)
     		addIntOp(OP_PUSHINT, (int)v);
 		else
     		addLongLongOp(OP_PUSHLONG, (long long)v);
@@ -2051,7 +2051,7 @@ expr_numeric:
 		errno = 0;
 		unsigned long long v = strtoull($1, NULL, 16);
 		if (errno == ERANGE) { errorcode = COMPERR_NUMBERTOOLARGE; return -1; }
-		if (v <= (unsigned long long)INT_MAX)
+		if (v <= 0xFFFFFFFFULL)
     		addIntOp(OP_PUSHINT, (int)v);
 		else
     		addLongLongOp(OP_PUSHLONG, (long long)v);
@@ -2067,7 +2067,7 @@ expr_numeric:
 		errno = 0;
 		unsigned long long v = strtoull($1, NULL, 8);
 		if (errno == ERANGE) { errorcode = COMPERR_NUMBERTOOLARGE; return -1; }
-		if (v <= (unsigned long long)INT_MAX)
+		if (v <= 0xFFFFFFFFULL)
     		addIntOp(OP_PUSHINT, (int)v);
 		else
     		addLongLongOp(OP_PUSHLONG, (long long)v);

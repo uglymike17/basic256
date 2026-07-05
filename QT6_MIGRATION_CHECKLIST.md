@@ -753,3 +753,53 @@ was isolated to compile-time literals only. No CMake/build changes needed;
 bison regenerates the parser from `basicParse.y` automatically as part of
 the existing build step. Not re-verified against a real build/run this
 session (no local toolchain) — awaiting the next CI log.
+
+2026-07-05 (later still) Next run got past the compile error and actually
+executed tests — 11 passed, then a real assertion failure:
+`0xffffffff` evaluated to `4294967295`, not the expected `-1`. Another
+genuine pre-existing bug in the same three `basicParse.y` branches: after
+computing `v` with the now-correct radix, all three used
+`if (v <= (unsigned long long)INT_MAX) addIntOp(...) else addLongLongOp(...)`
+— i.e. the threshold for "treat as a 32-bit int" was `INT_MAX` (0x7FFFFFFF,
+only half of a 32-bit register), not `UINT_MAX` (0xFFFFFFFF, the full 32
+bits a literal like `0xffffffff`/`0o37777777777`/32 binary digits actually
+occupies). Values in that upper half (0x80000000-0xFFFFFFFF) were wrongly
+routed to the `addLongLongOp` path, which carries the value forward as a
+positive 64-bit long instead of reinterpreting the bit pattern as a
+negative 32-bit int — contradicting the test's own stated intent (an
+exactly-32-bit-wide literal wraps to a signed 32-bit value; only literals
+that need *more* than 32 bits get promoted to a genuine 64-bit long).
+Changed the threshold to `0xFFFFFFFFULL` in all three branches
+(`B256BINCONST`/`B256HEXCONST`/`B256OCTCONST`) — `(int)v` for an
+in-32-bit-range `unsigned long long` reinterprets the bit pattern as
+negative when the top bit is set, on every mainstream compiler this project
+targets (MSVC/GCC/Clang), matching the existing cast style used elsewhere
+in the same rules. Not re-verified against a real build/run this session —
+awaiting the next CI log.
+
+2026-07-05 (later still) Windows TestSuite gate fails with *no* captured
+output at all — not even the `basic256`/section-header lines Linux showed
+before its own failures — just `run_testsuite.ps1`'s own final "marker not
+found" line. Root cause in `Main.cpp`'s existing Windows console-attach
+block (predates this session; unrelated to the parser bugs above): the app
+is built `/SUBSYSTEM:WINDOWS` (no console of its own), so on startup it
+calls `AttachConsole(ATTACH_PARENT_PROCESS)` and, if that succeeds,
+`freopen_s(..., "CONOUT$", ...)` to reattach stdout/stderr/stdin to
+whatever console the parent process has — intended so `--help`/`-s` output
+shows up when launched from a real terminal. But `run_testsuite.ps1`
+invokes it as `& $exe ... | Out-String` specifically to *capture* stdout
+into a pipe. `pwsh` itself has a real attached console in the CI runner, so
+`AttachConsole(ATTACH_PARENT_PROCESS)` succeeds — and `freopen_s` then
+reopens stdout onto that console device (`CONOUT$`), completely discarding
+the pipe redirection PowerShell had set up. Everything the process prints
+goes to a console nobody is capturing, instead of into the pipe
+`run_testsuite.ps1` reads into `$output` — hence total silence. Fixed by
+checking `GetFileType(GetStdHandle(STD_OUTPUT_HANDLE))`
+first: if stdout is already `FILE_TYPE_DISK` or `FILE_TYPE_PIPE` (i.e.
+already redirected by the caller — file redirection, or a CI runner piping
+output), skip the `AttachConsole`/`freopen_s` dance entirely and leave that
+redirection alone. Preserves the original behavior for the cases it was
+written for (double-click from Explorer, or run from an interactive
+terminal with no redirection) while fixing the automated/captured case.
+Not re-verified against a real build/run this session — awaiting the next
+CI log to confirm output now actually shows up.
