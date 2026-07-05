@@ -437,3 +437,36 @@ both packaging/CI-script issues rather than app-code issues:
    5 more files with real runtime-library-name uncertainty (especially the
    GStreamer↔Qt6Multimedia bridge) — wait for the real log once the build
    stage is green on each platform, then fix packaging from that.
+
+2026-07-05 (later) Real CI logs for the two apt-based Linux jobs came back;
+both were genuine, verifiable (via `packages.ubuntu.com`/`packages.debian.org`
+web search, not guesswork) issues, not just naming drift:
+- **Ubuntu 22.04 (x86_64) build**: `apt install` failed outright —
+  `qt6-serialport-dev` and `qt6-speech-dev` don't exist in jammy at all
+  (jammy's serialport package is `libqt6serialport6-dev`, and jammy never
+  got a Qt6TextToSpeech package — that only appears from Ubuntu 24.04
+  "noble" onward). Since this project hard-requires `TextToSpeech`
+  (`CMakeLists.txt:20-31`), apt is a dead end on jammy. Switched
+  `build_Linux_x86.sh` to install Qt6 via `aqtinstall` instead (mirrors
+  `build_Windows.ps1` exactly: `aqt install-qt linux desktop 6.7.3 gcc_64 -m
+  qtmultimedia qtserialport qtspeech`), exporting `QT_DIR` via `$GITHUB_ENV`
+  the same way. Kept apt for genuinely non-Qt deps (gstreamer, pulse,
+  speech-dispatcher, espeak-ng, X11/mesa dev headers) and added
+  `libxcb-cursor0` (a well-known Qt6 xcb-platform-plugin runtime
+  requirement since 6.5). Also updated `package_Linux_x86.sh`'s two lines
+  that read `$Qt5_DIR`/a hardcoded system qt5 path to read the new `$QT_DIR`
+  instead, since that script runs in the same job right after the build
+  step and would otherwise definitely break next (not new guessing — same
+  env var plumbing pattern as Windows). Did **not** touch
+  `package_Linux_x86_AppImage.sh` (it never read `Qt5_DIR` to begin with —
+  already hardcoded to a system path, already deferred above).
+- **Debian Trixie (RPi ARM64) configure**: `find_package(Qt6 ...
+  TextToSpeech)` failed — `Qt6TextToSpeechConfig.cmake` exists but sets
+  `_FOUND` to FALSE because its own dependency, `Qt6QmlIntegration`, isn't
+  installed. Confirmed via web search that `qt6-declarative-dev` (Debian
+  Trixie has 6.8.2) is what provides `Qt6QmlIntegration` — added it to
+  `build_Linux_RPi_Trixie.sh`'s apt list. Left the rest of that script (and
+  the ARM64 apt Qt6 approach in general) as-is since Trixie's Qt6 packaging
+  is otherwise complete (unlike jammy) — no need for the aqtinstall
+  workaround here.
+- Windows and macOS both went green this round.

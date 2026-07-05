@@ -15,8 +15,9 @@ set -euo pipefail
         cp README.md Basic256/ || true
         cp Basic256.png Basic256/ || true
 
-        # Point PATH to the exact folder containing the jurplel-installed Qt binaries
-        export QT_PLUGIN_DIR="${Qt5_DIR:-/usr/lib/x86_64-linux-gnu/qt5}/plugins"
+        # Point at the aqtinstall-installed Qt6 tree (build_Linux_x86.sh exports
+        # QT_DIR via $GITHUB_ENV; this is a fresh step so read it from there).
+        export QT_PLUGIN_DIR="${QT_DIR:?QT_DIR not set - build_Linux_x86.sh must run first}/plugins"
 
         # Manually grab the dynamic plugins that linuxdeployqt misses statically
         cp -r $QT_PLUGIN_DIR/texttospeech/*.so Basic256/plugins/texttospeech/ 2>/dev/null || true
@@ -67,8 +68,8 @@ set -euo pipefail
           fi
         done
 
-        # Force linuxdeployqt to look at the system Qt5 path
-        export PATH="/usr/lib/qt5/bin:$PATH"
+        # Force linuxdeployqt to look at the aqtinstall-installed Qt6 tree
+        export PATH="${QT_DIR}/bin:$PATH"
         
         # Run linuxdeployqt with the plugin arguments
         "${LDQT}" Basic256/basic256 \

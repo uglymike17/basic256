@@ -9,12 +9,14 @@ gstreamer1.0-libav gstreamer1.0-pipewire pipewire pipewire-pulse \
 libpipewire-0.3-0 libpipewire-0.3-dev libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 \
 libasound2-dev espeak-ng libespeak-ng-dev libspeechd-dev speech-dispatcher \
 qt6-base-dev qt6-base-dev-tools qt6-tools-dev qt6-tools-dev-tools qt6-l10n-tools \
-qt6-multimedia-dev qt6-serialport-dev qt6-speech-dev \
+qt6-multimedia-dev qt6-serialport-dev qt6-speech-dev qt6-declarative-dev \
 libgl1-mesa-dev libx11-dev patchelf
 
-# NOTE: package names above are best-effort for Debian Trixie's Qt6 repos,
-# not verified against the actual apt index on this runner -- if any
-# "Unable to locate package" errors show up in the next log, paste it back.
+# NOTE: qt6-declarative-dev is required even though this project doesn't use
+# QML directly -- Qt6TextToSpeech's CMake config (Qt6TextToSpeechConfig.cmake)
+# depends on the Qt6QmlIntegration package, which qt6-declarative-dev
+# provides. Without it, find_package(Qt6 ... TextToSpeech) fails with
+# "Qt6TextToSpeech_FOUND is FALSE" even though the .cmake file exists on disk.
 
 # 1. Compile using native ARM64 tools
         cmake -B build -DCMAKE_BUILD_TYPE=Release
