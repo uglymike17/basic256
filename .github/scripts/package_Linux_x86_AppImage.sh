@@ -163,6 +163,14 @@ export EXTRA_QT_PLUGINS="texttospeech;multimedia;imageformats"
 export VERSION
 VERSION="$(git describe --tags --always 2>/dev/null || echo 'dev')"
 
+# The base linuxdeploy tool (before its "qt" plugin even runs) does its own
+# ELF dependency walk of usr/bin/basic256 to decide what to bundle -- unlike
+# linuxdeploy-plugin-qt, it has no notion of $QMAKE, and Qt6 isn't
+# system-installed/ldconfig-registered here (it's an aqtinstall tree), so
+# without this it can't resolve libQt6*.so.6 at all (hit
+# "Could not find dependency: libQt6Sql.so.6" before the qt plugin ever ran).
+export LD_LIBRARY_PATH="${QT_DIR}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+
 echo "==> Running linuxdeploy (VERSION=${VERSION})"
 "${TOOLS_DIR}/linuxdeploy-${ARCH}.AppImage" \
     --appdir "${APPDIR}"                     \

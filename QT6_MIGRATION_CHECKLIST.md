@@ -557,3 +557,18 @@ except `libqsqlite.so` from the aqt Qt tree before deploying, in both
 untested but same evidenced cause) `package_Linux_x86_AppImage.sh`, rather
 than allowlisting one broken driver at a time across further CI
 round-trips.
+
+2026-07-05 (later still) `package_Linux_x86_AppImage.sh` failed at an
+earlier stage than the sqldrivers fix above: the base `linuxdeploy` tool's
+own ELF dependency walk of `usr/bin/basic256` (which runs *before* its "qt"
+plugin even starts) couldn't resolve `libQt6Sql.so.6` at all. Root cause:
+`linuxdeploy` core has no notion of `$QMAKE` (that's a
+`linuxdeploy-plugin-qt` concept for its own later Qt-specific stage) — it
+just does a normal ELF/RPATH/loader-path resolution, and since this Qt6
+comes from an aqtinstall tree (never `ldconfig`-registered, unlike
+apt-installed Qt), it has no way to find `libQt6*.so.6` unless told.
+`package_Linux_x86.sh` (`linuxdeployqt`, the older tool) never hit this
+because it separately puts `$QT_DIR/bin` on `$PATH` and that older tool
+queries `qmake` directly for Qt's lib dir. Fixed by exporting
+`LD_LIBRARY_PATH="$QT_DIR/lib:$LD_LIBRARY_PATH"` before invoking
+`linuxdeploy` — the standard fix for this exact linuxdeploy+aqt combination.
