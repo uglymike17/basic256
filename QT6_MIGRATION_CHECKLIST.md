@@ -388,3 +388,52 @@ compile under both: wrapped the call as `QString(locale->decimalPoint()).at(0)`
 yields a `QChar` on either branch so the ternary and the assignment into the
 `QChar` member both type-check. Not yet re-verified against an actual build
 by Claude Code — maintainer to re-run CI.
+
+2026-07-05 Windows build itself went green. Two new failures surfaced,
+both packaging/CI-script issues rather than app-code issues:
+
+1. **Windows installer (`build_installer_Windows.ps1` / `BASIC256.nsi`)** —
+   `windeployqt.exe` path and Qt DLL names in `package_Windows.ps1` still
+   read `$env:Qt5_Dir` / `Qt5*.dll` even though `build_Windows.ps1` exports
+   `QT_DIR` (fixed earlier this session) — renamed throughout. Separately,
+   `BASIC256.nsi` failed at `File "${SDK_PLUGINS}\audio\qtaudio_windows.dll"`
+   — Qt6's Multimedia plugin architecture doesn't have an `audio` plugin
+   category (or `mediaservice`/`playlistformats`) at all, so the entire
+   hand-curated Qt5 plugin/DLL file list in the `.nsi` was structurally
+   wrong, not just misnamed. Fixed by deleting that list entirely and
+   instead recursively pulling `Basic256\*.*` (excluding Examples/TestSuite/
+   Translations/basic256.bat/the exe/README/png, which are handled
+   separately) — that folder is already correctly populated by
+   `windeployqt` in the preceding `package_windows.ps1` step, so this needs
+   no Qt6 plugin-name knowledge at all. Also widened the uninstaller's
+   `RMDir /r $INSTDIR\<plugin-dir>` list with plausible Qt6 categories
+   (`multimedia`, `generic`, `styles`, `iconengines`, `networkinformation`,
+   `tls`) alongside the old Qt5 ones — harmless no-ops if a given folder
+   doesn't exist.
+2. **Linux/macOS/RPi builds never migrated off Qt5** — `build_Linux_x86.sh`,
+   `build_Linux_RPi_Trixie.sh`, and `build_macos.sh` were still installing
+   Qt5 (`qtbase5-dev`, `libqt5*`, Homebrew `qt@5`), so `BasicDock.h`'s
+   `#include <QtGui/QAction>` (a real Qt6-only header location) failed with
+   "No such file or directory" on all three, since only Qt5 was ever
+   installed. Switched apt package lists to Qt6 equivalents
+   (`qt6-base-dev`, `qt6-multimedia-dev`, `qt6-serialport-dev`,
+   `qt6-speech-dev`, `qt6-l10n-tools`, etc. -- **not verified against the
+   actual apt indices on jammy/Trixie, best-effort naming**) and switched
+   macOS to `brew install qt` (Homebrew's unversioned formula is Qt6 now;
+   `qt@5` is gone). Also renamed the Qt5->Qt6 library/plugin-dir references
+   inside `build_Linux_RPi_Trixie.sh`'s post-build packaging block
+   (`libQt5*.so.*` -> `libQt6*.so.*`, `qt5/plugins` -> `qt6/plugins`,
+   `mediaservice` -> `multimedia`, made each copy non-fatal) since that
+   script conflates build+partial-packaging and would have hard-failed
+   immediately after compiling successfully otherwise.
+   **Deliberately NOT touched**: `package_Linux_x86.sh`,
+   `package_Linux_x86_AppImage.sh`, `package_Linux_RPi_Trixie.sh`,
+   `package_Linux_RPi_AppImage.sh`, `package_macos.sh` — these are separate
+   packaging-stage scripts (run only after a successful build) that are
+   *also* still fully Qt5-hardcoded (`libQt5MultimediaGstTools.so`,
+   `mediaservice` plugin dirs, `qt5/plugins` paths, GStreamer bridge lib
+   that may not exist under Qt6's default FFmpeg-based Multimedia backend
+   at all). Per this checklist's own rule, didn't want to guess blind across
+   5 more files with real runtime-library-name uncertainty (especially the
+   GStreamer↔Qt6Multimedia bridge) — wait for the real log once the build
+   stage is green on each platform, then fix packaging from that.

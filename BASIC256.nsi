@@ -157,47 +157,8 @@ it manually from:$\nhttps://aka.ms/vs/17/release/vc_redist.x64.exe"
      SetOutPath $INSTDIR\Modules
      File .\Modules\*
 
-     SetOutPath $INSTDIR\audio
-     SetFileAttributes $INSTDIR\audio HIDDEN
-     File "${SDK_PLUGINS}\audio\qtaudio_windows.dll"
-
-     SetOutPath $INSTDIR\imageformats
-     SetFileAttributes $INSTDIR\imageformats HIDDEN
-     File "${SDK_PLUGINS}\imageformats\qgif.dll"
-     File "${SDK_PLUGINS}\imageformats\qico.dll"
-     File "${SDK_PLUGINS}\imageformats\qjpeg.dll"
-     File "${SDK_PLUGINS}\imageformats\qsvg.dll"
-     File "${SDK_PLUGINS}\imageformats\qtga.dll"
-     File "${SDK_PLUGINS}\imageformats\qtiff.dll"
-     File "${SDK_PLUGINS}\imageformats\qwbmp.dll"
-
-     SetOutPath $INSTDIR\platforms
-     SetFileAttributes $INSTDIR\platforms HIDDEN
-     File "${SDK_PLUGINS}\platforms\qwindows.dll"
-
-     SetOutPath $INSTDIR\printsupport
-     SetFileAttributes $INSTDIR\printsupport HIDDEN
-     File "${SDK_PLUGINS}\printsupport\windowsprintersupport.dll"
-
-     SetOutPath $INSTDIR\sqldrivers
-     SetFileAttributes $INSTDIR\sqldrivers HIDDEN
-     File "${SDK_PLUGINS}\sqldrivers\qsqlite.dll"
-
-     SetOutPath $INSTDIR\mediaservice
-     SetFileAttributes $INSTDIR\mediaservice HIDDEN
-     File "${SDK_PLUGINS}\mediaservice\dsengine.dll"
-     File "${SDK_PLUGINS}\mediaservice\qtmedia_audioengine.dll"
-
-     SetOutPath $INSTDIR\playlistformats
-     SetFileAttributes $INSTDIR\playlistformats HIDDEN
-     File "${SDK_PLUGINS}\playlistformats\qtmultimedia_m3u.dll"
-
-     SetOutPath $INSTDIR\texttospeech
-     SetFileAttributes $INSTDIR\texttospeech HIDDEN
-     File "${SDK_PLUGINS}\texttospeech\qtexttospeech_sapi.dll"
-
      SetOutPath $INSTDIR
-     
+
      File build\Release\basic256.exe
      File ChangeLog
      File CONTRIBUTORS
@@ -205,17 +166,16 @@ it manually from:$\nhttps://aka.ms/vs/17/release/vc_redist.x64.exe"
      File README.md
      File Basic256.png
 
-     File "${SDK_BIN}\Qt5Core.dll"
-     File "${SDK_BIN}\Qt5Gui.dll"
-     File "${SDK_BIN}\Qt5Multimedia.dll"
-     File "${SDK_BIN}\Qt5MultimediaWidgets.dll"
-     File "${SDK_BIN}\Qt5Network.dll"
-     File "${SDK_BIN}\Qt5OpenGL.dll"
-     File "${SDK_BIN}\Qt5PrintSupport.dll"
-     File "${SDK_BIN}\Qt5SerialPort.dll"
-     File "${SDK_BIN}\Qt5Sql.dll"
-     File "${SDK_BIN}\Qt5TextToSpeech.dll"
-     File "${SDK_BIN}\Qt5Widgets.dll"
+     ; Pull in the already-deployed Qt6 runtime (every Qt DLL and plugin
+     ; subfolder windeployqt determined this exe actually needs) from the
+     ; Basic256\ folder that package_windows.ps1 built via windeployqt in the
+     ; previous CI step, instead of hand-listing DLL/plugin filenames here.
+     ; The old itemized Qt5 list rotted badly across the Qt6 migration --
+     ; several Qt5 plugin categories (mediaservice, playlistformats) don't
+     ; exist in Qt6 at all, and the exact Qt6 replacements depend on which
+     ; Multimedia backend Qt6 picked, which windeployqt already resolved
+     ; correctly for us.
+     File /r /x "Examples" /x "TestSuite" /x "Translations" /x "basic256.bat" /x "basic256.exe" /x "README.md" /x "Basic256.png" "Basic256\*.*"
 
    ;   Write the installation path into the registry
      WriteRegStr HKLM SOFTWARE\BASIC256 "Install_Dir" "$INSTDIR"
@@ -313,6 +273,13 @@ it manually from:$\nhttps://aka.ms/vs/17/release/vc_redist.x64.exe"
      RMDir /r $INSTDIR\mediaservice
      RMDir /r $INSTDIR\playlistformats
      RMDir /r $INSTDIR\texttospeech
+     ; Qt6 plugin categories (added post-migration; harmless no-ops if absent)
+     RMDir /r $INSTDIR\multimedia
+     RMDir /r $INSTDIR\generic
+     RMDir /r $INSTDIR\styles
+     RMDir /r $INSTDIR\iconengines
+     RMDir /r $INSTDIR\networkinformation
+     RMDir /r $INSTDIR\tls
 
      Delete $INSTDIR\uninstall.exe
 
