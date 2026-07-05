@@ -11,7 +11,7 @@ sudo apt-get remove -y libunwind-14-dev || true
 # packages.ubuntu.com, not just found missing at apt-install time.
 sudo apt install -y build-essential cmake libgl1-mesa-dev libx11-dev libxext-dev \
   libxrender-dev libxi-dev libxkbcommon-x11-0 libxcb-cursor0 flex bison libpulse-dev \
-  libpipewire-0.3-dev \
+  libpipewire-0.3-dev libcups2-dev \
   libspeechd-dev libspeechd2 speech-dispatcher libespeak-ng-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
   gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-libav
 

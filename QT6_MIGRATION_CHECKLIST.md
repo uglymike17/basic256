@@ -498,3 +498,16 @@ web search, not guesswork) issues, not just naming drift:
 - Did not touch the `mediaservice`/`imageformats`/etc. `EXTRA_QT_PLUGINS`
   plugin-category lists in either AppImage script — still deferred, not
   what either of these two logs actually flagged as broken.
+
+2026-07-05 (later still) Windows, macOS, and Linux ARM64 all green. Ubuntu
+x86_64 log confirmed the `find`-discovered `QT_DIR` resolved to
+`6.7.3/gcc_64` (aqt does strip the `linux_` prefix from the arch name when
+naming the install dir, as suspected — good thing that wasn't hardcoded).
+New failure, unrelated to Qt module packaging: `Qt6PrintSupport` requires
+CUPS dev headers (`find_package(Cups)` inside its own CMake config), which
+aren't installed on this runner (aqt's prebuilt Qt6 doesn't bundle a private
+copy of Cups the way it bundles FFmpeg/etc.). Added `libcups2-dev` to
+`build_Linux_x86.sh`'s apt list (standard Ubuntu package providing
+`cups/cups.h` — this one's a well-established name, not a guess). RPi ARM64
+never hit this because its apt-based `qt6-base-dev` pulls Cups in
+transitively as a real Debian package dependency.
