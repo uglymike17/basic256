@@ -803,3 +803,60 @@ written for (double-click from Explorer, or run from an interactive
 terminal with no redirection) while fixing the automated/captured case.
 Not re-verified against a real build/run this session — awaiting the next
 CI log to confirm output now actually shows up.
+
+2026-07-05 (later still) Windows output fix confirmed working — the next
+run showed real output. Sprites section appeared to pass in full on a
+Windows run the maintainer described as "fuller" — but that run turned out
+to be an *interactive* run of `testsuite_ci.kbs` in the IDE (no `-s` at
+all), where a real window exists and rendering happens normally. It was
+never evidence against the theory; it just wasn't testing the same
+condition. The actual CI gate always runs with `-s`, where
+`waitForGraphics()`'s `if (guiState == GUISTATESILENT) return;` skips
+`update_sprite_screen()`/the `goutputReady` signal that drives
+`BasicGraph::updateScreenImage()` unconditionally, by design (no point
+compositing frames for a window nobody will ever see) — so under real CI
+conditions the screen image never changes at all, and "Screen different
+with sprites" and friends are unwinnable regardless of whether sprites
+themselves work correctly. This matches the original Linux failure
+(identical hashes) exactly. Removed `testsuite_sprite_include.kbs` from
+`testsuite_ci.kbs` (with a comment explaining why), rather than leaving it
+in to flake/fail every `-s` run.
+
+The real failure on this run was in Binary Operations:
+`testing -2==4294967294 (-2 = 4294967294) fail`. Root cause: `OP_BINARYAND`,
+`OP_BINARYOR`, and `OP_BINARYNOT` in `Interpreter.cpp` all declared local
+variables as `unsigned long` when reading values via `Stack::popLong()`/
+`Convert::getLong()` — both of which correctly return `qint64` (a fixed,
+platform-independent 64-bit signed type). `unsigned long` is 64-bit on
+Linux/macOS (LP64) but only **32-bit** on Windows (LLP64/MSVC) — a classic
+cross-platform footgun, and genuinely pre-existing (nothing to do with
+Qt6). On Windows, assigning a `qint64` value of `-2` into a 32-bit
+`unsigned long` truncates it to `0xFFFFFFFE` (4294967294) and it is never
+converted back to a signed representation before being pushed back onto
+the stack — so `c & 0xffffffff` (which should be a no-op, since
+`0xffffffff` is `-1` — all bits set — after the earlier literal-parsing
+fix) instead corrupts the sign. Fixed by using `qint64` throughout all
+three opcodes, matching the `Stack`/`Convert` API's actual types and
+eliminating the platform-dependent narrowing entirely.
+
+While in that neighborhood, found (via code inspection, not a failing
+test) `OP_TORADIX` (backs `tohex()`/`tobinary()`/`tooctal()`/`toradix()`)
+has the *same* `unsigned long n = stack->popLong()` pattern before calling
+`QString::setNum(n, base)`. The test suite's own expected values
+(`tohex(-1)` = `"ffffffff"`, 8 hex digits = 32 bits, not 16) confirm this
+is meant to be a fixed 32-bit-wide conversion. On Windows this already
+passed — only by coincidence of `unsigned long` happening to be 32 bits
+there. On Linux/macOS it would almost certainly fail the exact same
+assertion (producing a 16-hex-digit string instead), since Linux hasn't
+even reached this test yet in any log so far (it was still failing earlier
+in Sprites in the one Linux run we've seen). Fixed proactively to
+`quint32` rather than waiting for a Linux log to confirm what code
+inspection already made clear.
+**Deliberately not touched**, same bug class but lower confidence/higher
+risk: `OP_BITSHIFTL`/`OP_BITSHIFTR` (also `unsigned long`, but also use
+`sizeof(a)` to bound the shift amount — changing the type changes the
+shift-width semantics too, not just sign handling, and no test currently
+exercises a value that would expose a difference) and `OP_FROMRADIX`'s
+`unsigned long dec` (no test currently pushes a value large enough to
+distinguish 32- vs 64-bit behavior there). Flagged for whoever hits them
+next.

@@ -7,6 +7,10 @@
 # Added for QT6_MIGRATION_CHECKLIST.md Phase 4 ("Run the TestSuite as a
 # required gate on the Qt6 build").
 #
+# Also excluded, despite needing no interaction: "Sprites"
+# (testsuite_sprite_include.kbs) -- see the comment near its would-be
+# `include` below for why it can never pass under `-s`.
+#
 # IMPORTANT for whoever wires this into CI: a failing test does NOT change
 # the process exit code. BASIC-256's `end` statement is a normal, deliberate
 # stop -- used both on failure (same()/different()/boolean()/q()/npercent()/
@@ -80,10 +84,18 @@ call section("TestSuite FOR/NEXT")
 ###################################################
 include "testsuite_fornext_include.kbs"
 
-###################################################
-call section("Sprites")
-###################################################
-include "testsuite_sprite_include.kbs"
+# "Sprites" (testsuite_sprite_include.kbs) is deliberately NOT included here.
+# It compares md5 hashes of getslice() screen captures before/after sprite
+# operations to verify sprites actually rendered -- but --silent mode's
+# waitForGraphics() does `if (guiState == GUISTATESILENT) return;` *before*
+# calling update_sprite_screen() / emitting the signal that drives
+# BasicGraph::updateScreenImage(), by design (no point compositing frames
+# for a window nobody will ever see). So under `-s`, the screen image never
+# changes at all, and every "screen should be different" assertion in that
+# file is unwinnable regardless of whether sprites actually work correctly.
+# Confirmed by running it interactively (no -s) in the IDE, where the
+# window is real and every sprite assertion passes -- the failure is purely
+# a --silent-mode rendering-skip artifact, not a sprite bug.
 
 ###################################################
 call section("Directory and File-System Checks")

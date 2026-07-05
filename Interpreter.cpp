@@ -5992,8 +5992,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_BINARYOR: {
-					unsigned long a = stack->popLong();
-					unsigned long b = stack->popLong();
+					qint64 a = stack->popLong();
+					qint64 b = stack->popLong();
 					a = a | b;
 					stack->pushLong(a);
 				}
@@ -6005,8 +6005,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					// if both are numbers then convert to long and bitwise and
 					// otherwise concatenate (string & number or strings)
 					if ((DataElement::getType(one)==T_INT || DataElement::getType(one)==T_FLOAT) && (DataElement::getType(two)==T_INT || DataElement::getType(two)==T_FLOAT)) {
-						unsigned long a = convert->getLong(one);
-						unsigned long b = convert->getLong(two);
+						qint64 a = convert->getLong(one);
+						qint64 b = convert->getLong(two);
 						a = a&b;
 						stack->pushLong(a);
 					} else {
@@ -6026,7 +6026,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_BINARYNOT: {
-					unsigned long a = stack->popLong();
+					qint64 a = stack->popLong();
 					a = ~a;
 					stack->pushLong(a);
 				}
@@ -6466,7 +6466,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 				case OP_TORADIX: {
 					int base = stack->popInt();
-					unsigned long n = stack->popLong();
+					quint32 n = (quint32)stack->popLong();
 					if (base>=2 && base <=36) {
 						QString out;
 						out.setNum(n, base);
