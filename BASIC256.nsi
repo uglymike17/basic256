@@ -22,7 +22,7 @@
  ; VERSION is passed in from the CI build via "makensis /DVERSION=...",
  ; The hardcoded fallback below is only used for ad-hoc local makensis runs.
  !ifndef VERSION
-     !define VERSION "2.1.Alpha03"
+     !define VERSION "2.1.Alpha04Qt6"
  !endif
  !define VERSIONDATE "2026-06-28"
  !define SDK_BIN "$%QT_DIR%\bin"

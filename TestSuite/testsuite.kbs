@@ -190,14 +190,6 @@ if yn("Do Networking Testing?") then
    include "testsuite_network_include.kbs"
 endif
 
-section_serial:
-###################################################
-call section("Serial Port")
-###################################################
-if yn("Do Serial Port Test?") then
-   include "testsuite_serialio_include.kbs"
-endif
-
 section_print:
 ###################################################
 call section("Console Printing")

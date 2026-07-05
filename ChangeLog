@@ -1,3 +1,7 @@
+2026-07-05 M. Vilain <uglymike17@gmail.com>  
+	* Big one: Migrated basic256 from Qt5 to Qt6, which is a major update that will allow for better performance on ARM-based systems like Raspberry Pi.|  
+	* Fix small errors that cropped up during edge-tests in TestSuite run.
+
 2026-07-04 M. Vilain <uglymike17@gmail.com>  
 	* Added: CLI option -f when used with -r/-a/-g/-t will now open the program fullscreen
 	* Added: CLI option -s when used will supress all screen output. Mainly used during testing but could be used to read/write/change a file/DB,...

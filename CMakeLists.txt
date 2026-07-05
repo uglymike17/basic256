@@ -238,9 +238,43 @@ if(UNIX AND NOT APPLE)
     )
 endif()
 
+# Derive the build's VERSION display string (About box, applicationVersion)
+# from the branch being built, the same way build_installer_Windows.ps1
+# derives the installer's version -- so the two never disagree again.
+# - GITHUB_HEAD_REF is set for pull_request events (source branch name).
+# - GITHUB_REF_NAME is set for push/release events (branch or tag name).
+# - Fall back to git directly for local/non-CI runs.
+if(DEFINED ENV{GITHUB_HEAD_REF} AND NOT "$ENV{GITHUB_HEAD_REF}" STREQUAL "")
+    set(BASIC256_BUILD_BRANCH "$ENV{GITHUB_HEAD_REF}")
+elseif(DEFINED ENV{GITHUB_REF_NAME} AND NOT "$ENV{GITHUB_REF_NAME}" STREQUAL "")
+    set(BASIC256_BUILD_BRANCH "$ENV{GITHUB_REF_NAME}")
+else()
+    find_package(Git QUIET)
+    if(GIT_FOUND)
+        execute_process(
+            COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            OUTPUT_VARIABLE BASIC256_BUILD_BRANCH
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+        )
+    endif()
+endif()
+
+# Branches are named like "v2.1.Alpha04Qt6" -- strip the leading "v" to get
+# the "2.1.Alpha04Qt6" version string. Anything that doesn't look like a
+# version branch (main, a detached-HEAD SHA, git not found, ...) leaves
+# VERSION at Version.h's hardcoded fallback instead of showing garbage.
+if(BASIC256_BUILD_BRANCH MATCHES "^[vV][0-9]")
+    string(REGEX REPLACE "^[vV]" "" BASIC256_BUILD_VERSION "${BASIC256_BUILD_BRANCH}")
+endif()
+
 # All target_* commands AFTER target creation
 target_compile_definitions(basic256 PRIVATE ${PLATFORM_DEFS})
 target_compile_definitions(basic256 PRIVATE $<$<CONFIG:Release>:QT_NO_DEBUG_OUTPUT QT_NO_WARNING_OUTPUT>)
+if(BASIC256_BUILD_VERSION)
+    target_compile_definitions(basic256 PRIVATE "VERSION=\"${BASIC256_BUILD_VERSION}\"")
+endif()
 
 target_include_directories(basic256 PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -248,11 +282,17 @@ target_include_directories(basic256 PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+# NOTE: Examples/TestSuite/translations are deliberately NOT install()'d here.
+# None of the CI packaging scripts (package_Linux_x86.sh,
+# package_Linux_x86_AppImage.sh, package_Linux_RPi_*.sh) run `cmake
+# --install` -- they copy those trees directly into the distribution folder
+# themselves. A `DESTINATION ${CMAKE_INSTALL_DATADIR}/basic256` rule here was
+# already added and removed once before (see the "share/basic256" cleanup in
+# BASIC256.nsi's uninstaller) because it produces a stray extra
+# "basic256/" directory containing a duplicate Examples/TestSuite for anyone
+# who does run `cmake --install` -- don't re-add it.
 if(UNIX AND NOT APPLE)
     install(TARGETS basic256 DESTINATION ${CMAKE_INSTALL_BINDIR})
-    install(DIRECTORY ./Examples DESTINATION ${CMAKE_INSTALL_DATADIR}/basic256)
-    install(DIRECTORY ./TestSuite DESTINATION ${CMAKE_INSTALL_DATADIR}/basic256)
-    install(FILES ${QM_FILES} DESTINATION ${CMAKE_INSTALL_DATADIR}/basic256)
 endif()
 
 if(PLATFORM_INCLUDE_DIRS)

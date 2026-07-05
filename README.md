@@ -47,8 +47,8 @@ sh.Run """C:\PATH_TO_BASIC256\basic256.exe"" -g ""C:\PATH_TO_KBS\Mandelbrot-256.
 An example video of starting several graphics demos from windows shortcuts can be seen here: https://www.youtube.com/watch?v=D8ord7K2QvI
 
 ## Original Project 
-The original code and last downloadable version resides on SourceForge (https://sourceforge.net/projects/kidbasic/) and is at version 2.0.0.11, which launched in 2020. It uses qmake and MinGW to compile the Windows version. 
- It comes with an Example directory but most programs there need to be updated to modern specs related to speed and graphics sizes. There is also a Testsuite directory but this does not come with the Installer. For more 'advanced' code than the included Example programs, I invite you to go look at https://uglymike.static.domains
+The original code and last downloadable version resides on SourceForge (https://sourceforge.net/projects/kidbasic/) and is at version 2.0.0.11, which launched in 2020. It uses qmake and MinGW to compile the Windows version. It is a Qt5-based software.
+ It comes with an Example directory but most programs there need to be updated to modern specs related to speed and graphics sizes. For more 'advanced' code than the included Example programs, I invite you to go look at https://uglymike.static.domains There is also a Testsuite directory to test edge cases but this doesn't run fully on 2.0.0.11. 
 
 Unfortunately, development of the SourceForge Basic256 has apparently been stopped  after a failed attempt to port it to Qt6.
 
@@ -64,11 +64,13 @@ The initial aim for this branch was to provide a modern toolchain and stabilisat
 
 
  ## Current status as of 04/07/2026
- There is a single build.yml file that builds and packages all architectures via scripts. At the moment I produce an install .exe for Windows (nsi based) and a standalone Windows .zip file, a tarball and an AppImage for Linux-x86 and a tarball and and an AppImage  for Linux-ARM and a zip file for MacOS.
+ The project has been migrated to Qt6!!  
+ A subset of the TestSuite is automatically run on every commit (using the -s option)
+ There is a single build.yml file that builds and packages all architectures via scripts. It produces an install .exe for Windows (nsi based) and a standalone Windows .zip file, a tarball and an AppImage for Linux-x86 and a tarball and and an AppImage  for Linux-ARM and a zip file for MacOS.
  1. Windows .zip file seems to be working and can be extracted anywhere you like. (more testing welcome)
  2. Windows installer .exe file seems to be working even though it comes from an unknown source so Smartscreen will initially block it. A signed version might later be coming thanks to https://signpath.io/solutions/open-source-community 
- 3. Linux x86 tarball and AppImage seem to be working. Tarball however is very large. (more testing required)
- 4. Raspberry Pi tarball and AppImage seem to be working. Tarball however is very large. (more testing required)  
+ 3. Linux x86 tarball and AppImage seem to be working. Both however are very large. (more testing required)
+ 4. Raspberry Pi tarball and AppImage seem to be working. Both however are very large. (more testing required)  
  Speech does not work out-of-the-box since Trixie does not come with speech-dispatcher so this MUST be installed. 
  5. MacOS Silicon (M1,M2,M3) resulted in an Homebrew basic256 app, but having no developer license, I added an ad-hoc signing. This should prevent the message: "basic256.app" is damaged and can't be opened. This should show the messge "unidentified developer" instead. If this happens, try the command to strip the quarantine flag:
     ```console
@@ -82,14 +84,14 @@ The initial aim for this branch was to provide a modern toolchain and stabilisat
     ```
      There is however a possibility to add your own Developer ID in the script and so to open a path to notarisation which would allow installation seamlessly on modern MacOS versions.
  
-The main functionality change is the addition of some terminal options:  next to -r/--run and -a/--app, following CLI options have been added: -g /--graph , -t /--text and -s /--silent.  These can be combined with -f/--full to make the IDE or app run fullscreen
+The main functionality changes from the SourceForge version is that it now runs on MacOS, has been migrated to Qt6 and the addition of new terminal-based options:  next to -r/--run and -a/--app, there is now also: -g /--graph , -t /--text and -s /--silent.  These can be combined with -f/--full to make the IDE or app run fullscreen
   
 
 ## Future actions
 First thing on the agenda is to get the word out so anybody could give their feedback on it. 
 Facebook BASIC groups have been contacted but not too much feedback received.
 An official Github release should follow shortly.
-Linux Distro's provide their own 'old' Basic256 package, so contacting the maintainers would only become required after major improvements to the code. For this, AppImage files should help, but maintainers will still have to accept this.
+Linux Distro's provide their own 'old' Basic256 package, so contacting the maintainers would only become required after major improvements to the code. For this, AppImage files should help, but maintainers will still have to accept this or roll their own Distro packages like a Debian package, Flatpack,....
 
 Once this main Qt6 branch is stable enough, I will try an uncoupling of interpreter code, GUI code, CLI code and so on in order to be able to compile it into WebAssembly using Qt-for-Webassembly so we can have a browser based Basic256.
 I also aim to start adding small features like new functions or commands  (ATAN2, Perlin Noise, Clamp,...). A big wishlist item would be to switch to the qscintilla editor, but this is not urgent.
