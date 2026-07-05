@@ -9,7 +9,10 @@ set -euo pipefail
 # ── Configuration ─────────────────────────────────────────────────────────────
 ARCH="x86_64"
 QT_LIB="/usr/lib/x86_64-linux-gnu"
-QT_PLUGIN_DIR="${QT_LIB}/qt5/plugins"
+# Qt6 itself comes from aqtinstall (build_Linux_x86.sh exports QT_DIR via
+# $GITHUB_ENV), not from a system apt package -- only non-Qt system libs
+# (gstreamer, glib, etc.) still live under QT_LIB.
+QT_PLUGIN_DIR="${QT_DIR:?QT_DIR not set - build_Linux_x86.sh must run first}/plugins"
 GSTPLUG="${QT_LIB}/gstreamer-1.0"
 APPDIR="$(pwd)/AppDir"
 ARTIFACT_NAME="${ARTIFACT_NAME:-BASIC256-Linux-x86_64}"
@@ -143,7 +146,7 @@ chmod +x "${TOOLS_DIR}/linuxdeploy-${ARCH}.AppImage" \
 #   when they are not directly linked (they are dlopen'd at runtime).
 # --output appimage always writes to the current working directory (workspace
 #   root), regardless of where the tool binary lives.
-export QMAKE="${QT_LIB}/qt5/bin/qmake"
+export QMAKE="${QT_DIR}/bin/qmake"
 export QML_SOURCES_PATHS="."
 export EXTRA_QT_PLUGINS="texttospeech;mediaservice;audio;imageformats"
 export VERSION

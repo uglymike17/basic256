@@ -18,13 +18,18 @@ sudo apt install -y build-essential cmake libgl1-mesa-dev libx11-dev libxext-dev
 # Install official Qt6 via aqtinstall, mirroring build_Windows.ps1, instead
 # of relying on Ubuntu's Qt6 packaging.
 python3 -m pip install aqtinstall
-aqt install-qt linux desktop 6.7.3 gcc_64 -m qtmultimedia qtserialport qtspeech
+aqt install-qt linux desktop 6.7.3 linux_gcc_64 -m qtmultimedia qtserialport qtspeech
 
 # set Qt6 dir (also export for later steps, e.g. packaging - $GITHUB_ENV only
-# takes effect starting from the *next* step, not later in this same script)
-QT_DIR="$GITHUB_WORKSPACE/6.7.3/gcc_64"
+# takes effect starting from the *next* step, not later in this same script).
+# Discover the actual installed subdir rather than assuming it matches the
+# "linux_gcc_64" arch argument verbatim -- aqt has a history of stripping
+# host-redundant prefixes from the arch name when naming the install dir
+# (e.g. on Windows, arch "win64_msvc2019_64" installs into "msvc2019_64").
+QT_DIR="$(find "$GITHUB_WORKSPACE/6.7.3" -mindepth 1 -maxdepth 1 -type d | head -n1)"
 export QT_DIR
 echo "QT_DIR=$QT_DIR" >> "$GITHUB_ENV"
+echo "Resolved QT_DIR=$QT_DIR"
 
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$QT_DIR"
 cmake --build build -j"$(nproc)"

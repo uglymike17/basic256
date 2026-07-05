@@ -470,3 +470,31 @@ web search, not guesswork) issues, not just naming drift:
   is otherwise complete (unlike jammy) — no need for the aqtinstall
   workaround here.
 - Windows and macOS both went green this round.
+
+2026-07-05 (later still) Two more real logs came back:
+- **Ubuntu x86_64**: the aqtinstall switch itself was right, but the arch
+  name was wrong — `aqt install-qt linux desktop 6.7.3 gcc_64 ...` failed
+  with "packages ... were not found while parsing XML" because Qt 6.7+
+  renamed the Linux x86_64 desktop arch to `linux_gcc_64` (confirmed via
+  web search: this happened alongside the 6.7.0 linux/arm64 addition, which
+  needed `linux_gcc_arm64` to disambiguate). Fixed the arch argument. Also
+  stopped hardcoding the resulting install subdirectory name
+  (`6.7.3/linux_gcc_64`) and instead `find`-discover whatever aqt actually
+  created under `6.7.3/` — the Windows build showed aqt sometimes strips a
+  host-redundant prefix from the arch name when naming the install dir
+  (arch `win64_msvc2019_64` → dir `msvc2019_64`), so hardcoding a second
+  guess on top of the first felt like asking for a third round-trip.
+  Propagated the same `QT_DIR`-based fix into `package_Linux_x86_AppImage.sh`
+  (`QT_PLUGIN_DIR`, `QMAKE`), which has the identical Qt5-hardcoded-path
+  problem as `package_Linux_x86.sh` did last round and would have failed
+  next for the same reason.
+- **RPi ARM64 AppImage packaging**: `linuxdeploy-plugin-qt` failed with
+  "Could not find qmake" — `package_Linux_RPi_AppImage.sh` still pointed
+  `$QMAKE` at the old Qt5 path (`${QT_LIB}/qt5/bin/qmake`), which doesn't
+  exist since the ARM64 build now installs Qt6 via apt. Confirmed via web
+  search that Debian packages Qt6's qmake as a plain PATH binary named
+  `qmake6` (not nested under an arch-specific `qt6/bin` dir the way Qt5's
+  was) — switched to `command -v qmake6` instead of constructing a path.
+- Did not touch the `mediaservice`/`imageformats`/etc. `EXTRA_QT_PLUGINS`
+  plugin-category lists in either AppImage script — still deferred, not
+  what either of these two logs actually flagged as broken.

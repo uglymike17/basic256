@@ -195,7 +195,16 @@ chmod +x "${TOOLS_DIR}/linuxdeploy-${ARCH}.AppImage" \
          "${TOOLS_DIR}/linuxdeploy-plugin-qt-${ARCH}.AppImage"
 
 # ── Deploy Qt dependencies and produce .AppImage ──────────────────────────────
-export QMAKE="${QT_LIB}/qt5/bin/qmake"
+# Debian/Ubuntu package Qt6's qmake as a plain system binary named "qmake6"
+# (not under an arch-specific qt6/bin dir the way Qt5's qmake was), so just
+# resolve it off PATH rather than constructing a path by hand.
+QMAKE="$(command -v qmake6 || true)"
+if [ -z "${QMAKE}" ]; then
+    echo "ERROR: qmake6 not found on PATH (expected from qt6-base-dev-tools)" >&2
+    exit 1
+fi
+export QMAKE
+echo "==> Using QMAKE=${QMAKE}"
 export QML_SOURCES_PATHS="."
 export EXTRA_QT_PLUGINS="texttospeech;mediaservice;audio;imageformats"
 export VERSION
