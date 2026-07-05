@@ -539,3 +539,21 @@ apparently producing a working-enough AppImage as-is. Left alone rather
 than risk regressing something currently passing; worth revisiting with the
 same `multimedia`-plugin-dir fix later since it's almost certainly
 producing an AppImage with Multimedia plugins silently missing.
+
+2026-07-05 (later still) Next `package_Linux_x86.sh` run got past the
+`multimedia`/xcb fixes above and hit a new, unrelated failure:
+`linuxdeployqt`'s `ldd` trace aborted the whole build on
+`libqsqlmimer.so -> libmimerapi.so not found`. Root cause: aqt's official
+Qt6 build bundles a `sqldrivers` plugin for every SQL backend Qt supports
+(Mimer, DB2, Firebird/ibase, MySQL, ODBC, PostgreSQL, SQLite) regardless of
+whether that backend's client library is installed on the build machine —
+BASIC256 only ever uses SQLite (confirmed via the old Qt5-era NSIS installer
+list, which only ever bundled `qsqlite.dll`). `linuxdeployqt` (and
+presumably `linuxdeploy-plugin-qt`, same underlying Qt tree, same Sql
+module linkage) hard-aborts on *any* plugin with an unresolved dependency,
+not just the ones actually used. Fixed by deleting every `sqldrivers/*.so`
+except `libqsqlite.so` from the aqt Qt tree before deploying, in both
+`package_Linux_x86.sh` and (proactively, same tree/same Sql linkage,
+untested but same evidenced cause) `package_Linux_x86_AppImage.sh`, rather
+than allowlisting one broken driver at a time across further CI
+round-trips.

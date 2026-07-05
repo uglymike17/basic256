@@ -17,6 +17,16 @@ GSTPLUG="${QT_LIB}/gstreamer-1.0"
 APPDIR="$(pwd)/AppDir"
 ARTIFACT_NAME="${ARTIFACT_NAME:-BASIC256-Linux-x86_64}"
 
+# Qt's official builds bundle a sqldrivers plugin for every backend (Mimer,
+# DB2, Firebird/ibase, MySQL, ODBC, PostgreSQL, SQLite) regardless of
+# whether that backend's proprietary/optional client library is installed
+# on this runner. BASIC256 only uses SQLite, and linuxdeploy's Qt plugin
+# aborts on any bundled plugin with an unresolved dependency (this exact Qt
+# tree already hit libqsqlmimer.so -> libmimerapi.so in
+# package_Linux_x86.sh) -- so strip every driver but SQLite before
+# deploying.
+find "${QT_PLUGIN_DIR}/sqldrivers" -name '*.so' ! -name 'libqsqlite.so' -delete 2>/dev/null || true
+
 # Avoid FUSE requirement on GitHub Actions runners; inherited by sub-processes
 # (linuxdeploy-plugin-qt is also an AppImage and respects this flag)
 export APPIMAGE_EXTRACT_AND_RUN=1

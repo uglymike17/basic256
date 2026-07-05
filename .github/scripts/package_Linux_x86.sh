@@ -18,6 +18,17 @@ set -euo pipefail
         # QT_DIR via $GITHUB_ENV; this is a fresh step so read it from there).
         export QT_PLUGIN_DIR="${QT_DIR:?QT_DIR not set - build_Linux_x86.sh must run first}/plugins"
 
+        # Qt's official builds bundle a sqldrivers plugin for every backend
+        # (Mimer, DB2, Firebird/ibase, MySQL, ODBC, PostgreSQL, SQLite)
+        # regardless of whether that backend's proprietary/optional client
+        # library is installed on this runner. BASIC256 only uses SQLite,
+        # but linuxdeployqt's ldd trace aborts the *entire* build on any
+        # plugin with an unresolved dependency (hit libqsqlmimer.so ->
+        # libmimerapi.so first) -- so strip every driver but SQLite from
+        # the Qt tree before deploying, instead of allowlisting failures
+        # one linuxdeployqt run at a time.
+        find "$QT_PLUGIN_DIR/sqldrivers" -name '*.so' ! -name 'libqsqlite.so' -delete 2>/dev/null || true
+
         # Manually grab the dynamic plugins that linuxdeployqt misses statically.
         # NOTE: Qt6 Multimedia plugins live under a "multimedia" plugin dir
         # (e.g. libffmpegmediaplugin.so) -- Qt5's "mediaservice"/"audio"
