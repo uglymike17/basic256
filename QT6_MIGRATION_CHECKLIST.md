@@ -511,3 +511,31 @@ copy of Cups the way it bundles FFmpeg/etc.). Added `libcups2-dev` to
 `cups/cups.h` — this one's a well-established name, not a guess). RPi ARM64
 never hit this because its apt-based `qt6-base-dev` pulls Cups in
 transitively as a real Debian package dependency.
+
+2026-07-05 (later still) Build itself green on x86_64. `package_Linux_x86.sh`
+failed with real, confirmable evidence (linuxdeployqt's own "plugin could
+not be found" warnings against the actual aqt-installed Qt6 tree) that the
+Qt5 `mediaservice`/`audio` plugin categories referenced throughout the
+packaging scripts genuinely don't exist in Qt6 — confirmed via web search
+that Qt6 Multimedia plugins live under a single `multimedia` plugin dir
+instead (e.g. `libffmpegmediaplugin.so`). Also a real `ldd` failure:
+`libxcb-icccm.so.4` missing for the `qxcb` platform plugin. Fixed in
+`package_Linux_x86.sh` and `package_Linux_x86_AppImage.sh`: replaced
+`mediaservice`/`audio` with `multimedia` everywhere (mkdir, copy loops,
+`-extra-plugins`/`EXTRA_QT_PLUGINS` lists), and deleted the
+`libQt5MultimediaGstTools.so` copy lines entirely (Qt6's default FFmpeg
+Multimedia backend has no GStreamer bridge lib by that name — this was
+already just a silently-swallowed `cp` error in the log, dead weight).
+Added Qt's own documented xcb runtime dependency set
+(`libxcb-icccm4`, `libxcb-image0`, `libxcb-keysyms1`, `libxcb-randr0`,
+`libxcb-render-util0`, `libxcb-shape0`, `libxcb-xinerama0`, `libxcb-xkb1`)
+to `build_Linux_x86.sh`'s apt list proactively rather than fixing them one
+`ldd` failure at a time.
+**Not touched**: `package_Linux_RPi_AppImage.sh` still has the identical
+Qt5-named plugin categories and `libQt5*.so` copy list (`mediaservice`,
+`libQt5MultimediaGstTools.so.*`, etc.) — but the maintainer reported that
+step green, and since every copy in it is best-effort (`|| true`), it's
+apparently producing a working-enough AppImage as-is. Left alone rather
+than risk regressing something currently passing; worth revisiting with the
+same `multimedia`-plugin-dir fix later since it's almost certainly
+producing an AppImage with Multimedia plugins silently missing.

@@ -13,7 +13,15 @@ sudo apt install -y build-essential cmake libgl1-mesa-dev libx11-dev libxext-dev
   libxrender-dev libxi-dev libxkbcommon-x11-0 libxcb-cursor0 flex bison libpulse-dev \
   libpipewire-0.3-dev libcups2-dev \
   libspeechd-dev libspeechd2 speech-dispatcher libespeak-ng-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
-  gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-libav
+  gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-libav \
+  libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
+  libxcb-shape0 libxcb-xinerama0 libxcb-xkb1
+
+# NOTE: the libxcb-* set above is Qt's own documented runtime dependency
+# list for the xcb platform plugin (qxcb) on Linux -- added after
+# linuxdeployqt's ldd trace flagged libxcb-icccm.so.4 as missing; the rest
+# are included proactively rather than fixing them one CI round-trip at a
+# time.
 
 # Install official Qt6 via aqtinstall, mirroring build_Windows.ps1, instead
 # of relying on Ubuntu's Qt6 packaging.

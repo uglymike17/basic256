@@ -80,9 +80,13 @@ APPRUN
 chmod +x "${APPDIR}/AppRun"
 
 # ── Qt plugins (pre-copy before linuxdeploy so TTS + media are guaranteed) ───
-# linuxdeploy-plugin-qt can miss TTS and mediaservice unless they are already
+# linuxdeploy-plugin-qt can miss TTS/multimedia unless they are already
 # present and listed in EXTRA_QT_PLUGINS.
-for subdir in texttospeech mediaservice audio imageformats; do
+# NOTE: Qt6 Multimedia plugins live under a "multimedia" plugin dir (e.g.
+# libffmpegmediaplugin.so) -- Qt5's "mediaservice"/"audio" categories no
+# longer exist (confirmed via linuxdeployqt's "plugin could not be found"
+# warnings against this same aqt-installed Qt6 tree in package_Linux_x86.sh).
+for subdir in texttospeech multimedia imageformats; do
     mkdir -p "${APPDIR}/usr/plugins/${subdir}"
     cp "${QT_PLUGIN_DIR}/${subdir}/"*.so \
        "${APPDIR}/usr/plugins/${subdir}/" 2>/dev/null || true
@@ -99,9 +103,6 @@ cplib "libpulse.so.*"
 cplib "libpulse-simple.so.*"
 cplib "libpulse-mainloop-glib.so.*"
 cplib "libpipewire-0.3.so.*"
-
-# Qt Multimedia GStreamer bridge
-cplib "libQt5MultimediaGstTools.so*"
 
 # GStreamer core (linuxdeploy only traces direct ELF deps; these are dlopen'd)
 cplib "libgstreamer-1.0.so.*"
@@ -148,7 +149,7 @@ chmod +x "${TOOLS_DIR}/linuxdeploy-${ARCH}.AppImage" \
 #   root), regardless of where the tool binary lives.
 export QMAKE="${QT_DIR}/bin/qmake"
 export QML_SOURCES_PATHS="."
-export EXTRA_QT_PLUGINS="texttospeech;mediaservice;audio;imageformats"
+export EXTRA_QT_PLUGINS="texttospeech;multimedia;imageformats"
 export VERSION
 VERSION="$(git describe --tags --always 2>/dev/null || echo 'dev')"
 

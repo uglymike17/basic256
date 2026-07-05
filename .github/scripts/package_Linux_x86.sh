@@ -5,8 +5,7 @@ set -euo pipefail
         mkdir -p Basic256
         mkdir -p Basic256/lib
         mkdir -p Basic256/plugins/texttospeech
-        mkdir -p Basic256/plugins/mediaservice
-        mkdir -p Basic256/plugins/audio
+        mkdir -p Basic256/plugins/multimedia
         mkdir -p Basic256/plugins/imageformats
         
         cp build/basic256 Basic256/
@@ -19,10 +18,13 @@ set -euo pipefail
         # QT_DIR via $GITHUB_ENV; this is a fresh step so read it from there).
         export QT_PLUGIN_DIR="${QT_DIR:?QT_DIR not set - build_Linux_x86.sh must run first}/plugins"
 
-        # Manually grab the dynamic plugins that linuxdeployqt misses statically
+        # Manually grab the dynamic plugins that linuxdeployqt misses statically.
+        # NOTE: Qt6 Multimedia plugins live under a "multimedia" plugin dir
+        # (e.g. libffmpegmediaplugin.so) -- Qt5's "mediaservice"/"audio"
+        # categories no longer exist, confirmed via linuxdeployqt's own
+        # "plugin could not be found" warnings in the CI log.
         cp -r $QT_PLUGIN_DIR/texttospeech/*.so Basic256/plugins/texttospeech/ 2>/dev/null || true
-        cp -r $QT_PLUGIN_DIR/mediaservice/*.so Basic256/plugins/mediaservice/ 2>/dev/null || true
-        cp -r $QT_PLUGIN_DIR/audio/*.so Basic256/plugins/audio/ 2>/dev/null || true
+        cp -r $QT_PLUGIN_DIR/multimedia/*.so Basic256/plugins/multimedia/ 2>/dev/null || true
         cp -r $QT_PLUGIN_DIR/imageformats/*.so Basic256/plugins/imageformats/ 2>/dev/null || true
         cp /usr/lib/x86_64-linux-gnu/libespeak-ng.so.* Basic256/lib/ || true
         cp /usr/lib/x86_64-linux-gnu/libspeechd.so.* Basic256/lib/ || true
@@ -31,7 +33,6 @@ set -euo pipefail
         cp /usr/lib/x86_64-linux-gnu/libpulse-simple.so.*  Basic256/lib/ || true
         cp /usr/lib/x86_64-linux-gnu/libpulse-mainloop-glib.so.* Basic256/lib/ || true
         cp /usr/lib/x86_64-linux-gnu/libpipewire-0.3.so.* Basic256/lib/ || true
-        cp /usr/lib/x86_64-linux-gnu/libQt5MultimediaGstTools.so* Basic256/lib/ || true
 
         # GStreamer runtime libs
         GLIB="/usr/lib/x86_64-linux-gnu"
@@ -74,7 +75,7 @@ set -euo pipefail
         # Run linuxdeployqt with the plugin arguments
         "${LDQT}" Basic256/basic256 \
           -bundle-non-qt-libs \
-          -extra-plugins=texttospeech,mediaservice,audio,imageformats \
+          -extra-plugins=texttospeech,multimedia,imageformats \
           --appimage-extract-and-run
 
         # Ensure the binary actually lives in Basic256/ alongside the libraries
