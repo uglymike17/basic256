@@ -25,9 +25,9 @@
      !define VERSION "2.1.Alpha03"
  !endif
  !define VERSIONDATE "2026-06-28"
- !define SDK_BIN "$%Qt5_Dir%\bin"
- !define SDK_LIB "$%Qt5_Dir%\lib"
- !define SDK_PLUGINS "$%Qt5_Dir%\plugins"
+ !define SDK_BIN "$%QT_DIR%\bin"
+ !define SDK_LIB "$%QT_DIR%\lib"
+ !define SDK_PLUGINS "$%QT_DIR%\plugins"
 
  ; Path to the Visual C++ 2015-2022 Redistributable (x64).
  ; In CI this is downloaded by build_installer_Windows.ps1 and placed next to the .nsi.

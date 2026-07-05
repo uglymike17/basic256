@@ -10,7 +10,7 @@ Copy-Item Basic256.png Basic256\
 Copy-Item -Path "Examples" -Destination "Basic256\Examples" -Recurse -Force
 Copy-Item -Path "TestSuite" -Destination "Basic256\TestSuite" -Recurse -Force
 
-& "$env:Qt5_Dir\bin\windeployqt.exe" `
+& "$env:QT_DIR\bin\windeployqt.exe" `
   --dir Basic256 `
   --multimedia `
   --no-translations `
@@ -27,8 +27,8 @@ if (Test-Path "build\basic256_en.qm") {
 }
 
 Remove-Item "Basic256\libGLESv2.dll", "Basic256\libEGL.dll", "Basic256\opengl32sw.dll" -ErrorAction SilentlyContinue
-Copy-Item "$env:Qt5_Dir\bin\Qt5OpenGL.dll" Basic256\ -Force
-Copy-Item "$env:Qt5_Dir\bin\Qt5MultimediaWidgets.dll" Basic256\ -Force
-Copy-Item "$env:Qt5_Dir\bin\Qt5PrintSupport.dll" Basic256\ -Force
+Copy-Item "$env:QT_DIR\bin\Qt6OpenGL.dll" Basic256\ -Force
+Copy-Item "$env:QT_DIR\bin\Qt6MultimediaWidgets.dll" Basic256\ -Force
+Copy-Item "$env:QT_DIR\bin\Qt6PrintSupport.dll" Basic256\ -Force
 
 Compress-Archive -Path Basic256 -DestinationPath $env:ARTIFACT_NAME

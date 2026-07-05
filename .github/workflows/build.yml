@@ -17,25 +17,25 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - os: ubuntu-22.04  # <-- Change from ubuntu-latest to ubuntu-22.04
-          #   arch: x86_64
-          #   use_jurplel: false
-          #   qt_arch: gcc_64
-          #   artifact_name: BASIC256-Linux-x86_64
+          - os: ubuntu-22.04  # <-- Change from ubuntu-latest to ubuntu-22.04
+            arch: x86_64
+            use_jurplel: false
+            qt_arch: gcc_64
+            artifact_name: BASIC256-Linux-x86_64
           - os: windows-2022
             arch: x86_64
             use_jurplel: false
             qt_arch: win64_msvc2019_64  # Updated for MSVC 2019 / 2022 compatibility
             artifact_name: BASIC256-Windows
-          # - os: ubuntu-24.04-arm
-          #   arch: arm64
-          #   use_jurplel: false
-          #   artifact_name: BASIC256-RaspberryPi-ARM64  
-          # - os: macos-latest
-          #   arch: arm64
-          #   use_jurplel: false
-          #   qt_arch: clang_64
-          #   artifact_name: BASIC256-MacOS  
+          - os: ubuntu-24.04-arm
+            arch: arm64
+            use_jurplel: false
+            artifact_name: BASIC256-RaspberryPi-ARM64  
+          - os: macos-latest
+            arch: arm64
+            use_jurplel: false
+            qt_arch: clang_64
+            artifact_name: BASIC256-MacOS  
 
     steps:
     - name: Checkout

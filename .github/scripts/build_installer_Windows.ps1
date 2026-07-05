@@ -26,8 +26,8 @@ $version = $branchName -replace '^[vV]', ''
 Write-Host "Building installer for version: $version (branch: $branchName)"
 
 # Compile the installer
-# Qt5_Dir is already in the environment, exported by build_Windows.ps1
-# makensis reads $%Qt5_Dir% from the environment at compile time
+# QT_DIR is already in the environment, exported by build_Windows.ps1
+# makensis reads $%QT_DIR% from the environment at compile time
 # /DVERSION overrides the fallback !define VERSION in BASIC256.nsi
 & "C:\Program Files (x86)\NSIS\makensis.exe" "/DVERSION=$version" BASIC256.nsi
 if ($LASTEXITCODE -ne 0) { throw "makensis failed (exit $LASTEXITCODE)" }
