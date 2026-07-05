@@ -4791,7 +4791,15 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 							{
 								bool ok;
 								double d=0.0;
-								d = locale->toDouble(inputString,&ok);
+								// match Convert::getFloat()'s handling: only use the
+								// locale's own decimal point if the user opted in via
+								// the "use locale decimal point" setting; otherwise
+								// always expect "." regardless of system/app locale.
+								if (convert->useLocaleDecimalPoint()) {
+									d = locale->toDouble(inputString,&ok);
+								} else {
+									d = inputString.toDouble(&ok);
+								}
 								if (!ok) {
 									error->q(ERROR_NUMBERCONV);
 								}
@@ -4813,7 +4821,11 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 									stack->pushLong(i);
 								} else {
 									double d;
-									d = locale->toDouble(inputString,&ok);
+									if (convert->useLocaleDecimalPoint()) {
+										d = locale->toDouble(inputString,&ok);
+									} else {
+										d = inputString.toDouble(&ok);
+									}
 									if (ok) {
 										stack->pushDouble(d);
 									} else {
@@ -6446,13 +6458,20 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 				case OP_FROMRADIX: {
 					bool ok;
-					unsigned long dec;
 					int base = stack->popInt();
 					QString n = stack->popQString();
 					if (base>=2 && base <=36) {
-						dec = n.toULong(&ok, base);
+						quint64 dec = n.toULongLong(&ok, base);
 						if (ok) {
-							stack->pushLong(dec);
+							// values that fit in 32 bits reinterpret as a signed
+							// 32-bit int (matches tohex()/tobinary()/tooctal()'s
+							// OP_TORADIX and the 0x/0b/0o literal parser in
+							// basicParse.y); only genuinely larger values are
+							// kept as a real 64-bit long.
+							if (dec <= 0xFFFFFFFFULL)
+								stack->pushLong((int)(quint32)dec);
+							else
+								stack->pushLong((qint64)dec);
 						} else {
 							error->q(ERROR_RADIXSTRING);
 							stack->pushLong(0);

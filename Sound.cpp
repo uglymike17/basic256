@@ -282,6 +282,11 @@ bool Sound::seek(double sec) {
 			if(media->isSeekable()) {
 				isPositionChanged = false;
 				media->setPosition(sec * 1000L);
+				// A "player" (isPlayer==true, e.g. legacy WAVSEEK) may have already
+				// reached its natural end and stopped since the last seek -- setting
+				// a new position alone does not resume audible playback, so nudge it
+				// back into play. No-op if it's already playing.
+				play();
 				return true;
 			} else {
 				QTimer *timer = new QTimer();
@@ -300,6 +305,7 @@ bool Sound::seek(double sec) {
 				if(media->isSeekable()) {
 					isPositionChanged = false;
 					media->setPosition(sec * 1000L);
+					play(); // see comment above
 					return true;
 				} else {
 					return false;
@@ -470,6 +476,10 @@ void Sound::handleMediaStateChanged(QMediaPlayer::PlaybackState newState){
 			}else{
 				loopCountdown=loopSaved; //Recharge number of loops
 				media->setPosition(0);
+				emit exitWaitingLoop(); // wake any pending soundwait (e.g. WAVWAIT) -- this
+				                        // "player" instance persists for reuse, but the
+				                        // current play cycle just ended and any caller
+				                        // blocked in Sound::wait() needs to be released.
 			}
 		}else{
 			if(loopCountdown>1) loopCountdown--;
@@ -502,6 +512,9 @@ void Sound::handleAudioStateChanged(QAudio::State newState){
 				audio->stop();
 				loopCountdown=loopSaved; //Recharge number of loops
 				if(buffer) buffer->seek(0);
+				emit exitWaitingLoop(); // wake any pending soundwait -- this "player"
+				                        // instance persists for reuse, but the current
+				                        // play cycle just ended.
 			}
 		}else{
 			if(loopCountdown>1) loopCountdown--;
@@ -526,6 +539,9 @@ void Sound::handleAudioStateChanged(QAudio::State newState){
 				audio->stop();
 				loopCountdown=loopSaved; //Recharge number of loops
 				if(buffer) buffer->seek(0);
+				emit exitWaitingLoop(); // wake any pending soundwait -- this "player"
+				                        // instance persists for reuse, but the current
+				                        // play cycle just ended.
 			}
 		}else{
 			if(loopCountdown>1) loopCountdown--;

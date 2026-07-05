@@ -860,3 +860,111 @@ exercises a value that would expose a difference) and `OP_FROMRADIX`'s
 `unsigned long dec` (no test currently pushes a value large enough to
 distinguish 32- vs 64-bit behavior there). Flagged for whoever hits them
 next.
+
+2026-07-05 (later still) That last flag didn't stay theoretical for long:
+next run got past Sprites (now excluded) and the AND/OR/NOT/tohex fixes,
+then failed at `fromhex(tohex(c))==c` for `c=-2`:
+`tohex(-2)` correctly gave `"fffffffe"` (confirms the `OP_TORADIX` fix), but
+`fromhex("fffffffe")` came back as `4294967294`, not `-2`. Exactly the
+`OP_FROMRADIX` gap flagged above, now with real test evidence. Two bugs in
+one: (1) `QString::toULong()` returns platform-dependent `unsigned long`,
+same footgun as everywhere else in this file; (2) even parsed correctly,
+the result was never reinterpreted as a signed 32-bit value when it fits
+in 32 bits — it was pushed straight through as a positive value. Fixed by
+switching to `QString::toULongLong()` (fixed `quint64`, matching the
+`Stack`/`Convert` API and eliminating the platform-width issue) and adding
+the same "reinterpret as signed 32-bit if it fits in 0xFFFFFFFF, else keep
+as a real 64-bit long" logic already used in `OP_TORADIX` and the
+`basicParse.y` literal parser. `OP_BITSHIFTL`/`OP_BITSHIFTR` remain
+untouched — still no test evidence for those.
+
+2026-07-05 (later still) Maintainer found a different, unrelated bug
+running the *full* interactive `testsuite.kbs` manually (not the CI `-s`
+subset): typing `1234.56` in response to `input "Enter '1234.56' >",a`
+produced `typeof(a) == 3` (`T_STRING`) instead of `2` (`T_FLOAT`). Root
+cause in `OP_INPUT` (`Interpreter.cpp`): both the explicit `T_FLOAT` case
+and the auto-detect `default` case called `locale->toDouble(inputString,
+&ok)` unconditionally. Every *other* string-to-float conversion in the
+codebase instead goes through `Convert::getFloat()`, which checks a
+private `replaceDecimalPoint` flag first — `Convert.h:67`'s own comment
+even says this flag governs "if INPUT and PRINT should use localized
+decimal point," but `OP_INPUT` never actually consulted it. When
+`replaceDecimalPoint` is off (the default — only turned on by an explicit
+"use locale decimal point" setting) and the active `QLocale`'s decimal
+separator isn't `.` (i.e. `QLocale::toDouble` accepts `,` not `.`, whatever
+this user's environment resolved), typing `1234.56` with a literal `.`
+fails to parse under the always-`locale->toDouble()` path, silently
+falling through to a plain string. Fixed by adding a small public
+`Convert::useLocaleDecimalPoint()` getter (the flag itself is private) and
+branching in both `OP_INPUT` cases: `locale->toDouble()` only when that
+flag is set, `QString::toDouble()` (locale-independent, always `.`)
+otherwise — matching `Convert::getFloat()` exactly. Not re-verified against
+an actual build/run this session (no local toolchain) — awaiting
+confirmation from the maintainer's next manual run.
+
+2026-07-05 (later still) Maintainer found a genuine hang (not the
+Qt6-migration test suite, the legacy interactive `testsuite_wav_include.kbs`
+— audio audibly plays "one, two, three, four, five" in order, then
+`wavwait` never returns). Root cause in `Sound.cpp`: `Sound::wait()`
+blocks on a `QEventLoop` until `exitWaitingLoop()` is emitted (or a 60s
+safety timer). That signal is emitted from `handleMediaStateChanged()`
+(QMediaPlayer path, what `WAVPLAY` uses) and `handleAudioStateChanged()`
+(QAudioSink path) when a sound's *last* loop finishes — but only inside
+the `if(!isPlayer)` branch (the one-shot-sound cleanup/delete path). The
+`else` branch (`isPlayer==true` — "player" instances that persist so they
+can be replayed, which is exactly what legacy `WAVPLAY` creates via
+`playSound(file, true)`) resets `loopCountdown`/position but never emitted
+`exitWaitingLoop()` at all — so anything blocked in `wait()` (i.e.
+`WAVWAIT`) waits forever once playback naturally finishes, until the 60s
+safety timer eventually fires (which reads as "the program freezes" for
+tens of seconds, worse if a real hang were to depend on it repeatedly).
+Fixed by adding the missing `emit exitWaitingLoop();` to all three
+`isPlayer==true` "reuse" branches (`handleMediaStateChanged`'s one, and
+`handleAudioStateChanged`'s `StoppedState`/`IdleState` ones) — waking any
+blocked waiter is orthogonal to whether the `Sound` object itself gets
+deleted, so this doesn't touch the deletion/reuse logic at all, just adds
+the missing wakeup. Given `handleMediaStateChanged`/`playbackStateChanged`
+is Qt6-migration-era code (renamed from Qt5's `stateChanged`/
+`QMediaPlayer::State` per this file's own Phase 1 history), this is very
+plausibly a migration-introduced regression, though not confirmed against
+a pre-Qt6 build. Not re-verified against a real build/run this session (no
+local toolchain) — awaiting confirmation that `wavwait` now returns
+promptly.
+
+Separately, the maintainer asked about the `WARNING_WAVOBSOLETE` message
+("WAVPLAY suite is obsolete. Use SOUND/SOUNDPLAY/SOUNDPLAYER instead.") —
+this is intentional, pre-existing, unrelated to any bug: `OP_WAVPLAY` in
+`Interpreter.cpp` is explicitly commented `//obsolete` and raises this as a
+deliberate deprecation warning pointing at the newer Sound API, not an
+error.
+
+2026-07-05 (later still) Maintainer hit what looked like the same class of
+issue in the very next WAV test (`wavseek` in a loop counting down from
+`notes-1` to `0`, `pause` between each, then `wavstop`). Initial theory
+(WAVSEEK/WAVLENGTH/WAVPOS/WAVPAUSE/WAVSTATE all call `sound->...()`
+directly from the interpreter thread instead of marshaling through
+RunController via `emit`+`waitCond`, unlike WAVPLAY/WAVSTOP/WAVWAIT) turned
+out to be a dead end — the *new* `SOUNDSEEK`/`SOUNDLENGTH`/etc. use the
+exact same direct-call pattern, so it's an existing, apparently-tolerated
+architecture choice, not a new break.
+
+The real symptom, once the maintainer clarified it: not a hang at all — the
+script actually completes and reaches the `q()` confirmation prompt (which
+is why the log showed a normal `fail` line, not a stuck process). Only
+"five" is audible; every subsequent seek is silent. Root cause in
+`Sound::seek()`: seeking to `a=notes-1` (near the end of the file) plays
+audibly since the player is still actively playing at that moment — but by
+the time the following `pause notel` elapses, the player has reached the
+file's natural end and stopped (this is exactly the `isPlayer==true`
+"reuse" path fixed earlier this session, which resets position to 0 and
+now correctly wakes any `wavwait`, but never resumes playback). Every
+subsequent `wavseek` call in the loop only calls `media->setPosition()` —
+which repositions an already-stopped player without making it audible
+again. Fixed by calling `play()` (the existing, `soundStateExpected`-aware
+method — a no-op if already playing) right after `setPosition()` in both
+`Sound::seek()` code paths (the immediately-seekable case and the
+wait-then-seekable fallback), so seeking always resumes audible playback
+regardless of whether the player had already reached its natural end.
+Not re-verified against a real build/run this session (no local
+toolchain) — awaiting confirmation that the full 5-4-3-2-1 countdown is
+now audible.

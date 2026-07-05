@@ -34,6 +34,11 @@ class Convert
 
 		bool isNumeric(DataElement*);
 
+		// whether INPUT/string-to-float parsing should accept the locale's own
+		// decimal point (true) or always expect "." regardless of locale
+		// (false, the default) -- see getFloat()
+		bool useLocaleDecimalPoint() { return replaceDecimalPoint; }
+
 		int getInt(DataElement*);
 		qint64 getLong(DataElement*);
 		double getFloat(DataElement*);
