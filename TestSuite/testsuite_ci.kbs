@@ -8,8 +8,9 @@
 # required gate on the Qt6 build").
 #
 # Also excluded, despite needing no interaction: "Sprites"
-# (testsuite_sprite_include.kbs) -- see the comment near its would-be
-# `include` below for why it can never pass under `-s`.
+# (testsuite_sprite_include.kbs) and "Variable and Stack Types Tests"
+# (testsuite_types_include.kbs) -- see the comments near their would-be
+# `include` lines below for why each can never pass under `-s`.
 #
 # IMPORTANT for whoever wires this into CI: a failing test does NOT change
 # the process exit code. BASIC-256's `end` statement is a normal, deliberate
@@ -107,10 +108,23 @@ call section("Binary Operations and Type Conversions")
 ###################################################
 include "testsuite_binaryop_include.kbs"
 
-###################################################
-call section("Variable and Stack Types Tests")
-###################################################
-include "testsuite_types_include.kbs"
+# "Variable and Stack Types Tests" (testsuite_types_include.kbs) is
+# deliberately NOT included here. It intentionally reads unassigned
+# variables (`typeof(newvar)`, `assigned(newvar)`) to verify they report
+# TYPE_UNASSIGNED -- which requires the "Runtime Handling of variable not
+# assigned" Preferences setting (Runtime/VNA) to be Warn, exactly as
+# testsuite.kbs's own interactive preamble tells a human to configure
+# before running. The default (a fresh install/CI environment, no
+# persisted settings) is Error/fatal (SETTINGSVARNOTASSIGNEDDEFAULT in
+# Settings.h), so reading an unassigned variable aborts the whole script
+# instead of the expected warn-and-continue. There is no way to configure
+# this from within the .kbs script itself: SETSETTING explicitly rejects
+# the "SYSTEM" settings group (Interpreter.cpp, ERROR_INVALIDPROGNAME) by
+# design, since core interpreter behavior is only meant to be changed via
+# the Preferences GUI, not by scripts. Not an interpreter bug -- a real
+# prerequisite this CI environment can't satisfy without pre-seeding
+# QSettings from outside the app (registry/.conf/.plist, one different
+# mechanism per platform), which hasn't been done.
 
 ###################################################
 call section("Array index base (arraybase 0/1)")

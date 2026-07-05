@@ -999,3 +999,27 @@ promote-to-float boundary now checked afterward). Verified by hand against
 the loop's own 8 `typeof(maxi/mini \ ... * ...)` assertions plus all four
 add/sub overflow/non-overflow cases — all consistent with the fix. Not
 re-verified against a real build/run this session (no local toolchain).
+
+2026-07-05 (later still) Next section, "Variable and Stack Types Tests"
+(`testsuite_types_include.kbs`), hard-aborted: `ERROR ... Variable newvar
+has not been assigned a value` — an interpreter *error* (exit code 1), not
+a failed assertion. Not a bug: this file deliberately reads unassigned
+variables (`typeof(newvar)`/`assigned(newvar)`, expecting `TYPE_UNASSIGNED`)
+to test that exact scenario, which requires the "Runtime Handling of
+variable not assigned" Preferences setting (`Runtime/VNA`) to be `Warn` —
+precisely what `testsuite.kbs`'s own interactive preamble tells a human to
+configure first. `Settings.h`'s `SETTINGSVARNOTASSIGNEDDEFAULT` is
+`SETTINGSERROR` (fatal), and `Error::loadSettings()` reads it once at
+construction with no `GUISTATESILENT` special-casing at all — so a fresh
+CI environment (no persisted settings) hits the fatal path. Confirmed
+there's no script-side workaround: `OP_SETSETTING` in `Interpreter.cpp`
+explicitly rejects the `"SYSTEM"` settings group
+(`QString::compare(app,"SYSTEM",...)==0` → `ERROR_INVALIDPROGNAME`) by
+design — core interpreter behavior is only meant to be changed via the
+Preferences GUI, not by scripts. Excluded `testsuite_types_include.kbs`
+from `testsuite_ci.kbs`, same pattern as Sprites, with a comment explaining
+why and noting the alternative not attempted: pre-seeding QSettings from
+outside the app before `basic256 -s` runs (registry on Windows, `.conf` on
+Linux, `.plist` on macOS — three different mechanisms, none attempted, all
+un-verifiable without a live per-platform test). If full coverage of this
+file is wanted later, that's the way to get it back.
