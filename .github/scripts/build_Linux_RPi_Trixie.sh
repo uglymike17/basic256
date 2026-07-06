@@ -18,6 +18,16 @@ libgl1-mesa-dev libx11-dev patchelf
 # provides. Without it, find_package(Qt6 ... TextToSpeech) fails with
 # "Qt6TextToSpeech_FOUND is FALSE" even though the .cmake file exists on disk.
 
+# --- Diagnostics: locate the actual texttospeech plugin package on this runner ---
+echo "=== dpkg -L qt6-speech-dev (files owned by the dev package) ==="
+dpkg -L qt6-speech-dev 2>&1 || echo "(package not installed or dpkg query failed)"
+echo "=== apt-cache search for speech-related qt6 packages ==="
+apt-cache search qt6 2>/dev/null | grep -i speech || echo "(none found)"
+echo "=== dpkg -l | grep -i speech (all installed speech-related packages) ==="
+dpkg -l | grep -i speech || echo "(none found)"
+echo "=== filesystem search for any texttospeech plugin, anywhere ==="
+sudo find / -iname "*texttospeech*" -not -path "*/proc/*" 2>/dev/null || echo "(none found)"
+
 # 1. Compile using native ARM64 tools
         cmake -B build -DCMAKE_BUILD_TYPE=Release
         cmake --build build --config Release -j$(nproc)
