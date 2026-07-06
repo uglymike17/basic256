@@ -31,6 +31,7 @@
 #include <QFileDialog>
 #include <QClipboard>
 #include <QTimer>
+#include <QDebug>
 
 
 #include "RunController.h"
@@ -203,6 +204,9 @@ RunController::speakWords(QString text) {
 			delete (loop);
 		}
 	}
+	if (speech && speech->state() == QTextToSpeech::Error) {
+		qCritical() << "TTS state is Error after say() (reason" << int(speech->errorReason()) << "):" << speech->errorString();
+	}
 	//tell the interpreter we are finally done
 	mymutex->lock();
 	waitCond->wakeAll();
@@ -257,6 +261,10 @@ RunController::startDebug() {
 		}
 		sound = new SoundSystem();
 		speech = new QTextToSpeech();
+		qCritical() << "TTS available engines:" << QTextToSpeech::availableEngines() << "- using engine:" << speech->engine();
+		QObject::connect(speech, &QTextToSpeech::errorOccurred, [](QTextToSpeech::ErrorReason reason, const QString &errorString) {
+			qCritical() << "TTS error (reason" << int(reason) << "):" << errorString;
+		});
 		i->initialize();
 		currentEditor->updateBreakPointsList();
 		i->debugBreakPoints = currentEditor->breakPoints;
@@ -311,6 +319,10 @@ RunController::startRun() {
 		// now setup and start the run
 		sound = new SoundSystem();
 		speech = new QTextToSpeech();
+		qCritical() << "TTS available engines:" << QTextToSpeech::availableEngines() << "- using engine:" << speech->engine();
+		QObject::connect(speech, &QTextToSpeech::errorOccurred, [](QTextToSpeech::ErrorReason reason, const QString &errorString) {
+			qCritical() << "TTS error (reason" << int(reason) << "):" << errorString;
+		});
 		i->initialize();
 		//set focus to graphiscs window
 		graphwin->setFocus();

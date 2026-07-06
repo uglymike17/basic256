@@ -30,7 +30,7 @@ set -euo pipefail
         cp /usr/lib/aarch64-linux-gnu/libpcre2-8.so.*              Basic256/lib/ || true
         cp /usr/lib/aarch64-linux-gnu/liborc-0.4.so.*              Basic256/lib/ || true
 
-        QT_PLUGIN_DIR="/usr/lib/aarch64-linux-gnu/qt5/plugins"
+        QT_PLUGIN_DIR="/usr/lib/aarch64-linux-gnu/qt6/plugins"
         
         if [ -d $QT_PLUGIN_DIR/audio ]; then
           mkdir -p Basic256/plugins/audio

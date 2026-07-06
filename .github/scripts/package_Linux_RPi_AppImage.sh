@@ -10,7 +10,7 @@ set -euo pipefail
 # ── Configuration ─────────────────────────────────────────────────────────────
 ARCH="aarch64"
 QT_LIB="/usr/lib/aarch64-linux-gnu"
-QT_PLUGIN_DIR="${QT_LIB}/qt5/plugins"
+QT_PLUGIN_DIR="${QT_LIB}/qt6/plugins"
 GSTPLUG="${QT_LIB}/gstreamer-1.0"
 APPDIR="$(pwd)/AppDir"
 ARTIFACT_NAME="${ARTIFACT_NAME:-BASIC256-RaspberryPi-ARM64}"
