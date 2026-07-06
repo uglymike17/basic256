@@ -70,8 +70,18 @@ libgl1-mesa-dev libx11-dev patchelf
 
 
         # 6. Text-to-speech plugins
+        echo "=== texttospeech plugins available on runner ($QT_PLUGIN_DIR/texttospeech) ==="
+        ls -la "$QT_PLUGIN_DIR/texttospeech" 2>&1 || echo "(directory does not exist)"
         mkdir -p Basic256/plugins/texttospeech
         cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_*.so Basic256/plugins/texttospeech/ || true
+        echo "=== texttospeech plugins copied into package ==="
+        ls -la Basic256/plugins/texttospeech/ 2>&1 || echo "(directory empty or missing)"
+        echo "=== ldd on each copied texttospeech plugin (checking for missing deps) ==="
+        for so in Basic256/plugins/texttospeech/*.so; do
+          [ -f "$so" ] || continue
+          echo "--- $so ---"
+          ldd "$so" 2>&1 | grep -i "not found" && echo "  ^^^ MISSING DEPENDENCY ABOVE" || echo "  (all dependencies resolved)"
+        done
 
         # 7. espeak-ng and libjpeg runtime libs (outside any if-block)
         cp $QT_LIB_DIR/libespeak-ng.so.*  Basic256/lib/ || true

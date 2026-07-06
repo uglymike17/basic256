@@ -65,6 +65,17 @@ set -euo pipefail
           patchelf --set-rpath '$ORIGIN/../lib:$ORIGIN' "$f" 2>/dev/null || true
         done
 
+        # Diagnostics: confirm texttospeech plugins made it into the final
+        # package and that their dependencies resolve against the bundled
+        # Basic256/lib (this is what the shipped artifact actually sees).
+        echo "=== Final packaged texttospeech plugins ==="
+        ls -la Basic256/plugins/texttospeech/ 2>&1 || echo "(directory empty or missing)"
+        for so in Basic256/plugins/texttospeech/*.so; do
+          [ -f "$so" ] || continue
+          echo "--- ldd $so (post-patchelf) ---"
+          ldd "$so" 2>&1 | grep -i "not found" && echo "  ^^^ MISSING DEPENDENCY ABOVE" || echo "  (all dependencies resolved)"
+        done
+
         # Compiled translations
         mkdir -p Basic256/Translations
         if ls build/*.qm 1>/dev/null 2>&1; then
