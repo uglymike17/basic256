@@ -10,7 +10,14 @@ libpipewire-0.3-0 libpipewire-0.3-dev libgstreamer1.0-0 libgstreamer-plugins-bas
 libasound2-dev espeak-ng libespeak-ng-dev libspeechd-dev speech-dispatcher \
 qt6-base-dev qt6-base-dev-tools qt6-tools-dev qt6-tools-dev-tools qt6-l10n-tools \
 qt6-multimedia-dev qt6-serialport-dev qt6-speech-dev qt6-declarative-dev \
+qt6-speech-flite-plugin qt6-speech-speechd-plugin \
 libgl1-mesa-dev libx11-dev patchelf
+
+# NOTE: qt6-speech-dev only ships headers/cmake config, not the runtime
+# plugin .so -- the actual TTS backends are split into their own packages
+# (qt6-speech-flite-plugin, qt6-speech-speechd-plugin). Without these,
+# QT_PLUGIN_DIR/texttospeech doesn't even exist and
+# QTextToSpeech::availableEngines() is empty at runtime.
 
 # NOTE: qt6-declarative-dev is required even though this project doesn't use
 # QML directly -- Qt6TextToSpeech's CMake config (Qt6TextToSpeechConfig.cmake)
