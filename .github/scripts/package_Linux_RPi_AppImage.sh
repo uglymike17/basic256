@@ -91,18 +91,17 @@ done
 cplib() { cp "${QT_LIB}/${1}" "${APPDIR}/usr/lib/" 2>/dev/null || true; }
 
 # Qt modules
-cplib "libQt5Core.so.*"
-cplib "libQt5Gui.so.*"
-cplib "libQt5Widgets.so.*"
-cplib "libQt5Multimedia.so.*"
-cplib "libQt5MultimediaGstTools.so.*"
-cplib "libQt5SerialPort.so.*"
-cplib "libQt5TextToSpeech.so.*"
-cplib "libQt5PrintSupport.so.*"
-cplib "libQt5Sql.so.*"
-cplib "libQt5XcbQpa.so.*"
-cplib "libQt5DBus.so.*"
-cplib "libQt5Network.so.*"
+cplib "libQt6Core.so.*"
+cplib "libQt6Gui.so.*"
+cplib "libQt6Widgets.so.*"
+cplib "libQt6Multimedia.so.*"
+cplib "libQt6SerialPort.so.*"
+cplib "libQt6TextToSpeech.so.*"
+cplib "libQt6PrintSupport.so.*"
+cplib "libQt6Sql.so.*"
+cplib "libQt6XcbQpa.so.*"
+cplib "libQt6DBus.so.*"
+cplib "libQt6Network.so.*"
 
 # Display / input
 cplib "libxcb.so.*"
