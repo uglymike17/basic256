@@ -6,11 +6,11 @@ choco install winflexbison3 -y
 #install Qt6
 # qtmultimedia/qtserialport/qtspeech are separate addon modules in Qt6.
 python -m pip install aqtinstall
-aqt install-qt windows desktop 6.7.3 win64_msvc2019_64 -m qtmultimedia qtserialport qtspeech
+aqt install-qt windows desktop 6.11.1 win64_msvc2022_64 -m qtmultimedia qtserialport qtspeech
 
 #set Qt6 dir (also export for later steps, e.g. packaging - $GITHUB_ENV only
 #takes effect starting from the *next* step, not later in this same script)
-$qtDir = "$env:GITHUB_WORKSPACE\6.7.3\msvc2019_64"
+$qtDir = "$env:GITHUB_WORKSPACE\6.11.1\msvc2022_64"
 $env:QT_DIR = $qtDir
 "QT_DIR=$qtDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
