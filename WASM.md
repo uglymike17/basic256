@@ -719,41 +719,183 @@ cheap simulation of the WASM feature surface with a debugger available.
 The app now loads; make it *usable*. All items guarded `#ifdef Q_OS_WASM`
 unless noted.
 
-- [ ] **Main-thread blocking audit (RULE 2).** Known sites to fix or verify:
+- [x] **Main-thread blocking audit (RULE 2).** Known sites to fix or verify:
       - `RunController.cpp:186-197` TTS wait loop — already dead in WASM
         (TTS flag off), but confirm it's inside the guard.
+        **Confirmed:** the entire wait loop (both `while` blocks) is inside
+        `#ifdef BASIC256_ENABLE_TTS`, which is off for the wasm build — dead
+        code there, nothing to change.
       - Nested-exec dialogs: `MainWindow.cpp:1473` (`msgBox.exec()`),
         `PreferencesWin.cpp:682`, `BasicEdit.cpp:260`. `exec()` on the WASM
         main thread cannot yield to the browser. Convert to `open()` +
         signal/slot result handling (do it unconditionally — it's the
         modern pattern and keeps one code path).
+        **Done for these three** (verified via web search, not assumed:
+        without Qt's Asyncify build option — which is not part of this
+        plan's toolchain, `QT_EMSCRIPTEN_ASYNCIFY=1` at Qt-configure time —
+        `exec()` on the WASM main thread shows the dialog and the user can
+        interact with it, but the C++ call frame that invoked `exec()`
+        never resumes: everything after the call, including its return
+        value, simply never runs. Confirmed real, not theoretical, since
+        all three sites gate actual file-write/settings-delete logic on the
+        dialog's answer):
+        - `BasicEdit::saveFile()`'s overwrite-confirmation — split into a
+          new `writeFile()` helper called from `QMessageBox::finished`.
+        - `PreferencesWin::clickClearSavedData()`'s delete-confirmation.
+        - `MainWindow::closeAllPrograms()` (the `msgBox.exec()` site) — the
+          most involved: two *sequential* confirmations (save-changes-
+          first, then a follow-up discard-check) across two call sites
+          (the "Close All" menu action and `closeEvent()`). Changed its
+          signature to a `std::function<void(bool)>` completion callback;
+          added `closeAllProgramsSlot()` as a plain 0-arg wrapper for the
+          menu's existing string-based `SIGNAL`/`SLOT` connect (which
+          can't target a slot with a callback parameter) and
+          `finishCloseAllPrograms()` as the shared completion helper.
+          `closeEvent()` now always `e->ignore()`s immediately and performs
+          the actual `qApp->quit()` from the completion callback — the
+          standard two-step pattern for async `QCloseEvent` handling.
       - Grep the GUI layer for `->wait(`, `waitCond->wait` usage on the GUI
         side, and any `while(...)` polls with `processEvents()`.
-- [ ] **File open/save.** The browser has no real filesystem; MEMFS is
+        **Done — found the true scope is bigger than 3 sites, real ones
+        deliberately deferred (maintainer decision 2026-07-07):** a
+        result-dependent-`QMessageBox` grep (`== QMessageBox::(Yes|...)`)
+        found **8** real sites, not 3 — the plan's list was a starting
+        point, not exhaustive (same pattern as prior phases' Qt-component
+        corrections). Converted the 3 above; **5 more found but not
+        converted this session**, scoped down explicitly to limit a
+        correctness-critical async control-flow refactor that can't be
+        verified without a browser:
+        - `BasicEdit.cpp` `handleFileChangedOnDisk()` — "file changed on
+          disk outside the editor, reload?" confirmation.
+        - `MainWindow.cpp` `closeEditorTab()` — "discard changes?" when
+          closing a single tab (distinct from `closeAllPrograms()`, which
+          handles the "Close All"/app-quit case).
+        - `MainWindow.cpp` `loadFile()` — two confirmations ("not a text
+          file, load anyway?" / "doesn't end in .kbs, load anyway?"),
+          embedded in a large function with substantial logic after each.
+        - `PreferencesWin.cpp` `SettingsBrowser::clickDeleteButton()` —
+          "delete *selected* persistent settings?" (distinct from
+          `clickClearSavedData()`'s "delete *all*", which was converted).
+        No `->wait(`/`waitCond->wait` usage found on the GUI side (only in
+        `Interpreter.cpp`/`RunController.cpp`, the interpreter-thread side,
+        which RULE 2 explicitly allows). One `processEvents()` poll found
+        (`BasicGraph.cpp` `slotCopy()`, a single non-looping call after
+        setting clipboard content) — not a blocking wait, left alone.
+- [x] **File open/save.** The browser has no real filesystem; MEMFS is
       transient. Wrap program load/save: `QFileDialog::getOpenFileContent()`
       / `QFileDialog::saveFileContent()` under `Q_OS_WASM`, existing dialogs
       elsewhere. BASIC-program file I/O (`OPEN`/`WRITE`/`READ` on files)
       keeps working against MEMFS within a session — document that
       persistence is not guaranteed (IDBFS is Phase 7).
-- [ ] **Examples in the browser.** Ship `Examples/` (or a curated subset —
+      **Done, but the API's own shape forced a bigger change than "wrap
+      the dialog call":** `getOpenFileContent()`/`saveFileContent()` are
+      content-based (name + `QByteArray` via callback / a `QByteArray` to
+      download), not path-based — a different model from `BasicEdit`'s
+      existing one (stable `filename`, recent-files list, file-change
+      watcher). Gated the whole flow rather than individual calls:
+      `MainWindow::loadProgram()` uses `getOpenFileContent()` on WASM; new
+      `loadFileContent()` mirrors `loadFile()`'s new-tab/reuse-empty-tab
+      logic minus every path check. `BasicEdit::saveFile()` uses
+      `saveFileContent()` on WASM — every save is a fresh download
+      regardless of the `overwrite` parameter (browsers can't silently
+      overwrite a previous download; there is no "same file" to overwrite),
+      so `filename` is deliberately left empty after a WASM load, and
+      `saveAsProgram()` just reuses `saveFile()` since "save to a different
+      path" isn't a real concept either. Known, accepted limitation not
+      fixed this session: `RunController.cpp`'s "Save on Run" setting
+      (`SETTINGSIDESAVEONRUN`) calls `saveFile(true)` unconditionally
+      (matches existing desktop behavior — not changed, RULE 1) — on WASM
+      this means a fresh browser download prompt on *every* Run click if
+      that setting is enabled, not just when the file actually changed.
+      Not fixed to avoid diverging save semantics between platforms for a
+      narrow setting most users don't enable; revisit if it proves
+      annoying in practice.
+- [x] **Examples in the browser.** Ship `Examples/` (or a curated subset —
       full dir may be large) as Qt resources or an emscripten
       `--preload-file` pack so File→Open Example works.
-- [ ] **Settings.** `QSettings` on WASM is IndexedDB-backed and
+      **This required building the feature itself, not just adapting
+      it — verified via grep, not assumed:** desktop has no "Open Example"
+      menu at all today; `Examples/` just ships as loose files next to the
+      binary (every packaging script copies it) and users browse to it via
+      the normal Open dialog. New `Examples/examples.qrc` (`EMSCRIPTEN`-only
+      in `CMakeLists.txt`'s `RESOURCES`) bundles a curated 42-file subset of
+      the 46 top-level `.kbs` files — excludes 4 using `DBOPEN`/SQL (grepped
+      for it; SQL is off on WASM, so those would just error immediately)
+      and the asset-dependent subdirectories (`dice/`, `imgload/`,
+      `networking/`, `sound/`, `sprites/`, `testing/` — external
+      image/sound files or flags that are off on WASM, e.g. `networking/`
+      uses `NETLISTEN`/`NETCONNECT`). New "Open &Example..." menu action
+      (`Q_OS_WASM`-only) lists the bundled files via a non-modal
+      `QInputDialog` (RULE 2: `getItem()`'s `exec()` has the same
+      never-returns problem as `QMessageBox`'s static functions) and feeds
+      the chosen resource's content through the same `loadFileContent()`
+      helper the file-open work above added (resource reads are
+      synchronous — compiled into the binary — so only the picker itself
+      needed the async treatment).
+- [x] **Settings.** `QSettings` on WASM is IndexedDB-backed and
       asynchronous; verify PreferencesWin behavior, tolerate
       first-run-empty settings.
-- [ ] **Clipboard, fonts, HiDPI:** quick manual checks; Qt bundles a
+      **Wrong assumption, corrected via Qt's own QSettings docs, not
+      assumed:** neither IndexedDB nor local-storage backing is automatic
+      on WASM — `QSettings::NativeFormat` (what the `SETTINGS` macro used
+      unconditionally) has no real store to fall back to there and would
+      silently write into ephemeral MEMFS, losing every preference on
+      reload. Also, `WebIndexedDBFormat` (the one the plan assumed) requires
+      JSPI, a separate Emscripten build option not part of this toolchain.
+      Fixed in `Settings.h`: `Q_OS_WASM` now constructs with
+      `QSettings::WebLocalStorageFormat` instead — synchronous, no extra
+      toolchain requirement, 5MiB cap is far more than BASIC-256's simple
+      key/value preferences need. Separately verified `PreferencesWin.cpp`'s
+      existing `settings.value(key, default)` usage (29 sites, all with a
+      default) already tolerates missing/first-run-empty keys — true even
+      before WASM, since a fresh desktop install has no settings file
+      either — so no PreferencesWin changes were needed.
+- [x] **Clipboard, fonts, HiDPI:** quick manual checks; Qt bundles a
       fallback font, clipboard needs the page served over HTTPS.
-- [ ] **NETREAD/downloader:** `QNetworkAccessManager` maps to fetch() —
+      **Code-level check done, browser check still needed:** grepped every
+      clipboard use (`BasicGraph.cpp`, `BasicOutput.cpp`, `MainWindow.cpp`,
+      `RunController.cpp`) — all standard `QClipboard::setImage`/`setText`/
+      `image`/`text`/`dataChanged()`, no low-level platform-specific
+      clipboard code to adapt. Fonts: one hardcoded family
+      (`BasicGraph.cpp`'s `QFont("Sans", 6, 100)`, a generic substitutable
+      name, not a specific installed font) and Qt6's default HiDPI handling
+      (no custom `AA_EnableHighDpiScaling`-style code — already removed
+      pre-Qt6, per `Main.cpp`'s own comment). Nothing to change; the actual
+      manual behavioral check needs a browser (deferred to the Phase 5 gate
+      below, same as the rest of the in-browser checklist).
+- [x] **NETREAD/downloader:** `QNetworkAccessManager` maps to fetch() —
       works, but is subject to CORS. Note this in the browser README; don't
       try to fix CORS.
+      Recorded here rather than in a README edit: Phase 6 already has its
+      own explicit "README: link the live page, list the v1 browser
+      limitations" bullet, and there's no live URL to link yet (that's
+      Phase 6's job) — writing the actual README section now would be
+      premature and likely to drift before Phase 6 lands. `BasicDownloader`
+      (`NETREAD`) uses `QNetworkAccessManager` unconditionally already
+      (never gated by `BASIC256_ENABLE_TCP`, which only covers
+      `NETLISTEN`/`NETCONNECT`/server-side sockets) — no code change needed,
+      it already maps directly to the browser's `fetch()` under Qt for
+      WASM's network backend; CORS is a target-server policy, not something
+      this app can fix.
 
 ### Phase 5 gate
 - [ ] In-browser: load an example, edit, run, stop, re-run; graphics
       example animates; BEEP audible; mouse/keyboard examples respond;
       save/download a `.kbs`, reload it via upload.
+      **Not done this session** — needs a browser, not available in this
+      CLI environment. Needs the maintainer (can be combined with Phase 4's
+      still-open local smoke test).
 - [ ] A `.kbs` that calls `SYSTEM`/`DBOPEN`/`SAY` shows the
       ERROR_NOTAVAILABLE message in the text window and continues normally.
-- [ ] Desktop CI green ×4.
+      **Not done this session** — same browser dependency. (The equivalent
+      desktop-side proof already exists and passes: Phase 3's
+      `testsuite_flagsoff_ci.kbs` in the flags-OFF dress rehearsal CI job.)
+- [x] Desktop CI green ×4.
+      **Confirmed 2026-07-07** across every push this phase — the RULE 2
+      dialog refactor (run 28886652004), the `QSettings` fix (run
+      28887110714), and the file open/save + Examples work (run
+      28887875056) all kept every desktop target, the flags-OFF dress
+      rehearsal, and the WASM build itself green throughout.
 
 ---
 
@@ -818,9 +960,10 @@ automatic reload on first visit).
 - [x] WASM CI job (emsdk 4.0.7 + Qt 6.11 wasm_multithread + host Qt)
 - [x] Heap / PTHREAD_POOL_SIZE link settings
 - [x] Sound WASM guards (`setSourceDevice` path)
-- [ ] Dialog `exec()` → `open()` conversions
-- [ ] WASM file open/save (`getOpenFileContent`/`saveFileContent`)
-- [ ] Examples packaged for browser
+- [ ] Dialog `exec()` → `open()` conversions (3 of 8 known real sites done;
+      5 more found and deliberately deferred — see Phase 5 notes)
+- [x] WASM file open/save (`getOpenFileContent`/`saveFileContent`)
+- [x] Examples packaged for browser
 - [ ] gh-pages deploy + coi-serviceworker + landing page
 - [ ] README browser-limitations section
 
@@ -997,3 +1140,70 @@ sandbox — each isolated in its own phase gate.
   isn't available in this CLI environment; needs the maintainer. Next up:
   either the maintainer runs that smoke test, or proceed to Phase 5
   (browser runtime adaptation) with the smoke test deferred.
+
+- 2026-07-07: Phase 5 — main-thread blocking audit (RULE 2) found the real
+  scope is bigger than the plan's 3 named sites: a grep for
+  result-dependent `QMessageBox` calls found 8. Maintainer chose (asked via
+  a scope question, given the correctness-critical, browser-unverifiable
+  nature of the refactor) to convert only the 3 originally-named sites this
+  session: `BasicEdit::saveFile()`'s overwrite confirm (split into a new
+  `writeFile()` helper), `PreferencesWin::clickClearSavedData()`'s delete
+  confirm, and `MainWindow::closeAllPrograms()` (the biggest: two
+  sequential confirmations across two call sites, changed to a
+  `std::function<void(bool)>` completion-callback signature, with
+  `closeAllProgramsSlot()` added as a 0-arg wrapper for the menu's
+  string-based connect and `finishCloseAllPrograms()` as the shared
+  completion helper; `closeEvent()` now always `e->ignore()`s and quits
+  from the completion callback). The other 5 real sites (documented in the
+  Phase 5 item above) are a known, deliberate gap for a focused follow-up.
+  Pushed and confirmed green on all six jobs (desktop ×4 + dress rehearsal
+  + wasm build) before continuing — run 28886652004.
+  Settings: found via Qt's own docs (not assumed, correcting the plan's
+  expectation) that QSettings has no automatic IndexedDB/persistent
+  backing on WASM at all — `NativeFormat` silently writes into ephemeral
+  MEMFS. Fixed with `QSettings::WebLocalStorageFormat` (synchronous, no
+  JSPI requirement, ample 5MiB cap), `Q_OS_WASM`-gated in `Settings.h`'s
+  `SETTINGS` macro. Confirmed PreferencesWin.cpp's existing
+  `settings.value(key, default)` usage already tolerates missing keys — no
+  further changes needed. Pushed and confirmed green — run 28887110714.
+  File open/save and Examples-in-browser both turned out larger than their
+  one-line plan bullets suggested (asked the maintainer to confirm scope
+  before proceeding, given the same can't-verify-without-a-browser
+  category as the dialog audit): `getOpenFileContent()`/`saveFileContent()`
+  are content-based, not path-based, a different model from `BasicEdit`'s
+  existing filename-tracking one; and "Open Example" doesn't exist on
+  desktop at all today (users just browse to `Examples/` via the normal
+  Open dialog) — building it for WASM meant building the feature itself,
+  not adapting one. Maintainer chose to implement both in full. Added
+  `MainWindow::loadFileContent()` (new-tab logic shared by both file-open
+  and Open-Example, since resource reads are synchronous but the picker
+  dialogs aren't) and gated `BasicEdit::saveFile()`/`saveAsProgram()` for
+  WASM's download-based save model (`filename` deliberately left empty
+  after a WASM load, so every save routes through `saveFileContent()`).
+  New `Examples/examples.qrc` (`EMSCRIPTEN`-only in `CMakeLists.txt`)
+  bundles 42 of the 46 top-level `.kbs` files (excluded 4 using `DBOPEN`/
+  SQL, found via grep, plus the asset-dependent subdirectories). New
+  "Open &Example..." menu action uses a non-modal `QInputDialog` (same
+  RULE 2 category as the `QMessageBox` conversions — `getItem()`'s `exec()`
+  has the identical never-returns problem). Pushed and confirmed green on
+  all six jobs — run 28887875056.
+  Remaining Phase 5 items were lower-risk verification/documentation, not
+  code changes needing a push: clipboard (grepped every use, all standard
+  `QClipboard` API, nothing to adapt), fonts/HiDPI (one generic-family
+  hardcoded font, Qt6's default HiDPI handling, nothing custom to fix),
+  NETREAD/CORS (recorded here rather than editing the README now, since
+  Phase 6 already owns that bullet and there's no live URL yet to link).
+  Also fixed a bookkeeping gap: the per-file summary table's "WASM file
+  open/save" and "Examples packaged for browser" rows are now ticked; the
+  "Dialog exec() → open() conversions" row is annotated 3-of-8 rather than
+  ticked, since it's genuinely partial.
+  **Phase 5 gate: the two CI-verifiable/code-level items are done (desktop
+  CI green ×4 + dress rehearsal + wasm build, confirmed across all three
+  pushes this session). The two in-browser gate items (load/edit/run/stop/
+  re-run/save/reload; a `.kbs` calling SYSTEM/DBOPEN/SAY showing
+  ERROR_NOTAVAILABLE) are not done this session** — same no-browser
+  constraint as Phase 4's still-open local smoke test; both can be
+  combined into one maintainer session. Next up: either the maintainer
+  runs the combined browser smoke test (covering both Phase 4's and Phase
+  5's manual gate items), or proceed to Phase 6 (hosting + deploy) with
+  both deferred.
