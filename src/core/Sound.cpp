@@ -677,21 +677,28 @@ SoundSystem::SoundSystem() :
 //    fprintf(stderr, "\n");
 //}
 
-#ifdef Q_OS_WASM
-	qCritical() << "WASM DEBUG: before QMediaDevices::defaultAudioOutput()";
-#endif
+#ifndef Q_OS_WASM
+	// QMediaDevices::defaultAudioOutput() never returns on WASM: Qt's own
+	// Multimedia-on-WebAssembly docs say device enumeration is async there
+	// (only available after an audioOutputsChanged signal), and this
+	// synchronous call apparently tries to block on that JS-side
+	// negotiation the same way QDialog::exec() does without Asyncify --
+	// except unlike exec() it doesn't get Qt's detect-and-abort treatment,
+	// it just spins forever (confirmed via a real browser test: 100% CPU,
+	// zero console output, hangs at exactly this call). info/format
+	// negotiation is used nowhere else in this file -- QAudioSink is
+	// always constructed from the manually-built `format` below, never
+	// from `info` -- so on WASM it's simplest and safest to just keep the
+	// manually-set format (Int16/mono/sound_samplerate) and skip device
+	// capability negotiation entirely rather than attempt an async
+	// rewrite of this constructor.
 	QAudioDevice info = QMediaDevices::defaultAudioOutput();
-#ifdef Q_OS_WASM
-	qCritical() << "WASM DEBUG: after QMediaDevices::defaultAudioOutput()";
-#endif
 	if (!info.isFormatSupported(format)) {
 		format = info.preferredFormat();   // Qt6 has no nearestFormat()
 #ifdef DEBUG
 		fprintf(stderr,"Switching to nearest audio format.\n");
 #endif
 	}
-#ifdef Q_OS_WASM
-	qCritical() << "WASM DEBUG: after isFormatSupported check";
 #endif
 
 	int i;
