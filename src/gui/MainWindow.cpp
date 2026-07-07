@@ -698,7 +698,16 @@ void MainWindow::about() {
 			"<p><i>" + QObject::tr("You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.")  + "</i></p>";
 #endif
 
-    QMessageBox::about(this, title, message);
+    // Async (RULE 2): the static QMessageBox::about()'s exec() never
+    // returns on the WASM main thread without Asyncify -- build the same
+    // dialog manually and show it non-modally instead.
+    QMessageBox *msgBox = new QMessageBox(this);
+    msgBox->setAttribute(Qt::WA_DeleteOnClose);
+    msgBox->setWindowTitle(title);
+    msgBox->setText(message);
+    msgBox->setIcon(QMessageBox::Information);
+    msgBox->setStandardButtons(QMessageBox::Ok);
+    msgBox->open();
 }
 
 

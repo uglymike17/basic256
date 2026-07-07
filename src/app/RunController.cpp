@@ -488,20 +488,44 @@ void RunController::showOnlineContextDocumentation() {
 
 void
 RunController::showPreferences() {
-	bool advanced = true;
 	SETTINGS;
 	QString prefpass = settings.value(SETTINGSPREFPASSWORD,"").toString();
 	if (prefpass.length()!=0) {
-		char * digest;
-		QString text = QInputDialog::getText(mainwin, tr("BASIC-256 Advanced Preferences and Settings"),
-			 tr("Password:"), QLineEdit::Password, QString());
-		digest = MD5(text.toUtf8().data()).hexdigest();
-		advanced = (QString::compare(digest, prefpass)==0);
-		free(digest);
+		// Async (RULE 2): QInputDialog::getText()'s exec() never returns on
+		// the WASM main thread without Asyncify -- prompt non-modally and
+		// continue in the completion slot(s) instead of blocking here.
+		QInputDialog *dialog = new QInputDialog(mainwin);
+		dialog->setAttribute(Qt::WA_DeleteOnClose);
+		dialog->setWindowTitle(tr("BASIC-256 Advanced Preferences and Settings"));
+		dialog->setLabelText(tr("Password:"));
+		dialog->setTextEchoMode(QLineEdit::Password);
+		QObject::connect(dialog, &QInputDialog::textValueSelected, this, [this, prefpass](const QString &text){
+			char *digest = MD5(text.toUtf8().data()).hexdigest();
+			bool advanced = (QString::compare(digest, prefpass)==0);
+			free(digest);
+			showPreferencesWindow(advanced);
+		});
+		// Cancelling getText() used to still open Preferences non-advanced
+		// (an empty string almost never matches the password digest) --
+		// match that on the reject path too, rather than opening nothing.
+		QObject::connect(dialog, &QDialog::rejected, this, [this](){
+			showPreferencesWindow(false);
+		});
+		dialog->open();
+	} else {
+		showPreferencesWindow(true);
 	}
+}
+
+void RunController::showPreferencesWindow(bool advanced) {
+	// Async (RULE 2): QDialog::exec() never returns on the WASM main
+	// thread without Asyncify -- PreferencesWin already manages its own
+	// close via clickSaveButton()/clickCancelButton() calling close(), so
+	// open() + WA_DeleteOnClose is a drop-in replacement, no completion
+	// callback needed.
 	PreferencesWin *w = new PreferencesWin(mainwin, advanced);
-	w->exec();
-	delete w;
+	w->setAttribute(Qt::WA_DeleteOnClose);
+	w->open();
 }
 
 
@@ -602,45 +626,63 @@ void RunController::resizeGraphWindow(int width, int height, qreal scale) {
 
 void
 RunController::dialogAlert(QString prompt) {
-	QMessageBox msgBox(mainwin);
-	msgBox.setText(prompt);
-	msgBox.setStandardButtons(QMessageBox::Ok);
-	msgBox.setDefaultButton(QMessageBox::Ok);
-	// actualy show alert (take exclusive control)
+	// Async (RULE 2): QDialog::exec() never returns on the WASM main
+	// thread without Asyncify. The interpreter thread is blocked in
+	// waitCond->wait(mymutex) (see the emit() call site in Interpreter.cpp)
+	// until wakeAll()/unlock() run -- deferred into the dialog's finished
+	// completion slot instead of running immediately after exec() returns.
 	mymutex->lock();
-	msgBox.exec();
-	waitCond->wakeAll();
-	mymutex->unlock();
+	QMessageBox *msgBox = new QMessageBox(mainwin);
+	msgBox->setAttribute(Qt::WA_DeleteOnClose);
+	msgBox->setText(prompt);
+	msgBox->setStandardButtons(QMessageBox::Ok);
+	msgBox->setDefaultButton(QMessageBox::Ok);
+	QObject::connect(msgBox, &QMessageBox::finished, this, [this](int){
+		waitCond->wakeAll();
+		mymutex->unlock();
+	});
+	msgBox->open();
 }
 
 void
 RunController::dialogConfirm(QString prompt, int dflt) {
-	QMessageBox msgBox(mainwin);
-	msgBox.setText(prompt);
-	msgBox.setStandardButtons(QMessageBox::Yes|QMessageBox::No);
+	mymutex->lock();
+	QMessageBox *msgBox = new QMessageBox(mainwin);
+	msgBox->setAttribute(Qt::WA_DeleteOnClose);
+	msgBox->setText(prompt);
+	msgBox->setStandardButtons(QMessageBox::Yes|QMessageBox::No);
 	if (dflt!=-1) {
 		if (dflt!=0) {
-			msgBox.setDefaultButton(QMessageBox::Yes);
+			msgBox->setDefaultButton(QMessageBox::Yes);
 		} else {
-			msgBox.setDefaultButton(QMessageBox::No);
+			msgBox->setDefaultButton(QMessageBox::No);
 		}
 	}
-	// actualy show confirm (take exclusive control)
-	mymutex->lock();
-	if (msgBox.exec()==QMessageBox::Yes) {
-		i->returnInt = 1;
-	} else {
-		i->returnInt = 0;
-	}
-	waitCond->wakeAll();
-	mymutex->unlock();
+	QObject::connect(msgBox, &QMessageBox::finished, this, [this](int result){
+		i->returnInt = (result==QMessageBox::Yes) ? 1 : 0;
+		waitCond->wakeAll();
+		mymutex->unlock();
+	});
+	msgBox->open();
 }
 
 void
 RunController::dialogOpenFileDialog(QString prompt, QString path, QString filter) {
 	mymutex->lock();
+#ifdef Q_OS_WASM
+	// No real filesystem path to return on WASM (see MainWindow/BasicEdit's
+	// getOpenFileContent()-based file open/save) -- getOpenFileName() would
+	// also hit the same exec()-not-supported abort, and its content-based
+	// WASM replacement doesn't fit this opcode's "return a path string"
+	// contract at all (BASIC's OPEN/READ/WRITE need a real path
+	// afterwards). Report "cancelled" (empty string) rather than crash;
+	// this BASIC-language file-picker opcode remains unavailable on WASM.
+	(void)prompt; (void)path; (void)filter;
+	i->setInputString("");
+#else
 	QString filename = QFileDialog::getOpenFileName(mainwin, prompt, path, filter);
 	i->setInputString(filename);
+#endif
 	waitCond->wakeAll();
 	mymutex->unlock();
 }
@@ -648,26 +690,35 @@ RunController::dialogOpenFileDialog(QString prompt, QString path, QString filter
 void
 RunController::dialogSaveFileDialog(QString prompt, QString path, QString filter) {
 	mymutex->lock();
+#ifdef Q_OS_WASM
+	// Same reasoning as dialogOpenFileDialog() above.
+	(void)prompt; (void)path; (void)filter;
+	i->setInputString("");
+#else
 	QString filename = QFileDialog::getSaveFileName(mainwin, prompt, path, filter);
 	i->setInputString(filename);
+#endif
 	waitCond->wakeAll();
 	mymutex->unlock();
 }
 
 void
 RunController::dialogPrompt(QString prompt, QString dflt) {
-	QInputDialog in(mainwin);
-	in.setLabelText(prompt);
-	in.setTextValue(dflt);
-	// actualy show prompt (take exclusive control)
 	mymutex->lock();
-	if (in.exec()==QDialog::Accepted) {
-		i->setInputString(in.textValue());
-	} else {
-		i->setInputString(dflt);
-	}
-	waitCond->wakeAll();
-	mymutex->unlock();
+	QInputDialog *in = new QInputDialog(mainwin);
+	in->setAttribute(Qt::WA_DeleteOnClose);
+	in->setLabelText(prompt);
+	in->setTextValue(dflt);
+	QObject::connect(in, &QDialog::finished, this, [this, in, dflt](int result){
+		if (result==QDialog::Accepted) {
+			i->setInputString(in->textValue());
+		} else {
+			i->setInputString(dflt);
+		}
+		waitCond->wakeAll();
+		mymutex->unlock();
+	});
+	in->open();
 }
 
 void RunController::playSound(std::vector<std::vector<double>> sounddata, bool player){

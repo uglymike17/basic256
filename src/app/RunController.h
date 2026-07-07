@@ -97,6 +97,7 @@ class RunController : public QObject
   
 
  private:
+  void showPreferencesWindow(bool advanced);
   Interpreter *i;
   bool paused;
   run_status oldStatus;
