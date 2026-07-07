@@ -33,8 +33,8 @@
 
 %{
 #include "basicParse.tab.h"
-#include "../CompileErrors.h"
-#include "../WordCodes.h"
+#include "../src/core/CompileErrors.h"
+#include "../src/core/WordCodes.h"
 
 // Fix for MSVC unresolved external symbol strcasecmp
 #ifdef _MSC_VER

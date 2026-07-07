@@ -35,12 +35,12 @@
 	#include <math.h>
 	#include <errno.h>
 	#include <limits.h>
-	#include "../BasicTypes.h"
-	#include "../Constants.h"
-	#include "../WordCodes.h"
-	#include "../CompileErrors.h"
-	#include "../ErrorCodes.h"
-	#include "../Version.h"
+	#include "../src/core/BasicTypes.h"
+	#include "../src/core/Constants.h"
+	#include "../src/core/WordCodes.h"
+	#include "../src/core/CompileErrors.h"
+	#include "../src/core/ErrorCodes.h"
+	#include "../src/core/Version.h"
 
 
 	#define SYMTABLESIZE 2000

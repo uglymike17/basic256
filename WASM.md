@@ -155,7 +155,7 @@ Proposed placement (verify each file's include graph with grep before
 moving; if a "core" file includes a QtWidgets header, stop and note it —
 that's Phase 2 work, don't silently reclassify):
 
-- [ ] `src/core/`: `Interpreter.{h,cpp}`, `Stack.{h,cpp}`,
+- [x] `src/core/`: `Interpreter.{h,cpp}`, `Stack.{h,cpp}`,
       `Variables.{h,cpp}`, `DataElement.{h,cpp}`, `Convert.{h,cpp}`,
       `Error.{h,cpp}`, `ErrorCodes.h`, `CompileErrors.h`, `WordCodes.h`,
       `Constants.h`, `BasicTypes.h`, `md5.{h,cpp}`, `Sleeper.{h,cpp}`,
@@ -164,43 +164,106 @@ that's Phase 2 work, don't silently reclassify):
       `BasicKeyboard.h:26`), `Version.h`.
       **Known impurity carried into Phase 2:** `Interpreter.h:30` includes
       `BasicGraph.h` (a widget). It moves anyway; Phase 2 removes the
-      include.
-- [ ] `src/gui/`: `MainWindow.*`, `BasicEdit.*`, `BasicGraph.*`,
+      include. `Interpreter.cpp:6541`'s `editwin`/`BasicEdit.h` use is the
+      same story (Phase 2B).
+      **Extra impurity found and fixed (not carried forward):**
+      `Interpreter.cpp` also had a stray, **unused**
+      `#include <QtWidgets/QMessageBox>` (no `QMessageBox::` call anywhere
+      in the file) — deleted outright rather than carried into Phase 2,
+      since there was no real widget dependency behind it, just dead code.
+- [x] `src/gui/`: `MainWindow.*`, `BasicEdit.*`, `BasicGraph.*`,
       `BasicOutput.*`, `BasicWidget.*`, `BasicDock.*`, `BasicIcons.*`,
       `EditSyntaxHighlighter.*`, `LineNumberArea.*`, `PreferencesWin.*`,
       `ReplaceWin.*`, `VariableWin.*`, `ViewWidgetIFace.*`, `Settings.h`.
-- [ ] `src/app/`: `Main.cpp`, `RunController.{h,cpp}`.
-- [ ] `git mv` (not delete+add) so history follows the files.
+- [x] `src/app/`: `Main.cpp`, `RunController.{h,cpp}`.
+- [x] `git mv` (not delete+add) so history follows the files.
 
 ### 1B. CMake
 
-- [ ] `add_library(basic256core STATIC ...)` with the `src/core/` sources +
+- [x] `add_library(basic256core STATIC ...)` with the `src/core/` sources +
       the LEX outputs; `target_link_libraries(basic256core PUBLIC Qt6::Core
       Qt6::Gui Qt6::Multimedia Qt6::Network ...)` — move each Qt component
       to the target that actually needs it (Widgets/PrintSupport stay on the
       app; Sql/SerialPort on core *until* Phase 3 flags them).
-- [ ] `add_executable(basic256 ...)` = `src/gui/` + `src/app/`, links
+      **Correction from grep evidence, not guessed:** the "Widgets/
+      PrintSupport stay on the app" assumption was wrong for PrintSupport.
+      `Interpreter.h` directly includes `QtPrintSupport/QPrinter` and
+      `QPrinterInfo` (`PRINTER...`/print-doc opcodes) and `Interpreter.cpp`
+      constructs `QPrinter`/`QPrinterInfo` at ~6524-6532 — that's core code,
+      so `basic256core` links `Qt6::PrintSupport` too. Full core link set
+      (all confirmed by grepping actual `#include`/class usage, not the
+      plan's shorthand): `Core`, `Gui`, `Network` (QTcpSocket/QTcpServer/
+      QNetworkInterface/QHostInfo in `Interpreter.h`, plus
+      `BasicDownloader`'s `QNetworkAccessManager`), `Sql`, `SerialPort`,
+      `PrintSupport`, `Multimedia` (`Sound.h`/`BasicMediaPlayer.h`). Only
+      `Widgets` and `TextToSpeech` stay app-only (`TextToSpeech` is used
+      exclusively by `RunController.cpp`, confirmed via grep — matches the
+      plan's own Phase 3 note that `BASIC256_ENABLE_TTS` guards
+      `RunController.cpp:156-190`).
+- [x] `add_executable(basic256 ...)` = `src/gui/` + `src/app/`, links
       `basic256core`.
-- [ ] `target_include_directories` so old flat `#include "X.h"` lines keep
+- [x] `target_include_directories` so old flat `#include "X.h"` lines keep
       resolving (add both `src/core` and `src/gui` publicly for now; tighten
       later). Prefer this over touching hundreds of includes in this phase.
-- [ ] Keep translation, resource, and install rules working (paths to
-      `resources/`, `Translations/` referenced from CMake).
+      Verified by mechanically checking every quoted `#include` under `src/`
+      resolves to same-dir/`src/core`/`src/gui`/`src/app` (the only
+      unresolved hit was the build-generated `basicParse.tab.h`, as
+      expected). `basic256` (the exe) additionally needs `src/app` on its
+      own include path — `src/gui/MainWindow.h` does
+      `#include "RunController.h"`, which lives in `src/app`.
+- [x] Keep translation, resource, and install rules working (paths to
+      `resources/`, `Translations/` referenced from CMake). Unchanged;
+      those paths were already relative to the repo root, not the moved
+      sources.
 
 ### 1C. Everything that hardcodes paths
 
-- [ ] `.github/scripts/*` (13 scripts): grep for every `.cpp`/`.h`/dir
+- [x] `.github/scripts/*` (13 scripts): grep for every `.cpp`/`.h`/dir
       reference and fix. The packaging scripts mostly consume the built
       binary, but verify each.
-- [ ] `BASIC256.nsi`, `COMPILING.txt`, `COMPILING_RaspberryPI.txt`,
+      **Verified, zero changes needed:** grepped all 13 scripts for any
+      `.cpp`/`.h`/`src/` reference — none exist. They only reference the
+      build output (e.g. `build\Release\basic256.exe`), and the CMake
+      target name/output location is unchanged by this restructure.
+- [x] `BASIC256.nsi`, `COMPILING.txt`, `COMPILING_RaspberryPI.txt`,
       `README.md` build instructions.
-- [ ] LEX build step: the flex/bison invocation and the
+      `BASIC256.nsi`/`COMPILING_RaspberryPI.txt`/`README.md`: verified, no
+      source-path or version references, zero changes needed.
+      `COMPILING.txt`: had the `6.7.3`/`win64_msvc2019_64` references
+      deliberately left over from the Phase 0 session (see that phase's log
+      entry) — updated now to `6.11.1`/`win64_msvc2022_64`, plus a note
+      about the aqtinstall Windows workaround from `build_Windows.ps1`.
+- [x] LEX build step: the flex/bison invocation and the
       `include_exec_path` C externs (`Interpreter.cpp:77-90`) — confirm the
       generated parser still compiles into `basic256core`.
+      Confirmed structurally: `BISON_BasicParser_OUTPUTS`/
+      `FLEX_BasicLexer_OUTPUTS` are folded into `SOURCES_CORE`, so the
+      generated `basicParse.tab.c`/`lex.yy.c` compile as part of
+      `basic256core` alongside `Interpreter.cpp`, which shares C-linkage
+      externs with them (`include_exec_path` et al.) — same translation
+      unit grouping as before, just inside a static-lib target instead of
+      the monolithic exe target.
+      **Not called out by this checklist item but found and fixed:**
+      `LEX/basicParse.y` and `LEX/basicParse.l` `#include "../X.h"` the
+      moved headers by relative path (`../BasicTypes.h`,
+      `../CompileErrors.h`, etc.) — these resolved to the repo root, which
+      no longer has them. Repointed to `../src/core/X.h`.
+      `resources/windows.rc` and `resources/basic256.rc` had the same
+      `#include "../Version.h"` relative-path problem — also repointed to
+      `../src/core/Version.h`.
 
 ### Phase 1 gate
 - [ ] All four desktop CI targets build + package green. No functional diff
       expected; run the TestSuite gate as usual.
+      **No local Qt/flex/bison toolchain available in this session** (no
+      `cmake`/`qmake`/`flex`/`bison` on PATH) to do a real local
+      compile-and-link sanity check before pushing, so this phase leaned
+      more heavily than usual on static verification: every quoted
+      `#include` under `src/` was mechanically checked to resolve, CMake
+      `if`/`endif` and paren balance were checked, and every Qt module
+      actually referenced by each moved file was grepped directly rather
+      than assumed from the plan's shorthand (see 1B correction above).
+      CI is the real gate here — pending push, not yet confirmed green.
 
 ---
 
@@ -492,3 +555,18 @@ sandbox — each isolated in its own phase gate.
   containing PR #1000 in `build_Windows.ps1`. Re-pushed; run 28862119754
   green on all four targets (build+package+TestSuite). **Phase 0 gate
   closed.** Next up: Phase 1 (source tree restructure).
+
+- 2026-07-07: Phase 1 — mechanical restructure. `git mv`'d all root
+  `.cpp`/`.h` into `src/core`, `src/gui`, `src/app` per the 1A plan exactly.
+  Deleted one unused `#include <QtWidgets/QMessageBox>` found in
+  `Interpreter.cpp` (dead code, not a real widget dependency — not carried
+  into Phase 2). Split `CMakeLists.txt` into `basic256core` STATIC +
+  `basic256` exe; corrected the plan's Qt-component-per-target shorthand
+  after grepping actual usage (`PrintSupport` belongs on core, not app —
+  see 1B). Fixed relative-include breakage in `LEX/basicParse.y`/`.l` and
+  `resources/*.rc` (`../X.h` → `../src/core/X.h`) that the plan's 1C list
+  didn't explicitly name. `.github/scripts/*`, `BASIC256.nsi`,
+  `COMPILING_RaspberryPI.txt`, `README.md` needed no changes (verified, not
+  assumed). `COMPILING.txt` got the Qt 6.11.1 version bump left over from
+  Phase 0. No local Qt/CMake/flex/bison toolchain available to sanity-build
+  before pushing — relying on CI as the real gate.

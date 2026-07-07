@@ -2,7 +2,7 @@ Compiling Instructions and Dependencies
 
 BASIC256 builds with CMake against Qt6 (minimum Qt 6.2, the release that
 introduced the current QtMultimedia/QAudioSink API this project uses; CI
-builds and tests against Qt 6.7.3). Qt5 is no longer supported.
+builds and tests against Qt 6.11.1). Qt5 is no longer supported.
 
 The authoritative, continuously-tested build steps for every platform live
 in .github/scripts/ (build_Windows.ps1, build_Linux_x86.sh,
@@ -32,13 +32,16 @@ WINDOWS
 Dependencies:
 * Visual Studio 2022 (MSVC toolchain)
 * winflexbison3 (flex/bison for Windows) -- e.g. "choco install winflexbison3"
-* Qt6 6.7.3, MSVC 2019/2022 64-bit kit, with the Multimedia/SerialPort/Speech
-  addon modules. CI installs it with aqtinstall:
+* Qt6 6.11.1, MSVC 2022 64-bit kit, with the Multimedia/SerialPort/Speech
+  addon modules. CI installs it with aqtinstall (see build_Windows.ps1 for
+  a caveat: aqtinstall's latest PyPI release can't parse Qt's Windows
+  repo layout for 6.11+, so CI installs aqtinstall from a specific
+  upstream commit until a release contains the fix):
       pip install aqtinstall
-      aqt install-qt windows desktop 6.7.3 win64_msvc2019_64 -m qtmultimedia qtserialport qtspeech
+      aqt install-qt windows desktop 6.11.1 win64_msvc2022_64 -m qtmultimedia qtserialport qtspeech
 
 Build:
-  cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="<qt-install>\6.7.3\msvc2019_64"
+  cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="<qt-install>\6.11.1\msvc2022_64"
   cmake --build build --config Release
 
 To build the Windows installer, see BASIC256.nsi (NSIS >= 3.0) --
@@ -64,7 +67,7 @@ Distributions whose packaged Qt6 is incomplete or too old (e.g. Ubuntu
 22.04 "jammy", which has no Qt6TextToSpeech package at all) should install
 Qt6 via aqtinstall instead of apt, exactly as build_Linux_x86.sh does:
       pip install aqtinstall
-      aqt install-qt linux desktop 6.7.3 linux_gcc_64 -m qtmultimedia qtserialport qtspeech
+      aqt install-qt linux desktop 6.11.1 linux_gcc_64 -m qtmultimedia qtserialport qtspeech
 
 Distributions with a complete, current Qt6 in their own repos (e.g. Debian
 Trixie) can just install it directly -- see build_Linux_RPi_Trixie.sh:

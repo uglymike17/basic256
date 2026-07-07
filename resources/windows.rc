@@ -24,7 +24,7 @@
 
 IDI_ICON1               ICON    DISCARDABLE     "icons/basic256.ico"
 
-#include "../Version.h"
+#include "../src/core/Version.h"
 #define VOS_NT_WINDOWS32    0x00040004L
 
 #define COMMONSTUFF VALUE "CompanyName", "BASIC-256\0" VALUE "InternalName", "BASIC-256\0" VALUE "OriginalFilename", "basic256.exe\0" VALUE "ProductName", "BASIC-256\0" VALUE "ProductVersion", VERSION
