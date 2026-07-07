@@ -677,13 +677,22 @@ SoundSystem::SoundSystem() :
 //    fprintf(stderr, "\n");
 //}
 
+#ifdef Q_OS_WASM
+	qCritical() << "WASM DEBUG: before QMediaDevices::defaultAudioOutput()";
+#endif
 	QAudioDevice info = QMediaDevices::defaultAudioOutput();
+#ifdef Q_OS_WASM
+	qCritical() << "WASM DEBUG: after QMediaDevices::defaultAudioOutput()";
+#endif
 	if (!info.isFormatSupported(format)) {
 		format = info.preferredFormat();   // Qt6 has no nearestFormat()
 #ifdef DEBUG
 		fprintf(stderr,"Switching to nearest audio format.\n");
 #endif
 	}
+#ifdef Q_OS_WASM
+	qCritical() << "WASM DEBUG: after isFormatSupported check";
+#endif
 
 	int i;
 	double bit;

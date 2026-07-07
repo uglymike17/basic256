@@ -324,7 +324,13 @@ RunController::startRun() {
 		if (!currentEditor->path.isEmpty())
     		QDir::setCurrent(currentEditor->path);
 		// Start Compile
+#ifdef Q_OS_WASM
+		qCritical() << "WASM DEBUG: before compileProgram()";
+#endif
 		int result = i->compileProgram((currentEditor->toPlainText() + "\n").toUtf8().data());
+#ifdef Q_OS_WASM
+		qCritical() << "WASM DEBUG: after compileProgram(), result=" << result;
+#endif
 		if (result < 0) {
 			stopRunFinalized(false);
 			return;
@@ -334,9 +340,15 @@ RunController::startRun() {
 		if(settings.value(SETTINGSIDESAVEONRUN, SETTINGSIDESAVEONRUNDEFAULT).toBool()) {
 			currentEditor->saveFile(true);
 		}
+#ifdef Q_OS_WASM
+		qCritical() << "WASM DEBUG: before new SoundSystem()";
+#endif
 		//
 		// now setup and start the run
 		sound = new SoundSystem();
+#ifdef Q_OS_WASM
+		qCritical() << "WASM DEBUG: after new SoundSystem()";
+#endif
 #ifdef BASIC256_ENABLE_TTS
 		speech = new QTextToSpeech();
 		qCritical() << "TTS available engines:" << QTextToSpeech::availableEngines() << "- using engine:" << speech->engine();
@@ -344,7 +356,13 @@ RunController::startRun() {
 			qCritical() << "TTS error (reason" << int(reason) << "):" << errorString;
 		});
 #endif
+#ifdef Q_OS_WASM
+		qCritical() << "WASM DEBUG: before i->initialize()";
+#endif
 		i->initialize();
+#ifdef Q_OS_WASM
+		qCritical() << "WASM DEBUG: after i->initialize()";
+#endif
 		//set focus to graphiscs window
 		graphwin->setFocus();
 		//if graphiscs window is floating
@@ -352,7 +370,13 @@ RunController::startRun() {
 		//if graphiscs window is hidden, then the main window will have the focus, which is ok
 		varwin->clear();
 		if (replacewin) replacewin->close();
+#ifdef Q_OS_WASM
+		qCritical() << "WASM DEBUG: before i->start()";
+#endif
 		i->start();
+#ifdef Q_OS_WASM
+		qCritical() << "WASM DEBUG: after i->start()";
+#endif
 	 }
 }
 
