@@ -118,11 +118,17 @@ without its guard.
       rather than wait for a release or drop Windows to 6.10.x. **Revisit:**
       swap back to a plain `pip install aqtinstall` once a PyPI release
       contains PR #1000.
-- [ ] **CI green on all four targets at the new Qt version.**
+- [x] **CI green on all four targets at the new Qt version.**
+      **Confirmed 2026-07-07:** GitHub Actions run
+      [28862119754](https://github.com/uglymike17/basic256/actions/runs/28862119754)
+      — Windows, Linux x86_64, Linux ARM64, macOS all build, package, and
+      TestSuite-pass green on Qt 6.11.1 (Windows via the pinned aqtinstall
+      commit above).
 - [x] Record here the exact versions pinned: Qt `6.11.1`, emsdk `4.0.7`.
 
 ### Phase 0 gate
-- [ ] Four desktop targets build, package, and TestSuite-pass on Qt 6.11.x.
+- [x] Four desktop targets build, package, and TestSuite-pass on Qt 6.11.x.
+      See run 28862119754 above.
 - [x] Maintainer confirms audio by ear on at least Windows + one Linux.
       **Confirmed 2026-07-07 (maintainer stated audio is OK across all four
       desktop targets, superseding the earlier "Windows + one Linux"
@@ -483,4 +489,6 @@ sandbox — each isolated in its own phase gate.
   `linux_gcc_64` unchanged). First CI push: Linux x86_64/ARM64/macOS green,
   Windows failed twice with the same aqtinstall/Qt-6.11-repo-layout bug
   (see above) — fixed by pinning aqtinstall to the upstream merge commit
-  containing PR #1000 in `build_Windows.ps1`. Re-pushed; awaiting result.
+  containing PR #1000 in `build_Windows.ps1`. Re-pushed; run 28862119754
+  green on all four targets (build+package+TestSuite). **Phase 0 gate
+  closed.** Next up: Phase 1 (source tree restructure).
