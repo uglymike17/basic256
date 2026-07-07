@@ -543,9 +543,30 @@ cheap simulation of the WASM feature surface with a debugger available.
       CI is the only real gate, same constraint as every prior phase).
 
 ### Phase 3 gate
-- [ ] Default (all-ON) desktop CI green ×4 — byte-for-byte same feature set
+- [x] Default (all-ON) desktop CI green ×4 — byte-for-byte same feature set
       as before.
-- [ ] Flags-OFF desktop build green + error-path verified.
+      **Confirmed 2026-07-07:** GitHub Actions run
+      [28878298624](https://github.com/uglymike17/basic256/actions/runs/28878298624)
+      — Windows, Linux x86_64, Linux ARM64, macOS all build, package, and
+      TestSuite-pass green with all six flags at their default `ON`.
+      Took three pushes to get here — two real bugs, both caught by CI
+      exactly as intended:
+      1. `BASIC256_ENABLE_*` compile definitions were `PRIVATE` on
+         `basic256core`, invisible to `src/gui/*.cpp` files that
+         transitively include `Interpreter.h` — broke `PreferencesWin.cpp`
+         even in the all-ON build. Fixed: `PUBLIC`.
+      2. `PreferencesWin.cpp` had no `QtPrintSupport` include of its own
+         (unlike its siblings `BasicEdit`/`BasicGraph`/`BasicOutput.cpp`),
+         relying on `Interpreter.h`'s formerly-unconditional include
+         arriving by accident. Fixed: added the direct include.
+- [x] Flags-OFF desktop build green + error-path verified.
+      **Confirmed 2026-07-07,** same run: the new `flagsoff-dress-rehearsal`
+      CI job (Linux x86_64, all six `BASIC256_ENABLE_*=OFF`) builds green
+      and `TestSuite/testsuite_flagsoff_ci.kbs` confirms `SYSTEM` raises
+      `ERROR_NOTAVAILABLE` (129) and execution continues normally:
+      `testing SYSTEM raises ERROR_NOTAVAILABLE (129) when
+      BASIC256_ENABLE_PROCESS is off (129 = 129) pass` /
+      `BASIC256_FLAGSOFF_CI_PASSED`.
 
 ---
 
@@ -696,7 +717,7 @@ automatic reload on first visit).
 - [ ] `GraphicsBuffer` extraction; `BasicGraph` as view
 - [ ] `editwin` extern removed (programTitle)
 - [ ] `basicKeyboard` extern removed (constructor injection)
-- [ ] Feature flags ×6 + `ERROR_NOTAVAILABLE` + dress-rehearsal build
+- [x] Feature flags ×6 + `ERROR_NOTAVAILABLE` + dress-rehearsal build
 - [ ] WASM CI job (emsdk 4.0.7 + Qt 6.11 wasm_multithread + host Qt)
 - [ ] Heap / PTHREAD_POOL_SIZE link settings
 - [ ] Sound WASM guards (`setSourceDevice` path)
@@ -790,3 +811,38 @@ sandbox — each isolated in its own phase gate.
   regression). Maintainer confirmed the interactive pass satisfies this
   gate item. **Phase 2 gate closed.** Next up: Phase 3 (platform feature
   flags + desktop dress rehearsal).
+
+- 2026-07-07: Phase 3 — added `ERROR_NOTAVAILABLE` (129) and the six
+  `BASIC256_ENABLE_*` CMake options (all `ON` by default). Gated: `OP_
+  SYSTEM` (PROCESS); `OP_OPENSERIAL` by extending its existing `#ifdef
+  ANDROID` guard (SERIAL); `closeDatabase()` + `OP_DBOPEN..OP_DBSTRING` +
+  `OP_FREEDB` (SQL, `OP_FREEDB` found on a final grep sweep after the
+  first pass missed it); every `printing`/`printdocument` touch point in
+  `cleanup()`/`OP_CLG`/`OP_GRAPHWIDTH`/`OP_GRAPHHEIGHT` plus the four
+  `OP_PRINTER*` opcodes (PRINTER); `netSockClose`/`netSockCloseAll` + all
+  seven `OP_NETLISTEN..OP_NETADDRESS` opcodes (TCP); `RunController`'s
+  speech init/use and the `SAY` signal path (TTS, app-layer). `OP_FREENET`/
+  `OP_FREEDBSET` deliberately left unguarded (harmless pointer-null
+  checks). Found PRINTER is two independent concerns: the BASIC opcodes
+  vs. `src/gui`'s own Print... menu actions (`QPrinter`/`QPrintDialog`
+  used directly in `BasicEdit`/`BasicGraph`/`BasicOutput`/
+  `PreferencesWin.cpp`) — kept `Qt6::PrintSupport` unconditionally linked
+  to the `basic256` exe for the latter. Also fixed a latent bug
+  (`RunController::speech` never null-initialized) and deleted two dead
+  includes (`QHostInfo`, `QVoice`).
+  First CI push: default (all-ON) build failed on all four targets — a
+  real bug: `BASIC256_ENABLE_*` compile definitions were `PRIVATE` on
+  `basic256core`, invisible to `src/gui` files that transitively include
+  `Interpreter.h` (e.g. `PreferencesWin.cpp` needing `QPrinterInfo`).
+  Fixed: `PUBLIC`. Same push added the flags-OFF dress-rehearsal CI job
+  (`TestSuite/testsuite_flagsoff_ci.kbs` + `run_testsuite_flagsoff.sh`,
+  reusing `build_Linux_x86.sh` via a new optional
+  `BASIC256_EXTRA_CMAKE_ARGS` env var) — that job then failed for a
+  second, related real bug: `PreferencesWin.cpp` had no `QtPrintSupport`
+  include of its own, unlike its siblings, so it broke specifically when
+  the flag was genuinely off. Fixed by adding the same direct include its
+  siblings already had. Third push (run 28878298624) green on all five
+  jobs (4-target default matrix + dress rehearsal), dress-rehearsal output
+  confirmed: `SYSTEM raises ERROR_NOTAVAILABLE (129) ... pass` /
+  `BASIC256_FLAGSOFF_CI_PASSED`. **Phase 3 gate closed.** Next up: Phase 4
+  (Emscripten toolchain + first WASM build).
