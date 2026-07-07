@@ -409,7 +409,21 @@ change, but:
         anywhere — dead signals. Not a Phase 2 concern, left alone.
 
 ### Phase 2 gate
-- [ ] Desktop CI green ×4 + TestSuite.
+- [x] Desktop CI green ×4 + TestSuite.
+      First push (run 28866925370) failed on all four targets — a real
+      bug, not flakiness: removing `Interpreter.h`'s
+      `#include "BasicGraph.h"` also silently dropped `QPen`/`QBrush`/
+      `QFont`'s real definitions (Interpreter has plain, non-pointer
+      members of those types) and the `GSIZE_INITIAL_WIDTH`/`HEIGHT`
+      macros (used directly in `Interpreter.cpp`, `#define`d in
+      `BasicGraph.h`) that used to arrive transitively through that
+      include. Fixed by adding explicit `<QPen>`/`<QBrush>`/`<QFont>`
+      includes to `Interpreter.h` and moving the two macros into
+      `GraphicsBuffer.h` (their real semantic home). **Confirmed
+      2026-07-07:** re-run
+      [28867353524](https://github.com/uglymike17/basic256/actions/runs/28867353524)
+      — Windows, Linux x86_64, Linux ARM64, macOS all build, package, and
+      TestSuite-pass green.
 - [ ] **Manual verification needed from the maintainer** (no local Qt
       toolchain or display available this session, same constraint as
       Phases 0-1): run a graphics example, a sprite example, and a
@@ -695,8 +709,13 @@ sandbox — each isolated in its own phase gate.
   of the repo) that would have produced a whole-file noise diff — restored
   before committing. `grep -n "extern BasicGraph\|extern BasicEdit\|extern
   BasicKeyboard" src/core/` returns nothing, confirming the gate's grep
-  check. CI push pending; manual verification (graphics/sprite/mouse-input
-  examples, `-s` IMGSAVE comparison) needs the maintainer — no local Qt/
-  display available this session, and `TestSuite/testsuite_ci.kbs`
-  deliberately excludes sprite/graphics coverage for an unrelated,
-  pre-existing `-s`-mode reason (see Phase 2 gate notes).
+  check. First CI push failed on all four targets (real bug — see Phase 2
+  gate); fixed by adding `<QPen>`/`<QBrush>`/`<QFont>` includes to
+  `Interpreter.h` and moving `GSIZE_INITIAL_WIDTH`/`HEIGHT` into
+  `GraphicsBuffer.h`. Re-push (run 28867353524) green on all four targets.
+  **Phase 2 code/CI work done. Gate not fully closed yet** — manual
+  verification (graphics/sprite/mouse-input examples, `-s` IMGSAVE
+  comparison) still needs the maintainer — no local Qt/display available
+  this session, and `TestSuite/testsuite_ci.kbs` deliberately excludes
+  sprite/graphics coverage for an unrelated, pre-existing `-s`-mode reason
+  (see Phase 2 gate notes).
