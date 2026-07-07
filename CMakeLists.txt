@@ -257,22 +257,30 @@ target_compile_definitions(basic256core PRIVATE ${PLATFORM_DEFS})
 target_compile_definitions(basic256core PRIVATE $<$<CONFIG:Release>:QT_NO_DEBUG_OUTPUT QT_NO_WARNING_OUTPUT>)
 
 # Phase 3 feature flags -- see the BASIC256_ENABLE_* option() block above.
-# TTS is app-layer (RunController.cpp), defined on the basic256 exe target
-# further down instead.
+# PUBLIC (not PRIVATE): Interpreter.h is a shared header that src/gui files
+# also include transitively (e.g. PreferencesWin.cpp -> MainWindow.h ->
+# RunController.h -> Interpreter.h) to reach QPrinter/QPrinterInfo for their
+# own Print... dialogs. A PRIVATE define would only be visible while
+# compiling basic256core's own sources, so Interpreter.h's #ifdef
+# BASIC256_ENABLE_PRINTER would see it as *undefined* everywhere else,
+# always taking the forward-declared-only branch regardless of the flag's
+# real value -- exactly the bug that broke the default (flags-ON) build.
+# TTS is app-layer (RunController.cpp only, never included from core), so
+# it's defined directly on the basic256 exe target further down instead.
 if(BASIC256_ENABLE_PROCESS)
-    target_compile_definitions(basic256core PRIVATE BASIC256_ENABLE_PROCESS)
+    target_compile_definitions(basic256core PUBLIC BASIC256_ENABLE_PROCESS)
 endif()
 if(BASIC256_ENABLE_SERIAL)
-    target_compile_definitions(basic256core PRIVATE BASIC256_ENABLE_SERIAL)
+    target_compile_definitions(basic256core PUBLIC BASIC256_ENABLE_SERIAL)
 endif()
 if(BASIC256_ENABLE_SQL)
-    target_compile_definitions(basic256core PRIVATE BASIC256_ENABLE_SQL)
+    target_compile_definitions(basic256core PUBLIC BASIC256_ENABLE_SQL)
 endif()
 if(BASIC256_ENABLE_PRINTER)
-    target_compile_definitions(basic256core PRIVATE BASIC256_ENABLE_PRINTER)
+    target_compile_definitions(basic256core PUBLIC BASIC256_ENABLE_PRINTER)
 endif()
 if(BASIC256_ENABLE_TCP)
-    target_compile_definitions(basic256core PRIVATE BASIC256_ENABLE_TCP)
+    target_compile_definitions(basic256core PUBLIC BASIC256_ENABLE_TCP)
 endif()
 
 if(PLATFORM_INCLUDE_DIRS)

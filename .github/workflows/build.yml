@@ -231,6 +231,42 @@ jobs:
         if-no-files-found: ignore
         path: ${{ github.workspace }}/*.exe
 
+  flagsoff-dress-rehearsal:
+    # WASM.md Phase 3 gate: a desktop build with all six BASIC256_ENABLE_*
+    # flags OFF is a cheap simulation of the WASM feature surface. Must
+    # compile and SYSTEM must raise ERROR_NOTAVAILABLE (129) and continue
+    # normally instead of crashing/hanging/silently no-opping. One platform
+    # (Linux x86_64) is enough to prove the flag mechanism itself works --
+    # the four-target matrix above is what proves per-platform packaging,
+    # unaffected by these flags.
+    name: WASM Phase 3 dress rehearsal (all flags OFF)
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.x'
+
+    - name: Build Linux x86_64 (all BASIC256_ENABLE_* flags OFF)
+      env:
+        BASIC256_EXTRA_CMAKE_ARGS: >-
+          -DBASIC256_ENABLE_PROCESS=OFF
+          -DBASIC256_ENABLE_SERIAL=OFF
+          -DBASIC256_ENABLE_SQL=OFF
+          -DBASIC256_ENABLE_PRINTER=OFF
+          -DBASIC256_ENABLE_TCP=OFF
+          -DBASIC256_ENABLE_TTS=OFF
+      run: |
+        bash .github/scripts/build_Linux_x86.sh
+
+    - name: Run flags-off dress rehearsal (SYSTEM raises ERROR_NOTAVAILABLE)
+      timeout-minutes: 5
+      run: |
+        bash .github/scripts/run_testsuite_flagsoff.sh build/basic256
+
   release:
     name: Publish Release
     needs: build

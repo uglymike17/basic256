@@ -39,5 +39,11 @@ export QT_DIR
 echo "QT_DIR=$QT_DIR" >> "$GITHUB_ENV"
 echo "Resolved QT_DIR=$QT_DIR"
 
-cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$QT_DIR"
+# BASIC256_EXTRA_CMAKE_ARGS (optional, unset by default) lets a CI job
+# override CMake options -- e.g. the WASM Phase 3 flags-off dress
+# rehearsal job passes -DBASIC256_ENABLE_*=OFF here rather than
+# duplicating this whole script. Deliberately unquoted: it's meant to
+# word-split into multiple -D arguments.
+# shellcheck disable=SC2086
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$QT_DIR" ${BASIC256_EXTRA_CMAKE_ARGS:-}
 cmake --build build -j"$(nproc)"

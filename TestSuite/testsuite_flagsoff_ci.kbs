@@ -1,0 +1,31 @@
+# testsuite_flagsoff_ci for BASIC256
+#
+# Phase 3 dress rehearsal (WASM.md): built with all six BASIC256_ENABLE_*
+# CMake flags OFF, SYSTEM must raise the new ERROR_NOTAVAILABLE (129)
+# through the normal Error mechanism and continue execution normally --
+# not crash, not hang, not silently no-op.
+#
+# This only makes sense against a flags-OFF build. On the normal (all
+# flags ON) build SYSTEM would actually try to run the command and this
+# assertion would legitimately fail -- that's why it's a separate script
+# run by a separate CI job, not folded into testsuite_ci.kbs.
+
+include "testsuite_common_include.kbs"
+unattended = true
+
+call section("Flags-off dress rehearsal: SYSTEM raises ERROR_NOTAVAILABLE")
+
+goto skiperrortrap
+
+errortrap:
+   # do nothing but return so I can see the error
+return
+
+skiperrortrap:
+
+onerror errortrap
+system "echo this should never actually run"
+call n("SYSTEM raises ERROR_NOTAVAILABLE (129) when BASIC256_ENABLE_PROCESS is off", lasterror, 129)
+offerror
+
+print "BASIC256_FLAGSOFF_CI_PASSED"
