@@ -30,7 +30,12 @@ jobs:
           - os: ubuntu-24.04-arm
             arch: arm64
             use_jurplel: false
-            artifact_name: BASIC256-RaspberryPi-ARM64  
+            artifact_name: BASIC256-RaspberryPi-ARM64
+          - os: macos-latest
+            arch: arm64
+            use_jurplel: false
+            qt_arch: clang_64
+            artifact_name: BASIC256-MacOS
 
     steps:
     - name: Checkout
