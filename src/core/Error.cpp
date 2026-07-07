@@ -475,6 +475,9 @@ QString Error::getErrorMessage(char **symtable) {
 		case ERROR_MKDIR:
 			errormessage = tr("Unable to create new folder");
 			break;
+		case ERROR_NOTAVAILABLE:
+			errormessage = tr("Feature not available on this platform");
+			break;
 
 
 

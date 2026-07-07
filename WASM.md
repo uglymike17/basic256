@@ -454,9 +454,11 @@ Gate the six browser-absent subsystems. Do this on desktop, prove it on
 desktop, *then* go near Emscripten — a desktop build with all flags OFF is a
 cheap simulation of the WASM feature surface with a debugger available.
 
-- [ ] Add a new error code `ERROR_NOTAVAILABLE` ("Feature not available on
+- [x] Add a new error code `ERROR_NOTAVAILABLE` ("Feature not available on
       this platform") in `ErrorCodes.h` + message in `Error.cpp`.
-- [ ] CMake options, all `ON` by default:
+      Done: `ERROR_NOTAVAILABLE 129` (next free trappable-error slot after
+      `ERROR_MKDIR 128`), message "Feature not available on this platform".
+- [x] CMake options, all `ON` by default:
       `BASIC256_ENABLE_PROCESS` (QProcess / `OP_SYSTEM`,
       `Interpreter.cpp:3954`),
       `BASIC256_ENABLE_SERIAL` (QSerialPort, `Interpreter.cpp:~2446`),
@@ -470,14 +472,75 @@ cheap simulation of the WASM feature surface with a debugger available.
       `BASIC256_ENABLE_TTS` (QTextToSpeech — lives in
       `RunController.cpp:156-190`, so this flag guards app-layer code and
       the `SAY` signal path raises `ERROR_NOTAVAILABLE`).
-- [ ] Each flag: wrap includes, members, and opcode bodies; the `#else`
+      Done, all six added to `CMakeLists.txt`, `option(... ON)`.
+- [x] Each flag: wrap includes, members, and opcode bodies; the `#else`
       branch of each opcode = `error->q(ERROR_NOTAVAILABLE);` (mirror the
       existing ANDROID-guard style). CMake only links the Qt component when
       its flag is on.
+      **Fuller surface than the plan's line numbers suggested** (those were
+      illustrative examples, not exhaustive — grepped every actual usage
+      per the same discipline as Phase 1's Qt-component correction):
+      - PROCESS: `OP_SYSTEM` only.
+      - SERIAL: extended the existing `#ifdef ANDROID` guard on
+        `OP_OPENSERIAL` with an `#elif !defined(BASIC256_ENABLE_SERIAL)`
+        branch (Android's own `ERROR_NOTIMPLEMENTED` behavior is untouched).
+      - SQL: `closeDatabase()` (called unconditionally from `cleanup()`,
+        stubbed to a no-op when off) + the whole `OP_DBOPEN`...`OP_DBSTRING`
+        contiguous opcode block + `OP_FREEDB` (missed on the first pass —
+        found via a final `grep QSql` sweep, since it directly touches
+        `QSqlDatabase` for a "next free slot" query). `OP_FREEDBSET` was
+        deliberately left unguarded: it only null-checks the `dbSet[][]`
+        pointer array (compiles fine either way), and reporting a "free"
+        slot that later fails with `ERROR_NOTAVAILABLE` at actual open time
+        is harmless, not misleading.
+      - PRINTER: **turned out to be two independent concerns.** The
+        BASIC-language `OP_PRINTERON/OFF/PAGE/CANCEL` opcodes plus every
+        `printing`/`printdocument` touch point in `OP_CLG`/
+        `OP_GRAPHWIDTH`/`OP_GRAPHHEIGHT`/`cleanup()` are gated on
+        `BASIC256_ENABLE_PRINTER` as planned. But `src/gui/BasicEdit.cpp`,
+        `BasicGraph.cpp`, `BasicOutput.cpp`, and `PreferencesWin.cpp` *also*
+        use `QPrinter`/`QPrintDialog` directly for the IDE's own "Print..."
+        menu actions — entirely independent of the BASIC opcodes, and not
+        mentioned in the plan's Interpreter.cpp-only line numbers. Making
+        `Qt6::PrintSupport` conditional on the flag would have broken the
+        GUI build whenever the flag is off. Fixed by keeping `PrintSupport`
+        in the always-required `find_package` components and always linking
+        it to the `basic256` exe target directly (only `basic256core`'s link
+        — i.e. the interpreter's own opcode use — stays conditional).
+      - TCP: `netSockClose`/`netSockCloseAll` (called from `initialize()`/
+        `cleanup()`, stubbed to no-ops when off) + the whole
+        `OP_NETLISTEN`...`OP_NETADDRESS` contiguous opcode block (all seven
+        NET* opcodes gated uniformly, matching "gate it all in v1" —
+        `OP_NETADDRESS` doesn't touch a socket but its `QNetworkInterface`
+        usage is equally meaningless in a browser sandbox). `OP_FREENET`
+        left unguarded for the same harmless-reason as `OP_FREEDBSET`.
+        Also deleted one dead `#include <QHostInfo>` (never actually used —
+        same kind of drive-by cleanup as Phase 1's stray `QMessageBox`
+        include).
+      - TTS: `RunController.cpp`'s two `speech = new QTextToSpeech()` +
+        engine-list/error-signal setup blocks (`startDebug()`/`startRun()`),
+        `stopRun()`'s `speech->stop()`, and `speakWords()` itself (the `SAY`
+        signal path — raises `ERROR_NOTAVAILABLE` and still wakes the
+        interpreter thread when off, so `SAY` doesn't hang). Found and fixed
+        a related latent bug: `speech` was never initialized to `NULL` in
+        `RunController`'s constructor — harmless today (always assigned on
+        first run), but with TTS able to be permanently off, the existing
+        `if(speech && ...)` null-guards needed `speech` to actually start
+        `NULL`. Added `speech = NULL;` alongside the existing `sound = NULL;`.
+        Also deleted one dead `#include <QtTextToSpeech/QVoice>`.
+      Full verification pass after all edits: every `QSql`/`QPrinter`/
+      `QTcpSocket`/`QTcpServer`/`QNetworkInterface`/`QSerialPort`/
+      `QTextToSpeech` occurrence in `src/core/` and `src/app/` individually
+      re-grepped and confirmed to fall inside its matching `#ifdef` region;
+      include-graph and brace/`#if`-`#endif` balance re-checked across every
+      touched file.
 - [ ] **Dress rehearsal:** add a scratch desktop CI job (or local build)
       with *all six flags OFF*. It must compile, run the TestSuite subset,
       and a test `.kbs` calling `SYSTEM` must print the new error and
       continue per normal error semantics.
+      Not yet done this session — next step, after the default (all-ON)
+      build is confirmed green first (no local Qt toolchain available, so
+      CI is the only real gate, same constraint as every prior phase).
 
 ### Phase 3 gate
 - [ ] Default (all-ON) desktop CI green ×4 — byte-for-byte same feature set

@@ -21,10 +21,11 @@
 #include <math.h>
 #include <string>
 
+#ifdef BASIC256_ENABLE_TCP
 #include <QTcpSocket>
 #include <QTcpServer>
-#include <QHostInfo>
 #include <QNetworkInterface>
+#endif
 #include <QElapsedTimer>
 #include <QRandomGenerator>
 #include <QDebug>
@@ -505,6 +506,7 @@ void Interpreter::printError() {
 
 void Interpreter::netSockClose(int fn)
 {
+#ifdef BASIC256_ENABLE_TCP
     // fn is the BASIC256 socket slot index (0 to NUMSOCKETS-1)
     if (fn >= 0 && fn < sockets.size() && sockets[fn]) {
         sockets[fn]->disconnectFromHost();
@@ -512,10 +514,14 @@ void Interpreter::netSockClose(int fn)
         delete sockets[fn];
         sockets[fn] = nullptr;
     }
+#else
+    (void)fn;
+#endif
 }
 
 void Interpreter::netSockCloseAll()
 {
+#ifdef BASIC256_ENABLE_TCP
     if (listenServer) {
         listenServer->close();
         delete listenServer;
@@ -525,6 +531,7 @@ void Interpreter::netSockCloseAll()
     for (int t = 0; t < sockets.size(); t++) {
         netSockClose(t);   // reuse the single-close logic, don't duplicate it
     }
+#endif
 }
 
 void Interpreter::setInputString(QString s) {
@@ -970,10 +977,12 @@ Interpreter::cleanup() {
 		delete painter;
 		painter=NULL;
 	}
+#ifdef BASIC256_ENABLE_PRINTER
 	if(printing){
 		printdocument->abort(); //try to abort printing
 		delete printdocument;
 	}
+#endif
 
 	// close network connections
 	netSockCloseAll();
@@ -1012,6 +1021,7 @@ Interpreter::cleanup() {
 }
 
 void Interpreter::closeDatabase(int t) {
+#ifdef BASIC256_ENABLE_SQL
 	// cleanup database and all of its sets
 	QString dbconnection = QStringLiteral("DBCONNECTION") + QString::number(t);
 	QSqlDatabase db = QSqlDatabase::database(dbconnection);
@@ -1027,6 +1037,9 @@ void Interpreter::closeDatabase(int t) {
 		db = QSqlDatabase();
 		QSqlDatabase::removeDatabase(dbconnection);
 	}
+#else
+	(void)t;
+#endif
 }
 
 void
@@ -2427,6 +2440,15 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					(void)name;
 					(void)fn;
 					error->q(ERROR_NOTIMPLEMENTED);
+#elif !defined(BASIC256_ENABLE_SERIAL)
+					(void)flow;
+					(void)parity;
+					(void)stop;
+					(void)data;
+					(void)baud;
+					(void)name;
+					(void)fn;
+					error->q(ERROR_NOTAVAILABLE);
 # else
 					if (fn<0||fn>=NUMFILES) {
 						error->q(ERROR_FILENUMBER);
@@ -3947,6 +3969,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 				case OP_SYSTEM: {
 					QString temp = stack->popQString();
+#ifdef BASIC256_ENABLE_PROCESS
 					int doit = settingsAllowSystem;
 					if(doit==SETTINGSALLOWASK){
 						if (guiState == GUISTATESILENT) {
@@ -3979,6 +4002,10 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						delete sys;
 						sys=NULL;
 					}
+#else
+					(void)temp;
+					error->q(ERROR_NOTAVAILABLE);
+#endif
 				}
 				break;
 
@@ -4620,7 +4647,9 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 							graphics->image->fill(c);
 							if (!fastgraphics) waitForGraphics();
 						}
-					}else if(printing){
+					}
+#ifdef BASIC256_ENABLE_PRINTER
+					else if(printing){
 						if(printdocument->pageLayout().paintRectPixels(printdocument->resolution())==printdocument->pageLayout().fullRectPixels(printdocument->resolution())){
 							//printer is in full page mode already
 							painter->fillRect(printdocument->pageLayout().fullRectPixels(printdocument->resolution()),c);
@@ -4636,7 +4665,9 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 							printdocument->setFullPage(false);
 							painter->translate(r.topLeft());
 						}
-					}else{
+					}
+#endif
+					else{
 						images[drawto]->fill(c);
 					}
 				}
@@ -4707,9 +4738,13 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					int w = 0;
 					if (drawingOnScreen){
 						w = graphics->image->width();
-					}else if(printing){
+					}
+#ifdef BASIC256_ENABLE_PRINTER
+					else if(printing){
 						w = printdocument->width();
-					}else{
+					}
+#endif
+					else{
 						w = images[drawto]->width();
 					}
 					stack->pushInt(w);
@@ -4720,9 +4755,13 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					int h = 0;
 					if (drawingOnScreen) {
 						h = graphics->image->height();
-					}else if(printing){
+					}
+#ifdef BASIC256_ENABLE_PRINTER
+					else if(printing){
 						h = printdocument->height();
-					}else{
+					}
+#endif
+					else{
 						h = images[drawto]->height();
 					}
 					stack->pushInt(h);
@@ -5361,6 +5400,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					if (n<0||n>=NUMDBCONN) {
 						error->q(ERROR_DBCONNNUMBER);
 					} else {
+#ifdef BASIC256_ENABLE_SQL
 						closeDatabase(n);
 						QString dbconnection = QStringLiteral("DBCONNECTION") + QString::number(n);
 						QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE",dbconnection);
@@ -5370,6 +5410,10 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 							error->q(ERROR_DBOPEN);
 							closeDatabase(n);
 						}
+#else
+						(void)file;
+						error->q(ERROR_NOTAVAILABLE);
+#endif
 					}
 				}
 				break;
@@ -5379,7 +5423,11 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					if (n<0||n>=NUMDBCONN) {
 						error->q(ERROR_DBCONNNUMBER);
 					} else {
+#ifdef BASIC256_ENABLE_SQL
 						closeDatabase(n);
+#else
+						error->q(ERROR_NOTAVAILABLE);
+#endif
 					}
 				}
 				break;
@@ -5391,6 +5439,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					if (n<0||n>=NUMDBCONN) {
 						error->q(ERROR_DBCONNNUMBER);
 					} else {
+#ifdef BASIC256_ENABLE_SQL
 						QString dbconnection = QStringLiteral("DBCONNECTION") + QString::number(n);
 						QSqlDatabase db = QSqlDatabase::database(dbconnection);
 						if(db.isValid()) {
@@ -5403,6 +5452,10 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						} else {
 							error->q(ERROR_DBNOTOPEN);
 						}
+#else
+						(void)stmt;
+						error->q(ERROR_NOTAVAILABLE);
+#endif
 					}
 				}
 				break;
@@ -5418,6 +5471,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						if (set<0||set>=NUMDBSET) {
 							error->q(ERROR_DBSETNUMBER);
 						} else {
+#ifdef BASIC256_ENABLE_SQL
 							QString dbconnection = QStringLiteral("DBCONNECTION") + QString::number(n);
 							QSqlDatabase db = QSqlDatabase::database(dbconnection);
 							if(db.isValid()) {
@@ -5434,6 +5488,10 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 							} else {
 								error->q(ERROR_DBNOTOPEN);
 							}
+#else
+							(void)stmt;
+							error->q(ERROR_NOTAVAILABLE);
+#endif
 						}
 					}
 				}
@@ -5448,6 +5506,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						if (set<0||set>=NUMDBSET) {
 							error->q(ERROR_DBSETNUMBER);
 						} else {
+#ifdef BASIC256_ENABLE_SQL
 							if (dbSet[n][set]) {
 								dbSet[n][set]->clear();
 								delete dbSet[n][set];
@@ -5455,6 +5514,9 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 							} else {
 								error->q(ERROR_DBNOTSET);
 							}
+#else
+							error->q(ERROR_NOTAVAILABLE);
+#endif
 						}
 					}
 				}
@@ -5469,12 +5531,16 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						if (set<0||set>=NUMDBSET) {
 							error->q(ERROR_DBSETNUMBER);
 						} else {
+#ifdef BASIC256_ENABLE_SQL
 							if (dbSet[n][set]) {
 								// return true if we move to a new row else false
 								stack->pushInt(dbSet[n][set]->next());
 							} else {
 								error->q(ERROR_DBNOTSET);
 							}
+#else
+							error->q(ERROR_NOTAVAILABLE);
+#endif
 						}
 					}
 				}
@@ -5503,6 +5569,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						if (set<0||set>=NUMDBSET) {
 							error->q(ERROR_DBSETNUMBER);
 						} else {
+#ifdef BASIC256_ENABLE_SQL
 							if (!dbSet[n][set]->isActive()) {
 								error->q(ERROR_DBNOTSET);
 							} else {
@@ -5542,6 +5609,16 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 									}
 								}
 							}
+#else
+							(void)usename;
+							(void)colname;
+							(void)col;
+							error->q(ERROR_NOTAVAILABLE);
+							if(opcode==OP_DBSTRING)
+								stack->pushQString("");
+							else
+								stack->pushInt(0);
+#endif
 						}
 					}
 				}
@@ -5573,6 +5650,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				}
 				break;
 
+#ifdef BASIC256_ENABLE_TCP
 				case OP_NETLISTEN: {
 				    int port = stack->popInt();
     				int fn   = stack->popInt();
@@ -5749,6 +5827,55 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
     				stack->pushQString(found);
 				}
 				break;
+#else
+				case OP_NETLISTEN: {
+					stack->popInt();		// port
+					stack->popInt();		// fn
+					error->q(ERROR_NOTAVAILABLE);
+				}
+				break;
+
+				case OP_NETCONNECT: {
+					stack->popInt();		// port
+					stack->popQString();	// address
+					stack->popInt();		// fn
+					error->q(ERROR_NOTAVAILABLE);
+				}
+				break;
+
+				case OP_NETREAD: {
+					stack->popInt();		// fn
+					error->q(ERROR_NOTAVAILABLE);
+					stack->pushQString("");
+				}
+				break;
+
+				case OP_NETWRITE: {
+					stack->popQString();	// data
+					stack->popInt();		// fn
+					error->q(ERROR_NOTAVAILABLE);
+				}
+				break;
+
+				case OP_NETCLOSE: {
+					stack->popInt();		// fn
+					error->q(ERROR_NOTAVAILABLE);
+				}
+				break;
+
+				case OP_NETDATA: {
+					stack->popInt();		// fn
+					error->q(ERROR_NOTAVAILABLE);
+					stack->pushInt(0);
+				}
+				break;
+
+				case OP_NETADDRESS: {
+					error->q(ERROR_NOTAVAILABLE);
+					stack->pushQString("");
+				}
+				break;
+#endif
 
 				case OP_KILL: {
 					QString name = stack->popQString();
@@ -6279,6 +6406,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 				case OP_FREEDB: {
 					// return the next free databsae number - throw error if none free
+#ifdef BASIC256_ENABLE_SQL
 					int f=-1;
 					for (int t=0; (t<NUMDBCONN)&&(f==-1); t++) {
 						QString dbconnection = QStringLiteral("DBCONNECTION") + QString::number(t);
@@ -6291,6 +6419,10 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					} else {
 						stack->pushInt(f);
 					}
+#else
+					error->q(ERROR_NOTAVAILABLE);
+					stack->pushInt(0);
+#endif
 				}
 				break;
 
@@ -6501,6 +6633,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				}
 				break;
 
+#ifdef BASIC256_ENABLE_PRINTER
 				case OP_PRINTEROFF: {
 					if (printing) {
 						printing = false;
@@ -6572,6 +6705,15 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					}
 				}
 				break;
+#else
+				case OP_PRINTEROFF:
+				case OP_PRINTERON:
+				case OP_PRINTERPAGE:
+				case OP_PRINTERCANCEL: {
+					error->q(ERROR_NOTAVAILABLE);
+				}
+				break;
+#endif
 
 				case OP_DEBUGINFO: {
 					// get info about BASIC256 runtime and return as a string

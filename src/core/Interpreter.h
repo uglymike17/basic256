@@ -48,17 +48,37 @@
 #include <QProcess>
 
 
+// Phase 3 feature flags (WASM.md): each browser-unavailable subsystem's
+// real Qt headers are only included when its BASIC256_ENABLE_* flag is on;
+// otherwise a forward declaration keeps the (pointer-only) member
+// declarations below compiling, and the opcode bodies in Interpreter.cpp
+// raise ERROR_NOTAVAILABLE instead of touching the real type.
+#ifdef BASIC256_ENABLE_PRINTER
 #include <QtPrintSupport/QPrinter>
 #include <QtPrintSupport/QPrinterInfo>
+#else
+class QPrinter;
+#endif
 
+#ifdef BASIC256_ENABLE_SQL
 #include <QtSql/QSqlDatabase>
 #include <QtSql/QSqlQuery>
 #include <QtSql/QSqlRecord>
 #include <QtSql/QSqlError>
+#else
+class QSqlQuery;
+#endif
+
+#ifdef BASIC256_ENABLE_TCP
 #include <QTcpSocket>
 #include <QTcpServer>
-#ifndef ANDROID
-    // includes for all ports EXCEPT android
+#else
+class QTcpSocket;
+class QTcpServer;
+#endif
+
+#if !defined(ANDROID) && defined(BASIC256_ENABLE_SERIAL)
+    // includes for all ports EXCEPT android, when serial is enabled
     #include <QSerialPort>
 #endif
 

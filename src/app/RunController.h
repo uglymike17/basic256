@@ -24,8 +24,11 @@
 #include <QtWidgets/QTextEdit>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QStatusBar>
+#ifdef BASIC256_ENABLE_TTS
 #include <QtTextToSpeech/QTextToSpeech>
-#include <QtTextToSpeech/QVoice>
+#else
+class QTextToSpeech;
+#endif
 #include <QThread>
 #include <QLocale>
 

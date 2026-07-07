@@ -16,33 +16,49 @@ include(GNUInstallDirs)
 # IDE/Tooling supportsupport for compile_commands.json (e.g. for clangd, VSCode C++ extensions) 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Find Qt6 components
-find_package(QT NAMES Qt6 REQUIRED COMPONENTS
-    Core
-    Gui
-    Widgets
-    Sql
-    PrintSupport
-    SerialPort
-    Multimedia
-    TextToSpeech
-    LinguistTools
-    Network
-)
+# -------------------------------------------------------------------
+# Browser-unavailable feature flags (WASM port plan, Phase 3)
+# -------------------------------------------------------------------
+# All ON by default -- the desktop build keeps its current feature set
+# byte-for-byte. The Phase 4 WASM build configures all six OFF: the
+# underlying Qt module or OS facility either doesn't exist or can't work
+# in a browser sandbox (see WASM.md's decisions and Phase 3 section).
+# When a flag is off, the corresponding opcode(s) raise ERROR_NOTAVAILABLE
+# through the normal Error mechanism instead of silently no-opping.
+option(BASIC256_ENABLE_PROCESS "Enable SYSTEM (QProcess)" ON)
+option(BASIC256_ENABLE_SERIAL  "Enable SERIALOPEN et al. (QSerialPort)" ON)
+option(BASIC256_ENABLE_SQL     "Enable DBOPEN et al. (QtSql)" ON)
+option(BASIC256_ENABLE_PRINTER "Enable PRINTERON et al. (QtPrintSupport)" ON)
+option(BASIC256_ENABLE_TCP     "Enable NETLISTEN/NETCONNECT et al. (QTcpServer/QTcpSocket)" ON)
+option(BASIC256_ENABLE_TTS     "Enable SAY (QTextToSpeech)" ON)
 
+# Find Qt6 components -- Sql/SerialPort/TextToSpeech are only required when
+# their BASIC256_ENABLE_* flag is on: the Phase 4 WASM Qt SDK doesn't ship
+# all of these, and the flags-OFF desktop dress rehearsal (Phase 3 gate)
+# proves the build doesn't need them either. PrintSupport stays unconditional
+# -- src/gui's own Print... menu actions (BasicEdit/BasicGraph/BasicOutput/
+# PreferencesWin) use QPrinter/QPrintDialog directly, independent of whether
+# the BASIC-language PRINTERON/etc opcodes are enabled.
 set(BASIC256_QT_COMPONENTS
     Core
     Gui
     Widgets
-    Sql
     PrintSupport
-    SerialPort
     Multimedia
-    TextToSpeech
     LinguistTools
     Network
 )
+if(BASIC256_ENABLE_SQL)
+    list(APPEND BASIC256_QT_COMPONENTS Sql)
+endif()
+if(BASIC256_ENABLE_SERIAL)
+    list(APPEND BASIC256_QT_COMPONENTS SerialPort)
+endif()
+if(BASIC256_ENABLE_TTS)
+    list(APPEND BASIC256_QT_COMPONENTS TextToSpeech)
+endif()
 
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS ${BASIC256_QT_COMPONENTS})
 find_package(Qt6 REQUIRED COMPONENTS ${BASIC256_QT_COMPONENTS})
 
 
@@ -240,6 +256,25 @@ target_include_directories(basic256core PRIVATE
 target_compile_definitions(basic256core PRIVATE ${PLATFORM_DEFS})
 target_compile_definitions(basic256core PRIVATE $<$<CONFIG:Release>:QT_NO_DEBUG_OUTPUT QT_NO_WARNING_OUTPUT>)
 
+# Phase 3 feature flags -- see the BASIC256_ENABLE_* option() block above.
+# TTS is app-layer (RunController.cpp), defined on the basic256 exe target
+# further down instead.
+if(BASIC256_ENABLE_PROCESS)
+    target_compile_definitions(basic256core PRIVATE BASIC256_ENABLE_PROCESS)
+endif()
+if(BASIC256_ENABLE_SERIAL)
+    target_compile_definitions(basic256core PRIVATE BASIC256_ENABLE_SERIAL)
+endif()
+if(BASIC256_ENABLE_SQL)
+    target_compile_definitions(basic256core PRIVATE BASIC256_ENABLE_SQL)
+endif()
+if(BASIC256_ENABLE_PRINTER)
+    target_compile_definitions(basic256core PRIVATE BASIC256_ENABLE_PRINTER)
+endif()
+if(BASIC256_ENABLE_TCP)
+    target_compile_definitions(basic256core PRIVATE BASIC256_ENABLE_TCP)
+endif()
+
 if(PLATFORM_INCLUDE_DIRS)
     target_include_directories(basic256core PRIVATE ${PLATFORM_INCLUDE_DIRS})
 endif()
@@ -268,20 +303,27 @@ endif()
 # Qt components basic256core's sources actually #include directly: QtSql
 # (DBOPEN et al.), QtSerialPort (SERIALOPEN et al.), QtPrintSupport
 # (PRINTER... via QPrinter/QPrinterInfo in Interpreter.h), QtNetwork
-# (NETSERVER/TCP + BasicDownloader), QtMultimedia (Sound/BasicMediaPlayer).
-# Widgets and TextToSpeech are GUI/app-only -- see Phase 1 log in WASM.md.
-# Phase 3 gates Sql/SerialPort/PrintSupport/Network(server)/Multimedia
-# (in-memory)/TTS behind BASIC256_ENABLE_* flags for the browser build.
+# (NETSERVER/TCP + BasicDownloader -- Network itself is never gated, since
+# BasicDownloader's NETREAD needs it regardless of BASIC256_ENABLE_TCP),
+# QtMultimedia (Sound/BasicMediaPlayer). Widgets and TextToSpeech are
+# GUI/app-only -- see Phase 1 log in WASM.md. Sql/SerialPort/PrintSupport
+# are only linked when their BASIC256_ENABLE_* flag is on.
 target_link_libraries(basic256core
     PUBLIC
         Qt${QT_VERSION_MAJOR}::Core
         Qt${QT_VERSION_MAJOR}::Gui
         Qt${QT_VERSION_MAJOR}::Network
-        Qt${QT_VERSION_MAJOR}::Sql
-        Qt${QT_VERSION_MAJOR}::SerialPort
-        Qt${QT_VERSION_MAJOR}::PrintSupport
         Qt${QT_VERSION_MAJOR}::Multimedia
 )
+if(BASIC256_ENABLE_SQL)
+    target_link_libraries(basic256core PUBLIC Qt${QT_VERSION_MAJOR}::Sql)
+endif()
+if(BASIC256_ENABLE_SERIAL)
+    target_link_libraries(basic256core PUBLIC Qt${QT_VERSION_MAJOR}::SerialPort)
+endif()
+if(BASIC256_ENABLE_PRINTER)
+    target_link_libraries(basic256core PUBLIC Qt${QT_VERSION_MAJOR}::PrintSupport)
+endif()
 
 # -------------------------------------------------------------------
 # basic256 -- app executable (src/gui + src/app), links basic256core
@@ -369,6 +411,9 @@ target_compile_definitions(basic256 PRIVATE $<$<CONFIG:Release>:QT_NO_DEBUG_OUTP
 if(BASIC256_BUILD_VERSION)
     target_compile_definitions(basic256 PRIVATE "VERSION=\"${BASIC256_BUILD_VERSION}\"")
 endif()
+if(BASIC256_ENABLE_TTS)
+    target_compile_definitions(basic256 PRIVATE BASIC256_ENABLE_TTS)
+endif()
 
 # src/app on the path for cross-directory includes such as
 # src/gui/MainWindow.h's "#include \"RunController.h\"". src/core and
@@ -414,14 +459,23 @@ else()
     endif()
 endif()
 
-# Link basic256core (which itself PUBLIC-links Core/Gui/Network/Sql/
-# SerialPort/PrintSupport/Multimedia -- those propagate transitively) plus
-# the GUI/app-only Qt components and OS-specific libraries.
+# Link basic256core (which itself PUBLIC-links Core/Gui/Network/Multimedia,
+# plus Sql/SerialPort/PrintSupport when their flags are on -- all propagate
+# transitively) plus the GUI/app-only Qt components and OS-specific
+# libraries. PrintSupport is linked here unconditionally too: src/gui's own
+# Print... menu actions (BasicEdit/BasicGraph/BasicOutput/PreferencesWin)
+# use QPrinter/QPrintDialog directly and need it regardless of
+# BASIC256_ENABLE_PRINTER (which only gates the BASIC-language PRINTERON
+# et al. opcodes in basic256core). TextToSpeech is only linked when
+# BASIC256_ENABLE_TTS is on.
 target_link_libraries(basic256
     PRIVATE
         basic256core
         Qt${QT_VERSION_MAJOR}::Widgets
-        Qt${QT_VERSION_MAJOR}::TextToSpeech
+        Qt${QT_VERSION_MAJOR}::PrintSupport
         ${PLATFORM_LIBS}
 )
+if(BASIC256_ENABLE_TTS)
+    target_link_libraries(basic256 PRIVATE Qt${QT_VERSION_MAJOR}::TextToSpeech)
+endif()
 

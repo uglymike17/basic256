@@ -130,7 +130,7 @@
 #define ERROR_MAPKEY					126
 #define ERROR_RMDIR						127
 #define ERROR_MKDIR						128
-
+#define ERROR_NOTAVAILABLE				129
 
 
 

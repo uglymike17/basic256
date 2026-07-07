@@ -77,12 +77,14 @@ extern BasicOutput * outwin;
 extern BasicGraph * graphwin;
 extern VariableWin * varwin;
 extern BasicKeyboard * basicKeyboard;
+extern Error *error;
 
 SoundSystem *sound;
 
 
 RunController::RunController() {
 	sound = NULL;
+	speech = NULL;
 	i = new Interpreter(mainwin->locale, graphwin->graphics, basicKeyboard);
 
 	replacewin = NULL;
@@ -180,10 +182,11 @@ RunController::speakWords(QString text) {
 	//qDebug() << "Voice:" << speech->voice().name();
 	//qDebug() << "Volume:" << speech->volume();
 	
+#ifdef BASIC256_ENABLE_TTS
 	if (text.length() != 0) {
 		// Say something.
 		speech->say(text);
-		
+
 		// wait for speech to start or error
 		if(i && !i->isStopping() && !i->isStopped() && speech && speech->state()==QTextToSpeech::Ready){
 			while (speech->state()==QTextToSpeech::Ready) {
@@ -208,10 +211,14 @@ RunController::speakWords(QString text) {
 	if (speech && speech->state() == QTextToSpeech::Error) {
 		qCritical() << "TTS state is Error after say() (reason" << int(speech->errorReason()) << "):" << speech->errorString();
 	}
+#else
+	(void)text;
+	error->q(ERROR_NOTAVAILABLE);
+#endif
 	//tell the interpreter we are finally done
 	mymutex->lock();
 	waitCond->wakeAll();
-	mymutex->unlock();	
+	mymutex->unlock();
 }
  
 void
@@ -262,11 +269,13 @@ RunController::startDebug() {
 			return;
 		}
 		sound = new SoundSystem();
+#ifdef BASIC256_ENABLE_TTS
 		speech = new QTextToSpeech();
 		qCritical() << "TTS available engines:" << QTextToSpeech::availableEngines() << "- using engine:" << speech->engine();
 		QObject::connect(speech, &QTextToSpeech::errorOccurred, [](QTextToSpeech::ErrorReason reason, const QString &errorString) {
 			qCritical() << "TTS error (reason" << int(reason) << "):" << errorString;
 		});
+#endif
 		i->initialize();
 		currentEditor->updateBreakPointsList();
 		i->debugBreakPoints = currentEditor->breakPoints;
@@ -321,11 +330,13 @@ RunController::startRun() {
 		//
 		// now setup and start the run
 		sound = new SoundSystem();
+#ifdef BASIC256_ENABLE_TTS
 		speech = new QTextToSpeech();
 		qCritical() << "TTS available engines:" << QTextToSpeech::availableEngines() << "- using engine:" << speech->engine();
 		QObject::connect(speech, &QTextToSpeech::errorOccurred, [](QTextToSpeech::ErrorReason reason, const QString &errorString) {
 			qCritical() << "TTS error (reason" << int(reason) << "):" << errorString;
 		});
+#endif
 		i->initialize();
 		//set focus to graphiscs window
 		graphwin->setFocus();
@@ -419,9 +430,11 @@ void RunController::stopRun() {
 		i->setStatus(R_STOPING);//no more ops
 		
 		// wait for speech to stop
+#ifdef BASIC256_ENABLE_TTS
 		if(speech && speech->state()==QTextToSpeech::Speaking) {
 			speech->stop();
 		}
+#endif
 
 		// Stop being in input
 		outwin->stopInput(); //make output window readonly
