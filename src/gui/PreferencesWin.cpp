@@ -19,6 +19,8 @@
 
 #include <QPageSize>
 #include <QPageLayout>
+#include <QtPrintSupport/QPrinter>
+#include <QtPrintSupport/QPrinterInfo>
 
 #include "PreferencesWin.h"
 #include "Settings.h"
