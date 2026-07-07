@@ -915,7 +915,13 @@ Interpreter::cleanup() {
 	//
 	// Clean up run time objects
 
+#ifdef BASIC256_ENABLE_PROCESS
+	// sys is only ever non-null when this flag is on (see OP_SYSTEM) --
+	// Qt for WebAssembly's QProcess doesn't implement kill() at all (process
+	// spawning is meaningless in a browser sandbox), so this must not even
+	// compile when the flag -- and thus WASM -- is off.
 	if(sys) sys->kill();
+#endif
 
 	// stop timers
 	sleeper->wake();
