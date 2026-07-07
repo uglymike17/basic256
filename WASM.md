@@ -253,7 +253,7 @@ that's Phase 2 work, don't silently reclassify):
       `../src/core/Version.h`.
 
 ### Phase 1 gate
-- [ ] All four desktop CI targets build + package green. No functional diff
+- [x] All four desktop CI targets build + package green. No functional diff
       expected; run the TestSuite gate as usual.
       **No local Qt/flex/bison toolchain available in this session** (no
       `cmake`/`qmake`/`flex`/`bison` on PATH) to do a real local
@@ -263,7 +263,10 @@ that's Phase 2 work, don't silently reclassify):
       `if`/`endif` and paren balance were checked, and every Qt module
       actually referenced by each moved file was grepped directly rather
       than assumed from the plan's shorthand (see 1B correction above).
-      CI is the real gate here — pending push, not yet confirmed green.
+      **Confirmed 2026-07-07:** GitHub Actions run
+      [28864003223](https://github.com/uglymike17/basic256/actions/runs/28864003223)
+      — Windows, Linux x86_64, Linux ARM64, macOS all build, package, and
+      TestSuite-pass green, first try, no CI fixes needed.
 
 ---
 
@@ -569,4 +572,6 @@ sandbox — each isolated in its own phase gate.
   `COMPILING_RaspberryPI.txt`, `README.md` needed no changes (verified, not
   assumed). `COMPILING.txt` got the Qt 6.11.1 version bump left over from
   Phase 0. No local Qt/CMake/flex/bison toolchain available to sanity-build
-  before pushing — relying on CI as the real gate.
+  before pushing — relying on CI as the real gate. Run 28864003223 green on
+  all four targets, first try. **Phase 1 gate closed.** Next up: Phase 2
+  (cut the interpreter's direct lines to the GUI).
