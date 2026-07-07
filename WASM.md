@@ -106,6 +106,18 @@ without its guard.
       deleting in Phase 1's CMake cleanup. `COMPILING.txt`'s `6.7.3` /
       `win64_msvc2019_64` references are intentionally left for Phase 1C
       (`COMPILING.txt` is explicitly in that phase's scope, not Phase 0's).
+      **Real CI blocker found and fixed:** aqtinstall 3.3.0 (latest on
+      PyPI) cannot parse Qt's Windows repository layout for 6.11.0+ (old
+      nested `qt6_6111/qt6_6111/Updates.xml` path removed, replaced with
+      flat per-arch subdirs — aqtinstall issue #1007). The fix (PR #1000)
+      merged upstream 2026-03-24 but has never shipped in a PyPI release.
+      Linux/macOS aren't affected (their repo layout didn't change).
+      Maintainer chose to pin `build_Windows.ps1` to install aqtinstall
+      straight from the merge commit
+      (`git+https://github.com/miurahr/aqtinstall.git@8c3695d4a4e1ceabf6a74dc6c79681656dc6b74b`)
+      rather than wait for a release or drop Windows to 6.10.x. **Revisit:**
+      swap back to a plain `pip install aqtinstall` once a PyPI release
+      contains PR #1000.
 - [ ] **CI green on all four targets at the new Qt version.**
 - [x] Record here the exact versions pinned: Qt `6.11.1`, emsdk `4.0.7`.
 
@@ -468,5 +480,7 @@ sandbox — each isolated in its own phase gate.
   desktop targets. Bumped `build_Windows.ps1` / `build_Linux_x86.sh` aqt
   pins from Qt 6.7.3 to 6.11.1; Windows arch corrected `win64_msvc2019_64`
   → `win64_msvc2022_64` (aqtinstall dropped the 2019 arch for Qt ≥ 6.8;
-  `linux_gcc_64` unchanged). Remaining gate item: push and confirm all four
-  CI targets build/package/TestSuite-pass green at 6.11.1.
+  `linux_gcc_64` unchanged). First CI push: Linux x86_64/ARM64/macOS green,
+  Windows failed twice with the same aqtinstall/Qt-6.11-repo-layout bug
+  (see above) — fixed by pinning aqtinstall to the upstream merge commit
+  containing PR #1000 in `build_Windows.ps1`. Re-pushed; awaiting result.

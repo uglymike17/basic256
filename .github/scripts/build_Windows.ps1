@@ -5,7 +5,13 @@ choco install winflexbison3 -y
 
 #install Qt6
 # qtmultimedia/qtserialport/qtspeech are separate addon modules in Qt6.
-python -m pip install aqtinstall
+# aqtinstall 3.3.0 (latest on PyPI) cannot parse the Qt 6.11 Windows
+# repository layout (per-arch subdirs replaced the old nested
+# qt6_6111/qt6_6111/Updates.xml path -- aqtinstall issue #1007). The fix
+# (PR #1000) merged upstream 2026-03-24 but has not shipped in a PyPI
+# release yet, so install aqtinstall pinned to that merge commit instead.
+# Revert to a plain `pip install aqtinstall` once a release contains it.
+python -m pip install "git+https://github.com/miurahr/aqtinstall.git@8c3695d4a4e1ceabf6a74dc6c79681656dc6b74b"
 aqt install-qt windows desktop 6.11.1 win64_msvc2022_64 -m qtmultimedia qtserialport qtspeech
 
 #set Qt6 dir (also export for later steps, e.g. packaging - $GITHUB_ENV only
