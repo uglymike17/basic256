@@ -5,7 +5,11 @@ set -euo pipefail
 # on the *host*, regardless of target -- WASM cross-compiles the app, not
 # these host-side codegen tools. cmake/build-essential are needed to build
 # and to run the FLEX_TARGET/BISON_TARGET custom commands.
-sudo apt update
+# Tolerate transient failures on repos we don't even use (e.g.
+# packages.microsoft.com's azure-cli repo intermittently fails GPG
+# verification on GitHub's hosted runners) -- apt update failing on one
+# unrelated repo shouldn't block installing from the repos that did sync.
+sudo apt update || true
 sudo apt install -y build-essential cmake flex bison
 
 # -------------------------------------------------------------------

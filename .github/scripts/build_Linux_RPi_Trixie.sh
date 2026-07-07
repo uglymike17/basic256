@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-sudo apt-get update && sudo apt-get install -y \
+# Tolerate transient failures on repos we don't even use (e.g.
+# packages.microsoft.com's azure-cli repo intermittently fails GPG
+# verification on GitHub's hosted runners) -- apt update failing on one
+# unrelated repo shouldn't block installing from the repos that did sync.
+# Previously chained with && (set -e made this fatal on ANY repo failure,
+# including this unrelated one -- caused a real, confirmed CI failure).
+sudo apt-get update || true
+sudo apt-get install -y \
 build-essential cmake flex bison \
 flite libflite1 \
 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-alsa \

@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-sudo apt update
+# Tolerate transient failures on repos we don't even use (e.g.
+# packages.microsoft.com's azure-cli repo intermittently fails GPG
+# verification on GitHub's hosted runners) -- apt update failing on one
+# unrelated repo shouldn't block installing from the repos that did sync.
+sudo apt update || true
 sudo apt-get remove -y libunwind-14-dev || true
 
 # Non-Qt build/runtime dependencies only. Qt6 itself comes from aqtinstall
