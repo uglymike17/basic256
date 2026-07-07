@@ -28,9 +28,6 @@
 #include "ViewWidgetIFace.h"
 #include "GraphicsBuffer.h"
 
-#define GSIZE_INITIAL_WIDTH   500
-#define GSIZE_INITIAL_HEIGHT   500
-
 class BasicGraph : public QWidget, public ViewWidgetIFace
 {
   Q_OBJECT

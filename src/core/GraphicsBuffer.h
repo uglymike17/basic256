@@ -22,6 +22,9 @@
 #include <QImage>
 #include <QRegion>
 
+#define GSIZE_INITIAL_WIDTH   500
+#define GSIZE_INITIAL_HEIGHT   500
+
 // The drawing state the interpreter touches, extracted out of the
 // BasicGraph widget so the interpreter (core) never has to reach into a
 // QWidget. Owns the pixel buffers, sprite compositing state, and the

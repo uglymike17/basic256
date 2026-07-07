@@ -20,6 +20,9 @@
 
 #include <QPixmap>
 #include <QImage>
+#include <QPen>
+#include <QBrush>
+#include <QFont>
 #include <QThread>
 #include <QFile>
 #include <QDir>
