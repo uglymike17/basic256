@@ -236,6 +236,17 @@ elseif(APPLE)
     set_source_files_properties(resources/basic256.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
     set(MACOSX_BUNDLE_ICON_FILE basic256.icns)
 
+elseif(EMSCRIPTEN)
+    # WASM Phase 4: must come before "elseif(UNIX AND NOT APPLE)" below --
+    # Emscripten's CMake toolchain sets UNIX to true (it's a POSIX-like
+    # target), so without this branch WASM builds would silently fall into
+    # the Linux branch and define LINUX. That pulled in a real, Linux-only
+    # OSS sound header (RunController.cpp's <sys/soundcard.h>, the first
+    # compile break this phase actually hit) and would make OP_OSTYPE
+    # misreport the browser as Linux. No platform defs/libs needed for wasm.
+    set(PLATFORM_DEFS "")
+    set(PLATFORM_LIBS "")
+
 elseif(UNIX AND NOT APPLE)
     set(PLATFORM_DEFS LINUX USE_QT_TEXTTOSPEECH)
     set(PLATFORM_LIBS m)
