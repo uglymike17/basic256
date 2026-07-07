@@ -832,24 +832,35 @@ unless noted.
       helper the file-open work above added (resource reads are
       synchronous — compiled into the binary — so only the picker itself
       needed the async treatment).
-- [x] **Settings.** `QSettings` on WASM is IndexedDB-backed and
+- [ ] **Settings.** `QSettings` on WASM is IndexedDB-backed and
       asynchronous; verify PreferencesWin behavior, tolerate
       first-run-empty settings.
-      **Wrong assumption, corrected via Qt's own QSettings docs, not
-      assumed:** neither IndexedDB nor local-storage backing is automatic
-      on WASM — `QSettings::NativeFormat` (what the `SETTINGS` macro used
-      unconditionally) has no real store to fall back to there and would
-      silently write into ephemeral MEMFS, losing every preference on
-      reload. Also, `WebIndexedDBFormat` (the one the plan assumed) requires
-      JSPI, a separate Emscripten build option not part of this toolchain.
-      Fixed in `Settings.h`: `Q_OS_WASM` now constructs with
-      `QSettings::WebLocalStorageFormat` instead — synchronous, no extra
-      toolchain requirement, 5MiB cap is far more than BASIC-256's simple
-      key/value preferences need. Separately verified `PreferencesWin.cpp`'s
+      **Attempted fix reverted after a real, severe regression found via
+      actual browser testing — this item is back open.** Original finding
+      still stands (corrected via Qt's own QSettings docs, not assumed):
+      neither IndexedDB nor local-storage backing is automatic on WASM —
+      `QSettings::NativeFormat` has no real store to fall back to there and
+      silently writes into ephemeral MEMFS, losing every preference on
+      reload; `WebIndexedDBFormat` requires JSPI, not part of this
+      toolchain. First fix attempt used `QSettings::WebLocalStorageFormat`
+      instead. **This broke Run, Debug, Preferences, and About entirely** —
+      every feature that touches `QSettings` via the `SETTINGS` macro, and
+      *only* those (file open/save and window show/hide, which don't touch
+      it, kept working) — confirmed by the maintainer via a real browser
+      test: Chrome's Task Manager showed the frozen tab at 100% CPU with
+      zero console output, i.e. a genuine infinite spin inside Qt's
+      `WebLocalStorageFormat` construction path on this Qt 6.11.1/emsdk
+      4.0.7 combination, not a blocked wait. Reverted to `NativeFormat`
+      unconditionally (the pre-Phase-5 behavior) without being able to
+      root-cause the spin myself (no browser in this environment) — Run/
+      Debug working matters far more than settings surviving a reload.
+      Settings persistence on WASM remains genuinely unsolved; a real fix
+      needs someone with browser access to reproduce the spin and step
+      through Qt's `WebLocalStorageFormat` implementation, or file a Qt bug
+      if it reproduces on a minimal example. `PreferencesWin.cpp`'s
       existing `settings.value(key, default)` usage (29 sites, all with a
-      default) already tolerates missing/first-run-empty keys — true even
-      before WASM, since a fresh desktop install has no settings file
-      either — so no PreferencesWin changes were needed.
+      default) does already tolerate missing/first-run-empty keys — that
+      part of the original item is still true and needs no further work.
 - [x] **Clipboard, fonts, HiDPI:** quick manual checks; Qt bundles a
       fallback font, clipboard needs the page served over HTTPS.
       **Code-level check done, browser check still needed:** grepped every
@@ -1207,3 +1218,50 @@ sandbox — each isolated in its own phase gate.
   runs the combined browser smoke test (covering both Phase 4's and Phase
   5's manual gate items), or proceed to Phase 6 (hosting + deploy) with
   both deferred.
+
+- 2026-07-07: Phase 4/5 manual browser smoke test (maintainer) — the first
+  real browser testing this whole port has had, and it found two real,
+  severe bugs neither CI nor code review could have caught:
+  1. **Startup crash, `file:// `→ real server → `Application exit()`.**
+     Root-caused from the browser's own console log (not guessed): the
+     auto-update-check request (`MainWindow`'s constructor, fires
+     automatically on startup) hit a CORS failure against sourceforge.net,
+     and its error-handling path called a blocking static
+     `QMessageBox::warning(...)` — Qt for WebAssembly logged "Calling
+     exec() is not supported… Please build with asyncify support, or use
+     an asynchronous API like QDialog::open()" and aborted the whole wasm
+     runtime. Phase 4 had only gated the `QSslConfiguration` compile
+     blocker in this code, not the feature itself. Fixed: disabled the
+     entire update-check flow (the `QNetworkAccessManager`/request
+     construction, the menu action's connect, and the startup auto-check
+     timer) for `Q_OS_WASM`, extending the existing `#ifndef ANDROID`
+     guards the same way — "check for a new desktop download" doesn't mean
+     anything in a browser either. Pushed, confirmed green — run
+     28891256484.
+  2. **Run/Debug/Preferences/About all freeze solid, file open/save and
+     window show/hide don't.** Diagnosed by process of elimination across
+     several rounds of asking the maintainer for browser diagnostics
+     (console output, Task Manager CPU%, which specific features broke):
+     the common thread across every broken feature and *only* the broken
+     features is the `SETTINGS` macro (`QSettings`) — confirmed by Chrome's
+     Task Manager showing the frozen tab at 100% CPU with zero console
+     output (a genuine infinite spin, not a blocked wait — ruled out a
+     `Qt::BlockingQueuedConnection` self-deadlock hypothesis along the way
+     by checking `resizeGraphWindow`'s connection type, which is plain
+     `AutoConnection`, not blocking). This traces directly back to this
+     same session's own earlier "fix": `QSettings::WebLocalStorageFormat`
+     spins forever on construction on this Qt 6.11.1/emsdk 4.0.7
+     combination. Reverted to `NativeFormat` unconditionally (Settings.h)
+     without being able to root-cause the spin myself (no browser in this
+     CLI environment) — Run/Debug working matters far more than settings
+     surviving a reload. Settings persistence on WASM is now an open,
+     unsolved problem again (see the Settings item above, reopened).
+     Pushed — run pending at time of writing.
+  This round underlines exactly why Phase 4/5's gates keep a manual
+  browser-test item open even after CI is green: `QMessageBox::warning()`
+  and `QSettings::WebLocalStorageFormat` are both real Qt APIs that compile
+  cleanly and pass every automated check, and both broke the app
+  completely in a real browser in ways no amount of static analysis in
+  this environment would have caught. **Next up: maintainer re-tests with
+  the latest push; if Run/Debug/Preferences/About all work now, the
+  Phase 4 and Phase 5 manual gate items can finally close.**
