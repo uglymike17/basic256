@@ -681,12 +681,25 @@ void PreferencesWin::setVolumeRestoreValue(int i){
 }
 
 void PreferencesWin::clickClearSavedData() {
-	if(QMessageBox::Yes == QMessageBox::question(this, tr("Delete persistent settings"), tr("Do you really want to delete persistent settings for all programs?"), QMessageBox::Yes|QMessageBox::No, QMessageBox::No)){
-		SETTINGS;
-		settings.beginGroup(SETTINGSGROUPUSER);
-		settings.remove("");
-		settings.endGroup();
-	}
+	// Async (RULE 2): QMessageBox::question()'s exec() never returns on the
+	// WASM main thread without Asyncify -- show the prompt non-modally and
+	// do the deletion in the completion slot instead of blocking here.
+	QMessageBox *msgBox = new QMessageBox(this);
+	msgBox->setAttribute(Qt::WA_DeleteOnClose);
+	msgBox->setWindowTitle(tr("Delete persistent settings"));
+	msgBox->setText(tr("Do you really want to delete persistent settings for all programs?"));
+	msgBox->setIcon(QMessageBox::Question);
+	msgBox->setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+	msgBox->setDefaultButton(QMessageBox::No);
+	QObject::connect(msgBox, &QMessageBox::finished, this, [](int result){
+		if (result == QMessageBox::Yes) {
+			SETTINGS;
+			settings.beginGroup(SETTINGSGROUPUSER);
+			settings.remove("");
+			settings.endGroup();
+		}
+	});
+	msgBox->open();
 }
 
 void PreferencesWin::clickBrowseSavedData() {

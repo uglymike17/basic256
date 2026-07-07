@@ -21,6 +21,7 @@
 
 #include <qglobal.h>
 
+#include <functional>
 
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -187,6 +188,7 @@ private:
 	
 	void loadCustomizations();
 	void saveCustomizations();
+    void finishCloseAllPrograms(bool doit, std::function<void(bool)> onDone);
     BasicEdit* newEditor(QString title);
     int untitledNumber;
     int runState;
@@ -224,7 +226,8 @@ private slots:
     void closeEditorTab(int);
     void loadProgram();
     void activeEditorCloseTab();
-    bool closeAllPrograms();
+    void closeAllPrograms(std::function<void(bool)> onDone);
+    void closeAllProgramsSlot();
     void setCurrentEditorTab(BasicEdit*);
     void saveAll();
     void updateBreakPointsAction();

@@ -199,25 +199,40 @@ void BasicEdit::saveFile(bool overwrite) {
 		if (!filename.contains(rx)) {
 			filename += ".kbs";
 		}
-		QFile f(filename);
-		bool dooverwrite = true;
-		if (!overwrite && f.exists()) {
-			dooverwrite = ( QMessageBox::Yes == QMessageBox::warning(this, tr("Save File"),
-				tr("The file ") + filename + tr(" already exists.")+ "\n" +tr("Do you want to overwrite?"),
-				QMessageBox::Yes | QMessageBox::No,
-				QMessageBox::No));
-		}
-		if (dooverwrite) {
-			f.open(QIODevice::WriteOnly | QIODevice::Truncate);
-			f.write(this->document()->toPlainText().toUtf8());
-			f.close();
-			QFileInfo fi(f);
-            document()->setModified(false);
-            setTitle(fi.fileName());
-			QDir::setCurrent(fi.absolutePath());
-            emit(addFileToRecentList(filename));
+		if (!overwrite && QFile::exists(filename)) {
+			// Async (RULE 2): QMessageBox::warning()'s exec() never returns
+			// on the WASM main thread without Asyncify -- show the prompt
+			// non-modally and continue the write in the completion slot
+			// instead of blocking here for the Yes/No answer.
+			QMessageBox *msgBox = new QMessageBox(this);
+			msgBox->setAttribute(Qt::WA_DeleteOnClose);
+			msgBox->setWindowTitle(tr("Save File"));
+			msgBox->setText(tr("The file ") + filename + tr(" already exists.")+ "\n" +tr("Do you want to overwrite?"));
+			msgBox->setIcon(QMessageBox::Warning);
+			msgBox->setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+			msgBox->setDefaultButton(QMessageBox::No);
+			QObject::connect(msgBox, &QMessageBox::finished, this, [this](int result){
+				if (result == QMessageBox::Yes) {
+					writeFile();
+				}
+			});
+			msgBox->open();
+		} else {
+			writeFile();
 		}
 	}
+}
+
+void BasicEdit::writeFile() {
+	QFile f(filename);
+	f.open(QIODevice::WriteOnly | QIODevice::Truncate);
+	f.write(this->document()->toPlainText().toUtf8());
+	f.close();
+	QFileInfo fi(f);
+	document()->setModified(false);
+	setTitle(fi.fileName());
+	QDir::setCurrent(fi.absolutePath());
+	emit(addFileToRecentList(filename));
 }
 
 void BasicEdit::saveAllStep(int s) {

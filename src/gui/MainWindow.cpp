@@ -409,7 +409,7 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     QObject::connect(filemenu_save_act, SIGNAL(triggered()), this, SLOT(activeEditorSaveProgram()));
     QObject::connect(filemenu_saveas_act, SIGNAL(triggered()), this, SLOT(activeEditorSaveAsProgram()));
     QObject::connect(filemenu_close_act, SIGNAL(triggered()), this, SLOT(activeEditorCloseTab()));
-    QObject::connect(filemenu_closeall_act, SIGNAL(triggered()), this, SLOT(closeAllPrograms()));
+    QObject::connect(filemenu_closeall_act, SIGNAL(triggered()), this, SLOT(closeAllProgramsSlot()));
     QObject::connect(undoact, SIGNAL(triggered()), this, SLOT(activeEditorUndo()));
     QObject::connect(redoact, SIGNAL(triggered()), this, SLOT(activeEditorRedo()));
     QObject::connect(cutact, SIGNAL(triggered()), this, SLOT(activeEditorCut()));
@@ -832,26 +832,30 @@ void MainWindow::closeEvent(QCloseEvent *e) {
 		e->ignore();
 	} else {
 		//
-		// quit the application but ask if there are unsaved changes
-		bool doquit = closeAllPrograms();
-		if (doquit) {
-			// save current screen posision, visibility and floating
-			saveCustomizations();
-			// actually quitting
-			e->accept();
-			QTimer::singleShot(0, qApp, SLOT(quit()));
-			// close app as soon as the event loop is idle instead of using qApp->quit() to allow dispach of other events
-			// This prevent app to not closing properly in rare situations like:
-			// Interpreter emit() a blocking function in Controller (using QWaitCondition or BlockingQueuedConnection).
-			// User request to close app while function is runnig in main loop. So, closeEvent is put in queue.
-			// Function ends and return control to Interpreter. Interpreter request to run another code in main loop using emit().
-			// Instead of running this code, the previous closeEvent() from queue is run.
-			// Using qApp->quit() this will block forever Interpreter (never return), so, i->wait() will never return.
-			// This is an old issue. It takes me a lot to manage it. (Florin)
-		} else {
-			// not quitting
-			e->ignore();
-		}
+		// quit the application but ask if there are unsaved changes.
+		// Async (RULE 2): closeAllPrograms()'s confirmation dialogs can no
+		// longer be waited on synchronously here (QDialog::exec() never
+		// returns on the WASM main thread without Asyncify) -- always
+		// ignore this event immediately, and the completion callback
+		// performs the actual quit once the user has answered. Same
+		// two-step pattern Qt's own docs use for async closeEvent handling.
+		e->ignore();
+		closeAllPrograms([this](bool doquit) {
+			if (doquit) {
+				// save current screen posision, visibility and floating
+				saveCustomizations();
+				QTimer::singleShot(0, qApp, SLOT(quit()));
+				// close app as soon as the event loop is idle instead of using qApp->quit() to allow dispach of other events
+				// This prevent app to not closing properly in rare situations like:
+				// Interpreter emit() a blocking function in Controller (using QWaitCondition or BlockingQueuedConnection).
+				// User request to close app while function is runnig in main loop. So, closeEvent is put in queue.
+				// Function ends and return control to Interpreter. Interpreter request to run another code in main loop using emit().
+				// Instead of running this code, the previous closeEvent() from queue is run.
+				// Using qApp->quit() this will block forever Interpreter (never return), so, i->wait() will never return.
+				// This is an old issue. It takes me a lot to manage it. (Florin)
+			}
+			// else not quitting -- this event was already ignored above
+		});
 	}
 }
 
@@ -1449,9 +1453,12 @@ void MainWindow::saveAll(){
     emit(saveAllStep(2));
 }
 
-bool MainWindow::closeAllPrograms(){
+void MainWindow::closeAllProgramsSlot(){
+    closeAllPrograms([](bool){});
+}
+
+void MainWindow::closeAllPrograms(std::function<void(bool)> onDone){
     QString list;
-    bool doit = true;
     int count = 0;
     //count for unsaved files
     for(int i=0; i<editwintabs->count(); i++){
@@ -1463,47 +1470,65 @@ bool MainWindow::closeAllPrograms(){
             }
         }
     }
-    //if there are unsaved files
-    if(count!=0){
-        QMessageBox msgBox(this);
-        msgBox.setWindowTitle(QObject::tr("Save changes?"));
-        if(count==1){
-            msgBox.setText(QObject::tr("The following file have unsaved changes:"));
-        }else{
-            msgBox.setText(QObject::tr("The following files have unsaved changes:"));
-        }
-        msgBox.setIcon(QMessageBox::Warning);
-        msgBox.setInformativeText(list);
-        msgBox.setStandardButtons( (count==1?QMessageBox::Save:QMessageBox::SaveAll) | QMessageBox::Discard | QMessageBox::Cancel);
-        msgBox.setDefaultButton(QMessageBox::Cancel);
-        int doclose = msgBox.exec();
+    //if there are no unsaved files, nothing to ask -- finish immediately
+    if(count==0){
+        finishCloseAllPrograms(true, onDone);
+        return;
+    }
+    //there are unsaved files -- ask what to do. Async (RULE 2):
+    //QDialog::exec() never returns on the WASM main thread without
+    //Asyncify, so show the prompt non-modally and continue in the
+    //completion slot instead of blocking here for the answer.
+    QMessageBox *msgBox = new QMessageBox(this);
+    msgBox->setAttribute(Qt::WA_DeleteOnClose);
+    msgBox->setWindowTitle(QObject::tr("Save changes?"));
+    if(count==1){
+        msgBox->setText(QObject::tr("The following file have unsaved changes:"));
+    }else{
+        msgBox->setText(QObject::tr("The following files have unsaved changes:"));
+    }
+    msgBox->setIcon(QMessageBox::Warning);
+    msgBox->setInformativeText(list);
+    msgBox->setStandardButtons( (count==1?QMessageBox::Save:QMessageBox::SaveAll) | QMessageBox::Discard | QMessageBox::Cancel);
+    msgBox->setDefaultButton(QMessageBox::Cancel);
+    QObject::connect(msgBox, &QMessageBox::finished, this, [this, onDone](int doclose){
         if(doclose==QMessageBox::SaveAll || doclose==QMessageBox::Save){
             saveAll();
         }else if(doclose==QMessageBox::Cancel){
-            return false;
+            onDone(false);
+            return;
         }
 
         //double check for unsaved files - user press [Cancel] at saving time
-        count = 0;
+        int count2 = 0;
         for(int i=0; i<editwintabs->count(); i++){
             BasicEdit *e = (BasicEdit*)editwintabs->widget(i);
             if(e){
                 if(e->document()->isModified()){
-                    count++;
+                    count2++;
                 }
             }
         }
-        if(count>0){
-            doit = ( QMessageBox::Yes == QMessageBox::warning(this, QObject::tr("Unsaved files"),
-                QObject::tr("There are unsaved files.")+ "\n" + QObject::tr("Do you really want to discard your changes?"),
-                QMessageBox::Yes | QMessageBox::No,
-                QMessageBox::No));
+        if(count2>0){
+            QMessageBox *msgBox2 = new QMessageBox(this);
+            msgBox2->setAttribute(Qt::WA_DeleteOnClose);
+            msgBox2->setWindowTitle(QObject::tr("Unsaved files"));
+            msgBox2->setText(QObject::tr("There are unsaved files.")+ "\n" + QObject::tr("Do you really want to discard your changes?"));
+            msgBox2->setIcon(QMessageBox::Warning);
+            msgBox2->setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+            msgBox2->setDefaultButton(QMessageBox::No);
+            QObject::connect(msgBox2, &QMessageBox::finished, this, [this, onDone](int result){
+                finishCloseAllPrograms(result==QMessageBox::Yes, onDone);
+            });
+            msgBox2->open();
+        }else{
+            finishCloseAllPrograms(true, onDone);
         }
+    });
+    msgBox->open();
+}
 
-
-
-
-    }
+void MainWindow::finishCloseAllPrograms(bool doit, std::function<void(bool)> onDone){
     if(doit){
         rc->stopRun();
         for(int i=editwintabs->count()-1; i>=0; i--){
@@ -1511,7 +1536,7 @@ bool MainWindow::closeAllPrograms(){
             e->deleteLater();
         }
     }
-    return doit;
+    onDone(doit);
 }
 
 
