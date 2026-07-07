@@ -90,9 +90,15 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
 
 #ifndef ANDROID
     manager = new QNetworkAccessManager(this);
+#ifndef Q_OS_WASM
+    // Qt for WebAssembly doesn't provide QSslConfiguration/QSsl at all (only
+    // forward-declared in qnetworkrequest.h, not implemented) -- TLS is
+    // handled transparently by the browser's own fetch() backing
+    // QNetworkAccessManager there, so there's no explicit protocol to set.
     QSslConfiguration config = QSslConfiguration::defaultConfiguration();
     config.setProtocol(QSsl::SecureProtocols);
     request.setSslConfiguration(config);
+#endif
 #ifdef WIN32PORTABLE
     request.setUrl(QUrl("http://sourceforge.net/projects/basic256prtbl/best_release.json"));
 #else
