@@ -19,8 +19,10 @@
 
 #include <QPageSize>
 #include <QPageLayout>
+#ifdef BASIC256_ENABLE_PRINTER
 #include <QtPrintSupport/QPrinter>
 #include <QtPrintSupport/QPrinterInfo>
+#endif
 
 #include "PreferencesWin.h"
 #include "Settings.h"
@@ -383,6 +385,7 @@ PreferencesWin::PreferencesWin (QWidget * parent, bool showAdvanced)
 
 // TTS Settings added here some day
 
+#ifdef BASIC256_ENABLE_PRINTER
 	// *******************************************************************************************
 	// build the printer tab
 	printertablayout = new QGridLayout();
@@ -496,6 +499,7 @@ PreferencesWin::PreferencesWin (QWidget * parent, bool showAdvanced)
 		orientportrait->setChecked(settings.value(SETTINGSPRINTERORIENT, SETTINGSPRINTERORIENTDEFAULT)==QPageLayout::Portrait);
 		orientlandscape->setChecked(settings.value(SETTINGSPRINTERORIENT, SETTINGSPRINTERORIENTDEFAULT)==QPageLayout::Landscape);
 	}
+#endif
 
 
 	// *******************************************************************************************
@@ -505,7 +509,9 @@ PreferencesWin::PreferencesWin (QWidget * parent, bool showAdvanced)
 	QTabWidget * tabs = new QTabWidget(this);
 	tabs->addTab(usertabwidget,tr("User"));
 	tabs->addTab(soundtabwidget,tr("Sound"));
+#ifdef BASIC256_ENABLE_PRINTER
 	tabs->addTab(printertabwidget,tr("Printing"));
+#endif
 	if (showAdvanced) tabs->addTab(advancedtabwidget,tr("Advanced"));
 
 	QGridLayout * mainlayout = new QGridLayout();
@@ -535,11 +541,13 @@ void PreferencesWin::clickSaveButton() {
 	SETTINGS;
 
 	// validate file name if PDF
+#ifdef BASIC256_ENABLE_PRINTER
 	if (printerscombo->itemData(printerscombo->currentIndex())==-1 && pdffileinput->text()=="") {
 		//
 		QMessageBox::information(this, tr(SETTINGSAPP), tr("File name required for PDF output."),QMessageBox::Ok, QMessageBox::Ok);
 		validate = false;
 	}
+#endif
 	// add other validation here
 
 	if(validate) {
@@ -602,6 +610,7 @@ void PreferencesWin::clickSaveButton() {
 
 		// *******************************************************************************************
 		// printer settings
+#ifdef BASIC256_ENABLE_PRINTER
 		if (printerscombo->currentIndex()!=-1) {
 			settings.setValue(SETTINGSPRINTERPRINTER, printerscombo->itemData(printerscombo->currentIndex()));
 		}
@@ -617,6 +626,7 @@ void PreferencesWin::clickSaveButton() {
 		//
 		if (orientportrait->isChecked()) settings.setValue(SETTINGSPRINTERORIENT, QPageLayout::Portrait);
 		if (orientlandscape->isChecked()) settings.setValue(SETTINGSPRINTERORIENT, QPageLayout::Landscape);
+#endif
 
 
 		// *******************************************************************************************

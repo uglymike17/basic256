@@ -267,6 +267,42 @@ jobs:
       run: |
         bash .github/scripts/run_testsuite_flagsoff.sh build/basic256
 
+  wasm:
+    # WASM.md Phase 4: first WebAssembly build. Emscripten 4.0.7 (Qt 6.11.1's
+    # pinned version) + Qt's wasm_multithread SDK, all six BASIC256_ENABLE_*
+    # flags OFF (mirrors the flags-off dress rehearsal above, but for real --
+    # the wasm Qt SDK doesn't ship Sql/SerialPort/PrintSupport/TextToSpeech
+    # at all, so this isn't optional here the way it is on desktop). No
+    # TestSuite gate yet (that needs a browser + COOP/COEP headers -- Phase
+    # 4/5's "local smoke test" gate items are manual, not CI); this job only
+    # proves the toolchain links and produces a loadable artifact.
+    name: WASM Phase 4 build (Emscripten 4.0.7 + Qt 6.11.1 wasm_multithread)
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.x'
+
+    - name: Build WASM
+      run: |
+        bash .github/scripts/build_WASM.sh
+
+    - name: Upload WASM artifact
+      uses: actions/upload-artifact@v5
+      with:
+        name: BASIC256-WASM
+        if-no-files-found: error
+        path: |
+          build-wasm/basic256.html
+          build-wasm/basic256.js
+          build-wasm/basic256.wasm
+          build-wasm/qtloader.js
+          build-wasm/qtlogo.svg
+
   release:
     name: Publish Release
     needs: build

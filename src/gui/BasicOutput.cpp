@@ -29,8 +29,10 @@
 #include <QIcon>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QMessageBox>
+#ifdef BASIC256_ENABLE_PRINTER
 #include <QtPrintSupport/QPrintDialog>
 #include <QtPrintSupport/QPrinter>
+#endif
 
 #include "Settings.h"
 #include "BasicOutput.h"
@@ -175,7 +177,7 @@ bool BasicOutput::initActions(QMenu * vMenu, QToolBar * vToolBar) {
 }
 
 void BasicOutput::slotPrint() {
-#ifdef ANDROID
+#if defined(ANDROID) || !defined(BASIC256_ENABLE_PRINTER)
     QMessageBox::warning(this, QObject::tr("Print Error"), QObject::tr("Printing is not supported in this platform at this time."));
 #else
     QTextDocument *document = this->document();

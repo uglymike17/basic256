@@ -22,8 +22,10 @@
 
 #include <QClipboard>
 #include <QMutex>
+#ifdef BASIC256_ENABLE_PRINTER
 #include <QtPrintSupport/QPrintDialog>
 #include <QtPrintSupport/QPrinter>
+#endif
 #include <QtGui/QAction>
 #include <QtWidgets/QApplication>
 #include <QIcon>
@@ -297,7 +299,7 @@ void BasicGraph::slotCopy() {
 
 void BasicGraph::slotPrint() {
 
-#ifdef ANDROID
+#if defined(ANDROID) || !defined(BASIC256_ENABLE_PRINTER)
     QMessageBox::warning(this, QObject::tr("Print Error"), QObject::tr("Printing is not supported in this platform at this time."));
 #else
 

@@ -32,18 +32,27 @@ option(BASIC256_ENABLE_PRINTER "Enable PRINTERON et al. (QtPrintSupport)" ON)
 option(BASIC256_ENABLE_TCP     "Enable NETLISTEN/NETCONNECT et al. (QTcpServer/QTcpSocket)" ON)
 option(BASIC256_ENABLE_TTS     "Enable SAY (QTextToSpeech)" ON)
 
-# Find Qt6 components -- Sql/SerialPort/TextToSpeech are only required when
-# their BASIC256_ENABLE_* flag is on: the Phase 4 WASM Qt SDK doesn't ship
-# all of these, and the flags-OFF desktop dress rehearsal (Phase 3 gate)
-# proves the build doesn't need them either. PrintSupport stays unconditional
-# -- src/gui's own Print... menu actions (BasicEdit/BasicGraph/BasicOutput/
-# PreferencesWin) use QPrinter/QPrintDialog directly, independent of whether
-# the BASIC-language PRINTERON/etc opcodes are enabled.
+# Find Qt6 components -- Sql/SerialPort/TextToSpeech/PrintSupport are only
+# required when their BASIC256_ENABLE_* flag is on: the Phase 4 WASM Qt SDK
+# doesn't ship any of these, and the flags-OFF desktop dress rehearsal
+# (Phase 3 gate) proves the build doesn't need them either.
+# PrintSupport correction (Phase 4): Phase 3 kept PrintSupport unconditional
+# because src/gui's own Print... menu actions (BasicEdit/BasicGraph/
+# BasicOutput/PreferencesWin) use QPrinter/QPrintDialog directly, independent
+# of the BASIC-language PRINTERON/etc opcodes -- true on desktop, where the
+# module always exists. But Qt for WebAssembly's own docs say flatly
+# "Printing is not supported" -- the wasm Qt SDK does not ship a
+# QtPrintSupport module at all, so find_package(... PrintSupport) would fail
+# outright at configure time regardless of BASIC256_ENABLE_PRINTER's value.
+# Fixed by extending BASIC256_ENABLE_PRINTER to also gate those GUI menu
+# actions (see src/gui/BasicEdit.cpp, BasicGraph.cpp, BasicOutput.cpp,
+# PreferencesWin.cpp -- each already had an #ifdef ANDROID "printing not
+# supported" precedent for slotPrint(), extended the same way Phase 3
+# extended it for OP_OPENSERIAL/SERIAL).
 set(BASIC256_QT_COMPONENTS
     Core
     Gui
     Widgets
-    PrintSupport
     Multimedia
     LinguistTools
     Network
@@ -53,6 +62,9 @@ if(BASIC256_ENABLE_SQL)
 endif()
 if(BASIC256_ENABLE_SERIAL)
     list(APPEND BASIC256_QT_COMPONENTS SerialPort)
+endif()
+if(BASIC256_ENABLE_PRINTER)
+    list(APPEND BASIC256_QT_COMPONENTS PrintSupport)
 endif()
 if(BASIC256_ENABLE_TTS)
     list(APPEND BASIC256_QT_COMPONENTS TextToSpeech)
@@ -382,6 +394,26 @@ if(UNIX AND NOT APPLE)
     )
 endif()
 
+# WASM Phase 4: Emscripten link settings. EMSCRIPTEN is set by Qt's
+# qt-cmake / the Emscripten CMake toolchain file when cross-compiling.
+# - QT_WASM_INITIAL_MEMORY: heap growth is unsupported with pthreads, so the
+#   heap must be sized up front. 512MB covers sprite-heavy fractal/demo
+#   programs (the memory hogs) with headroom; revisit if real programs OOM.
+# - QT_WASM_PTHREAD_POOL_SIZE: number of web workers created at startup.
+#   Qt's own default is 4; a RUN click needs at least: the interpreter
+#   thread, the sound system, and BasicDownloader, and exceeding the pool
+#   size requires returning to the event loop first (which a RUN click
+#   can't guarantee) -- 8 gives headroom over the observed minimum.
+# Both are Qt CMake target properties (technology preview since Qt 6.2.4),
+# translated by Qt's own build system into the equivalent Emscripten
+# linker settings -- not raw -sINITIAL_MEMORY/-sPTHREAD_POOL_SIZE flags.
+if(EMSCRIPTEN)
+    set_target_properties(basic256 PROPERTIES
+        QT_WASM_INITIAL_MEMORY "512MB"
+        QT_WASM_PTHREAD_POOL_SIZE "8"
+    )
+endif()
+
 # Derive the build's VERSION display string (About box, applicationVersion)
 # from the branch being built, the same way build_installer_Windows.ps1
 # derives the installer's version -- so the two never disagree again.
@@ -470,20 +502,33 @@ endif()
 # Link basic256core (which itself PUBLIC-links Core/Gui/Network/Multimedia,
 # plus Sql/SerialPort/PrintSupport when their flags are on -- all propagate
 # transitively) plus the GUI/app-only Qt components and OS-specific
-# libraries. PrintSupport is linked here unconditionally too: src/gui's own
-# Print... menu actions (BasicEdit/BasicGraph/BasicOutput/PreferencesWin)
-# use QPrinter/QPrintDialog directly and need it regardless of
-# BASIC256_ENABLE_PRINTER (which only gates the BASIC-language PRINTERON
-# et al. opcodes in basic256core). TextToSpeech is only linked when
-# BASIC256_ENABLE_TTS is on.
+# libraries. PrintSupport and TextToSpeech are only linked when their
+# BASIC256_ENABLE_* flag is on -- see the BASIC256_QT_COMPONENTS PrintSupport
+# correction above (Phase 4): src/gui's own Print... menu actions are now
+# gated the same as the BASIC-language PRINTERON et al. opcodes, since the
+# WASM Qt SDK doesn't ship QtPrintSupport at all.
 target_link_libraries(basic256
     PRIVATE
         basic256core
         Qt${QT_VERSION_MAJOR}::Widgets
-        Qt${QT_VERSION_MAJOR}::PrintSupport
         ${PLATFORM_LIBS}
 )
+if(BASIC256_ENABLE_PRINTER)
+    target_link_libraries(basic256 PRIVATE Qt${QT_VERSION_MAJOR}::PrintSupport)
+endif()
 if(BASIC256_ENABLE_TTS)
     target_link_libraries(basic256 PRIVATE Qt${QT_VERSION_MAJOR}::TextToSpeech)
+endif()
+
+# WASM Phase 4: plain add_executable() (used above, not qt_add_executable())
+# does not get automatic Qt target finalization -- qt_finalize_target() is
+# "ordinarily invoked as part of a call to qt_add_executable()", and without
+# it a WASM build silently produces only basic256.js/basic256.wasm, missing
+# the basic256.html/qtloader.js/qtlogo.svg files the browser actually needs
+# to load the app. Safe to call on all platforms per Qt's own docs, but
+# scoped to EMSCRIPTEN only here to keep the already-green desktop targets'
+# build untouched.
+if(EMSCRIPTEN)
+    qt_finalize_target(basic256)
 endif()
 

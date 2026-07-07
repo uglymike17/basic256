@@ -810,6 +810,13 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 	if(soundSystemIsStopping) return 0;
 	QUrl url(s);
 	if(s.startsWith("sound:")){
+#ifdef Q_OS_WASM
+		// In-memory playback (QMediaPlayer::setSourceDevice()) is documented
+		// as unsupported in Qt for WebAssembly. The QAudioSink tone path
+		// ("beep:", below) and URL-based QMediaPlayer::setSource() playback
+		// (file/http/https/ftp, below) are unaffected and stay available.
+		if(*error)(*error)->q(ERROR_NOTAVAILABLE);
+#else
 		if(loadedsounds.count(s)){
 			lastIdUsed++;
 			//Do not play a loaded sound that is not a valid one
@@ -853,6 +860,7 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 			//there is no resource loaded with that ID
 			if(*error)(*error)->q(ERROR_SOUNDRESOURCE);
 		}
+#endif
 	}else if(s.startsWith("beep:")){
 		if(loadedsounds.count(s)){
 			lastIdUsed++;

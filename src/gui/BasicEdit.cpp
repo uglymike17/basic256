@@ -28,8 +28,10 @@
 #include <QRegularExpression>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QStatusBar>
+#ifdef BASIC256_ENABLE_PRINTER
 #include <QtPrintSupport/QPrinter>
 #include <QtPrintSupport/QPrintDialog>
+#endif
 #include <QtWidgets/QFontDialog>
 
 #include "MainWindow.h"
@@ -247,7 +249,7 @@ BasicEdit::saveAsProgram() {
 
 
 void BasicEdit::slotPrint() {
-#ifdef ANDROID
+#if defined(ANDROID) || !defined(BASIC256_ENABLE_PRINTER)
     QMessageBox::warning(this, tr("Print"),
         tr("Printing is not supported in this platform at this time."));
 #else
