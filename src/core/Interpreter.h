@@ -27,7 +27,8 @@
 #include <QElapsedTimer>
 #include <QRegularExpression>
 #include <cmath>
-#include "BasicGraph.h"
+#include "GraphicsBuffer.h"
+#include "BasicKeyboard.h"
 #include "Constants.h"
 #include "DataElement.h"
 #include "Error.h"
@@ -172,7 +173,7 @@ class Interpreter : public QThread
 {
 	Q_OBJECT
 	public:
-		Interpreter(QLocale*);
+		Interpreter(QLocale*, GraphicsBuffer*, BasicKeyboard*);
 		~Interpreter();
 		int compileProgram(char *);
 		void initialize();
@@ -189,6 +190,7 @@ class Interpreter : public QThread
 		QImage returnImage;				// return value from runcontroller emit
 		int settingsAllowPort;
 		int settingsAllowSystem;
+		QString programTitle;			// set by RunController before each run; used for the print doc name
 
 	public slots:
 		int execByteCode();
@@ -243,6 +245,8 @@ class Interpreter : public QThread
 
 	private:
 		QLocale *locale;
+		GraphicsBuffer *graphics;	// not owned -- passed in at construction
+		BasicKeyboard *basicKeyboard;	// not owned -- passed in at construction
 		Sleeper *sleeper;
 		BasicDownloader *downloader;
 		//int optype(int op);

@@ -76,13 +76,14 @@ extern BasicEdit * editwin;
 extern BasicOutput * outwin;
 extern BasicGraph * graphwin;
 extern VariableWin * varwin;
+extern BasicKeyboard * basicKeyboard;
 
 SoundSystem *sound;
 
 
 RunController::RunController() {
 	sound = NULL;
-	i = new Interpreter(mainwin->locale);
+	i = new Interpreter(mainwin->locale, graphwin->graphics, basicKeyboard);
 
 	replacewin = NULL;
 
@@ -247,6 +248,7 @@ RunController::startDebug() {
 			stopRunFinalized(false);
 			return;
 		}
+		i->programTitle = currentEditor->title;
 		QObject::connect(i, SIGNAL(goToLine(int)), currentEditor, SLOT(goToLine(int)));
 		QObject::connect(i, SIGNAL(seekLine(int)), currentEditor, SLOT(seekLine(int)), Qt::BlockingQueuedConnection);
 
@@ -297,6 +299,7 @@ RunController::startRun() {
 			stopRunFinalized(false);
 			return;
 		}
+		i->programTitle = currentEditor->title;
 		QObject::connect(i, SIGNAL(goToLine(int)), currentEditor, SLOT(goToLine(int)));
 		QObject::connect(i, SIGNAL(seekLine(int)), currentEditor, SLOT(seekLine(int)), Qt::BlockingQueuedConnection);
 

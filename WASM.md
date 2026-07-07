@@ -286,32 +286,84 @@ What the interpreter actually touches on `graphwin` (grep-verified):
 width/height`, `sprites_clip_region`, `draw_sprites_flag`, and the
 mouse/click state (`mouseX/Y/B`, `clickX/Y/B`).
 
-- [ ] New core class `GraphicsBuffer` (plain `QObject` or even plain class,
+- [x] New core class `GraphicsBuffer` (plain `QObject` or even plain class,
       `src/core/`): owns the `QImage`s, sprite clip region, draw flags, and
       the mouse/click atomics. No painting-to-screen, no QWidget.
-- [ ] `BasicGraph` (widget) becomes a *view*: holds a `GraphicsBuffer*`,
+      Implemented as a plain class (no `Q_OBJECT` — it has no signals/slots,
+      so no reason to pay for moc) in `src/core/GraphicsBuffer.{h,cpp}`:
+      owns `image`/`displayedimage`/`spritesimage`, `sprites_clip_region`,
+      `draw_sprites_flag`, `mouseX/Y/B`, `clickX/Y/B`; `resizeBuffers(w,h)`
+      (the buffer-management half of the old `BasicGraph::resize`) and
+      `updateScreenImage()` (sprite compositing, moved verbatim).
+- [x] `BasicGraph` (widget) becomes a *view*: holds a `GraphicsBuffer*`,
       paints `displayedimage` in `paintEvent`, and writes mouse/click state
       into the buffer from its mouse events.
-- [ ] Interpreter: replace every `graphwin->X` with `graphics->X` where
+      `BasicGraph::graphics` is created in `BasicGraph`'s constructor and
+      deleted in its destructor. `resize()` now calls
+      `graphics->resizeBuffers(w,h)` for the buffer half and keeps
+      `gridlinesimage`/window-fit/transform logic (genuinely view-only,
+      untouched). All mouse-event handlers, `paintEvent`, `slotCopy`,
+      `slotPrint`, `slotClear` now go through `graphics->`. Caught one bug
+      while converting `mouseMoveEvent`: a tooltip line read the old
+      (now-removed) `mouseX`/`mouseY` widget members directly, which would
+      have been a compile error post-refactor — fixed to use the already-
+      equal local `x`/`y` instead. `updateScreenImage()` stays on
+      `BasicGraph` as a one-line delegator to `graphics->updateScreenImage()`
+      so `RunController.cpp`'s call site didn't need to change.
+- [x] Interpreter: replace every `graphwin->X` with `graphics->X` where
       `graphics` is a `GraphicsBuffer*` passed in at construction (extend
       the existing `Interpreter(mainwin->locale)` construction in
       `RunController.cpp:84`). Delete `extern BasicGraph * graphwin;` from
       `Interpreter.cpp` and remove `#include "BasicGraph.h"` from
       `Interpreter.h:30`.
-- [ ] In `-s` silent mode, `Main.cpp` constructs a bare `GraphicsBuffer`
-      with no view — graphics commands keep working headlessly (they draw
-      into the QImage; `image->save` still works). This is a behavior
-      *improvement* for silent mode; note it in the ChangeLog.
+      Done exactly as described:
+      `Interpreter(QLocale*, GraphicsBuffer*, BasicKeyboard*)` (the
+      `basicKeyboard` param is 2B, same commit). `RunController.cpp:85`
+      now does `new Interpreter(mainwin->locale, graphwin->graphics,
+      basicKeyboard)` — `graphwin` (and `basicKeyboard`) are still
+      MainWindow-owned GUI-layer globals; only the *interpreter's* access
+      is now constructor injection instead of an extern reach-in.
+- [ ] **Deferred, not done this session (maintainer decision 2026-07-07):**
+      "In `-s` silent mode, `Main.cpp` constructs a bare `GraphicsBuffer`
+      with no view." Checked `Main.cpp` first: this doesn't match how `-s`
+      actually works today. `MainWindow` (and its *entire* widget tree —
+      `BasicGraph`, `BasicEdit`, `BasicOutput`, docks, `RunController` /
+      `Interpreter`) is unconditionally constructed in every mode including
+      `-s`; it is only never `.show()`n. Skipping that construction for
+      `-s` would require a second, headless creation path for
+      `RunController`/`Interpreter` that doesn't exist today — a materially
+      bigger and riskier change than "extract `GraphicsBuffer`", touching
+      exactly the code path CI's TestSuite runs through. Left `Main.cpp`
+      untouched; `-s` mode's behavior is unchanged (still builds the full,
+      hidden widget tree, `graphwin->graphics` still exists and is what
+      `-s` mode's `Interpreter` uses). Revisit as a real Phase 2D or fold
+      into Phase 4 if WASM's headless/startup-cost needs actually require
+      it.
 
 ### 2B. The two small ones
 
-- [ ] `editwin`: used exactly once in the interpreter
+- [x] `editwin`: used exactly once in the interpreter
       (`Interpreter.cpp:6541`, print doc name). Replace with a plain
       `QString programTitle` member on Interpreter, set by RunController
       before each run. Delete the extern.
-- [ ] `basicKeyboard`: 5 uses; it's already a portable `QObject`. Pass the
+      Done. `Interpreter::programTitle` (public `QString`) replaces
+      `editwin->title` at the one call site
+      (`printdocument->setDocName(...)`). `RunController.cpp` sets
+      `i->programTitle = currentEditor->title;` in both `startDebug()` and
+      `startRun()`, right after `currentEditor = editwin;` is confirmed
+      non-null — i.e. before every run, exactly as specified. Also dropped
+      the now-dead `#include "BasicEdit.h"` from `Interpreter.cpp`.
+- [x] `basicKeyboard`: 5 uses; it's already a portable `QObject`. Pass the
       pointer in via constructor instead of extern (GUI feeds it key events
       exactly as today).
+      Done — see the Interpreter constructor change above.
+      `MainWindow.cpp` still owns/creates the global `basicKeyboard`
+      (unchanged) and still feeds it key events via `BasicGraph`/
+      `BasicOutput`'s own `extern BasicKeyboard *basicKeyboard;` (GUI-layer
+      externs are fine — RULE 3/2 is specifically about the *interpreter*
+      not reaching into GUI globals). `RunController.cpp` picked up its own
+      `extern BasicKeyboard * basicKeyboard;` to pass the pointer through
+      at `Interpreter` construction.
 
 ### 2C. Signals stay
 
@@ -320,19 +372,65 @@ already crosses threads correctly via queued connections into
 RunController/MainWindow — that is the right mechanism for WASM too. No
 change, but:
 
-- [ ] Grep every `connect(` on Interpreter signals for
+- [x] Grep every `connect(` on Interpreter signals for
       `Qt::BlockingQueuedConnection` or return-value emits
       (e.g. `returnImage`, `Interpreter.h:189`) and list them in this file —
       they block the *interpreter* thread (fine), but confirm none block the
       GUI thread waiting on the interpreter.
+      **Audit result, all clear, nothing to fix:**
+      - `Qt::BlockingQueuedConnection` (5 sites, all in
+        `RunController.cpp`'s constructor / `startDebug()` / `startRun()`):
+        `varWinAssign(Variables**, int, int)`,
+        `varWinAssign(Variables**, int, int, int, int)`,
+        `varWinDropLevel(int)` (all → `varwin`), and `seekLine(int)` (→
+        `currentEditor`, connected once in each of `startDebug()`/
+        `startRun()`). All are emitted *from the interpreter thread*, which
+        blocks until the GUI-thread slot returns — that's RULE 2's
+        explicitly-fine case (interpreter waits on GUI, not the reverse).
+        None are emitted from GUI code waiting on the interpreter.
+      - Return-value emits (`returnImage`/`returnInt`, e.g.
+        `getClipboardImage()`/`getClipboardString()`/`setClipboardImage()`):
+        these use default (queued, non-blocking-at-emit) connections, and
+        the interpreter thread instead blocks itself on the existing
+        `mymutex`/`waitCond` pattern (`waitCond->wait(mymutex)` after
+        `emit`, `waitCond->wakeAll()` in the GUI-thread slot after it's
+        done). Same shape as the `BlockingQueuedConnection` cases: the
+        interpreter thread waits, the GUI thread's slot runs to completion
+        and returns immediately, never blocking on the interpreter. This
+        is also the exact mechanism `goutputReady()` uses to synchronize
+        `graphwin->updateScreenImage()`/`graphwin->update()` after sprite
+        draws — traced end-to-end while doing the 2A work, confirms the
+        `GraphicsBuffer` refactor didn't touch this synchronization at all.
+      - No `connect(` on any Interpreter signal exists outside
+        `RunController.cpp` — it is the sole hub, as this section assumed.
+      - Pre-existing, unrelated to this phase: `varWinAssign(Variables**,
+        int, int, QString)` and `varWinDimArray(Variables**, int, int,
+        int)` are declared as interpreter signals but have no `connect(`
+        anywhere — dead signals. Not a Phase 2 concern, left alone.
 
 ### Phase 2 gate
 - [ ] Desktop CI green ×4 + TestSuite.
-- [ ] Manual: run a graphics example, a sprite example, and a mouse-input
-      example in the IDE; run a graphics program under `-s` and confirm
-      `IMGSAVE` produces the same PNG as before.
-- [ ] `grep -n "extern BasicGraph\|extern BasicEdit\|extern BasicKeyboard"
+- [ ] **Manual verification needed from the maintainer** (no local Qt
+      toolchain or display available this session, same constraint as
+      Phases 0-1): run a graphics example, a sprite example, and a
+      mouse-input example in the IDE; run a graphics program under `-s`
+      and confirm `IMGSAVE` produces the same PNG as before.
+      Note while investigating this: `TestSuite/testsuite_ci.kbs` (the
+      automated `-s` subset CI already runs) *deliberately excludes*
+      sprite/graphics/image tests for a documented, pre-existing reason
+      unrelated to this refactor — `-s` mode's `waitForGraphics()` skips
+      sprite compositing entirely (`if (guiState == GUISTATESILENT)
+      return;` before `update_sprite_screen()`), so the on-screen buffer
+      never changes under `-s` and those assertions are unwinnable
+      regardless of correctness (see the comment above the sprite
+      `include` line in `testsuite_ci.kbs`). `IMGSAVE` itself saves
+      `graphics->image` (the raw draw buffer), not `displayedimage`, so
+      it's unaffected by that skip and should be safe to verify under
+      `-s` — but this still needs an actual maintainer-run comparison,
+      not something CI's existing gate covers.
+- [x] `grep -n "extern BasicGraph\|extern BasicEdit\|extern BasicKeyboard"
       src/core/` returns nothing.
+      Confirmed clean.
 
 ---
 
@@ -575,3 +673,30 @@ sandbox — each isolated in its own phase gate.
   before pushing — relying on CI as the real gate. Run 28864003223 green on
   all four targets, first try. **Phase 1 gate closed.** Next up: Phase 2
   (cut the interpreter's direct lines to the GUI).
+
+- 2026-07-07: Phase 2 — extracted `GraphicsBuffer` (new `src/core/` plain
+  class) out of `BasicGraph`: owns the pixel buffers, sprite state, and
+  mouse/click state; `BasicGraph` is now a view holding a `GraphicsBuffer*`.
+  Interpreter's constructor is now `Interpreter(QLocale*, GraphicsBuffer*,
+  BasicKeyboard*)`, replacing the `graphwin`/`basicKeyboard` externs with
+  constructor injection; every `graphwin->X` in `Interpreter.cpp` became
+  `graphics->X`. `editwin->title` replaced with a new `Interpreter::
+  programTitle` set by `RunController` before each run. Maintainer decided
+  to skip the plan's "Main.cpp constructs a bare GraphicsBuffer for -s
+  mode" bullet this session (see 2A note) — `-s` still builds the full
+  hidden widget tree unchanged, only the interpreter's access pattern
+  changed. 2C signal audit: all `BlockingQueuedConnection`/return-value-emit
+  cases confirmed to block the interpreter thread only, never the GUI
+  thread — no changes needed. Caught and fixed one real bug while
+  converting `BasicGraph::mouseMoveEvent` (a tooltip line reading the
+  old, now-removed widget-level `mouseX`/`mouseY`, which would not have
+  compiled). Also caught a stray CRLF→LF line-ending flip from an earlier
+  `sed` edit on `Interpreter.cpp` (its blob is pinned to CRLF, unlike most
+  of the repo) that would have produced a whole-file noise diff — restored
+  before committing. `grep -n "extern BasicGraph\|extern BasicEdit\|extern
+  BasicKeyboard" src/core/` returns nothing, confirming the gate's grep
+  check. CI push pending; manual verification (graphics/sprite/mouse-input
+  examples, `-s` IMGSAVE comparison) needs the maintainer — no local Qt/
+  display available this session, and `TestSuite/testsuite_ci.kbs`
+  deliberately excludes sprite/graphics coverage for an unrelated,
+  pre-existing `-s`-mode reason (see Phase 2 gate notes).

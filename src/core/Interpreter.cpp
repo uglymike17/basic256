@@ -53,7 +53,6 @@
 #include "Settings.h"
 #include "Sound.h"
 #include "Constants.h"
-#include "BasicEdit.h"
 #include "BasicKeyboard.h"
 
 
@@ -63,9 +62,6 @@ extern QMutex* mydebugmutex;
 extern QWaitCondition* waitCond;
 extern QWaitCondition* waitDebugCond;
 
-extern BasicGraph * graphwin;
-extern BasicEdit * editwin;
-extern BasicKeyboard * basicKeyboard;
 extern int guiState;
 
 Error *error;	// define the extern here
@@ -101,7 +97,7 @@ extern "C" {
 	extern int parsewarningtablelexingfilenumber[];
 }
 
-Interpreter::Interpreter(QLocale *applocale) {
+Interpreter::Interpreter(QLocale *applocale, GraphicsBuffer *appgraphics, BasicKeyboard *appbasicKeyboard) {
 	//yydebug = 1;
 	fastgraphics = false;
 	status = R_STOPPED;
@@ -109,6 +105,8 @@ Interpreter::Interpreter(QLocale *applocale) {
 	sleeper = new Sleeper();
 	error = new Error();
 	locale = applocale;
+	graphics = appgraphics;
+	basicKeyboard = appbasicKeyboard;
 	downloader = NULL;
 	sys = NULL;
 	sockets.resize(NUMSOCKETS);
@@ -867,9 +865,9 @@ Interpreter::initialize() {
 	regexMinimal = false;
 	basicKeyboard->reset();
 	// clickclear mouse status
-	graphwin->clickX = 0;
-	graphwin->clickY = 0;
-	graphwin->clickB = 0;
+	graphics->clickX = 0;
+	graphics->clickY = 0;
+	graphics->clickB = 0;
 
 	// create the convert and comparer object
 	convert = new Convert(locale);
@@ -1087,7 +1085,7 @@ void Interpreter::runLoop() {
 
 void Interpreter::clearsprites() {
 	// cleanup sprites - release images and deallocate the space
-	graphwin->spritesimage->fill(Qt::transparent);
+	graphics->spritesimage->fill(Qt::transparent);
 
 	int i;
 	if (nsprites>0) {
@@ -1104,7 +1102,7 @@ void Interpreter::clearsprites() {
 		delete[] sprites;
 		sprites = NULL;
 		nsprites = 0;
-		graphwin->draw_sprites_flag = false;
+		graphics->draw_sprites_flag = false;
 	}
 }
 
@@ -1169,7 +1167,7 @@ bool Interpreter::sprite_collide(int n1, int n2, bool deep) {
 
 	// Debug
 	//	QPainter *ian2;
-	//	ian2 = new QPainter(graphwin->image);
+	//	ian2 = new QPainter(graphics->image);
 	//	ian2->drawPolygon(p1);
 	//	ian2->drawPolygon(p2);
 	//	ian2->drawPolygon(result);
@@ -1227,13 +1225,13 @@ void Interpreter::force_redraw_all_sprites_next_time(){
 
 void Interpreter::update_sprite_screen(){
 	if(nsprites<=0){
-		graphwin->draw_sprites_flag = false;
+		graphics->draw_sprites_flag = false;
 		return;
 	}
 
 	QPainter *sprite_painter;
 	QRegion region = QRegion(0,0,0,0);
-	sprite_painter = new QPainter(graphwin->spritesimage);
+	sprite_painter = new QPainter(graphics->spritesimage);
 	bool flag=false;
 
 	for(int n=0;n<nsprites;n++){
@@ -1257,7 +1255,7 @@ void Interpreter::update_sprite_screen(){
 		}
 	}
 
-	graphwin->sprites_clip_region = region;
+	graphics->sprites_clip_region = region;
 	sprite_painter->setClipRegion(region);
 	sprite_painter->setCompositionMode(QPainter::CompositionMode_Clear);
 	sprite_painter->fillRect(region.boundingRect(),Qt::transparent);
@@ -1271,24 +1269,24 @@ void Interpreter::update_sprite_screen(){
 				}
 				if(sprites[n].s==1 && sprites[n].r==0){
 					if(sprites[n].image){
-						if(graphwin->sprites_clip_region.intersects(sprites[n].position)){
+						if(graphics->sprites_clip_region.intersects(sprites[n].position)){
 							sprite_painter->drawImage(sprites[n].position, *sprites[n].image);
 							sprites[n].last_position=sprites[n].position;
 							sprites[n].was_printed=true;
 							sprites[n].changed=false;
 						}
-						graphwin->sprites_clip_region+=sprites[n].position;
+						graphics->sprites_clip_region+=sprites[n].position;
 						flag = true;
 					}
 				}else{
 					if(sprites[n].transformed_image){
-						if(graphwin->sprites_clip_region.intersects(sprites[n].position)){
+						if(graphics->sprites_clip_region.intersects(sprites[n].position)){
 							sprite_painter->drawImage(sprites[n].position, *sprites[n].transformed_image);
 							sprites[n].last_position=sprites[n].position;
 							sprites[n].was_printed=true;
 							sprites[n].changed=false;
 						}
-						graphwin->sprites_clip_region+=sprites[n].position;
+						graphics->sprites_clip_region+=sprites[n].position;
 						flag = true;
 					}
 				}
@@ -1297,7 +1295,7 @@ void Interpreter::update_sprite_screen(){
 	}
 	sprite_painter->end();
 	delete sprite_painter;
-	graphwin->draw_sprites_flag = flag;
+	graphics->draw_sprites_flag = flag;
 
 }
 
@@ -1315,7 +1313,7 @@ void Interpreter::waitForGraphics() {
 }
 
 bool Interpreter::setPainterTo(QPaintDevice *destination) {
-	drawingOnScreen = (destination == graphwin->image);
+	drawingOnScreen = (destination == graphics->image);
 	if(painter->isActive()) painter->end();
 	painter_pen_need_update=true;
 	painter_brush_need_update=true;
@@ -1334,14 +1332,14 @@ bool Interpreter::setPainterTo(QPaintDevice *destination) {
 
 void Interpreter::setGraph(QString id){
 	if(id.isEmpty()){
-		setPainterTo(graphwin->image);
+		setPainterTo(graphics->image);
 		drawto = QString("");
 	} else if(id.startsWith("image:")){
 		if (images.contains(id)){
 			setPainterTo(images[id]);
 			drawto = id;
 		}else{
-			setPainterTo(graphwin->image);
+			setPainterTo(graphics->image);
 			drawto = QString("");
 			error->q(ERROR_IMAGERESOURCE);
 		}
@@ -4066,7 +4064,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					int y = stack->popInt();
 					int x = stack->popInt();
 					if(drawingOnScreen || drawto.isEmpty()){
-						QRgb rgb = graphwin->image->pixel(x,y);
+						QRgb rgb = graphics->image->pixel(x,y);
 						stack->pushInt((int) rgb);
 					}else{
 						QRgb rgb = images[drawto]->pixel(x,y);
@@ -4092,16 +4090,16 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					switch(layer) {
 						case SLICE_PAINT:
 							if(drawingOnScreen || drawto.isEmpty()){
-								layerimage = graphwin->image;
+								layerimage = graphics->image;
 							}else{
 								layerimage = images[drawto];
 							}
 							break;
 						case SLICE_SPRITE:
-							layerimage = graphwin->spritesimage;
+							layerimage = graphics->spritesimage;
 							break;
 						default:
-							layerimage = graphwin->displayedimage;
+							layerimage = graphics->displayedimage;
 							break;
 					}
 					if (w<=0 || h<=0) {
@@ -4619,7 +4617,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						// painter no-op in setPainterTo since it writes straight
 						// to the image buffer).
 						if (guiState != GUISTATESILENT) {
-							graphwin->image->fill(c);
+							graphics->image->fill(c);
 							if (!fastgraphics) waitForGraphics();
 						}
 					}else if(printing){
@@ -4690,7 +4688,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						emit(resizeGraphWindow(width, height, scale));
 						waitCond->wait(mymutex);
 						mymutex->unlock();
-						if(drawingOnScreen) setPainterTo(graphwin->image);
+						if(drawingOnScreen) setPainterTo(graphics->image);
 						force_redraw_all_sprites_next_time();
 					}else{
 						QImage tmp = images[drawto]->copy(0,0,width,height);
@@ -4708,7 +4706,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_GRAPHWIDTH: {
 					int w = 0;
 					if (drawingOnScreen){
-						w = graphwin->image->width();
+						w = graphics->image->width();
 					}else if(printing){
 						w = printdocument->width();
 					}else{
@@ -4721,7 +4719,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_GRAPHHEIGHT: {
 					int h = 0;
 					if (drawingOnScreen) {
-						h = graphwin->image->height();
+						h = graphics->image->height();
 					}else if(printing){
 						h = printdocument->height();
 					}else{
@@ -4952,39 +4950,39 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_MOUSEX: {
-					stack->pushInt((int) graphwin->mouseX);
+					stack->pushInt((int) graphics->mouseX);
 				}
 				break;
 
 				case OP_MOUSEY: {
-					stack->pushInt((int) graphwin->mouseY);
+					stack->pushInt((int) graphics->mouseY);
 				}
 				break;
 
 				case OP_MOUSEB: {
-					stack->pushInt((int) graphwin->mouseB);
+					stack->pushInt((int) graphics->mouseB);
 				}
 				break;
 
 				case OP_CLICKCLEAR: {
-					graphwin->clickX = 0;
-					graphwin->clickY = 0;
-					graphwin->clickB = 0;
+					graphics->clickX = 0;
+					graphics->clickY = 0;
+					graphics->clickB = 0;
 				}
 				break;
 
 				case OP_CLICKX: {
-					stack->pushInt((int) graphwin->clickX);
+					stack->pushInt((int) graphics->clickX);
 				}
 				break;
 
 				case OP_CLICKY: {
-					stack->pushInt((int) graphwin->clickY);
+					stack->pushInt((int) graphics->clickY);
 				}
 				break;
 
 				case OP_CLICKB: {
-					stack->pushInt((int) graphwin->clickB);
+					stack->pushInt((int) graphics->clickB);
 				}
 				break;
 
@@ -5168,7 +5166,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					} else {
 						sprite_prepare_for_new_content(n);
 						if(drawingOnScreen || drawto.isEmpty()){
-							sprites[n].image = new QImage(graphwin->image->copy(x, y, w, h).convertToFormat(QImage::Format_ARGB32_Premultiplied));
+							sprites[n].image = new QImage(graphics->image->copy(x, y, w, h).convertToFormat(QImage::Format_ARGB32_Premultiplied));
 						}else{
 							sprites[n].image = new QImage(images[drawto]->copy(x, y, w, h).convertToFormat(QImage::Format_ARGB32_Premultiplied));
 						}
@@ -6058,7 +6056,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					validtypes << IMAGETYPE_BMP << IMAGETYPE_JPG << IMAGETYPE_JPEG << IMAGETYPE_PNG ;
 					if (validtypes.contains(type, Qt::CaseInsensitive)) {
 						if(drawingOnScreen || drawto.isEmpty()){
-							graphwin->image->save(file, type.toUpper().toUtf8().data());
+							graphics->image->save(file, type.toUpper().toUtf8().data());
 						}else{
 							images[drawto]->save(file, type.toUpper().toUtf8().data());
 						}
@@ -6534,7 +6532,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						if (printdocument) {
 							if(printdocument->isValid()){
 								printdocument->setCreator(QString(SETTINGSAPP));
-								printdocument->setDocName(editwin->title);
+								printdocument->setDocName(programTitle);
 								printdocument->setPageSize(QPageSize(static_cast<QPageSize::PageSizeId>(settingsPrinterPaper)));
 								printdocument->setPageOrientation(static_cast<QPageLayout::Orientation>(settingsPrinterOrient));
 								if (!setPainterTo(printdocument)) {
@@ -7052,7 +7050,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					switch (nr){
 					case 0:{
 						if(drawingOnScreen || drawto.isEmpty()){
-							images[id] = new QImage(*graphwin->image);
+							images[id] = new QImage(*graphics->image);
 						}else{
 							images[id] = new QImage(*images[drawto]);
 						}
@@ -7064,7 +7062,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						int y = stack->popInt();
 						int x = stack->popInt();
 						if(drawingOnScreen || drawto.isEmpty()){
-							images[id] = new QImage(graphwin->image->copy(x, y, w, h));
+							images[id] = new QImage(graphics->image->copy(x, y, w, h));
 						}else{
 							images[id] = new QImage(images[drawto]->copy(x, y, w, h));
 						}

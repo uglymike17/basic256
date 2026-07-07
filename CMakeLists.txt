@@ -62,6 +62,7 @@ set(SOURCES_CORE
     src/core/Convert.cpp
     src/core/DataElement.cpp
     src/core/Error.cpp
+    src/core/GraphicsBuffer.cpp
     src/core/Interpreter.cpp
     src/core/md5.cpp
     src/core/Sleeper.cpp
@@ -81,6 +82,7 @@ set(HEADERS_CORE
     src/core/DataElement.h
     src/core/Error.h
     src/core/ErrorCodes.h
+    src/core/GraphicsBuffer.h
     src/core/Interpreter.h
     src/core/md5.h
     src/core/Sleeper.h

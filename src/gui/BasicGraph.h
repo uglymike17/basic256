@@ -26,6 +26,7 @@
 #include <QPainter>
 #include <QKeyEvent>
 #include "ViewWidgetIFace.h"
+#include "GraphicsBuffer.h"
 
 #define GSIZE_INITIAL_WIDTH   500
 #define GSIZE_INITIAL_HEIGHT   500
@@ -36,23 +37,12 @@ class BasicGraph : public QWidget, public ViewWidgetIFace
  public:
   BasicGraph();
   ~BasicGraph();
-  QImage *image;
+  // Owns the pixel buffers, sprite state, and mouse/click state -- this
+  // widget is just the view onto it (paints displayedimage, feeds mouse
+  // events in). The interpreter talks to this directly, not to us.
+  GraphicsBuffer *graphics;
   QImage *gridlinesimage;
-  QImage *displayedimage;
-  QImage *spritesimage;
-  QRegion sprites_clip_region;
-  bool draw_sprites_flag;
   bool initActions(QMenu *, QToolBar *);
-  // used to store current location of mouse
-  // default value of -1 when no mouse recorded over graphic output
-  int mouseX;
-  int mouseY;
-  int mouseB;
-  // used to store location of last mouse click
-  // default value of -1 when no click recorded
-  int clickX;
-  int clickY;
-  int clickB;
   bool isVisibleGridLines();
   void updateScreenImage();
   QAction *copyAct;

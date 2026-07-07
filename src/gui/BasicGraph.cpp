@@ -51,13 +51,9 @@ BasicGraph::BasicGraph() {
     }else{
         gzoom=1.0;
     }
-    image = NULL;
+    graphics = new GraphicsBuffer();
     gridlinesimage = NULL;
-    displayedimage = NULL;
-    spritesimage = NULL;
-    sprites_clip_region = QRegion(0,0,0,0);
     gridlines = false;
-    draw_sprites_flag = false;
     gwidth = 0;
     gheight = 0;
     gscale = 1.0;
@@ -70,21 +66,13 @@ BasicGraph::BasicGraph() {
 }
 
 BasicGraph::~BasicGraph() {
-    if (image) {
-        delete image;
-        image = NULL;
+    if (graphics) {
+        delete graphics;
+        graphics = NULL;
     }
     if (gridlinesimage) {
         delete gridlinesimage;
         gridlinesimage = NULL;
-    }
-    if (displayedimage) {
-        delete displayedimage;
-        displayedimage = NULL;
-    }
-    if (spritesimage) {
-        delete spritesimage;
-        spritesimage = NULL;
     }
 }
 
@@ -101,33 +89,7 @@ void BasicGraph::resize(int width, int height, qreal scale) {
     // set transformation maps
     setTrasformationMaps();
 
-    // delete the old image and then create a new one the right size
-    if(image){
-        QImage old_image = image->copy(0,0,width,height);
-        image->swap(old_image);
-    }else{
-        image = new QImage(width, height, QImage::Format_ARGB32);
-        image->fill(Qt::transparent);
-    }
-
-    // delete displayed image and then create a new one the right size
-    if(displayedimage){
-        QImage old_displayedimage = displayedimage->copy(0,0,width,height);
-        displayedimage->swap(old_displayedimage);
-    }else{
-        displayedimage = new QImage(width, height, QImage::Format_ARGB32_Premultiplied);
-        displayedimage->fill(Qt::transparent);
-    }
-
-
-    // delete sprites image and then create a new one the right size
-    if(spritesimage){
-        delete spritesimage;
-        spritesimage = NULL;
-    }
-    spritesimage = new QImage(width, height, QImage::Format_ARGB32_Premultiplied);
-    spritesimage->fill(Qt::transparent);
-
+    graphics->resizeBuffers(width, height);
 
     // delete the old gridlinesimage if exist and draw new one if required
     if(gridlinesimage){
@@ -136,14 +98,6 @@ void BasicGraph::resize(int width, int height, qreal scale) {
     }
     if (gridlines)
         drawGridLines();
-
-
-    mouseX = 0;
-    mouseY = 0;
-    mouseB = 0;
-    clickX = 0;
-    clickY = 0;
-    clickB = 0;
 
     resizeWindowToFitContent();
 }
@@ -213,7 +167,7 @@ void BasicGraph::paintEvent(QPaintEvent *e) {
     QPainter painter(this);
     painter.setTransform(gtransform);
     QRect r = gtransforminverted.mapRect(e->rect());
-    painter.drawImage(r, *displayedimage, r);
+    painter.drawImage(r, *graphics->displayedimage, r);
     if (gridlines) {
         if(!gridlinesimage) drawGridLines();
         painter.drawImage(r, *gridlinesimage, r);
@@ -242,9 +196,9 @@ void BasicGraph::focusOutEvent(QFocusEvent* ){
 
 void BasicGraph::leaveEvent(QEvent *) {
 	// reset mouse to off widget when we leave
-	mouseX = -1;
-	mouseY = -1;
-	mouseB = 0;
+	graphics->mouseX = -1;
+	graphics->mouseY = -1;
+	graphics->mouseB = 0;
 }
 
 void BasicGraph::mouseMoveEvent(QMouseEvent *e) {
@@ -254,12 +208,12 @@ void BasicGraph::mouseMoveEvent(QMouseEvent *e) {
     int y = p.y();
 
     if (x >= 0 && x < gwidth && y >= 0 && y < gheight) {
-        mouseX = x;
-        mouseY = y;
-		mouseB = e->buttons();
+        graphics->mouseX = x;
+        graphics->mouseY = y;
+		graphics->mouseB = e->buttons();
 
 		if(gridlines){
-			this->setToolTip(QString::number( mouseX ) + ", " + QString::number( mouseY ));
+			this->setToolTip(QString::number( x ) + ", " + QString::number( y ));
 
 			if(c!=Qt::CrossCursor){
 				this->setCursor(Qt::CrossCursor);
@@ -289,10 +243,10 @@ void BasicGraph::mouseReleaseEvent(QMouseEvent *e) {
 void BasicGraph::mousePressEvent(QMouseEvent *e) {
     if (e->x() >= 0 && e->x() < gwidth && e->y() >= 0 && e->y() < gheight) {
         QPoint p = gtransforminverted.map(e->pos());
-        clickX = mouseX = p.x();
-        clickY = mouseY = p.y();
-		clickB = e->button();
-		mouseB = e->buttons();
+        graphics->clickX = graphics->mouseX = p.x();
+        graphics->clickY = graphics->mouseY = p.y();
+		graphics->clickB = e->button();
+		graphics->mouseB = e->buttons();
 	}
 }
 
@@ -337,7 +291,7 @@ void BasicGraph::slotGridLines(bool visible) {
 
 void BasicGraph::slotCopy() {
 	QClipboard *clipboard = QApplication::clipboard();
-    clipboard->setImage(*displayedimage);
+    clipboard->setImage(*graphics->displayedimage);
 	QApplication::processEvents();
 }
 
@@ -355,11 +309,11 @@ void BasicGraph::slotPrint() {
         if ((printer.printerState() != QPrinter::Error) && (printer.printerState() != QPrinter::Aborted)) {
             QPainter painter(&printer);
             QRect rect = painter.viewport();
-            QSize size = displayedimage->size();
+            QSize size = graphics->displayedimage->size();
             size.scale(rect.size(), Qt::KeepAspectRatio);
             painter.setViewport(rect.x(), rect.y(), size.width(), size.height());
-            painter.setWindow(displayedimage->rect());
-            painter.drawImage(0, 0, *displayedimage);
+            painter.setWindow(graphics->displayedimage->rect());
+            painter.drawImage(0, 0, *graphics->displayedimage);
         } else {
             QMessageBox::warning(this, QObject::tr("Print Error"), QObject::tr("Unable to carry out printing.\nPlease check your printer settings."));
         }
@@ -398,31 +352,20 @@ void BasicGraph::drawGridLines(){
 }
 
 void BasicGraph::updateScreenImage(){
-    if(draw_sprites_flag){
-        QImage tmp = image->convertToFormat(QImage::Format_ARGB32_Premultiplied);
-        QRectF target(0.0, 0.0, tmp.width(), tmp.height() );
-        QPainter painter;
-        painter.begin(&tmp);
-        painter.setClipRegion(sprites_clip_region);
-        painter.drawImage(target, *spritesimage);
-        painter.end();
-        displayedimage->swap(tmp);
-    }else{
-        *displayedimage = image->convertToFormat(QImage::Format_ARGB32_Premultiplied);
-    }
+    graphics->updateScreenImage();
 }
 
 void BasicGraph::mouseDoubleClickEvent(QMouseEvent * e){
     if (e->x() >= 0 && e->x() < gwidth && e->y() >= 0 && e->y() < gheight) {
-        clickX = mouseX = e->x();
-        clickY = mouseY = e->y();
-        clickB = e->button() | MOUSEBUTTON_DOUBLECLICK; //set doubleclick flag
-        mouseB = e->buttons();
+        graphics->clickX = graphics->mouseX = e->x();
+        graphics->clickY = graphics->mouseY = e->y();
+        graphics->clickB = e->button() | MOUSEBUTTON_DOUBLECLICK; //set doubleclick flag
+        graphics->mouseB = e->buttons();
     }
 }
 
 void BasicGraph::slotClear(){
-    displayedimage->fill(Qt::transparent);
+    graphics->displayedimage->fill(Qt::transparent);
     repaint();
 }
 
