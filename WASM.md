@@ -572,7 +572,7 @@ cheap simulation of the WASM feature surface with a debugger available.
 
 ## PHASE 4 – Emscripten toolchain + first WASM build
 
-- [ ] Toolchain in CI (new job in `build.yml`):
+- [x] Toolchain in CI (new job in `build.yml`):
       emsdk **4.0.7** (`emsdk install 4.0.7 && emsdk activate 4.0.7`), plus
       Qt 6.11.x **wasm multithreaded** binaries and a same-version desktop
       host Qt (needed for `QT_HOST_PATH` — moc/rcc run on the host).
@@ -582,11 +582,23 @@ cheap simulation of the WASM feature surface with a debugger available.
       `wasm_multithread`; the desktop-host requirement is unchanged). Same
       no-guessing rule as the Qt6 migration's aqt work — expect one
       round-trip on names.
-- [ ] Configure with Qt's toolchain file
+      **Done, no round-trip needed on the aqt invocation itself** (verified
+      against aqtinstall's docs before writing, per the no-guessing rule):
+      new `.github/scripts/build_WASM.sh` clones/installs emsdk 4.0.7,
+      then `aqt install-qt all_os wasm 6.11.1 wasm_multithread -m
+      qtmultimedia --autodesktop` (the `-m qtmultimedia` module name was
+      already proven correct in `build_Linux_x86.sh`; `--autodesktop`
+      installs the matching host Qt automatically). Directory names for the
+      wasm vs. host installs are discovered by glob rather than hardcoded
+      (`*wasm*` vs. not), matching `build_Linux_x86.sh`'s own
+      don't-assume-the-arch-dir-name discipline — this was the *first* time
+      this repo installed a wasm+host Qt pair, so no name was assumed.
+- [x] Configure with Qt's toolchain file
       (`<qt-wasm>/bin/qt-cmake -S . -B build-wasm
       -DQT_HOST_PATH=<qt-host> -DBASIC256_ENABLE_{PROCESS,SERIAL,SQL,
       PRINTER,TCP,TTS}=OFF`).
-- [ ] Emscripten link settings on the `basic256` target (WASM only):
+      Done exactly as described in `build_WASM.sh`.
+- [x] Emscripten link settings on the `basic256` target (WASM only):
       - Initial heap: heap growth is unsupported with pthreads, so size it
         up front (start at 512 MB; sprite-heavy fractal programs are the
         memory hogs).
@@ -594,7 +606,17 @@ cheap simulation of the WASM feature surface with a debugger available.
         (interpreter, sound internals, downloader) — start at 8. Qt's
         default is 4 and exceeding it requires returning to the event loop
         first, which a `RUN` click can't guarantee.
-- [ ] Expect and fix in this phase (compile-time only):
+      Done via `QT_WASM_INITIAL_MEMORY "512MB"` /
+      `QT_WASM_PTHREAD_POOL_SIZE "8"` `set_target_properties` on `basic256`,
+      guarded `if(EMSCRIPTEN)`. **Extra fix found and needed, not in the
+      plan's list:** the app target uses plain `add_executable()`, not
+      `qt_add_executable()` — without an explicit `qt_finalize_target
+      (basic256)` call (also added, `if(EMSCRIPTEN)`-guarded), Qt never
+      generates `basic256.html`/`qtloader.js`/`qtlogo.svg` at all, only the
+      `.js`/`.wasm`. Confirmed via Qt's own docs before writing (`qt_add_
+      executable` "ordinarily invokes" finalization; plain `add_executable`
+      does not), not assumed.
+- [x] Expect and fix in this phase (compile-time only):
       - Multimedia: Qt Multimedia has a WASM backend, but
         `setSourceDevice()` (the `sound:` in-memory path,
         `Sound.cpp:840`) is documented as unsupported in WASM. For v1,
@@ -602,18 +624,93 @@ cheap simulation of the WASM feature surface with a debugger available.
         `#ifdef Q_OS_WASM` → `ERROR_NOTAVAILABLE`; keep the `QAudioSink`
         tone path (BEEP/waveforms — the one fractal/demo programs use) and
         URL-based playback. Web-Audio bridge is Phase 7.
+        Done exactly as described — only the `s.startsWith("sound:")`
+        branch of `SoundSystem::playSound()` is gated; `beep:` (QAudioSink)
+        and file/http/https/ftp (`QMediaPlayer::setSource()`, URL-based)
+        are untouched.
       - Printing already excluded by flag; grep for any stray
         QtPrintSupport include outside guards.
-- [ ] Artifact: `basic256.html`, `basic256.js`, `basic256.wasm`,
+        **Wrong assumption, real bug found via a real CI failure, not a
+        grep — the plan's "already excluded" undersold this.** Phase 3 had
+        deliberately kept `Qt6::PrintSupport` unconditional (see its gate
+        notes: the GUI's own Print... menu actions in `BasicEdit`/
+        `BasicGraph`/`BasicOutput`/`PreferencesWin.cpp` use `QPrinter`/
+        `QPrintDialog` directly, independent of `BASIC256_ENABLE_PRINTER`,
+        which was true and fine on desktop where the module always exists).
+        But Qt for WebAssembly's own docs say flatly "Printing is not
+        supported" — the wasm Qt SDK ships no `QtPrintSupport` module at
+        all, so `find_package(... PrintSupport)` would have failed at
+        configure time regardless of the flag. Found and fixed *before*
+        the first wasm CI push (via the docs, not a failing build): made
+        `PrintSupport` conditional in `CMakeLists.txt`'s
+        `BASIC256_QT_COMPONENTS` and the `basic256` exe's link, and
+        extended `BASIC256_ENABLE_PRINTER` to also gate the four GUI
+        files' Print... actions (each already had an `#ifdef ANDROID`
+        "printing not supported" precedent for `slotPrint()` — extended
+        the same way Phase 3 extended it for `OP_OPENSERIAL`/SERIAL) and
+        `PreferencesWin`'s printer-preferences tab.
+      **Real compile-time bugs actually caught by the wasm CI job itself**
+      (five pushes; the toolchain/aqt/qt-cmake setup was correct on push 1
+      and never needed a fix — every failure past that was a genuine
+      Qt-for-WASM API-surface gap, exactly what this phase exists to find):
+      1. `Interpreter::cleanup()`'s `if(sys) sys->kill();` ran
+         unconditionally (outside the `BASIC256_ENABLE_PROCESS` guard that
+         already covers every other `sys` use) — Qt for WebAssembly's
+         `QProcess` doesn't implement `kill()` at all. Gated it too; `sys`
+         is only ever non-null when the flag is on, so this is dead code
+         when off regardless of platform.
+      2. `MainWindow.cpp`'s "check for update" HTTP request setup used
+         `QSslConfiguration`/`QSsl::SecureProtocols` — only forward-declared
+         in Qt for WebAssembly's `qnetworkrequest.h`, never implemented (no
+         OpenSSL backend; the browser's own `fetch()` handles TLS
+         transparently for `QNetworkAccessManager` there). Skipped just
+         those three lines under `Q_OS_WASM`; the request itself, its URL/
+         headers, the menu action, and the auto-check timer are untouched
+         and still work.
+      3. `RunController.cpp`'s `#include <sys/soundcard.h>` (a real,
+         Linux-only OSS sound-hardware header) is behind `#ifdef LINUX` —
+         and `LINUX` was getting defined for the wasm build too. Root
+         cause found and fixed properly rather than patched at the include
+         site: `CMakeLists.txt`'s platform-detection `if/elseif` chain only
+         special-cased `WIN32`/`APPLE` before falling back to
+         `elseif(UNIX AND NOT APPLE)` → `LINUX`, and Emscripten's CMake
+         toolchain sets `UNIX` to true (it's a POSIX-like target). Added an
+         explicit `elseif(EMSCRIPTEN)` branch (empty `PLATFORM_DEFS`/
+         `PLATFORM_LIBS`) ahead of the `UNIX`-fallback — this also fixes a
+         latent `OP_OSTYPE` bug that would have misreported the browser as
+         Linux, which the soundcard.h compile error happened to surface
+         first.
+      4. `RunController::executeSystem()` — dead code (its only wiring is
+         commented out at `RunController.cpp:102`) — default-constructed a
+         local `QProcess`, which doesn't compile at all for WASM: Qt for
+         WebAssembly's `QProcess` has a **deleted default constructor**
+         (stronger than bug 1's missing-method case — it can't be
+         instantiated there, not even on the stack). Gated the whole
+         function body on `BASIC256_ENABLE_PROCESS`, matching `OP_SYSTEM`.
+- [x] Artifact: `basic256.html`, `basic256.js`, `basic256.wasm`,
       `qtloader` files uploaded as a CI artifact.
+      Confirmed: `BASIC256-WASM` artifact on run 28885376717 contains
+      `basic256.html`, `basic256.js`, `basic256.wasm`, `qtloader.js`,
+      `qtlogo.svg`.
 
 ### Phase 4 gate
-- [ ] WASM CI job links successfully and uploads artifacts.
+- [x] WASM CI job links successfully and uploads artifacts.
+      **Confirmed 2026-07-07:** GitHub Actions run
+      [28885376717](https://github.com/uglymike17/basic256/actions/runs/28885376717)
+      — `WASM Phase 4 build` job green, `BASIC256-WASM` artifact uploaded.
 - [ ] Local smoke test: serve the artifact with COOP/COEP (e.g. Qt's
       `emrun` or a 10-line python server sending the two headers), open in
       Chrome + Firefox, IDE appears, a Hello World `.kbs` typed into the
       editor runs and PRINTs.
-- [ ] Desktop CI still green ×4 (the flags/ifdefs must not leak).
+      **Not done this session** — needs a browser and the downloaded
+      artifact; no browser available in this CLI environment. Needs the
+      maintainer.
+- [x] Desktop CI still green ×4 (the flags/ifdefs must not leak).
+      Same run 28885376717: Windows, Linux x86_64, Linux ARM64, macOS all
+      green (build+package+TestSuite), plus the flags-OFF dress rehearsal
+      — all five pre-existing jobs stayed green through every wasm-job
+      iteration this session, confirming none of the wasm-specific fixes
+      leaked into the desktop build paths.
 
 ---
 
@@ -712,15 +809,15 @@ automatic reload on first visit).
 
 ## Per-file / per-area summary (tick when fully done)
 
-- [ ] Tree restructure (`src/core`, `src/gui`, `src/app`) + CMake split
-- [ ] CI scripts path fixes (13 scripts + `BASIC256.nsi`)
-- [ ] `GraphicsBuffer` extraction; `BasicGraph` as view
-- [ ] `editwin` extern removed (programTitle)
-- [ ] `basicKeyboard` extern removed (constructor injection)
+- [x] Tree restructure (`src/core`, `src/gui`, `src/app`) + CMake split
+- [x] CI scripts path fixes (13 scripts + `BASIC256.nsi`)
+- [x] `GraphicsBuffer` extraction; `BasicGraph` as view
+- [x] `editwin` extern removed (programTitle)
+- [x] `basicKeyboard` extern removed (constructor injection)
 - [x] Feature flags ×6 + `ERROR_NOTAVAILABLE` + dress-rehearsal build
-- [ ] WASM CI job (emsdk 4.0.7 + Qt 6.11 wasm_multithread + host Qt)
-- [ ] Heap / PTHREAD_POOL_SIZE link settings
-- [ ] Sound WASM guards (`setSourceDevice` path)
+- [x] WASM CI job (emsdk 4.0.7 + Qt 6.11 wasm_multithread + host Qt)
+- [x] Heap / PTHREAD_POOL_SIZE link settings
+- [x] Sound WASM guards (`setSourceDevice` path)
 - [ ] Dialog `exec()` → `open()` conversions
 - [ ] WASM file open/save (`getOpenFileContent`/`saveFileContent`)
 - [ ] Examples packaged for browser
@@ -846,3 +943,57 @@ sandbox — each isolated in its own phase gate.
   confirmed: `SYSTEM raises ERROR_NOTAVAILABLE (129) ... pass` /
   `BASIC256_FLAGSOFF_CI_PASSED`. **Phase 3 gate closed.** Next up: Phase 4
   (Emscripten toolchain + first WASM build).
+
+- 2026-07-07: Phase 4 — before touching CI, discovered via Qt's own docs
+  (not a failing build) that Phase 3's "PrintSupport stays unconditional
+  for the GUI's own Print... menu" decision doesn't survive contact with
+  WASM: Qt for WebAssembly ships no `QtPrintSupport` module at all
+  ("Printing is not supported"). Fixed first: made `PrintSupport`
+  conditional in `CMakeLists.txt`'s component list and the `basic256` exe
+  link, and extended `BASIC256_ENABLE_PRINTER` to also gate
+  `BasicEdit`/`BasicGraph`/`BasicOutput`'s `slotPrint()` (extending each
+  file's existing `#ifdef ANDROID` precedent, same technique Phase 3 used
+  for SERIAL) and `PreferencesWin`'s printer-preferences tab. Guarded
+  `Sound.cpp`'s in-memory `sound:`/`setSourceDevice()` path under
+  `Q_OS_WASM` → `ERROR_NOTAVAILABLE` per the plan (BEEP/QAudioSink and
+  URL-based playback untouched). Added `QT_WASM_INITIAL_MEMORY`/
+  `QT_WASM_PTHREAD_POOL_SIZE` target properties and an `if(EMSCRIPTEN)`
+  `qt_finalize_target(basic256)` call (found needed via Qt's docs: plain
+  `add_executable()`, used here, skips the automatic finalization that
+  `qt_add_executable()` gets for free, and it's what actually generates
+  `basic256.html`/`qtloader.js`/`qtlogo.svg`). New
+  `.github/scripts/build_WASM.sh` (emsdk 4.0.7 install/activate, aqt
+  `all_os wasm 6.11.1 wasm_multithread -m qtmultimedia --autodesktop`,
+  directory discovery by glob rather than hardcoded names, `qt-cmake`
+  configure with all six flags off) and a new `wasm` job in `build.yml`
+  uploading the `BASIC256-WASM` artifact.
+  The toolchain/aqt/qt-cmake setup itself was correct on the first push
+  and never needed fixing — every one of the next four pushes hit a
+  genuine, different Qt-for-WASM API-surface gap, each caught by the CI
+  job exactly as this phase is designed to do: (1) `Interpreter::cleanup()`
+  called `sys->kill()` unconditionally outside the `BASIC256_ENABLE_PROCESS`
+  guard — WASM's `QProcess` has no `kill()`; (2) `MainWindow.cpp`'s
+  "check for update" code used `QSslConfiguration`/`QSsl` — only forward-
+  declared, never implemented, on WASM (browser `fetch()` handles TLS);
+  (3) `RunController.cpp`'s `#include <sys/soundcard.h>` is behind
+  `#ifdef LINUX`, and `LINUX` was getting defined for wasm too — root
+  cause fixed properly with a new `elseif(EMSCRIPTEN)` branch in
+  `CMakeLists.txt`'s platform detection (ahead of the `UNIX`-and-not-APPLE
+  fallback that Emscripten's POSIX-like `UNIX=1` was falling into), which
+  also fixes a latent `OP_OSTYPE` misreport; (4) `RunController::
+  executeSystem()` (dead code, never called) default-constructed a local
+  `QProcess` — WASM's `QProcess` has a **deleted** default constructor,
+  stronger than case (1)'s missing-method gap. Fifth push (run
+  28885376717) green on all six jobs: the `wasm` job links and uploads
+  `basic256.html`/`.js`/`.wasm`/`qtloader.js`/`qtlogo.svg`, and all five
+  pre-existing desktop/dress-rehearsal jobs stayed green through every
+  iteration — none of the wasm-specific fixes leaked into desktop build
+  paths. Also fixed a bookkeeping gap in the "Per-file / per-area summary"
+  table: Phase 1/2's rows had never been ticked despite those phases being
+  closed; ticked them now along with Phase 4's three rows.
+  **Phase 4 gate: CI (link + artifact upload + desktop-still-green) closed.
+  Local browser smoke test (serve with COOP/COEP, open in Chrome/Firefox,
+  run a Hello World) not done this session** — needs a browser, which
+  isn't available in this CLI environment; needs the maintainer. Next up:
+  either the maintainer runs that smoke test, or proceed to Phase 5
+  (browser runtime adaptation) with the smoke test deferred.
