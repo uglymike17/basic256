@@ -34,6 +34,10 @@
 #include <QtWidgets/QDialog>
 #include <QtWidgets/QLabel>
 #include <QtGui/QShortcut>
+#ifdef Q_OS_WASM
+#include <QDir>
+#include <QtWidgets/QInputDialog>
+#endif
 
 #include <QScreen>
 #include <QTimer>
@@ -170,6 +174,13 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     filemenu_new_act->setShortcuts(QKeySequence::keyBindings(QKeySequence::New));
     filemenu_open_act = filemenu->addAction(basicIcons->openIcon, QObject::tr("&Open..."));
     filemenu_open_act->setShortcuts(QKeySequence::keyBindings(QKeySequence::Open));
+#ifdef Q_OS_WASM
+    // No real filesystem to browse to Examples/ on WASM (see loadProgram()'s
+    // Q_OS_WASM branch) -- desktop doesn't need this menu item at all,
+    // Examples/ ships as loose files next to the binary and users just
+    // browse to it via the normal Open dialog.
+    filemenu_openexample_act = filemenu->addAction(basicIcons->openIcon, QObject::tr("Open &Example..."));
+#endif
 
     // Recent files menu
     filemenu_recentfiles = filemenu->addMenu(QObject::tr("Open &Recent"));
@@ -410,6 +421,9 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     QObject::connect(filemenu_saveas_act, SIGNAL(triggered()), this, SLOT(activeEditorSaveAsProgram()));
     QObject::connect(filemenu_close_act, SIGNAL(triggered()), this, SLOT(activeEditorCloseTab()));
     QObject::connect(filemenu_closeall_act, SIGNAL(triggered()), this, SLOT(closeAllProgramsSlot()));
+#ifdef Q_OS_WASM
+    QObject::connect(filemenu_openexample_act, SIGNAL(triggered()), this, SLOT(openExample()));
+#endif
     QObject::connect(undoact, SIGNAL(triggered()), this, SLOT(activeEditorUndo()));
     QObject::connect(redoact, SIGNAL(triggered()), this, SLOT(activeEditorRedo()));
     QObject::connect(cutact, SIGNAL(triggered()), this, SLOT(activeEditorCut()));
@@ -1325,9 +1339,99 @@ void MainWindow::newProgram(){
 }
 
 void MainWindow::loadProgram() {
+#ifdef Q_OS_WASM
+    // The browser has no real filesystem path to hand back (RULE 2 also
+    // applies here -- getOpenFileName()'s underlying dialog would have the
+    // same never-returns problem as exec()) -- getOpenFileContent() instead
+    // hands the picked file's name and content directly to a callback.
+    QFileDialog::getOpenFileContent(
+        QObject::tr("BASIC-256 file ") + "(*.kbs);;" + QObject::tr("Any File ") + "(*.*)",
+        [this](const QString &fileName, const QByteArray &fileContent) {
+            if (!fileName.isEmpty()) {
+                loadFileContent(fileName, fileContent);
+            }
+        }
+    );
+#else
     QString s = QFileDialog::getOpenFileName(this, QObject::tr("Open a file"), ".", QObject::tr("BASIC-256 file ") + "(*.kbs);;" + QObject::tr("Any File ") + "(*.*)");
     loadFile(s);
+#endif
 }
+
+#ifdef Q_OS_WASM
+void MainWindow::loadFileContent(QString fileName, const QByteArray &content) {
+    // WASM counterpart to loadFile(): getOpenFileContent() hands us the
+    // file's content directly, with no real path at all -- so there is no
+    // QFile to read, no path to compare against already-open tabs, no
+    // mime-type/extension confirmation (the browser's own picker already
+    // filtered by the accepted types), and no fileSystemWatcher path to
+    // add. filename is deliberately left empty afterwards: browsers can't
+    // silently overwrite a previously-downloaded file, so every Save must
+    // always go through saveFileContent(), the same as a brand new file.
+    bool replaceEmptyDoc = false;
+    BasicEdit *neweditor = nullptr;
+    if (untitledNumber == 2) {
+        BasicEdit *e = (BasicEdit*)editwintabs->currentWidget();
+        if (e) {
+            if (e->filename.isEmpty() && !e->document()->isModified()) {
+                neweditor = e;
+                replaceEmptyDoc = true;
+            }
+        }
+    }
+    if (!replaceEmptyDoc) neweditor = newEditor(fileName);
+    editwin = neweditor;
+    neweditor->filename = "";
+    neweditor->path = "";
+    neweditor->title = fileName;
+
+    updateStatusBar(QObject::tr("Loading file..."));
+    QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+    neweditor->setPlainText(QString::fromUtf8(content));
+    neweditor->document()->setModified(false);
+    setWindowTitle(fileName);
+    QApplication::restoreOverrideCursor();
+    updateStatusBar(QObject::tr("Ready."));
+
+    //add tab and make it active
+    if (!replaceEmptyDoc) {
+        int i = editwintabs->addTab(neweditor, neweditor->title);
+        editwintabs->setTabIcon(i, basicIcons->documentIcon);
+        editwintabs->setCurrentIndex(i);
+    } else {
+        neweditor->updateTitle();
+    }
+}
+
+void MainWindow::openExample() {
+    // Examples/examples.qrc (CMakeLists.txt, EMSCRIPTEN-only) bundles a
+    // curated, self-contained subset of Examples/ under this prefix.
+    // Resource reads are synchronous (compiled into the binary), unlike
+    // getOpenFileContent() -- no async callback needed for the read itself,
+    // only for the picker dialog (RULE 2: QInputDialog::getItem()'s exec()
+    // has the same never-returns problem on the WASM main thread as
+    // QDialog::exec()/QMessageBox's static functions).
+    QDir dir(":/examples");
+    QStringList files = dir.entryList(QStringList() << "*.kbs", QDir::Files, QDir::Name);
+    if (files.isEmpty()) return;
+
+    QInputDialog *dialog = new QInputDialog(this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->setWindowTitle(tr("Open Example"));
+    dialog->setLabelText(tr("Choose an example program:"));
+    dialog->setComboBoxItems(files);
+    dialog->setComboBoxEditable(false);
+    dialog->setOption(QInputDialog::UseListViewForComboBoxItems);
+    QObject::connect(dialog, &QInputDialog::textValueSelected, this, [this](const QString &fileName){
+        QFile f(":/examples/" + fileName);
+        if (f.open(QIODevice::ReadOnly)) {
+            loadFileContent(fileName, f.readAll());
+            f.close();
+        }
+    });
+    dialog->open();
+}
+#endif
 
 bool MainWindow::loadFile(QString s) {
     s = s.trimmed();

@@ -110,7 +110,9 @@ class BasicEdit : public QPlainTextEdit, public ViewWidgetIFace
         int lastLineNumberAreaWidth = -1;
         bool fileChangedOnDiskFlag; //used to mark this event during running a program
         void handleFileChangedOnDisk();
+#ifndef Q_OS_WASM
         void writeFile();
+#endif
 
 	private slots:
         void updateLineNumberAreaWidth(int newBlockCount);

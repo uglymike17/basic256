@@ -187,6 +187,24 @@ BasicEdit::keyPressEvent(QKeyEvent *e) {
 
 
 void BasicEdit::saveFile(bool overwrite) {
+#ifdef Q_OS_WASM
+	// No real filesystem path on WASM, so no getSaveFileName() prompt and
+	// no overwrite concept (the "overwrite" parameter is meaningless here:
+	// browsers can't silently overwrite a previously-downloaded file --
+	// every save is a fresh download via saveFileContent(), same as a
+	// desktop "Save As" every time). saveFileContent() gives no completion
+	// callback (fire-and-forget from Qt's side), so setModified(false) is
+	// optimistic, same as it would be if a desktop write silently failed.
+	(void)overwrite;
+	emit(setCurrentEditorTab(this));
+	QString suggested = title;
+	QRegularExpression rx("\\.[^\\/]*$");
+	if (!suggested.contains(rx)) {
+		suggested += ".kbs";
+	}
+	QFileDialog::saveFileContent(this->document()->toPlainText().toUtf8(), suggested);
+	document()->setModified(false);
+#else
 	// BE SURE TO SET filename PROPERTY FIRST
 	// or set it to '' to prompt for a new file name
 	if (filename == "") {
@@ -221,8 +239,10 @@ void BasicEdit::saveFile(bool overwrite) {
 			writeFile();
 		}
 	}
+#endif
 }
 
+#ifndef Q_OS_WASM
 void BasicEdit::writeFile() {
 	QFile f(filename);
 	f.open(QIODevice::WriteOnly | QIODevice::Truncate);
@@ -234,6 +254,7 @@ void BasicEdit::writeFile() {
 	QDir::setCurrent(fi.absolutePath());
 	emit(addFileToRecentList(filename));
 }
+#endif
 
 void BasicEdit::saveAllStep(int s) {
     if(document()->isModified()){
@@ -253,11 +274,18 @@ void BasicEdit::saveProgram() {
 
 void
 BasicEdit::saveAsProgram() {
+#ifdef Q_OS_WASM
+    // No real "save to a different path" concept on WASM -- every save is
+    // already a fresh browser download regardless of which button is
+    // clicked (see saveFile()'s Q_OS_WASM branch), so Save As reuses it.
+    saveFile(false);
+#else
     QString tempfilename = QFileDialog::getSaveFileName(this, tr("Save file as"), ".", tr("BASIC-256 File ")+ "(*.kbs);;" + tr("Any File ")+ "(*.*)");
     if (tempfilename != "") {
         filename = tempfilename;
         saveFile(false);
     }
+#endif
 }
 
 

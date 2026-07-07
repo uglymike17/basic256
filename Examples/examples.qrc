@@ -1,0 +1,46 @@
+<RCC>
+    <qresource prefix="/examples">
+        <file>15puzzle.kbs</file>
+        <file>arc_example.kbs</file>
+        <file>arrays.kbs</file>
+        <file>ballaccel.kbs</file>
+        <file>ballanim.kbs</file>
+        <file>card_suites.kbs</file>
+        <file>cards_deal5.kbs</file>
+        <file>checkerboard.kbs</file>
+        <file>chord_example.kbs</file>
+        <file>collision.kbs</file>
+        <file>collision3.kbs</file>
+        <file>errortrapping.kbs</file>
+        <file>function_factorial.kbs</file>
+        <file>function_randint.kbs</file>
+        <file>hangman.kbs</file>
+        <file>hello.kbs</file>
+        <file>mandelbrot.kbs</file>
+        <file>mousedoodle.kbs</file>
+        <file>moving_squares.kbs</file>
+        <file>paddle.kbs</file>
+        <file>pie_chart.kbs</file>
+        <file>ping.kbs</file>
+        <file>plot.kbs</file>
+        <file>plot2.kbs</file>
+        <file>poly.kbs</file>
+        <file>polytest.kbs</file>
+        <file>rainbow.kbs</file>
+        <file>ring_01.kbs</file>
+        <file>rotating3dcube.kbs</file>
+        <file>sliceanimation.kbs</file>
+        <file>snowflakes.kbs</file>
+        <file>solar_system.kbs</file>
+        <file>sqrt.kbs</file>
+        <file>stamp.kbs</file>
+        <file>stamp_flower.kbs</file>
+        <file>story.kbs</file>
+        <file>subroutine_global.kbs</file>
+        <file>subroutine_squares.kbs</file>
+        <file>tictactoe.kbs</file>
+        <file>tictactoe_comp.kbs</file>
+        <file>trig.kbs</file>
+        <file>uniformRV.kbs</file>
+    </qresource>
+</RCC>
