@@ -92,17 +92,18 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
 
     setWindowIcon(basicIcons->basic256Icon);
 
-#ifndef ANDROID
+#if !defined(ANDROID) && !defined(Q_OS_WASM)
+    // Checks for a newer *desktop* download -- meaningless in a browser
+    // (there's nothing to "download and install" over the running page),
+    // and confirmed via a real browser test to fail anyway: sourceforge.net
+    // doesn't send CORS headers allowing this cross-origin fetch, so it was
+    // just a silent, guaranteed-to-fail network call on every WASM startup.
+    // Disabled the same way ANDROID already is, for the same category of
+    // reason (no relevant "check for a desktop update" story there either).
     manager = new QNetworkAccessManager(this);
-#ifndef Q_OS_WASM
-    // Qt for WebAssembly doesn't provide QSslConfiguration/QSsl at all (only
-    // forward-declared in qnetworkrequest.h, not implemented) -- TLS is
-    // handled transparently by the browser's own fetch() backing
-    // QNetworkAccessManager there, so there's no explicit protocol to set.
     QSslConfiguration config = QSslConfiguration::defaultConfiguration();
     config.setProtocol(QSsl::SecureProtocols);
     request.setSslConfiguration(config);
-#endif
 #ifdef WIN32PORTABLE
     request.setUrl(QUrl("http://sourceforge.net/projects/basic256prtbl/best_release.json"));
 #else
@@ -476,13 +477,13 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     QObject::connect(onlinehact, SIGNAL(triggered()), rc, SLOT(showOnlineDocumentation()));
     QObject::connect(aboutact, SIGNAL(triggered()), this, SLOT(about()));
 
-#ifndef ANDROID
+#if !defined(ANDROID) && !defined(Q_OS_WASM)
     QObject::connect(checkupdate, SIGNAL(triggered()), this, SLOT(checkForUpdate()));
 #endif
 QObject::connect(helpthis, SIGNAL(triggered()), rc, SLOT(showOnlineContextDocumentation()));
 
 
-#ifndef ANDROID
+#if !defined(ANDROID) && !defined(Q_OS_WASM)
     //check for update as soon as the event loop is idle (avoid GUI freezing)
     if(autoCheckForUpdate) QTimer::singleShot(0, this, SLOT(checkForUpdate()));
 #endif
