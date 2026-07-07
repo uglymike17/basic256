@@ -90,7 +90,13 @@ void Sound::play() {
 				}
 			}else if(soundStateExpected == 0){
 				soundStateExpected = 1;
+#ifdef Q_OS_WASM
+				qCritical() << "WASM DEBUG: before audio->start(buffer) in Sound::play()";
+#endif
 				audio->start(buffer);
+#ifdef Q_OS_WASM
+				qCritical() << "WASM DEBUG: after audio->start(buffer) in Sound::play()";
+#endif
 				isPausedBySystem = false;
 				if(scheduledFade){
 					scheduledFade=false;
@@ -894,7 +900,13 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 			soundsmap[lastIdUsed]->buffer = new QBuffer(loadedsounds[s].byteArray);
 			soundsmap[lastIdUsed]->buffer->open(QIODevice::ReadOnly);
 			soundsmap[lastIdUsed]->buffer->seek(0);
+#ifdef Q_OS_WASM
+			qCritical() << "WASM DEBUG: before new QAudioSink() in playSound(beep:)";
+#endif
 			soundsmap[lastIdUsed]->audio = new QAudioSink(format,soundsmap[lastIdUsed]);
+#ifdef Q_OS_WASM
+			qCritical() << "WASM DEBUG: after new QAudioSink() in playSound(beep:)";
+#endif
 			soundsmap[lastIdUsed]->individualVolume = loadedsounds[s].individualVolume;
 			soundsmap[lastIdUsed]->updatedMasterVolume(masterVolume);
 			soundsmap[lastIdUsed]->sound_samplerate=sound_samplerate;
@@ -909,7 +921,13 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 			//soundsmap[lastIdUsed]->needValidation = false;
 			//soundsmap[lastIdUsed]->isValidated = true;
 			if(!isPlayer){
+#ifdef Q_OS_WASM
+				qCritical() << "WASM DEBUG: before soundsmap[lastIdUsed]->play() in playSound(beep:)";
+#endif
 				soundsmap[lastIdUsed]->play(); //if is a regular sond then play it, if is a player, then do not play it
+#ifdef Q_OS_WASM
+				qCritical() << "WASM DEBUG: after soundsmap[lastIdUsed]->play() in playSound(beep:)";
+#endif
 			}
 			soundID=lastIdUsed;
 		}else{
