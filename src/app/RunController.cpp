@@ -225,7 +225,11 @@ void
 RunController::executeSystem(QString text) {
 	// need to implement system as a function to return process output
 	// and to handle input
-
+	// (dead code today -- its only wiring, above, is commented out -- but
+	// gated the same as OP_SYSTEM/Interpreter::cleanup()'s sys->kill() since
+	// Qt for WebAssembly's QProcess has a deleted default constructor: it
+	// cannot be instantiated at all there, not even as a local variable.)
+#ifdef BASIC256_ENABLE_PROCESS
 	QProcess sy;
 
 	QStringList parts = QProcess::splitCommand(text);
@@ -237,6 +241,9 @@ RunController::executeSystem(QString text) {
 			//QByteArray result = sy.readAll();
 		}
 	}
+#else
+	(void)text;
+#endif
 
 	mymutex->lock();
 	waitCond->wakeAll();
