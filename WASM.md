@@ -424,24 +424,24 @@ change, but:
       [28867353524](https://github.com/uglymike17/basic256/actions/runs/28867353524)
       — Windows, Linux x86_64, Linux ARM64, macOS all build, package, and
       TestSuite-pass green.
-- [ ] **Manual verification needed from the maintainer** (no local Qt
-      toolchain or display available this session, same constraint as
-      Phases 0-1): run a graphics example, a sprite example, and a
-      mouse-input example in the IDE; run a graphics program under `-s`
-      and confirm `IMGSAVE` produces the same PNG as before.
-      Note while investigating this: `TestSuite/testsuite_ci.kbs` (the
-      automated `-s` subset CI already runs) *deliberately excludes*
-      sprite/graphics/image tests for a documented, pre-existing reason
-      unrelated to this refactor — `-s` mode's `waitForGraphics()` skips
-      sprite compositing entirely (`if (guiState == GUISTATESILENT)
-      return;` before `update_sprite_screen()`), so the on-screen buffer
-      never changes under `-s` and those assertions are unwinnable
-      regardless of correctness (see the comment above the sprite
-      `include` line in `testsuite_ci.kbs`). `IMGSAVE` itself saves
-      `graphics->image` (the raw draw buffer), not `displayedimage`, so
-      it's unaffected by that skip and should be safe to verify under
-      `-s` — but this still needs an actual maintainer-run comparison,
-      not something CI's existing gate covers.
+- [x] Manual: run a graphics example, a sprite example, and a mouse-input
+      example in the IDE; run a graphics program under `-s` and confirm
+      `IMGSAVE` produces the same PNG as before.
+      **Confirmed 2026-07-07 by maintainer.** Ran the full interactive
+      `TestSuite/testsuite.kbs` in the IDE — it includes "Basic Graphics",
+      "Mouse Functionality", "Sprites", and "IMGSave, IMGLoad, Kill and
+      Exists" sections, exactly the manual-verification surface this item
+      asks for, and all passed. Separately attempted the headless `-s`
+      cross-check by running `testsuite_imagesave_include.kbs` directly
+      under `basic256.exe -s`; it stopped on a `CONFIRM` dialog ("did the
+      image wink out?") with "CONFIRM not supported in --silent mode" —
+      that test script is interactive by design (visual confirmation of
+      IMGSAVE/IMGLOAD round-tripping), not something that was ever going
+      to run under `-s`, same category as `testsuite_ci.kbs`'s documented,
+      pre-existing exclusion of the Sprites section for an unrelated
+      `-s`-mode reason. Not a regression from this refactor. Maintainer
+      decided the interactive testsuite pass satisfies this gate item;
+      the `-s`-specific IMGSAVE PNG comparison isn't pursued further.
 - [x] `grep -n "extern BasicGraph\|extern BasicEdit\|extern BasicKeyboard"
       src/core/` returns nothing.
       Confirmed clean.
@@ -719,3 +719,11 @@ sandbox — each isolated in its own phase gate.
   this session, and `TestSuite/testsuite_ci.kbs` deliberately excludes
   sprite/graphics coverage for an unrelated, pre-existing `-s`-mode reason
   (see Phase 2 gate notes).
+  Maintainer ran the full interactive `testsuite.kbs` in the IDE (covers
+  Basic Graphics, Mouse Functionality, Sprites, and IMGSave/IMGLoad) — all
+  passed. A separate headless `-s` attempt at just the IMGSave section hit
+  an interactive `CONFIRM` dialog that test script needs (unsupported in
+  `--silent`, an unrelated pre-existing limitation of that script, not a
+  regression). Maintainer confirmed the interactive pass satisfies this
+  gate item. **Phase 2 gate closed.** Next up: Phase 3 (platform feature
+  flags + desktop dress rehearsal).
