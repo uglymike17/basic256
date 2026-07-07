@@ -163,6 +163,17 @@
     #ifdef WIN32PORTABLE
 		#include <QCoreApplication>
         #define SETTINGS QSettings settings( QCoreApplication::applicationDirPath() + "/../../Data/settings/"  + SETTINGSPORTABLEINI, QSettings::IniFormat );
+    #elif defined(Q_OS_WASM)
+        // QSettings::NativeFormat (the plain SETTINGSORG/SETTINGSAPP form
+        // below) has no real backing store to fall back to on WASM -- it
+        // would silently write into ephemeral MEMFS and lose everything on
+        // reload. WebLocalStorageFormat is the correct fix, not
+        // WebIndexedDBFormat: WebIndexedDBFormat requires JSPI (a separate,
+        // not-yet-adopted Emscripten build option, verified via Qt's own
+        // QSettings docs), while WebLocalStorageFormat is synchronous, needs
+        // no extra toolchain support, and its 5MiB cap is far more than
+        // BASIC-256's simple key/value preferences need.
+        #define SETTINGS QSettings settings(QSettings::WebLocalStorageFormat, QSettings::UserScope, SETTINGSORG, SETTINGSAPP);
     #else
         #define SETTINGS QSettings settings(SETTINGSORG, SETTINGSAPP);
     #endif
