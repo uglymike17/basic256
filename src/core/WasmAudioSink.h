@@ -1,0 +1,94 @@
+/** Copyright (C) 2026, BASIC256 contributors
+ **
+ **  This program is free software; you can redistribute it and/or modify
+ **  it under the terms of the GNU General Public License as published by
+ **  the Free Software Foundation; either version 2 of the License, or
+ **  (at your option) any later version.
+ **
+ **  This program is distributed in the hope that it will be useful,
+ **  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ **  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ **  GNU General Public License for more details.
+ **
+ **  You should have received a copy of the GNU General Public License along
+ **  with this program; if not, write to the Free Software Foundation, Inc.,
+ **  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ **/
+
+#pragma once
+
+// QAudioSink hangs the WASM main thread indefinitely on construction (see
+// WASM.md Phase 4/5 browser-testing log) -- its single-QAudioFormat-arg
+// overload resolves the default audio device the same way
+// QMediaDevices::defaultAudioOutput() does, which is also broken there.
+// WasmAudioSink is a QAudioSink-shaped facade over the Web Audio API
+// (bridged via emscripten's EM_JS) exposing exactly the subset of
+// QAudioSink's surface that Sound.cpp calls, so Sound.{h,cpp} can use it as
+// a drop-in replacement (see the Sound.h AudioSinkType alias). WASM.md
+// Phase 7.
+//
+// Playback model: Web Audio's AudioBufferSourceNode is one-shot (no native
+// pause/resume/seek). suspend()/resume()/seekTo() are emulated by stopping
+// the current source node and remembering an elapsed-seconds offset, then
+// starting a fresh node from that offset -- a standard Web Audio pattern.
+//
+// Every explicit command (stop/suspend/resume) updates state() and emits
+// stateChanged() *synchronously*, not on the async browser round-trip --
+// Sound::~Sound()'s `while(audio->state()!=QAudio::StoppedState)
+// audio->stop();` busy loop would spin forever otherwise, and the rest of
+// Sound.cpp already treats an explicit stop as authoritative without
+// waiting for real hardware confirmation. The async `onended` callback from
+// JS is only used for *natural* end-of-playback (buffer exhausted on its
+// own), matching QAudioSink's transition to QAudio::IdleState.
+
+#ifdef Q_OS_WASM
+
+#include <QObject>
+#include <QAudio>
+#include <QAudioFormat>
+#include <QIODevice>
+
+class WasmAudioSink : public QObject
+{
+    Q_OBJECT
+    public:
+        explicit WasmAudioSink(const QAudioFormat &format, QObject *parent = nullptr);
+        ~WasmAudioSink();
+
+        void start(QIODevice *device);
+        void stop();
+        void suspend();
+        void resume();
+        void setVolume(qreal volume);
+        QAudio::State state() const { return m_state; }
+        QAudio::Error error() const { return QAudio::NoError; }
+
+        // Used by Sound::position() instead of buffer->pos() on WASM --
+        // WasmAudioSink reads the whole QIODevice up front (Web Audio needs
+        // a fully decoded AudioBuffer, it can't stream from a pull-model
+        // QIODevice the way QAudioSink does), so the buffer's read cursor no
+        // longer tracks real playback progress. Returns elapsed seconds.
+        double positionSeconds() const;
+
+        // Used by Sound::seek() instead of buffer->seek() on WASM, for the
+        // same reason -- repositioning the QIODevice's read cursor has no
+        // effect once WasmAudioSink has already consumed it.
+        bool seekTo(double seconds);
+
+    signals:
+        void stateChanged(QAudio::State state);
+
+    private:
+        static void handleEnded(int nodeId);
+        void onEnded();
+        void setState(QAudio::State s);
+
+        int m_nodeId;
+        int m_sampleRate;
+        double m_pendingOffsetSeconds; // valid while Suspended/Stopped: where a future resume()/seekTo() should start from
+        QAudio::State m_state;
+
+        friend void wasmAudioSinkOnEnded(int nodeId);
+};
+
+#endif // Q_OS_WASM

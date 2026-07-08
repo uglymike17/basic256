@@ -264,9 +264,18 @@ double Sound::position() {
 	//Attention: elapsedUSecs returns the microseconds since start() was called, including time
 	//in Idle and Suspend states. So, in this case, we gonna use buffer->pos() instead.
 	if(audio){
+#ifdef Q_OS_WASM
+		// WasmAudioSink reads the whole buffer up front (Web Audio needs a
+		// fully decoded AudioBuffer, unlike QAudioSink's pull-as-it-plays
+		// QIODevice model), so buffer->pos() no longer tracks playback
+		// progress -- ask the sink directly instead. Both branches return
+		// seconds (the desktop one is bytes / bytes-per-second).
+		return audio->positionSeconds();
+#else
 		if(buffer){
 			return ((double)buffer->pos() / ((double)sound_samplerate * (double) sizeof(int16_t)));
 		}
+#endif
 	}else if(media){
 		//for media files, we ensure that last seek command is finished
 		waitLastMediaSeekTakeAction();
@@ -280,7 +289,14 @@ bool Sound::seek(double sec) {
 	//with sizeof(int16_t) - the sample size of generated sound is 16 bit
 	//For QMediaPlayer we need to wait a bit if the sound is not seekable for the moment, but not loger than 2 seconds
 	if(audio){
+#ifdef Q_OS_WASM
+		// WasmAudioSink already consumed the whole buffer at start() time,
+		// so repositioning the QIODevice's read cursor has no audible
+		// effect -- ask the sink to actually jump instead.
+		return audio->seekTo(sec);
+#else
 		return (buffer->seek( (qint64)((double)sound_samplerate * sec)  * (qint64) sizeof(int16_t)));
+#endif
 	}else if(media){
 		if(!isReady) waitMediaStatusChanged();
 		waitLastMediaSeekTakeAction();
@@ -884,17 +900,9 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 		}
 #endif
 	}else if(s.startsWith("beep:")){
-#ifdef Q_OS_WASM
-		// QAudioSink's constructor hangs indefinitely on WASM (confirmed via
-		// a real browser test: 100% CPU, zero console output, forever). Its
-		// single-QAudioFormat-arg overload internally resolves the default
-		// audio device the same way QMediaDevices::defaultAudioOutput() does
-		// (see this class's own constructor, fixed earlier the same way) --
-		// except this one isn't guarded by that fix, since it's a separate
-		// call site. A real fix needs a Web Audio API bridge via
-		// emscripten::val (WASM.md Phase 7), not a quick patch here.
-		if(*error)(*error)->q(ERROR_NOTAVAILABLE);
-#else
+		// Generated/loaded-waveform playback -- WasmAudioSink (WASM.md
+		// Phase 7) bridges this to the Web Audio API on WASM; QAudioSink is
+		// used unchanged everywhere else.
 		if(loadedsounds.count(s)){
 			lastIdUsed++;
 			soundsmap[lastIdUsed] = new Sound(this);
@@ -911,7 +919,7 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 			soundsmap[lastIdUsed]->buffer = new QBuffer(loadedsounds[s].byteArray);
 			soundsmap[lastIdUsed]->buffer->open(QIODevice::ReadOnly);
 			soundsmap[lastIdUsed]->buffer->seek(0);
-			soundsmap[lastIdUsed]->audio = new QAudioSink(format,soundsmap[lastIdUsed]);
+			soundsmap[lastIdUsed]->audio = new AudioSinkType(format,soundsmap[lastIdUsed]);
 			soundsmap[lastIdUsed]->individualVolume = loadedsounds[s].individualVolume;
 			soundsmap[lastIdUsed]->updatedMasterVolume(masterVolume);
 			soundsmap[lastIdUsed]->sound_samplerate=sound_samplerate;
@@ -933,7 +941,6 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 			//there is no resource loaded with that ID
 			if(*error)(*error)->q(ERROR_SOUNDRESOURCE);
 		}
-#endif
 	}else if(QFileInfo(s).exists()){
 		lastIdUsed++;
 		soundsmap[lastIdUsed] = new Sound(this);
@@ -995,23 +1002,10 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 
 
 int SoundSystem::playSound(std::vector<std::vector<double>> sounddata, bool isPlayer) {
+	// SOUND freq,duration / generated-waveform path -- WasmAudioSink
+	// (WASM.md Phase 7) bridges this to the Web Audio API on WASM;
+	// QAudioSink is used unchanged everywhere else.
 	soundID=0;
-#ifdef Q_OS_WASM
-	// QAudioSink's constructor hangs indefinitely on WASM (confirmed via a
-	// real browser test: 100% CPU, zero console output, forever). Its
-	// single-QAudioFormat-arg overload internally resolves the default
-	// audio device the same way QMediaDevices::defaultAudioOutput() does
-	// (see this class's own constructor, fixed earlier the same way) --
-	// except this call site isn't covered by that fix. A real fix needs a
-	// Web Audio API bridge via emscripten::val (WASM.md Phase 7), not a
-	// quick patch here. This is the SOUND freq,duration / generated-
-	// waveform path -- gate the whole function, there is no alternative
-	// non-QAudioSink code path to fall back to like there is for file/URL
-	// playback elsewhere in this file.
-	(void)sounddata; (void)isPlayer;
-	if(*error) (*error)->q(ERROR_NOTAVAILABLE);
-	return 0;
-#else
 	if(soundSystemIsStopping) return 0;
 	lastIdUsed++;
 	soundsmap[lastIdUsed] = new Sound(this);
@@ -1026,7 +1020,7 @@ int SoundSystem::playSound(std::vector<std::vector<double>> sounddata, bool isPl
 	soundsmap[lastIdUsed]->buffer->open(QIODevice::ReadWrite);
 	soundsmap[lastIdUsed]->buffer->seek(0);
 	soundsmap[lastIdUsed]->type = SOUNDTYPE_GENERATED;
-	soundsmap[lastIdUsed]->audio = new QAudioSink(format,soundsmap[lastIdUsed]);
+	soundsmap[lastIdUsed]->audio = new AudioSinkType(format,soundsmap[lastIdUsed]);
 	soundsmap[lastIdUsed]->updatedMasterVolume(masterVolume);
 	soundsmap[lastIdUsed]->sound_samplerate=sound_samplerate;
 	soundsmap[lastIdUsed]->prepareConnections();
@@ -1038,7 +1032,6 @@ int SoundSystem::playSound(std::vector<std::vector<double>> sounddata, bool isPl
 	}
 	soundID=lastIdUsed;
 	return soundID;
-#endif
 }
 
 void SoundSystem::loadSoundFromArray(QString id, QByteArray* arr){

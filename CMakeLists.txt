@@ -97,6 +97,7 @@ set(SOURCES_CORE
     src/core/Sound.cpp
     src/core/Stack.cpp
     src/core/Variables.cpp
+    src/core/WasmAudioSink.cpp
 )
 
 set(HEADERS_CORE
@@ -118,6 +119,7 @@ set(HEADERS_CORE
     src/core/Stack.h
     src/core/Variables.h
     src/core/Version.h
+    src/core/WasmAudioSink.h
     src/core/WordCodes.h
 )
 

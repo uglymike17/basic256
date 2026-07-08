@@ -38,6 +38,18 @@
 #include "Constants.h"
 #include "Settings.h"
 
+// QAudioSink hangs the WASM main thread indefinitely on construction (see
+// WASM.md Phase 4/5 browser-testing log) -- WasmAudioSink is a
+// QAudioSink-shaped facade over the Web Audio API that stands in for it on
+// that platform (WASM.md Phase 7). AudioSinkType lets the rest of this file
+// use `audio->` unchanged on every platform.
+#ifdef Q_OS_WASM
+#include "WasmAudioSink.h"
+using AudioSinkType = WasmAudioSink;
+#else
+using AudioSinkType = QAudioSink;
+#endif
+
 #define SOUND_HALFWAVE 0x7ffe // sound editors detect as overflow using max value 0x7fff
 
 #define SOUND_MAX_INSTANCES 100
@@ -90,7 +102,7 @@ class Sound : public QObject
         int loopCountdown; //used for loop counting
         int loopSaved; //used for players to remember the initial number of loops
         QMediaPlayer* media;
-        QAudioSink* audio;
+        AudioSinkType* audio;
         QAudioOutput* mediaAudioOut;
         QBuffer *buffer;
         QByteArray *byteArray;

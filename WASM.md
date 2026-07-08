@@ -977,17 +977,71 @@ automatic reload on first visit).
 
 ## PHASE 7 – Post-v1 improvements (optional, unordered)
 
-- [ ] Sound playback via a Web Audio bridge (`emscripten::val` +
-      `decodeAudioData`; KDAB has a worked example of exactly this pattern
-      for Qt 6 WASM). **Scope grew in Phase 5 (2026-07-08, real browser
-      testing):** originally scoped for just the in-memory `sound:` file
-      path (`setSourceDevice()`, documented unsupported). Real testing
-      found `QAudioSink` itself (the tone-generation path — `SOUND
-      freq,duration`, `SOUNDLOAD`+named playback) also hangs on
-      construction on this Qt/emsdk combination — Phase 5 gated it to
-      `ERROR_NOTAVAILABLE` rather than hang, but a real fix for *any*
-      sound on WASM now needs this bridge, not just the file-playback
-      case.
+- [x] **QAudioSink-based tone/waveform playback** (`beep:` named playback +
+      `SOUND freq,duration` generated-waveform playback — the two call
+      sites Phase 5 gated to `ERROR_NOTAVAILABLE`) now bridged to the Web
+      Audio API. New `src/core/WasmAudioSink.{h,cpp}` (`Q_OS_WASM`-only,
+      both files compile to an empty translation unit on desktop): a
+      `QAudioSink`-shaped facade — `start()`/`stop()`/`suspend()`/
+      `resume()`/`setVolume()`/`state()`/`error()`/`stateChanged()` — so
+      `Sound.h`'s `audio` member can be `AudioSinkType*` (a
+      platform-conditional alias: `WasmAudioSink` on WASM, `QAudioSink`
+      everywhere else) and every existing `audio->` call site in
+      `Sound.cpp` needed zero changes. Bridge implemented with
+      `EM_JS`-defined JS functions (no separate `.js` file, no CMake
+      wiring, no embind) talking to a single shared `AudioContext` +
+      per-`Sound`-instance `GainNode`; the async `onended` browser callback
+      reaches C++ via a raw function pointer resolved on the JS side with
+      Emscripten's `makeDynCall` macro (deliberately not
+      `Module.ccall`-by-name, since this build sets no
+      `EXPORTED_RUNTIME_METHODS`).
+      **Playback model:** `AudioBufferSourceNode` is one-shot (no native
+      pause), so `suspend()`/`resume()`/the new `seekTo()` method all stop
+      the current node and track an elapsed-seconds offset, restarting a
+      fresh node from that offset — every *explicit* C++-driven state
+      change (`stop`/`suspend`/`resume`) updates `state()` and emits
+      `stateChanged()` synchronously (not on the async round-trip), which
+      matters because `Sound::~Sound()`'s `while(audio->state()!=
+      QAudio::StoppedState) audio->stop();` busy-loop would otherwise spin
+      forever waiting for a callback that never arrives inside a tight
+      C++ loop. The async `onended` callback is reserved solely for
+      *natural* end-of-playback (buffer exhausted on its own) → maps to
+      `QAudio::IdleState`, matching `QAudioSink`'s own real behavior; the
+      JS side detaches `onended` before every explicit stop so it can never
+      double-fire.
+      `Sound::position()` needed one `Q_OS_WASM` branch:
+      `WasmAudioSink::start()` reads the whole `QIODevice` up front (Web
+      Audio needs a fully decoded `AudioBuffer`, it can't stream from a
+      pull-model `QIODevice` the way `QAudioSink` does), which parks
+      `buffer->pos()` at EOF immediately — the desktop code path's
+      `buffer->pos()`-based position calculation would misreport "fully
+      played" the instant playback starts, so WASM instead asks
+      `WasmAudioSink::positionSeconds()` directly. `Sound::seek()`'s
+      `audio` branch got the equivalent `Q_OS_WASM` branch calling the new
+      `WasmAudioSink::seekTo()` (real seek support during generated-sound
+      playback, not just a documented gap — nearly free once the
+      offset-tracking suspend/resume mechanism exists). `length()` needed
+      no change (`buffer->size()` is unaffected by the up-front read).
+      **Deliberately out of scope this session (maintainer scope decision):**
+      the `sound:` in-memory-file path (`SOUNDTYPE_MEMORY`,
+      `QMediaPlayer::setSourceDevice()`) stays `ERROR_NOTAVAILABLE` — a
+      structurally different backend (QMediaPlayer, not QAudioSink) that
+      would need an async `decodeAudioData` bridge instead of the
+      synchronous raw-PCM-copy technique used here. Real fix still needed,
+      tracked as a separate future Phase 7 item below.
+      **Not yet verified in a real browser this session** (no local
+      Emscripten toolchain or browser in this environment, same constraint
+      as every prior WASM phase) — needs the maintainer to confirm
+      `SOUND 400,2000` / a `BEEP`-based example is actually audible with no
+      console errors, and that loop/pause/resume/seek/`SOUNDWAIT` all
+      behave sanely, before this item can be considered fully closed.
+- [ ] `sound:` in-memory-file playback (arbitrary compressed audio bytes
+      loaded via `SOUNDLOAD` and played back with
+      `QMediaPlayer::setSourceDevice()`) still needs its own Web Audio
+      bridge — `decodeAudioData` + a `Promise`-based JS interaction, a
+      different technique from the synchronous raw-PCM approach used for
+      the QAudioSink path above. Deliberately deferred (see this session's
+      log entry) to keep that change reviewable on its own.
 - [ ] `SAY` via the browser's Web Speech API behind `BASIC256_ENABLE_TTS`'s
       WASM variant.
 - [ ] IDBFS mount for a persistent `/home/web_user` so saved programs
@@ -1010,6 +1064,8 @@ automatic reload on first visit).
 - [x] WASM CI job (emsdk 4.0.7 + Qt 6.11 wasm_multithread + host Qt)
 - [x] Heap / PTHREAD_POOL_SIZE link settings
 - [x] Sound WASM guards (`setSourceDevice` path)
+- [x] Web Audio bridge for QAudioSink tone/waveform playback
+      (`WasmAudioSink`, Phase 7; `sound:` in-memory-file path still open)
 - [ ] Dialog `exec()` → `open()` conversions (3 of 8 known real sites done;
       5 more found and deliberately deferred — see Phase 5 notes)
 - [x] WASM file open/save (`getOpenFileContent`/`saveFileContent`)
@@ -1396,3 +1452,81 @@ sandbox — each isolated in its own phase gate.
   this environment would have caught. **Next up: maintainer re-tests with
   the latest push; if Run/Debug/Preferences/About all work now, the
   Phase 4 and Phase 5 manual gate items can finally close.**
+
+- 2026-07-08: **Phase 7 — Web Audio bridge for the QAudioSink-based sound
+  paths (`beep:` named playback + `SOUND freq,duration` generated
+  waveforms), the gap Phase 5's real browser testing flagged.** Maintainer
+  chose (asked via a scope question, given the two structurally different
+  broken sound paths and the browser-unverifiable, already-once-burned
+  history of this subsystem — `QAudioSink`/`QMediaDevices` hangs,
+  `QSettings::WebLocalStorageFormat` spins) to scope this session to the
+  `QAudioSink` path only; the `sound:` in-memory-file path
+  (`QMediaPlayer::setSourceDevice()`) stays `ERROR_NOTAVAILABLE`, left as a
+  separate future Phase 7 item (different backend, needs an async
+  `decodeAudioData` bridge instead of the synchronous raw-PCM approach used
+  here).
+  New `src/core/WasmAudioSink.{h,cpp}` (`Q_OS_WASM`-only, both files
+  compile to an empty translation unit on desktop — added to
+  `SOURCES_CORE`/`HEADERS_CORE` unconditionally rather than adding the
+  first-ever platform-conditional entry to that list): a `QAudioSink`-
+  shaped facade over the Web Audio API. `Sound.h`'s `audio` member became
+  `AudioSinkType*` (`WasmAudioSink` on WASM, `QAudioSink` elsewhere), so
+  every existing `audio->` call site in `Sound.cpp` — play/stop/pause,
+  `updatedMasterVolume`, `lastError`, `prepareConnections`'s
+  `connect(audio, SIGNAL(stateChanged...))`, the destructor's stop loop —
+  needed zero changes; only the two `new QAudioSink(...)` construction
+  sites became `new AudioSinkType(...)`, and the two `Q_OS_WASM` ->
+  `ERROR_NOTAVAILABLE` gates Phase 5 added around them were removed.
+  Bridge implemented with `EM_JS`-defined JS functions living directly in
+  `WasmAudioSink.cpp` (no separate `.js` file, no CMake wiring, no embind)
+  against a single shared `AudioContext` + per-instance `GainNode`; PCM
+  samples are copied straight out of wasm linear memory
+  (`HEAP16.subarray(...)`) into a Web Audio `AudioBuffer` on `start()`. The
+  async `onended` browser event reaches C++ via a raw C function pointer
+  resolved JS-side with Emscripten's `makeDynCall` macro — deliberately
+  not `Module.ccall`-by-name, since neither `CMakeLists.txt` nor
+  `build_WASM.sh` currently sets `-sEXPORTED_RUNTIME_METHODS` (grepped to
+  confirm, not assumed); `makeDynCall` needs no such flag.
+  `AudioBufferSourceNode` is one-shot (no native pause), so
+  `suspend()`/`resume()`/a new `seekTo()` method all stop the current node,
+  track an elapsed-seconds offset, and start a fresh node from that offset
+  on resume — every *explicit* C++-driven state change updates `state()`
+  and emits `stateChanged()` **synchronously**, not on the async
+  round-trip, specifically because `Sound::~Sound()`'s
+  `while(audio->state()!=QAudio::StoppedState) audio->stop();` busy loop
+  would spin forever otherwise (found by tracing that destructor before
+  writing any bridge code, not after). The async `onended` callback is
+  reserved solely for genuine natural end-of-playback -> `QAudio::
+  IdleState`; the JS side detaches `onended` before every explicit stop so
+  it can never double-fire.
+  Found and fixed one real bug during implementation, before it could reach
+  CI: `Sound::position()`'s `audio` branch read `buffer->pos()`, which
+  tracked real playback progress under `QAudioSink`'s pull-as-it-plays
+  `QIODevice` model but would misreport "fully played" the instant playback
+  starts under `WasmAudioSink` (which reads the whole `QIODevice` once,
+  up front, since Web Audio needs a fully decoded `AudioBuffer` and can't
+  stream from a pull model) — added a `Q_OS_WASM` branch calling the new
+  `WasmAudioSink::positionSeconds()` instead. Also caught, mid-edit, that
+  my first draft of that branch scaled the return value by
+  `sound_samplerate` — re-reading the desktop formula
+  (`buffer->pos() / (sound_samplerate * sizeof(int16_t))`) showed
+  `position()` already returns **seconds**, not samples, on desktop; fixed
+  before it became a real-vs-desktop unit mismatch bug.
+  `Sound::seek()`'s `audio` branch got the equivalent `Q_OS_WASM` branch
+  calling `WasmAudioSink::seekTo()` — real seek support during
+  generated-sound playback rather than a documented gap, effectively free
+  once the offset-tracking suspend/resume mechanism already existed.
+  `length()` needed no change (`buffer->size()` is unaffected by the
+  up-front read).
+  **Not verified in a real browser this session** — no local Emscripten
+  toolchain or browser in this environment, the same constraint as every
+  prior WASM phase. Verification plan: push to CI (the `wasm` job's link
+  step catches real compile/include errors; desktop CI ×4 + dress
+  rehearsal must stay green since every new file/branch is
+  `Q_OS_WASM`-only), then the maintainer confirms in a real browser that
+  `SOUND 400,2000` / a `BEEP`-based example is actually audible with no
+  console errors and that loop/pause/resume/seek/`SOUNDWAIT` behave
+  sanely — the same "CI green is necessary but not sufficient" gate
+  structure every WASM phase has used, given this subsystem's specific
+  history of APIs that compile clean and then hang or spin in a real
+  browser. **Not yet pushed/CI-confirmed as of this log entry.**
