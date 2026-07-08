@@ -17,6 +17,16 @@
 
 #pragma once
 
+// Q_OS_WASM is defined by Qt's own qsystemdetection.h (based on the real
+// compiler builtin __EMSCRIPTEN__), not by the compiler directly -- it only
+// becomes visible once some Qt header has been processed. Sound.h always
+// includes several Qt headers before reaching its own "#ifdef Q_OS_WASM"
+// (which is what pulls this header in), so it sees Q_OS_WASM correctly. But
+// WasmAudioSink.cpp includes this header first, with nothing Qt-related
+// processed yet -- <QtGlobal> below guarantees Q_OS_WASM is defined before
+// either file's own "#ifdef Q_OS_WASM" is evaluated.
+#include <QtGlobal>
+
 // QAudioSink hangs the WASM main thread indefinitely on construction (see
 // WASM.md Phase 4/5 browser-testing log) -- its single-QAudioFormat-arg
 // overload resolves the default audio device the same way
