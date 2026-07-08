@@ -58,6 +58,12 @@
 #include <QAudioFormat>
 #include <QIODevice>
 
+// Forward-declared here (matching its real, extern "C" definition in
+// WasmAudioSink.cpp) so the friend declaration below binds to the same
+// entity instead of silently declaring a second, C++-linkage overload --
+// the two linkages are not interchangeable and Clang rejects the mismatch.
+extern "C" void wasmAudioSinkOnEnded(int nodeId);
+
 class WasmAudioSink : public QObject
 {
     Q_OBJECT
