@@ -1,6 +1,25 @@
 ## Introduction  
-BASIC-256 is a GPL-licensed, modern retro BASIC programming environment for learning coding and having fun. 
-It was originally called Kidbasic and was started in 2007, but after years of updating by the contributers and a rename to Basic256, it is in its current state quite capable for everyday hobby use.
+
+
+## Original Project 
+The original BASIC-256 v2.0.0.11 is a GPL-licensed, retro BASIC programming environment for learning coding and having fun. 
+It was originally called Kidbasic and was started in 2007, but after years of updating by the contributers and a rename to Basic256, it was in its current state quite capable for everyday hobby use.  
+The original code and last downloadable version resides on SourceForge (https://sourceforge.net/projects/kidbasic/) and is at version 2.0.0.11, which launched in 2020. It uses qmake and MinGW to compile the Windows version. It is a Qt5-based software.
+ It comes with an Example directory but most programs there need to be updated to modern specs related to speed and graphics sizes. For more 'advanced' code than the included Example programs, I invite you to go look at https://uglymike.static.domains There is also a Testsuite directory to test edge cases but this doesn't run fully on 2.0.0.11. 
+
+Unfortunately, development of the SourceForge Basic256 has apparently been stopped  after a failed attempt to port it to Qt6. Several development branches called 2.0.99.x have been created between the last stable release and the moment it came to a standstill.
+
+## About this fork  
+This new  GitHub repository (Github - uglymike17/basic256) is my attempt to restart Basic256 and takes the v2.0.99.10.2 branch with the aim of trying to modernize the codebase into a v2.1.
+
+The aim for this branch is to provide a modern toolchain and stabilisation
+ 
+ - Port from qmake to CMake and from minGW to MSVC  
+ - make it compile on Windows, Linux-x86 and Linux-ARM (RPi) and MacOS Silicon.  
+ - Migrate the codebase to Qt6.11.  
+ - Split the source code into interpreter, GUI and application so that it can be made to run in a Browser (using Qt-WASM and Emscripten)  
+ - swap the editor to the more standard Scintilla editor instead of the custom one.  
+  
 
 ## Usage  
 This now Qt6-based C++ program, when started simply with the basic256.exe command (or by clicking on its icon), opens with a 3-pane IDE with edit-, output- and graphics-windows. 
@@ -46,22 +65,6 @@ sh.Run """C:\PATH_TO_BASIC256\basic256.exe"" -g ""C:\PATH_TO_KBS\Mandelbrot-256.
  ```
 An example video of starting several graphics demos from windows shortcuts can be seen here: https://www.youtube.com/watch?v=D8ord7K2QvI
 
-## Original Project 
-The original code and last downloadable version resides on SourceForge (https://sourceforge.net/projects/kidbasic/) and is at version 2.0.0.11, which launched in 2020. It uses qmake and MinGW to compile the Windows version. It is a Qt5-based software.
- It comes with an Example directory but most programs there need to be updated to modern specs related to speed and graphics sizes. For more 'advanced' code than the included Example programs, I invite you to go look at https://uglymike.static.domains There is also a Testsuite directory to test edge cases but this doesn't run fully on 2.0.0.11. 
-
-Unfortunately, development of the SourceForge Basic256 has apparently been stopped  after a failed attempt to port it to Qt6.
-
-## About this fork  
-This new  GitHub repository (Github - uglymike17/basic256) is my attempt to restart Basic256 and takes the v2.0.99.10.2 branch with the aim of trying to modernize the codebase into a v2.1.
-
-The initial aim for this branch was to provide a modern toolchain and stabilisation
- 
- - port from qmake to CMake and from minGW to MSVC  
- - make clean-ups & modernisations where possible.  
- - fix some leaks and minor bugs 
- - make it compile on Windows, Linux-x86 and Linux-ARM (RPi) and MacOS Silicon.  
-
 
  ## Current status as of 04/07/2026
  The project has been migrated to Qt6!!  
@@ -86,6 +89,20 @@ The initial aim for this branch was to provide a modern toolchain and stabilisat
  
 The main functionality changes from the SourceForge version is that it now runs on MacOS, has been migrated to Qt6 and the addition of new terminal-based options:  next to -r/--run and -a/--app, there is now also: -g /--graph , -t /--text and -s /--silent.  These can be combined with -f/--full to make the IDE or app run fullscreen
   
+
+## Try it in your browser (WebAssembly)
+Thanks to Qt-for-WebAssembly, BASIC-256 also runs directly in the browser, no install needed. Once GitHub Pages is switched on for this repo, the live build will be at:
+
+https://uglymike17.github.io/basic256/
+
+(First load triggers one automatic page reload — that's a small helper script setting up the cross-origin isolation headers GitHub Pages can't send directly, needed for the multithreaded WASM build.)
+
+The browser build is v1 and has a few known gaps compared to the desktop app:
+ - `SYSTEM`, serial port commands (`SERIALOPEN`...), `NETSERVER`/TCP server sockets, `DBOPEN`/SQL, `PRINTER...`, and `SAY` (text-to-speech) are not available in a browser sandbox — programs calling them get a clear "Feature not available on this platform" error and keep running, they don't crash or hang.
+ - Sound loaded via `SOUNDLOAD` (arbitrary audio files) doesn't play yet; BEEP/waveform sound (`SOUND freq,duration`) does.
+ - There's no real file-open/file-save dialog for BASIC's own file commands — use your browser's own download/upload prompts for loading and saving `.kbs` programs instead.
+ - Files a running program creates only live for the current browser session (no persistent storage yet).
+ - `NETREAD` (fetching a URL) is subject to the target site's CORS policy, same as any browser page.
 
 ## Future actions
 First thing on the agenda is to get the word out so anybody could give their feedback on it. 

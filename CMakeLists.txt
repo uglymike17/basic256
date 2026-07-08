@@ -434,6 +434,25 @@ if(EMSCRIPTEN)
         QT_WASM_INITIAL_MEMORY "512MB"
         QT_WASM_PTHREAD_POOL_SIZE "8"
     )
+
+    # WASM Phase 6: size pass. CMAKE_BUILD_TYPE=Release (set by
+    # build_WASM.sh) gives Emscripten's default Release flags
+    # (-O3 -DNDEBUG), which favors speed over size. -Oz (the last -O flag
+    # on the compile/link command line wins for clang/emcc) trades some
+    # interpreter speed for a materially smaller .wasm download -- an
+    # explicit v1 tradeoff, acceptable since a page-load-blocking
+    # multi-MB download matters more for a browser demo than raw
+    # interpreter throughput. Applied to both the compile step (per-TU,
+    # including basic256core's object files that get linked into
+    # basic256) and the link step (affects binaryen's wasm-opt pass).
+    # -flto was considered and deliberately NOT applied this pass: LTO
+    # across Qt's static libraries under Emscripten's wasm-ld risks a
+    # materially longer/heavier CI link, and there is no local toolchain
+    # in this environment to first measure that cost -- revisit with real
+    # numbers from a maintainer's machine.
+    target_compile_options(basic256core PRIVATE -Oz)
+    target_compile_options(basic256 PRIVATE -Oz)
+    target_link_options(basic256 PRIVATE -Oz)
 endif()
 
 # Derive the build's VERSION display string (About box, applicationVersion)

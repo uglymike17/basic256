@@ -950,28 +950,114 @@ multithreaded build) requires. The standard workaround is the
 page that re-serves it to itself with the headers injected (costs one
 automatic reload on first visit).
 
-- [ ] Add `coi-serviceworker.min.js` to the deployed page and a
+- [x] Add `coi-serviceworker.min.js` to the deployed page and a
       `<script>` include in the generated/created `basic256.html` (use a
       custom shell page rather than patching Qt's default at deploy time).
-- [ ] New workflow step/job: on push to `main` (or tag), build WASM, place
+      **Confirmed via a real Qt bug, not assumed:** Qt's CMake WASM build
+      does not reliably support supplying a custom shell HTML file at all —
+      it overwrites/ignores one placed in the source or build tree
+      ([QTBUG-109959](https://bugreports.qt.io/browse/QTBUG-109959),
+      confirmed open via a Qt Forum thread, not just the bug tracker).
+      Sed/regex-patching Qt's generated `basic256.html` post-build was
+      ruled out too (fragile against Qt version drift in the generated
+      markup). Resolved by downloading the real `basic256.html` from the
+      last-confirmed-green wasm CI artifact (run 28946260836, Qt 6.11.1)
+      and hand-vendoring it as `wasm-deploy/index.html` — same loader
+      boilerplate (including the non-obvious
+      `entryFunction: window.basic256_entry`, which a from-scratch page
+      written from Qt's generic doc examples would have gotten wrong),
+      plus the `coi-serviceworker.min.js` `<script>` tag as the first thing
+      in `<head>`. New `wasm-deploy/coi-serviceworker.min.js`: the real
+      upstream file, MIT licensed, vendored verbatim (byte-diffed to
+      confirm) from gzuidhof/coi-serviceworker pinned to commit
+      `7b1d2a092d0d2dd2b7270b6f12f13605de26f214` (2023-12-09, latest at
+      vendoring time — the project has no tagged releases, so a commit pin
+      was the only reproducible option, same reasoning as this repo's own
+      aqtinstall commit pin in `build_Windows.ps1`). The deploy job (below)
+      discards Qt's generated `basic256.html` and deploys
+      `wasm-deploy/index.html` as `index.html` instead — the two never
+      collide or depend on each other.
+- [x] New workflow step/job: on push to `main` (or tag), build WASM, place
       artifacts + shim + a small landing page into `gh-pages` via
       `actions/deploy-pages`.
-- [ ] `.nojekyll` in the deploy root (Jekyll can mangle files/underscores).
-- [ ] Size pass: release build, `-Oz`, consider `-flto`. GitHub Pages
-      gzips text-ish types automatically but verify the served `.wasm` is
-      compressed; if not, note it (Brotli pre-compression isn't possible on
-      Pages — acceptable for v1).
-- [ ] README: link the live page, list the v1 browser limitations (the six
+      **Adjusted to this repo's real branch layout:** the plan's "push to
+      main" doesn't apply here — `v2.1.Alpha05WASM` is this repo's actual
+      default branch (checked via `gh repo view`; `main` is a separate,
+      currently-stale branch), and it's already `build.yml`'s only push
+      trigger. New `pages-deploy` job in `.github/workflows/build.yml`,
+      gated `needs: [ build, wasm ]` (RULE 1's regression net extends to
+      what gets deployed — don't publish over the live site from a build
+      that failed elsewhere) and `if: github.event_name == 'push' &&
+      github.ref == 'refs/heads/v2.1.Alpha05WASM'` (never fires for
+      `pull_request`). Downloads the `BASIC256-WASM` artifact, assembles it
+      with the vendored shell/shim into a `public/` dir, uploads via
+      `actions/upload-pages-artifact@v5` and publishes via
+      `actions/deploy-pages@v5` (both confirmed current via `gh api
+      repos/actions/.../releases`, not assumed — `v5` is also the correct
+      major tag for both, confirmed via the `refs/tags/v5` ref existing on
+      each repo).
+- [x] `.nojekyll` in the deploy root (Jekyll can mangle files/underscores).
+      Done in the same `pages-deploy` job's "Assemble Pages site" step
+      (`touch public/.nojekyll`).
+- [x] Size pass: release build, `-Oz`, consider `-flto`.
+      `-Oz` added: `CMakeLists.txt`'s existing `if(EMSCRIPTEN)` block (the
+      one setting `QT_WASM_INITIAL_MEMORY`/`QT_WASM_PTHREAD_POOL_SIZE`)
+      now also sets `-Oz` as a `target_compile_options`/`target_link_options`
+      on both `basic256core` and `basic256` — the last `-O` flag on the
+      command line wins for clang/emcc, so this overrides
+      `CMAKE_BUILD_TYPE=Release`'s default `-O3`. Deliberately trades some
+      interpreter speed for a smaller download, judged the right call for
+      a browser demo. **`-flto` deliberately not applied this pass:** LTO
+      across Qt's static libraries under Emscripten's `wasm-ld` risks a
+      materially heavier/slower CI link with no local toolchain available
+      in this environment to measure that cost first — left as a real,
+      named follow-up (Phase 7's binary-size bullet already covers this)
+      rather than guessed at.
+      **Not yet verified this session:** whether GitHub Pages actually
+      serves the `.wasm` file compressed. No live Pages URL exists yet to
+      check (that's this very phase's own gate) — chicken-and-egg, so this
+      is deferred to the Phase 6 gate once the maintainer's first deploy is
+      live; if it turns out uncompressed, the plan already treats that as
+      an acceptable, documented v1 gap (no Brotli pre-compression option on
+      Pages), not a blocker.
+- [x] README: link the live page, list the v1 browser limitations (the six
       flags, in-memory sounds, no persistent files, CORS on NETREAD).
-- [ ] **Fallback recorded:** if the serviceworker shim proves flaky on
+      Done: new "Try it in your browser (WebAssembly)" section in
+      `README.md`. The link
+      (`https://uglymike17.github.io/basic256/`) is the deterministic
+      GitHub Pages URL for this repo/owner (not guessed — GitHub Pages
+      project-site URLs for a repo without a custom domain always follow
+      `https://<owner>.github.io/<repo>/`) but **is not live yet**: GitHub
+      Pages isn't enabled for this repo (`gh api repos/.../pages` returns
+      404) — enabling it (Settings → Pages → Source: GitHub Actions) is a
+      repo-settings change with real public visibility, left for the
+      maintainer to do explicitly rather than done from this session
+      unasked. README limitations list also folds in the Phase 4/5
+      browser-testing session's `dialogOpenFileDialog`/
+      `dialogSaveFileDialog` finding (no real file-picker for BASIC's own
+      file commands) alongside the six `BASIC256_ENABLE_*` flags, in-memory
+      `SOUNDLOAD` sound, session-only files, and NETREAD CORS.
+- [x] **Fallback recorded:** if the serviceworker shim proves flaky on
       target browsers, Cloudflare Pages/Netlify support a `_headers` file
       with real COOP/COEP — the deploy job is host-agnostic, only the shim
       differs.
+      Recorded here (no code change needed unless it's actually invoked):
+      if `coi-serviceworker` proves flaky on a target browser during the
+      Phase 6 gate's real testing, the fallback is switching hosts to
+      Cloudflare Pages or Netlify and replacing `wasm-deploy/`'s shim with
+      a static `_headers` file setting real `Cross-Origin-Opener-Policy: 
+      same-origin` / `Cross-Origin-Embedder-Policy: require-corp` — the
+      `pages-deploy` job's build/assemble steps are otherwise unchanged,
+      only the final upload/publish steps and the shim would differ.
 
 ### Phase 6 gate
 - [ ] Public URL loads on stock Chrome, Firefox, Edge, Safari (Safari is
       the usual straggler — test it explicitly); threads confirmed working
       (a program with `PAUSE`/input waits doesn't freeze the page).
+      **Blocked on the maintainer enabling GitHub Pages** (Settings → Pages
+      → Source: GitHub Actions) — the `pages-deploy` job cannot publish
+      anywhere until that's done once. Once enabled, the next push to
+      `v2.1.Alpha05WASM` will deploy automatically.
 
 ---
 
@@ -1029,12 +1115,15 @@ automatic reload on first visit).
       would need an async `decodeAudioData` bridge instead of the
       synchronous raw-PCM-copy technique used here. Real fix still needed,
       tracked as a separate future Phase 7 item below.
-      **Not yet verified in a real browser this session** (no local
-      Emscripten toolchain or browser in this environment, same constraint
-      as every prior WASM phase) — needs the maintainer to confirm
-      `SOUND 400,2000` / a `BEEP`-based example is actually audible with no
-      console errors, and that loop/pause/resume/seek/`SOUNDWAIT` all
-      behave sanely, before this item can be considered fully closed.
+      **CI-confirmed green (2026-07-08, run 28946260836)** after two
+      follow-up link/compile fixes (see Session log) — the wasm job and all
+      four desktop targets + dress rehearsal build clean. **Still not
+      verified in a real browser** (no local Emscripten toolchain or
+      browser in this environment, same constraint as every prior WASM
+      phase) — needs the maintainer to confirm `SOUND 400,2000` / a
+      `BEEP`-based example is actually audible with no console errors, and
+      that loop/pause/resume/seek/`SOUNDWAIT` all behave sanely, before
+      this item can be considered fully closed.
 - [ ] `sound:` in-memory-file playback (arbitrary compressed audio bytes
       loaded via `SOUNDLOAD` and played back with
       `QMediaPlayer::setSourceDevice()`) still needs its own Web Audio
@@ -1070,8 +1159,9 @@ automatic reload on first visit).
       5 more found and deliberately deferred — see Phase 5 notes)
 - [x] WASM file open/save (`getOpenFileContent`/`saveFileContent`)
 - [x] Examples packaged for browser
-- [ ] gh-pages deploy + coi-serviceworker + landing page
-- [ ] README browser-limitations section
+- [x] gh-pages deploy + coi-serviceworker + landing page (code/CI done;
+      live-URL gate blocked on the maintainer enabling GitHub Pages)
+- [x] README browser-limitations section
 
 ---
 
@@ -1530,3 +1620,104 @@ sandbox — each isolated in its own phase gate.
   structure every WASM phase has used, given this subsystem's specific
   history of APIs that compile clean and then hang or spin in a real
   browser. **Not yet pushed/CI-confirmed as of this log entry.**
+
+- 2026-07-08: **Phase 7 WasmAudioSink — two real link/compile bugs found by
+  the wasm CI job, both in `WasmAudioSink.h`, neither visible from local
+  review (no Emscripten toolchain in this environment).**
+  1. **Link failure: `Q_OS_WASM` undefined when `WasmAudioSink.h` is the
+     first include.** `Q_OS_WASM` comes from Qt's `qsystemdetection.h`, not
+     the compiler directly — it's only defined after some Qt header has run.
+     `WasmAudioSink.cpp` includes its own header first, before any other Qt
+     header, so the header's top-level `#ifdef Q_OS_WASM` saw it undefined
+     and compiled away the entire class, leaving every `WasmAudioSink`
+     method undefined at link time (`Sound.cpp` compiled fine, since
+     `Sound.h` always pulls in Qt headers first). Fixed: unconditional
+     `#include <QtGlobal>` before the guard.
+  2. **Compile failure: `wasmAudioSinkOnEnded`'s friend declaration had
+     ordinary C++ linkage while its real definition is `extern "C"`.**
+     Clang treats that as two different functions and rejects the mismatch
+     — which also meant the intended friendship (access to the private
+     `handleEnded()`) never actually applied. Fixed: forward-declare the
+     `extern "C"` function ahead of the class so the friend declaration
+     binds to the same entity.
+  Both fixes pushed as separate commits (`5c56783`, `6f3c563`). Verified
+  via `gh run list`: run
+  [28946260836](https://github.com/uglymike17/basic256/actions/runs/28946260836)
+  (the `6f3c563` push) is green — `Build BASIC-256_2.1.Alpha CMake`
+  succeeded, i.e. the wasm job and all four desktop targets + dress
+  rehearsal all build clean with the Web Audio bridge in place. **Phase 7's
+  WasmAudioSink item is now CI-confirmed; the real-browser audio check
+  (`SOUND 400,2000`/BEEP audible, loop/pause/resume/seek/SOUNDWAIT sane)
+  remains the one open step, same no-browser-in-this-environment constraint
+  as every prior phase.** Next up: maintainer does the real-browser audio
+  check, or proceed to Phase 6 (GitHub Pages hosting + `coi-serviceworker`
+  deploy pipeline) with that check deferred.
+
+- 2026-07-08: **Phase 6 — GitHub Pages hosting + deploy pipeline**, started
+  while the maintainer runs the Phase 7 real-browser audio check in
+  parallel. The custom-shell-page item turned out to hinge on a real,
+  open Qt bug rather than being a straightforward "write an HTML file"
+  task: Qt's CMake WASM build doesn't reliably let you supply your own
+  shell HTML at all (confirmed via a Qt Forum thread pointing at
+  [QTBUG-109959](https://bugreports.qt.io/browse/QTBUG-109959) — it
+  overwrites/ignores one placed in the tree), which is exactly why the
+  plan's own wording rules out sed-patching Qt's generated file at deploy
+  time too — that would be fighting the same unreliable mechanism from a
+  different angle. Resolved by downloading the actual `basic256.html` from
+  the last confirmed-green wasm CI artifact (run 28946260836) and
+  hand-vendoring it as `wasm-deploy/index.html`, byte-checked against the
+  real file rather than reconstructed from Qt's generic doc examples —
+  this mattered concretely: the real file's `qtLoad()` config includes
+  `entryFunction: window.basic256_entry`, a per-app-name detail the docs'
+  generic `qtLoad({qt: {containerElements: [...]}})` snippet omits
+  entirely and a from-scratch page would have silently gotten wrong (app
+  would load blank, no console error to point at why). Added the
+  `coi-serviceworker.min.js` `<script>` tag as the first thing in `<head>`.
+  New `wasm-deploy/coi-serviceworker.min.js`: vendored verbatim (byte-diff
+  confirmed against the upstream file, not retyped/reformatted) from
+  gzuidhof/coi-serviceworker, pinned to commit
+  `7b1d2a092d0d2dd2b7270b6f12f13605de26f214` — the project ships no tagged
+  releases, so a commit pin was the only reproducible choice, the same
+  reasoning `build_Windows.ps1` already uses for its aqtinstall pin.
+  New `pages-deploy` job in `.github/workflows/build.yml`: adjusted the
+  plan's literal "push to main" to this repo's actual default branch
+  (`v2.1.Alpha05WASM` — checked via `gh repo view`, not assumed; `main`
+  exists but is stale and isn't what any of this work has been happening
+  on), gated on `needs: [ build, wasm ]` plus a push-only `if`, using
+  `actions/upload-pages-artifact@v5` / `actions/deploy-pages@v5` (both
+  version-checked via `gh api repos/actions/.../releases` and the
+  `refs/tags/v5` ref, not guessed — matching this repo's established
+  no-invented-versions discipline). The job downloads the `BASIC256-WASM`
+  artifact, discards Qt's generated `basic256.html`, copies in the two
+  vendored files as `index.html`/`coi-serviceworker.min.js`, and
+  `touch`es `.nojekyll`.
+  Size pass: added `-Oz` (compile + link) to `CMakeLists.txt`'s existing
+  `if(EMSCRIPTEN)` block, overriding `CMAKE_BUILD_TYPE=Release`'s default
+  `-O3` for a smaller download at some interpreter-speed cost — a
+  deliberate v1 tradeoff. `-flto` considered and explicitly not applied:
+  no local toolchain in this environment to measure its CI link-time/
+  memory cost first, and Phase 7's binary-size bullet already tracks it as
+  a named follow-up rather than something to guess at blind.
+  README: new "Try it in your browser (WebAssembly)" section linking the
+  deterministic-but-not-yet-live `https://uglymike17.github.io/basic256/`
+  Pages URL (GitHub Pages project-site URLs for a repo with no custom
+  domain always follow `https://<owner>.github.io/<repo>/` — not guessed,
+  just the standard pattern) and listing the v1 browser gaps: the six
+  `BASIC256_ENABLE_*`-gated feature areas, `SOUNDLOAD`'s in-memory audio
+  path, session-only files, NETREAD's CORS exposure, and (folded in from
+  the Phase 4/5 browser-testing log, not re-derived) the lack of a real
+  file-picker for BASIC's own file commands.
+  **Not done this session, left for the maintainer, both because they're
+  real one-time changes to shared/live infrastructure and not something to
+  do unasked:** (1) actually enabling GitHub Pages for this repo
+  (`gh api repos/.../pages` currently 404s — needs Settings → Pages →
+  Source: GitHub Actions, a repo-settings change with real public
+  visibility once done) — without it the new `pages-deploy` job will run
+  and presumably fail at the publish step with nowhere to deploy to, not
+  silently no-op; (2) the Phase 6 gate's actual browser matrix (Chrome/
+  Firefox/Edge/Safari, threads-not-freezing check) — blocked on (1)
+  existing first. **Not yet pushed/CI-confirmed as of this log entry** —
+  next step is pushing this work and watching whether the `pages-deploy`
+  job's failure mode (once Pages is enabled, or if it fails earlier for
+  lack of Pages) matches what's expected here, same "CI green is necessary
+  but not sufficient" discipline as every other phase.

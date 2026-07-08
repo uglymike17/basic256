@@ -303,6 +303,59 @@ jobs:
           build-wasm/qtloader.js
           build-wasm/qtlogo.svg
 
+  pages-deploy:
+    # WASM.md Phase 6: publish the wasm build to GitHub Pages. Gated on the
+    # full desktop matrix + wasm job succeeding (RULE 1's regression net
+    # extends to what gets deployed), and only for real pushes to this
+    # branch -- not pull_request builds, which have no gh-pages business
+    # deploying over the live site.
+    name: Deploy WASM build to GitHub Pages
+    needs: [ build, wasm ]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/v2.1.Alpha05WASM'
+    runs-on: ubuntu-22.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Download WASM artifact
+      uses: actions/download-artifact@v4.3.0
+      with:
+        name: BASIC256-WASM
+        path: public
+
+    - name: Assemble Pages site
+      run: |
+        set -euo pipefail
+        # Qt's own generated basic256.html is discarded in favor of the
+        # vendored custom shell (wasm-deploy/index.html) -- see that file's
+        # header comment and WASM.md Phase 6 for why (QTBUG-109959: Qt's
+        # CMake build doesn't reliably let you supply a custom shell file,
+        # so we replace its output post-build instead of fighting the
+        # build system for it).
+        rm -f public/basic256.html
+        cp wasm-deploy/index.html public/index.html
+        cp wasm-deploy/coi-serviceworker.min.js public/coi-serviceworker.min.js
+        # GitHub Pages runs deployed sites through Jekyll by default, which
+        # ignores/mangles files and directories starting with an underscore
+        # -- .nojekyll disables that processing.
+        touch public/.nojekyll
+        ls -la public
+
+    - name: Upload Pages artifact
+      uses: actions/upload-pages-artifact@v5
+      with:
+        path: public
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v5
+
   release:
     name: Publish Release
     needs: build

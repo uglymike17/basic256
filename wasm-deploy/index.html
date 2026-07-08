@@ -1,0 +1,110 @@
+<!--
+Copyright (C) 2024 The Qt Company Ltd.
+SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
+
+This is a hand-vendored copy of the basic256.html Qt's CMake WASM build
+generates (verified against the real artifact of CI run 28946260836,
+Qt 6.11.1 / emsdk 4.0.7), plus one addition: the coi-serviceworker script.
+See WASM.md Phase 6.
+
+Why a vendored copy instead of patching Qt's generated basic256.html at
+deploy time: Qt's CMake build doesn't reliably support supplying a custom
+wasm shell file (see https://bugreports.qt.io/browse/QTBUG-109959 -- Qt
+overwrites it), and sed/regex-patching the generated file at deploy time is
+fragile against Qt version drift. This file is deployed as index.html
+instead, so it never collides with (or depends on) whatever basic256.html
+the build produces that run; the deploy job discards the generated one.
+
+If bumping the Qt WASM version ever changes the real generated shell in a
+way that matters (new required qtLoad() config keys, etc.), re-diff this
+file against a fresh basic256.html from a real wasm CI artifact -- don't
+assume the loader boilerplate below still matches by inspection alone.
+-->
+
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+    <!-- Cross-origin isolation shim for GitHub Pages (WASM.md Phase 6):
+         GitHub Pages cannot send the Cross-Origin-Opener-Policy /
+         Cross-Origin-Embedder-Policy headers SharedArrayBuffer (i.e. this
+         multithreaded Qt WASM build) requires. coi-serviceworker installs
+         a service worker that re-serves every response with those headers
+         injected, at the cost of one automatic reload on first visit.
+         Must load first, before basic256.js/qtloader.js request anything.
+         coi-serviceworker v0.1.7, MIT licensed, vendored from
+         https://github.com/gzuidhof/coi-serviceworker at commit
+         7b1d2a092d0d2dd2b7270b6f12f13605de26f214 (2023-12-09, latest at
+         the time of vendoring -- the project has no tagged releases). -->
+    <script src="coi-serviceworker.min.js"></script>
+
+    <!--Set visual viewport size for mobile devices to the device size,
+        witch results in a scale of 1 and a 1:1 mapping between CSS pixels
+        and Qt device independent pixels. -->
+    <meta name="viewport" content="width=device-width, height=device-height, user-scalable=0"/>
+
+    <title>BASIC-256</title>
+    <style>
+      /* Make the html body cover the entire (visual) viewport with no scroll bars. */
+      html, body { padding: 0; margin: 0; overflow: hidden; height: 100% }
+      #screen { width: 100%; height: 100%; }
+    </style>
+  </head>
+  <body onload="init()">
+    <figure style="overflow:visible;" id="qtspinner">
+      <center style="margin-top:1.5em; line-height:150%">
+        <img src="qtlogo.svg" width="320" height="200" style="display:block"></img>
+        <strong>Qt for WebAssembly: BASIC-256</strong>
+        <div id="qtstatus"></div>
+        <noscript>JavaScript is disabled. Please enable JavaScript to use this application.</noscript>
+      </center>
+    </figure>
+    <div id="screen"></div>
+
+    <script type="text/javascript">
+        async function init()
+        {
+            const spinner = document.querySelector('#qtspinner');
+            const screen = document.querySelector('#screen');
+            const status = document.querySelector('#qtstatus');
+
+            const showUi = (ui) => {
+                [spinner, screen].forEach(element => element.style.display = 'none');
+                if (screen === ui)
+                    screen.style.position = 'default';
+                ui.style.display = 'block';
+            }
+
+            try {
+                showUi(spinner);
+                status.innerHTML = 'Loading...';
+
+                const instance = await qtLoad({
+                    qt: {
+                        onLoaded: () => showUi(screen),
+                        onExit: exitData =>
+                        {
+                            status.innerHTML = 'Application exit';
+                            status.innerHTML +=
+                                exitData.code !== undefined ? ` with code ${exitData.code}` : '';
+                            status.innerHTML +=
+                                exitData.text !== undefined ? ` (${exitData.text})` : '';
+                            showUi(spinner);
+                        },
+                        entryFunction: window.basic256_entry,
+                        containerElements: [screen],
+
+                    }
+                });
+            } catch (e) {
+                console.error(e);
+                console.error(e.stack);
+            }
+        }
+    </script>
+    <script src="basic256.js"></script>
+    <script type="text/javascript" src="qtloader.js"></script>
+  </body>
+</html>
