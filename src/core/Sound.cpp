@@ -1005,19 +1005,39 @@ int SoundSystem::playSound(std::vector<std::vector<double>> sounddata, bool isPl
 	connect(this, SIGNAL(stopsSoundsAndWaiting()), soundsmap[lastIdUsed], SLOT(stopsSoundsAndWaiting()));
 	connect(this, SIGNAL(systemMassCommand(int)), soundsmap[lastIdUsed], SLOT(systemMassCommand(int)));
 	connect(soundsmap[lastIdUsed], SIGNAL(deleteMe(int)), this, SLOT(deleteMe(int)));
+#ifdef Q_OS_WASM
+	qCritical() << "WASM DEBUG: before generateSound() in playSound(vector)";
+#endif
 	soundsmap[lastIdUsed]->byteArray  = generateSound(sounddata);
+#ifdef Q_OS_WASM
+	qCritical() << "WASM DEBUG: after generateSound() in playSound(vector)";
+#endif
 	soundsmap[lastIdUsed]->buffer = new QBuffer(soundsmap[lastIdUsed]->byteArray);
 	soundsmap[lastIdUsed]->buffer->open(QIODevice::ReadWrite);
 	soundsmap[lastIdUsed]->buffer->seek(0);
 	soundsmap[lastIdUsed]->type = SOUNDTYPE_GENERATED;
+#ifdef Q_OS_WASM
+	qCritical() << "WASM DEBUG: before new QAudioSink() in playSound(vector)";
+#endif
 	soundsmap[lastIdUsed]->audio = new QAudioSink(format,soundsmap[lastIdUsed]);
+#ifdef Q_OS_WASM
+	qCritical() << "WASM DEBUG: after new QAudioSink() in playSound(vector)";
+#endif
 	soundsmap[lastIdUsed]->updatedMasterVolume(masterVolume);
 	soundsmap[lastIdUsed]->sound_samplerate=sound_samplerate;
 	soundsmap[lastIdUsed]->prepareConnections();
 	//use this only when we gonna use QMediaPlayer instead of QAudioOutput (QAudioOutput intialization error)
 	//soundsmap[lastIdUsed]->needValidation = false;
 	//soundsmap[lastIdUsed]->isValidated = true;
-	if(!isPlayer) soundsmap[lastIdUsed]->play(); //if is a regular sond then play it, if is a player, then do not play it
+	if(!isPlayer) {
+#ifdef Q_OS_WASM
+		qCritical() << "WASM DEBUG: before play() in playSound(vector)";
+#endif
+		soundsmap[lastIdUsed]->play(); //if is a regular sond then play it, if is a player, then do not play it
+#ifdef Q_OS_WASM
+		qCritical() << "WASM DEBUG: after play() in playSound(vector)";
+#endif
+	}
 	soundID=lastIdUsed;
 	return soundID;
 }
