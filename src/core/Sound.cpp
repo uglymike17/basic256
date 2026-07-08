@@ -884,6 +884,17 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 		}
 #endif
 	}else if(s.startsWith("beep:")){
+#ifdef Q_OS_WASM
+		// QAudioSink's constructor hangs indefinitely on WASM (confirmed via
+		// a real browser test: 100% CPU, zero console output, forever). Its
+		// single-QAudioFormat-arg overload internally resolves the default
+		// audio device the same way QMediaDevices::defaultAudioOutput() does
+		// (see this class's own constructor, fixed earlier the same way) --
+		// except this one isn't guarded by that fix, since it's a separate
+		// call site. A real fix needs a Web Audio API bridge via
+		// emscripten::val (WASM.md Phase 7), not a quick patch here.
+		if(*error)(*error)->q(ERROR_NOTAVAILABLE);
+#else
 		if(loadedsounds.count(s)){
 			lastIdUsed++;
 			soundsmap[lastIdUsed] = new Sound(this);
@@ -900,13 +911,7 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 			soundsmap[lastIdUsed]->buffer = new QBuffer(loadedsounds[s].byteArray);
 			soundsmap[lastIdUsed]->buffer->open(QIODevice::ReadOnly);
 			soundsmap[lastIdUsed]->buffer->seek(0);
-#ifdef Q_OS_WASM
-			qCritical() << "WASM DEBUG: before new QAudioSink() in playSound(beep:)";
-#endif
 			soundsmap[lastIdUsed]->audio = new QAudioSink(format,soundsmap[lastIdUsed]);
-#ifdef Q_OS_WASM
-			qCritical() << "WASM DEBUG: after new QAudioSink() in playSound(beep:)";
-#endif
 			soundsmap[lastIdUsed]->individualVolume = loadedsounds[s].individualVolume;
 			soundsmap[lastIdUsed]->updatedMasterVolume(masterVolume);
 			soundsmap[lastIdUsed]->sound_samplerate=sound_samplerate;
@@ -921,19 +926,14 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 			//soundsmap[lastIdUsed]->needValidation = false;
 			//soundsmap[lastIdUsed]->isValidated = true;
 			if(!isPlayer){
-#ifdef Q_OS_WASM
-				qCritical() << "WASM DEBUG: before soundsmap[lastIdUsed]->play() in playSound(beep:)";
-#endif
 				soundsmap[lastIdUsed]->play(); //if is a regular sond then play it, if is a player, then do not play it
-#ifdef Q_OS_WASM
-				qCritical() << "WASM DEBUG: after soundsmap[lastIdUsed]->play() in playSound(beep:)";
-#endif
 			}
 			soundID=lastIdUsed;
 		}else{
 			//there is no resource loaded with that ID
 			if(*error)(*error)->q(ERROR_SOUNDRESOURCE);
 		}
+#endif
 	}else if(QFileInfo(s).exists()){
 		lastIdUsed++;
 		soundsmap[lastIdUsed] = new Sound(this);
@@ -996,6 +996,22 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 
 int SoundSystem::playSound(std::vector<std::vector<double>> sounddata, bool isPlayer) {
 	soundID=0;
+#ifdef Q_OS_WASM
+	// QAudioSink's constructor hangs indefinitely on WASM (confirmed via a
+	// real browser test: 100% CPU, zero console output, forever). Its
+	// single-QAudioFormat-arg overload internally resolves the default
+	// audio device the same way QMediaDevices::defaultAudioOutput() does
+	// (see this class's own constructor, fixed earlier the same way) --
+	// except this call site isn't covered by that fix. A real fix needs a
+	// Web Audio API bridge via emscripten::val (WASM.md Phase 7), not a
+	// quick patch here. This is the SOUND freq,duration / generated-
+	// waveform path -- gate the whole function, there is no alternative
+	// non-QAudioSink code path to fall back to like there is for file/URL
+	// playback elsewhere in this file.
+	(void)sounddata; (void)isPlayer;
+	if(*error) (*error)->q(ERROR_NOTAVAILABLE);
+	return 0;
+#else
 	if(soundSystemIsStopping) return 0;
 	lastIdUsed++;
 	soundsmap[lastIdUsed] = new Sound(this);
@@ -1005,24 +1021,12 @@ int SoundSystem::playSound(std::vector<std::vector<double>> sounddata, bool isPl
 	connect(this, SIGNAL(stopsSoundsAndWaiting()), soundsmap[lastIdUsed], SLOT(stopsSoundsAndWaiting()));
 	connect(this, SIGNAL(systemMassCommand(int)), soundsmap[lastIdUsed], SLOT(systemMassCommand(int)));
 	connect(soundsmap[lastIdUsed], SIGNAL(deleteMe(int)), this, SLOT(deleteMe(int)));
-#ifdef Q_OS_WASM
-	qCritical() << "WASM DEBUG: before generateSound() in playSound(vector)";
-#endif
 	soundsmap[lastIdUsed]->byteArray  = generateSound(sounddata);
-#ifdef Q_OS_WASM
-	qCritical() << "WASM DEBUG: after generateSound() in playSound(vector)";
-#endif
 	soundsmap[lastIdUsed]->buffer = new QBuffer(soundsmap[lastIdUsed]->byteArray);
 	soundsmap[lastIdUsed]->buffer->open(QIODevice::ReadWrite);
 	soundsmap[lastIdUsed]->buffer->seek(0);
 	soundsmap[lastIdUsed]->type = SOUNDTYPE_GENERATED;
-#ifdef Q_OS_WASM
-	qCritical() << "WASM DEBUG: before new QAudioSink() in playSound(vector)";
-#endif
 	soundsmap[lastIdUsed]->audio = new QAudioSink(format,soundsmap[lastIdUsed]);
-#ifdef Q_OS_WASM
-	qCritical() << "WASM DEBUG: after new QAudioSink() in playSound(vector)";
-#endif
 	soundsmap[lastIdUsed]->updatedMasterVolume(masterVolume);
 	soundsmap[lastIdUsed]->sound_samplerate=sound_samplerate;
 	soundsmap[lastIdUsed]->prepareConnections();
@@ -1030,16 +1034,11 @@ int SoundSystem::playSound(std::vector<std::vector<double>> sounddata, bool isPl
 	//soundsmap[lastIdUsed]->needValidation = false;
 	//soundsmap[lastIdUsed]->isValidated = true;
 	if(!isPlayer) {
-#ifdef Q_OS_WASM
-		qCritical() << "WASM DEBUG: before play() in playSound(vector)";
-#endif
 		soundsmap[lastIdUsed]->play(); //if is a regular sond then play it, if is a player, then do not play it
-#ifdef Q_OS_WASM
-		qCritical() << "WASM DEBUG: after play() in playSound(vector)";
-#endif
 	}
 	soundID=lastIdUsed;
 	return soundID;
+#endif
 }
 
 void SoundSystem::loadSoundFromArray(QString id, QByteArray* arr){
