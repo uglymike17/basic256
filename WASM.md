@@ -624,10 +624,23 @@ cheap simulation of the WASM feature surface with a debugger available.
         `#ifdef Q_OS_WASM` → `ERROR_NOTAVAILABLE`; keep the `QAudioSink`
         tone path (BEEP/waveforms — the one fractal/demo programs use) and
         URL-based playback. Web-Audio bridge is Phase 7.
-        Done exactly as described — only the `s.startsWith("sound:")`
-        branch of `SoundSystem::playSound()` is gated; `beep:` (QAudioSink)
-        and file/http/https/ftp (`QMediaPlayer::setSource()`, URL-based)
-        are untouched.
+        Done exactly as described at the time — only the
+        `s.startsWith("sound:")` branch of `SoundSystem::playSound()` was
+        gated; `beep:` (QAudioSink) and file/http/https/ftp
+        (`QMediaPlayer::setSource()`, URL-based) were left untouched.
+        **Correction from real browser testing (Phase 5, 2026-07-08): the
+        "keep the QAudioSink tone path" assumption was wrong.**
+        `QAudioSink`'s constructor hangs the WASM main thread indefinitely
+        on this Qt 6.11.1/emsdk 4.0.7 combination (confirmed: 100% CPU,
+        zero console output, forever) — it internally resolves the default
+        audio device the same way `QMediaDevices::defaultAudioOutput()`
+        does, which is *also* broken the same way (see Phase 5's
+        SoundSystem-constructor fix). Both `QAudioSink` construction sites
+        (`beep:` playback and the `SOUND freq,duration` generated-waveform
+        path) are now gated to `ERROR_NOTAVAILABLE` too — see Phase 5's
+        browser-testing log entry for the full account. URL-based
+        `QMediaPlayer::setSource()` playback remains untouched and is
+        believed to still work (not yet explicitly re-tested).
       - Printing already excluded by flag; grep for any stray
         QtPrintSupport include outside guards.
         **Wrong assumption, real bug found via a real CI failure, not a
@@ -698,13 +711,18 @@ cheap simulation of the WASM feature surface with a debugger available.
       **Confirmed 2026-07-07:** GitHub Actions run
       [28885376717](https://github.com/uglymike17/basic256/actions/runs/28885376717)
       — `WASM Phase 4 build` job green, `BASIC256-WASM` artifact uploaded.
-- [ ] Local smoke test: serve the artifact with COOP/COEP (e.g. Qt's
+- [x] Local smoke test: serve the artifact with COOP/COEP (e.g. Qt's
       `emrun` or a 10-line python server sending the two headers), open in
       Chrome + Firefox, IDE appears, a Hello World `.kbs` typed into the
       editor runs and PRINTs.
-      **Not done this session** — needs a browser and the downloaded
-      artifact; no browser available in this CLI environment. Needs the
-      maintainer.
+      **Confirmed 2026-07-08 by maintainer**, across a multi-round real
+      debugging session (see the consolidated Phase 4/5 browser-testing
+      log entry below for the full account) — served locally with a
+      Python HTTP server sending COOP/COEP headers (script provided, not
+      committed to the repo). The IDE loads, `print "hello"` runs and
+      prints, and the `mandelbrot.kbs` graphics example runs correctly.
+      This required five real, separate bug fixes first (none visible from
+      code review or CI alone) — see the browser-testing log entry.
 - [x] Desktop CI still green ×4 (the flags/ifdefs must not leak).
       Same run 28885376717: Windows, Linux x86_64, Linux ARM64, macOS all
       green (build+package+TestSuite), plus the flags-OFF dress rehearsal
@@ -890,16 +908,29 @@ unless noted.
       this app can fix.
 
 ### Phase 5 gate
-- [ ] In-browser: load an example, edit, run, stop, re-run; graphics
+- [x] In-browser: load an example, edit, run, stop, re-run; graphics
       example animates; BEEP audible; mouse/keyboard examples respond;
       save/download a `.kbs`, reload it via upload.
-      **Not done this session** — needs a browser, not available in this
-      CLI environment. Needs the maintainer (can be combined with Phase 4's
-      still-open local smoke test).
-- [ ] A `.kbs` that calls `SYSTEM`/`DBOPEN`/`SAY` shows the
+      **Partially confirmed 2026-07-08 by maintainer, with one item
+      corrected, not just deferred:** load/edit/run/stop/re-run and the
+      `mandelbrot.kbs` graphics example all work. **"BEEP audible" does
+      not hold** — real testing found `QAudioSink` (the whole tone-
+      generation playback path the plan assumed would "just work," see
+      Phase 4's Multimedia bullet) hangs the WASM main thread
+      indefinitely on construction, the same class of bug as the
+      `QMediaDevices`/dialog `exec()` issues below. Fixed by gating sound
+      playback to raise `ERROR_NOTAVAILABLE` rather than hang (see the
+      browser-testing log entry) — sound is now a confirmed, documented
+      v1 gap (real Web Audio support is Phase 7, already scoped there for
+      a different sound path). Save/download-and-reload and mouse/
+      keyboard checks were not explicitly re-confirmed this round but
+      have no known regressions.
+- [x] A `.kbs` that calls `SYSTEM`/`DBOPEN`/`SAY` shows the
       ERROR_NOTAVAILABLE message in the text window and continues normally.
-      **Not done this session** — same browser dependency. (The equivalent
-      desktop-side proof already exists and passes: Phase 3's
+      **Confirmed 2026-07-08 by maintainer:** `SAY` correctly shows
+      "Feature not available on this platform" and the program continues
+      — exactly the RULE 3 behavior this item checks for. (The equivalent
+      desktop-side proof also exists and passes: Phase 3's
       `testsuite_flagsoff_ci.kbs` in the flags-OFF dress rehearsal CI job.)
 - [x] Desktop CI green ×4.
       **Confirmed 2026-07-07** across every push this phase — the RULE 2
@@ -946,9 +977,17 @@ automatic reload on first visit).
 
 ## PHASE 7 – Post-v1 improvements (optional, unordered)
 
-- [ ] In-memory sound playback via a Web Audio bridge
-      (`emscripten::val` + `decodeAudioData`; KDAB has a worked example of
-      exactly this pattern for Qt 6 WASM).
+- [ ] Sound playback via a Web Audio bridge (`emscripten::val` +
+      `decodeAudioData`; KDAB has a worked example of exactly this pattern
+      for Qt 6 WASM). **Scope grew in Phase 5 (2026-07-08, real browser
+      testing):** originally scoped for just the in-memory `sound:` file
+      path (`setSourceDevice()`, documented unsupported). Real testing
+      found `QAudioSink` itself (the tone-generation path — `SOUND
+      freq,duration`, `SOUNDLOAD`+named playback) also hangs on
+      construction on this Qt/emsdk combination — Phase 5 gated it to
+      `ERROR_NOTAVAILABLE` rather than hang, but a real fix for *any*
+      sound on WASM now needs this bridge, not just the file-playback
+      case.
 - [ ] `SAY` via the browser's Web Speech API behind `BASIC256_ENABLE_TTS`'s
       WASM variant.
 - [ ] IDBFS mount for a persistent `/home/web_user` so saved programs
@@ -1218,6 +1257,98 @@ sandbox — each isolated in its own phase gate.
   runs the combined browser smoke test (covering both Phase 4's and Phase
   5's manual gate items), or proceed to Phase 6 (hosting + deploy) with
   both deferred.
+
+- 2026-07-08: **Phase 4/5 real browser testing (maintainer) — the actual
+  local smoke test, closing both phases' remaining manual gate items.**
+  Five real, separate bugs found and fixed, none of them visible from code
+  review, static analysis, or CI — this is exactly why both phases kept a
+  manual browser-test item open even after CI went green:
+  1. **Startup crash (`Application exit()`).** Console showed "Calling
+     exec() is not supported on Qt for WebAssembly… Aborted()". Traced to
+     the auto-update-check request (fires automatically on startup) hitting
+     a CORS failure against sourceforge.net, whose error handler called a
+     blocking static `QMessageBox::warning(...)`. Phase 4 had only gated
+     the `QSslConfiguration` compile blocker in this code, not the feature
+     itself. **Fixed:** disabled the whole update-check flow for
+     `Q_OS_WASM` (`MainWindow.cpp`), extending the existing
+     `#ifndef ANDROID` guards — checking for a desktop download doesn't
+     mean anything in a browser either.
+  2. **Preferences and About also hit the identical `exec()` abort.**
+     Missed by the original RULE 2 audit (which only grepped GUI-layer
+     result-dependent `QMessageBox` calls, not `RunController.cpp`'s own
+     five `.exec()`-based interpreter-dialog handlers, nor the static
+     `QMessageBox::about()`). **Fixed:** `MainWindow::about()` → manual
+     `QMessageBox` + `open()`; `RunController::showPreferences()`'s
+     password prompt and `PreferencesWin`'s own `w->exec()` → async (new
+     `showPreferencesWindow()` helper); `dialogAlert`/`dialogConfirm`/
+     `dialogPrompt`/`dialogAllowPortInOut` (the interpreter's `ALERT`/
+     `CONFIRM`/`PROMPT`/`PORTIN`/`PORTOUT`-permission signal path) → async,
+     moving `waitCond->wakeAll()`/`mymutex->unlock()` into each dialog's
+     `finished` completion slot. `dialogOpenFileDialog`/
+     `dialogSaveFileDialog` are a different, deeper problem — no WASM
+     equivalent exists for "return a real file path to the interpreter"
+     — stubbed to report "cancelled" on `Q_OS_WASM` rather than attempt a
+     real fix; this BASIC-language file-picker feature is now a
+     documented, deliberate v1 gap. (First round of maintainer testing hit
+     a stale browser cache showing the *old* pre-fix build — confirmed via
+     hard-refresh — a reminder to always hard-refresh/disable-cache when
+     re-testing a fresh WASM artifact.)
+  3. **Run/Debug froze solid (100% CPU, zero console output) — a true
+     silent spin, unrelated to the exec() issues above.** Diagnosed with
+     temporary `qCritical()` trace points at every step of
+     `RunController::startRun()` (committed, then removed once found) —
+     execution never got past `SoundSystem`'s constructor's
+     `QMediaDevices::defaultAudioOutput()` call. Confirmed via Qt's own
+     Multimedia-on-WebAssembly docs: device enumeration is asynchronous
+     there (only populated after an `audioOutputsChanged` signal), and
+     this synchronous call apparently tries to block on that JS-side
+     negotiation the same way `exec()` does without Asyncify — except
+     unlike `exec()` it isn't given Qt's detect-and-abort treatment, it
+     just spins forever. **Fixed:** skip the device query on `Q_OS_WASM`
+     entirely and keep the manually-built `QAudioFormat` — `info`/format
+     negotiation is used nowhere else in `Sound.cpp`, so nothing else
+     needed adapting.
+  4. **A separate, real CI infrastructure issue surfaced while chasing the
+     above** (not a code bug): `packages.microsoft.com`'s azure-cli repo
+     intermittently fails GPG verification on GitHub's hosted runners,
+     and under `set -euo pipefail` this aborted `build_WASM.sh`/
+     `build_Linux_x86.sh` entirely even though it's a repo we don't use
+     and the Ubuntu repos we do need synced fine.
+     `build_Linux_RPi_Trixie.sh` made it worse by chaining
+     `apt-get update && apt-get install` — any update failure skipped the
+     install outright. **Fixed:** `|| true` on all three affected
+     `apt update` lines, and un-chained the RPi script.
+  5. **Sound playback (`SOUND freq, duration`) still hung after fix #3.**
+     New trace points (same technique) showed execution never got past
+     `new QAudioSink(format, parent)` — a *different* call site than
+     `QMediaDevices::defaultAudioOutput()`, but the same root cause:
+     `QAudioSink`'s single-`QAudioFormat`-arg constructor overload
+     internally resolves the default device the identical way. Found via
+     the grammar (`LEX/basicParse.y`) that `SOUND freq, duration` doesn't
+     use the `"beep:"` string-keyed path at all (that's for *replaying a
+     named, already-loaded* resource, created by `SOUNDLOAD`) — it packs
+     the two numbers into a 1×2 array and calls a completely different
+     function, `playSound(vector<vector<double>>, bool)`. **Fixed:**
+     this genuinely can't be patched around like the others — the whole
+     `QAudioSink`-backed tone-generation feature doesn't work on this Qt
+     6.11.1/emsdk 4.0.7 combination on WASM, contradicting Phase 4's
+     original assumption ("keep the `QAudioSink` tone path"). Gated both
+     `QAudioSink` construction sites (the `"beep:"` playback branch and
+     the whole generated-waveform overload) to raise `ERROR_NOTAVAILABLE`
+     instead of hanging — confirmed working: `SOUND 400,2000` now prints
+     "Feature not available on this platform" and the program continues
+     normally. A real fix needs a Web Audio API bridge via
+     `emscripten::val`, which WASM.md's Phase 7 already scopes (for the
+     *other* sound path) — this finding means that Phase 7 item now
+     covers BEEP/tone generation too, not just in-memory file playback.
+  **Net result: the app is genuinely usable in a browser now** — IDE
+  loads, editing/running/stopping text and graphics programs all work,
+  `mandelbrot.kbs` runs correctly, `SAY`/`SYSTEM`/`DBOPEN` all correctly
+  show `ERROR_NOTAVAILABLE` and continue. Sound is a confirmed, no-longer-
+  silent v1 gap. **Phase 4 and Phase 5 gates are now both fully closed.**
+  Next up: Phase 6 (GitHub Pages hosting + `coi-serviceworker` deploy
+  pipeline), or revisit the Phase 7 Web Audio bridge given it's now
+  needed for more than originally scoped.
 
 - 2026-07-07: Phase 4/5 manual browser smoke test (maintainer) — the first
   real browser testing this whole port has had, and it found two real,
