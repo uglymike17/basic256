@@ -198,6 +198,15 @@ private:
     BasicEdit* newEditor(QString title);
     int untitledNumber;
     int runState;
+    // Set just before calling qApp->quit() from closeEvent()'s async completion
+    // callback. QApplication's handling of the resulting QEvent::Quit calls
+    // closeAllWindows(), which re-invokes closeEvent() on this same window
+    // *before* the event loop actually exits -- without this flag that
+    // re-entrant call would ignore() the event again (same as the original,
+    // not-yet-confirmed call), which makes closeAllWindows() report failure,
+    // which makes Qt abort the quit, leaving us to schedule another
+    // qApp->quit() and loop forever. Once set, closeEvent() just accepts.
+    bool quitConfirmed;
     QFileSystemWatcher *fileSystemWatcher;
 
 #ifndef ANDROID

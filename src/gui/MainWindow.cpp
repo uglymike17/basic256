@@ -80,6 +80,7 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     setAcceptDrops(true);
     untitledNumber = 1;
     runState = RUNSTATESTOP;
+    quitConfirmed = false;
     editwin=NULL;
     basicIcons = new BasicIcons();
     basicKeyboard = new BasicKeyboard();
@@ -876,7 +877,18 @@ void MainWindow::ifGuiStateClose(bool ok) {
 
 
 void MainWindow::closeEvent(QCloseEvent *e) {
-	qDebug() << "[close-debug] MainWindow::closeEvent runState=" << runState;
+	qDebug() << "[close-debug] MainWindow::closeEvent runState=" << runState << " quitConfirmed=" << quitConfirmed;
+	if (quitConfirmed) {
+		// We already ran the unsaved-changes flow once and decided to quit.
+		// This call is Qt re-entering closeEvent() from qApp->quit()'s own
+		// QEvent::Quit handling, which calls closeAllWindows() to double-check
+		// every top-level widget is willing to close before actually exiting.
+		// Accept immediately instead of re-running closeAllPrograms() (which
+		// would just ignore() again and make Qt think the close failed,
+		// scheduling yet another quit() -- an infinite closeEvent loop).
+		e->accept();
+		return;
+	}
 	if(runState == RUNSTATERUN) {
 		// cause interpreter to do a controlled stop and wait for stop to finish
 		qDebug() << "[close-debug] closeEvent: RUNSTATERUN branch, calling rc->stopRun()";
@@ -898,6 +910,7 @@ void MainWindow::closeEvent(QCloseEvent *e) {
 			if (doquit) {
 				// save current screen posision, visibility and floating
 				saveCustomizations();
+				quitConfirmed = true;
 				qDebug() << "[close-debug] closeEvent onDone: saveCustomizations() done, scheduling qApp->quit()";
 				QTimer::singleShot(0, qApp, SLOT(quit()));
 				// close app as soon as the event loop is idle instead of using qApp->quit() to allow dispach of other events
