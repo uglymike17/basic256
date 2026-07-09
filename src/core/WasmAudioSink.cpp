@@ -21,6 +21,7 @@
 
 #include <cstdint>
 #include <QMap>
+#include <QDebug>
 #include <emscripten.h>
 #include <emscripten/em_js.h>
 
@@ -59,6 +60,8 @@ EM_JS(void, wasmAudioSinkCreate, (int nodeId), {
             src.buffer = entry.buffer;
             src.connect(entry.gain);
             src.onended = function() {
+                console.log("[wasm-audio-debug] AudioBufferSourceNode.onended fired for nodeId=" + entry.id +
+                    " (stale=" + (entry.source !== src) + ")");
                 if (entry.source !== src) return; // stale callback from an already-replaced node
                 entry.playing = false;
                 var endedPtr = w.onEndedPtr;
@@ -84,7 +87,14 @@ EM_JS(void, wasmAudioSinkCreate, (int nodeId), {
             return entry.baseOffset;
         };
     }
-    if (w.ctx.state === "suspended") { w.ctx.resume(); }
+    console.log("[wasm-audio-debug] wasmAudioSinkCreate nodeId=" + nodeId + " ctx.state(before resume)=" + w.ctx.state);
+    if (w.ctx.state === "suspended") {
+        w.ctx.resume().then(function() {
+            console.log("[wasm-audio-debug] AudioContext.resume() resolved, ctx.state=" + w.ctx.state);
+        }).catch(function(e) {
+            console.log("[wasm-audio-debug] AudioContext.resume() REJECTED: " + e);
+        });
+    }
     var gain = w.ctx.createGain();
     gain.connect(w.ctx.destination);
     w.nodes.set(nodeId, { id: nodeId, gain: gain, buffer: null, source: null, startedAt: 0, baseOffset: 0, playing: false });
@@ -97,6 +107,8 @@ EM_JS(void, wasmAudioSinkCreate, (int nodeId), {
 EM_JS(void, wasmAudioSinkPlay, (int nodeId, int samplesPtr, int frameCount, int sampleRate, double offsetSeconds), {
     var w = Module.__wasmAudio;
     var entry = w && w.nodes.get(nodeId);
+    console.log("[wasm-audio-debug] wasmAudioSinkPlay nodeId=" + nodeId + " frameCount=" + frameCount +
+        " sampleRate=" + sampleRate + " ctx.state=" + (w ? w.ctx.state : "(no ctx)") + " entryFound=" + !!entry);
     if (!entry) return;
     if (samplesPtr !== 0) {
         var i16 = HEAP16.subarray(samplesPtr >> 1, (samplesPtr >> 1) + frameCount);
@@ -105,8 +117,13 @@ EM_JS(void, wasmAudioSinkPlay, (int nodeId, int samplesPtr, int frameCount, int 
         for (var i = 0; i < frameCount; i++) { channel[i] = i16[i] / 32768; }
         entry.buffer = audioBuffer;
     }
-    if (!entry.buffer) return;
+    if (!entry.buffer) {
+        console.log("[wasm-audio-debug] wasmAudioSinkPlay: no buffer, returning without starting playback");
+        return;
+    }
     w.startFrom(entry, offsetSeconds);
+    console.log("[wasm-audio-debug] wasmAudioSinkPlay: startFrom() called, ctx.currentTime=" + w.ctx.currentTime +
+        " ctx.state=" + w.ctx.state);
 });
 
 EM_JS(void, wasmAudioSinkStop, (int nodeId), {
@@ -204,7 +221,9 @@ void WasmAudioSink::start(QIODevice *device)
     QByteArray bytes = device->readAll();
     int frameCount = bytes.size() / (int)sizeof(int16_t);
     const int16_t *samples = reinterpret_cast<const int16_t*>(bytes.constData());
+    qCritical() << "WASM DEBUG: WasmAudioSink::start() nodeId=" << m_nodeId << "frameCount=" << frameCount << "sampleRate=" << m_sampleRate;
     wasmAudioSinkPlay(m_nodeId, static_cast<int>(reinterpret_cast<intptr_t>(samples)), frameCount, m_sampleRate, 0.0);
+    qCritical() << "WASM DEBUG: WasmAudioSink::start() nodeId=" << m_nodeId << "wasmAudioSinkPlay() returned";
     m_pendingOffsetSeconds = 0.0;
     setState(QAudio::ActiveState);
 }
@@ -257,6 +276,7 @@ void WasmAudioSink::onEnded()
 {
     // Natural end of playback only -- explicit stop()/suspend() never reach
     // here, the JS side detaches `onended` before every explicit stop.
+    qCritical() << "WASM DEBUG: WasmAudioSink::onEnded() nodeId=" << m_nodeId << "-- reached C++ side, setting IdleState";
     m_pendingOffsetSeconds = 0.0;
     setState(QAudio::IdleState);
 }

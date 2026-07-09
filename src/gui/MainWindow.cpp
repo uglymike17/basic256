@@ -26,7 +26,6 @@
 #include <QWaitCondition>
 #include <QDesktopServices>
 #include <QRegularExpression>
-#include <QDebug>
 
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QGridLayout>
@@ -675,16 +674,13 @@ void MainWindow::resizeToFitGraph(int canvasW, int canvasH) {
 }
 
 MainWindow::~MainWindow() {
-    qDebug() << "[close-debug] MainWindow::~MainWindow() entered, deleting rc...";
     delete rc;
-    qDebug() << "[close-debug] MainWindow::~MainWindow(): rc deleted";
     delete mymutex;
     delete waitCond;
     delete outwin;
     delete graphwin;
     delete main_toolbar;
     if (locale) delete(locale);
-    qDebug() << "[close-debug] MainWindow::~MainWindow() done";
 }
 
 void MainWindow::about() {
@@ -877,7 +873,6 @@ void MainWindow::ifGuiStateClose(bool ok) {
 
 
 void MainWindow::closeEvent(QCloseEvent *e) {
-	qDebug() << "[close-debug] MainWindow::closeEvent runState=" << runState << " quitConfirmed=" << quitConfirmed;
 	if (quitConfirmed) {
 		// We already ran the unsaved-changes flow once and decided to quit.
 		// This call is Qt re-entering closeEvent() from qApp->quit()'s own
@@ -891,7 +886,6 @@ void MainWindow::closeEvent(QCloseEvent *e) {
 	}
 	if(runState == RUNSTATERUN) {
 		// cause interpreter to do a controlled stop and wait for stop to finish
-		qDebug() << "[close-debug] closeEvent: RUNSTATERUN branch, calling rc->stopRun()";
 		rc->stopRun();
 		e->ignore();
 	} else {
@@ -904,14 +898,11 @@ void MainWindow::closeEvent(QCloseEvent *e) {
 		// performs the actual quit once the user has answered. Same
 		// two-step pattern Qt's own docs use for async closeEvent handling.
 		e->ignore();
-		qDebug() << "[close-debug] closeEvent: calling closeAllPrograms()";
 		closeAllPrograms([this](bool doquit) {
-			qDebug() << "[close-debug] closeEvent onDone lambda: doquit=" << doquit;
 			if (doquit) {
 				// save current screen posision, visibility and floating
 				saveCustomizations();
 				quitConfirmed = true;
-				qDebug() << "[close-debug] closeEvent onDone: saveCustomizations() done, scheduling qApp->quit()";
 				QTimer::singleShot(0, qApp, SLOT(quit()));
 				// close app as soon as the event loop is idle instead of using qApp->quit() to allow dispach of other events
 				// This prevent app to not closing properly in rare situations like:
@@ -1628,7 +1619,6 @@ void MainWindow::closeAllPrograms(std::function<void(bool)> onDone){
             }
         }
     }
-    qDebug() << "[close-debug] closeAllPrograms: unsaved file count=" << count << " tabCount=" << editwintabs->count();
     //if there are no unsaved files, nothing to ask -- finish immediately
     if(count==0){
         finishCloseAllPrograms(true, onDone);
@@ -1694,7 +1684,6 @@ void MainWindow::closeAllPrograms(std::function<void(bool)> onDone){
 }
 
 void MainWindow::finishCloseAllPrograms(bool doit, std::function<void(bool)> onDone){
-    qDebug() << "[close-debug] finishCloseAllPrograms: doit=" << doit;
     if(doit){
         rc->stopRun();
         for(int i=editwintabs->count()-1; i>=0; i--){

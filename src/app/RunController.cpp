@@ -145,14 +145,10 @@ RunController::RunController() {
 }
 
 RunController::~RunController() {
-	qDebug() << "[close-debug] RunController::~RunController() entered, i->isRunning()=" << i->isRunning();
 	if(replacewin!=NULL) replacewin->close();
 	stopRun();
-	qDebug() << "[close-debug] RunController::~RunController(): calling i->wait()...";
 	i->wait();
-	qDebug() << "[close-debug] RunController::~RunController(): i->wait() returned";
 	delete i;
-	qDebug() << "[close-debug] RunController::~RunController() done";
 }
 
 
@@ -433,7 +429,7 @@ RunController::stepBreakPoint() {
 }
 
 void RunController::stopRun() {
-	qDebug() << "[close-debug] RunController::stopRun() isStopping=" << i->isStopping();
+	//qDebug() << "in RunController::stopRun()";
 	if(!i->isStopping()){
 		// event when the user clicks on the stop button
 		//mainwin->setRunState(RUNSTATESTOPING);
@@ -459,6 +455,19 @@ void RunController::stopRun() {
 		i->debugMode = 0;
 		waitDebugCond->wakeAll();
 		mydebugmutex->unlock();
+
+		// Stop any sound the interpreter is currently blocked on. A plain
+		// SOUND statement blocks the interpreter thread inside
+		// Sound::wait()'s own QEventLoop (waiting for that specific sound's
+		// exitWaitingLoop() signal), which mymutex/waitCond above does not
+		// reach at all -- previously the only thing that could stop it was
+		// Interpreter::cleanup()'s sound->exit() call, which can't run until
+		// Sound::wait() already returns, so Stop had no effect until that
+		// wait's own 60-second safety timer expired. Calling exit() here
+		// (safe: SoundSystem lives on this same thread) sets isStopping on
+		// every active Sound and emits exitWaitingLoop() immediately,
+		// breaking that wait right away instead of on a delay.
+		if(sound) sound->exit();
 
 		//emit(runHalted());
 	}

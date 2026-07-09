@@ -99,7 +99,7 @@ jobs:
       shell: pwsh
       timeout-minutes: 5
       run:
-        ./.github/scripts/run_testsuite.ps1 -Basic256Exe build\RelWithDebInfo\basic256.exe
+        ./.github/scripts/run_testsuite.ps1 -Basic256Exe build\Release\basic256.exe
 
     # ---------------------------
     # MacOS Build

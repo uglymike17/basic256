@@ -159,7 +159,7 @@ it manually from:$\nhttps://aka.ms/vs/17/release/vc_redist.x64.exe"
 
      SetOutPath $INSTDIR
 
-     File build\RelWithDebInfo\basic256.exe
+     File build\Release\basic256.exe
      File ChangeLog
      File CONTRIBUTORS
      File license.txt

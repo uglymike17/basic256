@@ -39,7 +39,6 @@
 #include <QtPlugin>
 #include <QTranslator>
 #include <QMetaType>
-#include <QDebug>
 
 #include "Settings.h"
 #include "Version.h"
@@ -325,9 +324,6 @@ int main(int argc, char *argv[]) {
     setlocale(LC_ALL,"C");
 
     if(!loaded) mainwin.newProgram();
-    qDebug() << "[close-debug] Main.cpp: entering qapp.exec()";
-    int rc = qapp.exec();
-    qDebug() << "[close-debug] Main.cpp: qapp.exec() returned" << rc << "-- about to destroy mainwin and return from main()";
-    return rc;
+    return qapp.exec();
 }
 

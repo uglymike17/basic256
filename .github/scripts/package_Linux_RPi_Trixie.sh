@@ -97,7 +97,6 @@ set -euo pipefail
         export PIPEWIRE_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
         export GST_PLUGIN_PATH="$DIR/gstreamer-1.0"
         export GST_REGISTRY="$DIR/gstreamer-1.0/registry.bin"
-        export QT_DEBUG_PLUGINS=1
 
         exec "$DIR/basic256" "$@"
 EOF
