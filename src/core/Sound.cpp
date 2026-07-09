@@ -90,13 +90,7 @@ void Sound::play() {
 				}
 			}else if(soundStateExpected == 0){
 				soundStateExpected = 1;
-#ifdef Q_OS_WASM
-				qCritical() << "WASM DEBUG: before audio->start(buffer) in Sound::play()";
-#endif
 				audio->start(buffer);
-#ifdef Q_OS_WASM
-				qCritical() << "WASM DEBUG: after audio->start(buffer) in Sound::play()";
-#endif
 				isPausedBySystem = false;
 				if(scheduledFade){
 					scheduledFade=false;
