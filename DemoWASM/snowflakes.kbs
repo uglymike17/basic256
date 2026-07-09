@@ -1,0 +1,51 @@
+# Snowflakes
+# for BASIC-256 on the basis of the program Ted Felix
+# by Sergey Irupin (lamp@altlinux.org), 10-dec-2010
+
+# Like real snowflakes, each one is unique
+
+XCenter = graphwidth() / 2
+YCenter = graphheight() / 2
+Pi3 = pi / 3  # 60 degrees
+RLimit = YCenter
+fastgraphics
+do
+   # clear graphics window
+   color darkblue
+   rect 0,0,graphheight(),graphwidth()
+   color white
+   # get the number of lines in the snowflake
+   Total = rand * 15 + 5
+   # for each line
+   for Cnt = 1 to Total
+      # Pick two random points in polar coordinates
+      r1 = rand * RLimit
+      t1 = rand * Pi3
+      r2 = rand * RLimit
+      t2 = rand * Pi3
+      # compute the mirror image of those points in the 60 degree sector
+      mt1 = Pi3 - t1
+      mt2 = Pi3 - t2
+      # for each 60 degree sector around the circle
+      for I = 0 to 5
+         # draw the line
+         t1i = t1 + (I * Pi3)
+         t2i = t2 + (I * Pi3)
+         x1 = r1*cos(t1i)
+         y1 = r1*sin(t1i)
+         x2 = r2*cos(t2i)
+         y2 = r2*sin(t2i)
+         line (x1+XCenter, y1+YCenter, x2+XCenter, y2+YCenter)
+         # draw the mirror image line within the 60 degree sector
+         mt1i = mt1 + (I * Pi3)
+         mt2i = mt2 + (I * Pi3)
+         x1 = r1*cos(mt1i)
+         y1 = r1*sin(mt1i)
+         x2 = r2*cos(mt2i)
+         y2 = r2*sin(mt2i)
+         line (x1+XCenter, y1+YCenter, x2+XCenter, y2+YCenter)
+      next I
+   next Cnt
+   refresh
+   pause 1
+until false

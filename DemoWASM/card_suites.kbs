@@ -1,0 +1,27 @@
+# 2009-12-20 j.m.reneau
+# draw an animation of the four card suites
+#
+# shapes of the card suits
+dim diamond(8)
+diamond = {0, 2.5, 2, 0, 4, 2.5, 2, 5}
+dim heart(12)
+heart = {0, 1, 1, 0, 2, 1, 3, 0, 4, 1, 2, 5}
+dim spade(18)
+spade = {0, 3, 2, 0, 4, 3, 4, 4, 2, 3, 3, 5, 1, 5, 2, 3, 0, 4}
+dim club(30)
+club = {0, 1, 1, 0, 2, 1, 3, 0, 4, 1, 3, 2, 4, 3, 3, 4, 2, 3, 3, 5, 1, 5, 2, 3, 1, 4, 0, 3, 1, 2}
+
+fastgraphics
+for i = 0 to 200
+   z = i / 10
+   r = 2 * pi * i / 100
+   clg
+   color red
+   stamp 50,50,z,r,diamond[]
+   stamp 150,150,z,r,heart[]
+   color black
+   stamp 150,50,z,r,spade[]
+   stamp 50,150,z,r,club[]
+   refresh
+   pause .001
+next i

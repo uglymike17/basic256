@@ -1,0 +1,53 @@
+clg
+gosub gallows
+gosub head
+gosub body
+gosub armr
+gosub arml
+gosub legr
+gosub legl
+gosub rip
+end
+
+gallows:
+color darkorange
+rect 0,250,200,50
+rect 50,0,25,250
+rect 75,0,75,25
+return
+
+head:
+color blue
+circle 150,50,25
+return
+
+body:
+color green
+rect 137,75,25,75
+return
+
+armr:
+color red
+rect 162,100,50,25
+return
+
+arml:
+color red
+rect 87,100,50,25
+return
+
+legr:
+color yellow
+rect 112,150,25,50
+return
+
+legl:
+color yellow
+rect 162,150,25,50
+return 
+
+rip:
+color black
+font "Tahoma",24,100
+text 100,100,"RIP"
+return

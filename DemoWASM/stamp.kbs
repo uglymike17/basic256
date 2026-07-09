@@ -1,0 +1,33 @@
+clg
+dim a(6)
+a[0] = 0
+a[1] = 0
+a[2] = 20
+a[3] = 20
+a[4] = 15
+a[5] = 10
+
+color red: for t=1 to 10: rect 300*rand,300*rand, 20*rand, 20*rand: next t
+
+color black
+for x = 0 to 200 step 20
+    for y = 0 to 200 step 20
+        s = rand * 5
+        stamp x, y, s, a[]
+    next y
+next x
+
+color blue
+for x = 0 to 200 step 20
+    for y = 0 to 200 step 20
+        s = rand * 5
+        color green
+        stamp x, y, 5, {0,0,20,20,15,10}
+        color yellow
+        stamp x, y, {0,0,20,20,15,10}
+        color blue
+        stamp x, y, 5, rand * 2 * pi, {0,0,20,20,15,10}
+    next y
+next x
+
+

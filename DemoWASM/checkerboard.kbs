@@ -1,0 +1,17 @@
+
+
+color clear
+rect 0,0,400,400
+
+color black
+for h = 10 to 150 step 40
+for i = 10 to 150 step 40
+rect i,h,19,19
+next i
+next h
+
+for h = 30 to 150 step 40
+for i = 30 to 150 step 40
+rect i,h,19,19
+next i
+next h

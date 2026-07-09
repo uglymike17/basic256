@@ -1,0 +1,40 @@
+# polytest.kbs
+# draw polygons using arrays and direct lists
+clg
+
+dim a(6)
+a[0] = 10
+a[1] = 30
+a[2] = 30
+a[3] = 20
+a[4] = 0
+a[5] = 0
+
+color gray
+circle (15,15,15)
+pause 1
+color blue
+poly a[]
+
+# draw red one on top of the blue one
+pause 1
+color red
+poly {10,30,30,20,0,0}
+
+pause 1
+color yellow
+for x = 45 to 55 step 5
+ poly {20, 2 * x, x+40, x + 60, 10, 8}
+next x
+x=x-5
+# pause and overlay immediate with same polygon from array
+pause 1
+color green
+a[0] = 20
+a[1] = 2 * x
+a[2] = x+40
+a[3] = x + 60
+a[4] = 10
+a[5] = 8
+poly a[]
+

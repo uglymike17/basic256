@@ -1,0 +1,21 @@
+# test error trapping
+onerror nicetrap
+print 1
+print 99 / 0
+print 2
+open 999, "bogus.file"
+print "Runs Anyway"
+
+# test error trapping off and fail at any error (default)
+offerror
+print 3
+print 101/0
+print "never get here"
+
+end
+
+nicetrap:
+# this is the nice error handler
+print "trap and run - error on line " + lasterrorline + " - error number " + lasterror + " message " + lasterrormessage + " (" + lasterrorextra + ")"
+return
+

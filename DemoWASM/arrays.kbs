@@ -1,0 +1,21 @@
+rem Array example
+
+dim myarray(10)
+
+myarray = {1,2,3,4,5,6,7,8,9,10}
+
+myarray[0] = 42
+myarray[3] = 42
+myarray[5] = 42
+
+for i = 0 to 9
+   print "Myarray at index ";
+   print i;
+   print " = ";
+   print myarray[i]
+next i
+
+dim i$(10)
+
+i$ = {"Welcome", " ", "to", "Basic-256!"}
+print i$[0] + i$[1] + i$[2] + i$[1] + i$[3]
