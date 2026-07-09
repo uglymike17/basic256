@@ -26,7 +26,8 @@
 #include <QWaitCondition>
 #include <QDesktopServices>
 #include <QRegularExpression>
- 
+#include <QDebug>
+
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QGridLayout>
 #include <QtWidgets/QMenuBar>
@@ -124,15 +125,20 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     // Windows' native style (unlike Linux) draws the tab close button as a
     // plain glyph with no background, making the active tab hard to spot
     // among several. Force a visible background so it stands out on every
-    // platform/style.
+    // platform/style. Once QSS touches ::close-button at all, Qt stops
+    // drawing the style's built-in glyph on top of it -- supply one
+    // explicitly via Qt's own bundled commonstyle icon, or the button
+    // renders as a plain colored box with no X in it.
     editwintabs->tabBar()->setStyleSheet(
         "QTabBar::close-button {"
         "    background-color: #e81123;"
         "    border-radius: 3px;"
         "    padding: 2px;"
+        "    image: url(:/qt-project.org/styles/commonstyle/images/standardbutton-closetab-16.png);"
         "}"
         "QTabBar::close-button:hover {"
         "    background-color: #f1707a;"
+        "    image: url(:/qt-project.org/styles/commonstyle/images/standardbutton-closetab-hover-16.png);"
         "}"
     );
 
@@ -668,13 +674,16 @@ void MainWindow::resizeToFitGraph(int canvasW, int canvasH) {
 }
 
 MainWindow::~MainWindow() {
+    qDebug() << "[close-debug] MainWindow::~MainWindow() entered, deleting rc...";
     delete rc;
+    qDebug() << "[close-debug] MainWindow::~MainWindow(): rc deleted";
     delete mymutex;
     delete waitCond;
     delete outwin;
     delete graphwin;
     delete main_toolbar;
     if (locale) delete(locale);
+    qDebug() << "[close-debug] MainWindow::~MainWindow() done";
 }
 
 void MainWindow::about() {
@@ -867,9 +876,10 @@ void MainWindow::ifGuiStateClose(bool ok) {
 
 
 void MainWindow::closeEvent(QCloseEvent *e) {
-	//qDebug() << "MainWindow::CloseEvent runState" << runState;
+	qDebug() << "[close-debug] MainWindow::closeEvent runState=" << runState;
 	if(runState == RUNSTATERUN) {
 		// cause interpreter to do a controlled stop and wait for stop to finish
+		qDebug() << "[close-debug] closeEvent: RUNSTATERUN branch, calling rc->stopRun()";
 		rc->stopRun();
 		e->ignore();
 	} else {
@@ -882,10 +892,13 @@ void MainWindow::closeEvent(QCloseEvent *e) {
 		// performs the actual quit once the user has answered. Same
 		// two-step pattern Qt's own docs use for async closeEvent handling.
 		e->ignore();
+		qDebug() << "[close-debug] closeEvent: calling closeAllPrograms()";
 		closeAllPrograms([this](bool doquit) {
+			qDebug() << "[close-debug] closeEvent onDone lambda: doquit=" << doquit;
 			if (doquit) {
 				// save current screen posision, visibility and floating
 				saveCustomizations();
+				qDebug() << "[close-debug] closeEvent onDone: saveCustomizations() done, scheduling qApp->quit()";
 				QTimer::singleShot(0, qApp, SLOT(quit()));
 				// close app as soon as the event loop is idle instead of using qApp->quit() to allow dispach of other events
 				// This prevent app to not closing properly in rare situations like:
@@ -1602,6 +1615,7 @@ void MainWindow::closeAllPrograms(std::function<void(bool)> onDone){
             }
         }
     }
+    qDebug() << "[close-debug] closeAllPrograms: unsaved file count=" << count << " tabCount=" << editwintabs->count();
     //if there are no unsaved files, nothing to ask -- finish immediately
     if(count==0){
         finishCloseAllPrograms(true, onDone);
@@ -1667,6 +1681,7 @@ void MainWindow::closeAllPrograms(std::function<void(bool)> onDone){
 }
 
 void MainWindow::finishCloseAllPrograms(bool doit, std::function<void(bool)> onDone){
+    qDebug() << "[close-debug] finishCloseAllPrograms: doit=" << doit;
     if(doit){
         rc->stopRun();
         for(int i=editwintabs->count()-1; i>=0; i--){

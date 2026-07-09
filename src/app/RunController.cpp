@@ -145,10 +145,14 @@ RunController::RunController() {
 }
 
 RunController::~RunController() {
+	qDebug() << "[close-debug] RunController::~RunController() entered, i->isRunning()=" << i->isRunning();
 	if(replacewin!=NULL) replacewin->close();
 	stopRun();
+	qDebug() << "[close-debug] RunController::~RunController(): calling i->wait()...";
 	i->wait();
+	qDebug() << "[close-debug] RunController::~RunController(): i->wait() returned";
 	delete i;
+	qDebug() << "[close-debug] RunController::~RunController() done";
 }
 
 
@@ -428,8 +432,8 @@ RunController::stepBreakPoint() {
 	mydebugmutex->unlock();
 }
 
-void RunController::stopRun() {	
-	//qDebug() << "in RunController::stopRun()";
+void RunController::stopRun() {
+	qDebug() << "[close-debug] RunController::stopRun() isStopping=" << i->isStopping();
 	if(!i->isStopping()){
 		// event when the user clicks on the stop button
 		//mainwin->setRunState(RUNSTATESTOPING);
