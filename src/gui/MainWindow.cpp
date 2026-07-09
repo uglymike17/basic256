@@ -121,6 +121,20 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     editwintabs->setMovable(guiState==GUISTATENORMAL);
     editwintabs->setTabsClosable(guiState==GUISTATENORMAL);
     editwintabs->setDocumentMode(true);
+    // Windows' native style (unlike Linux) draws the tab close button as a
+    // plain glyph with no background, making the active tab hard to spot
+    // among several. Force a visible background so it stands out on every
+    // platform/style.
+    editwintabs->tabBar()->setStyleSheet(
+        "QTabBar::close-button {"
+        "    background-color: #e81123;"
+        "    border-radius: 3px;"
+        "    padding: 2px;"
+        "}"
+        "QTabBar::close-button:hover {"
+        "    background-color: #f1707a;"
+        "}"
+    );
 
 
 
@@ -707,7 +721,11 @@ void MainWindow::about() {
     msgBox->setText(message);
     msgBox->setIcon(QMessageBox::Information);
     msgBox->setStandardButtons(QMessageBox::Ok);
-    msgBox->open();
+    // open() forces window-modal, which unlike exec()'s old application-modal
+    // default doesn't disable the main window's native title bar on Windows --
+    // closing the app while About is up would re-enter closeEvent().
+    msgBox->setWindowModality(Qt::ApplicationModal);
+    msgBox->show();
 }
 
 
@@ -1414,7 +1432,7 @@ void MainWindow::loadFileContent(QString fileName, const QByteArray &content) {
 }
 
 void MainWindow::openExample() {
-    // Examples/examples.qrc (CMakeLists.txt, EMSCRIPTEN-only) bundles a
+    // DemoWASM/examples.qrc (CMakeLists.txt, EMSCRIPTEN-only) bundles a
     // curated, self-contained subset of Examples/ under this prefix.
     // Resource reads are synchronous (compiled into the binary), unlike
     // getOpenFileContent() -- no async callback needed for the read itself,
@@ -1634,12 +1652,18 @@ void MainWindow::closeAllPrograms(std::function<void(bool)> onDone){
             QObject::connect(msgBox2, &QMessageBox::finished, this, [this, onDone](int result){
                 finishCloseAllPrograms(result==QMessageBox::Yes, onDone);
             });
-            msgBox2->open();
+            // open() forces window-modal, unlike exec()'s old application-modal
+            // default; force it back so the main window's close button can't
+            // re-enter this flow while the dialog is up.
+            msgBox2->setWindowModality(Qt::ApplicationModal);
+            msgBox2->show();
         }else{
             finishCloseAllPrograms(true, onDone);
         }
     });
-    msgBox->open();
+    // See msgBox2 above: force application-modal instead of open()'s window-modal.
+    msgBox->setWindowModality(Qt::ApplicationModal);
+    msgBox->show();
 }
 
 void MainWindow::finishCloseAllPrograms(bool doit, std::function<void(bool)> onDone){

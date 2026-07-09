@@ -206,11 +206,13 @@ set(RESOURCES
 # WASM Phase 5: bundle a curated subset of Examples/ (self-contained .kbs
 # files only -- no external image/sound assets, none using a
 # BASIC256_ENABLE_* flag that's off for wasm) as a Qt resource so
-# File->Open Example works without a real filesystem. Desktop builds don't
-# need this: Examples/ already ships as loose files next to the binary via
-# the packaging scripts, and the normal Open dialog can browse to them.
+# File->Open Example works without a real filesystem. Lives in DemoWASM/,
+# separate from Examples/, so the WASM curation can be maintained
+# independently of the full example set. Desktop builds don't need this:
+# Examples/ already ships as loose files next to the binary via the
+# packaging scripts, and the normal Open dialog can browse to them.
 if(EMSCRIPTEN)
-    list(APPEND RESOURCES Examples/examples.qrc)
+    list(APPEND RESOURCES DemoWASM/examples.qrc)
 endif()
 
 # Translations 

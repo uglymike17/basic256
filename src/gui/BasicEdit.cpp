@@ -234,7 +234,11 @@ void BasicEdit::saveFile(bool overwrite) {
 					writeFile();
 				}
 			});
-			msgBox->open();
+			// open() forces window-modal, unlike exec()'s old application-modal
+			// default, which on Windows leaves the main window's title bar
+			// close button live while this dialog is up.
+			msgBox->setWindowModality(Qt::ApplicationModal);
+			msgBox->show();
 		} else {
 			writeFile();
 		}

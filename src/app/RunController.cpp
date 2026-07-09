@@ -511,7 +511,11 @@ RunController::showPreferences() {
 		QObject::connect(dialog, &QDialog::rejected, this, [this](){
 			showPreferencesWindow(false);
 		});
-		dialog->open();
+		// open() forces window-modal instead of exec()'s old application-modal
+		// default, which on Windows leaves the main window's title bar close
+		// button live -- force it back to application-modal.
+		dialog->setWindowModality(Qt::ApplicationModal);
+		dialog->show();
 	} else {
 		showPreferencesWindow(true);
 	}
@@ -525,7 +529,10 @@ void RunController::showPreferencesWindow(bool advanced) {
 	// callback needed.
 	PreferencesWin *w = new PreferencesWin(mainwin, advanced);
 	w->setAttribute(Qt::WA_DeleteOnClose);
-	w->open();
+	// See the password dialog above: force application-modal, matching
+	// exec()'s old default, instead of open()'s window-modal.
+	w->setWindowModality(Qt::ApplicationModal);
+	w->show();
 }
 
 
@@ -641,7 +648,15 @@ RunController::dialogAlert(QString prompt) {
 		waitCond->wakeAll();
 		mymutex->unlock();
 	});
-	msgBox->open();
+	// QDialog::open() forces window-modal, which on Windows does not
+	// disable the main window's native title bar -- closing the main
+	// window while this dialog is up would re-enter closeEvent()->
+	// stopRun()->mymutex->lock() on this same thread while mymutex is
+	// still held here, deadlocking the whole app. exec() used to avoid
+	// this by defaulting to application-modal; set it explicitly and
+	// show() instead of open() to get the same blocking without exec().
+	msgBox->setWindowModality(Qt::ApplicationModal);
+	msgBox->show();
 }
 
 void
@@ -663,7 +678,11 @@ RunController::dialogConfirm(QString prompt, int dflt) {
 		waitCond->wakeAll();
 		mymutex->unlock();
 	});
-	msgBox->open();
+	// See dialogAlert() above: force application-modal (exec()'s old
+	// default) instead of open()'s window-modal, or the main window's
+	// close button stays live and deadlocks the app on mymutex.
+	msgBox->setWindowModality(Qt::ApplicationModal);
+	msgBox->show();
 }
 
 void
@@ -718,7 +737,11 @@ RunController::dialogPrompt(QString prompt, QString dflt) {
 		waitCond->wakeAll();
 		mymutex->unlock();
 	});
-	in->open();
+	// See dialogAlert() above: force application-modal (exec()'s old
+	// default) instead of open()'s window-modal, or the main window's
+	// close button stays live and deadlocks the app on mymutex.
+	in->setWindowModality(Qt::ApplicationModal);
+	in->show();
 }
 
 void RunController::playSound(std::vector<std::vector<double>> sounddata, bool player){

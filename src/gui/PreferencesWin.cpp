@@ -699,7 +699,11 @@ void PreferencesWin::clickClearSavedData() {
 			settings.endGroup();
 		}
 	});
-	msgBox->open();
+	// open() forces window-modal, unlike exec()'s old application-modal
+	// default, which on Windows leaves the parent window's title bar
+	// close button live while this dialog is up.
+	msgBox->setWindowModality(Qt::ApplicationModal);
+	msgBox->show();
 }
 
 void PreferencesWin::clickBrowseSavedData() {
