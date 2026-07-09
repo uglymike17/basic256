@@ -39,7 +39,7 @@ Pop-Location
 
 # Configure using MSVC (Omitting -G defaults to the installed Visual Studio version)
 #cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$env:QT_DIR"
-cmake -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="<qt-install>\6.11.1"
+cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH="$env:QT_DIR"
 # Build using MSVC compiler pipeline natively via CMake
 #cmake --build build --config Release
-cmake --build build --config Debug
+cmake --build build --config RelWithDebInfo

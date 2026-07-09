@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 New-Item -ItemType Directory -Force -Path "Basic256" | Out-Null
 Set-Content -Path "Basic256\basic256.bat" -Value "@echo off`r`nset QT_OPENGL=desktop`r`nstart basic256.exe"
 
-Copy-Item build\Release\basic256.exe Basic256\
+Copy-Item build\RelWithDebInfo\basic256.exe Basic256\
 Copy-Item README.md                  Basic256\
 Copy-Item Basic256.png Basic256\
 
