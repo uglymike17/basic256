@@ -1051,13 +1051,12 @@ automatic reload on first visit).
       only the final upload/publish steps and the shim would differ.
 
 ### Phase 6 gate
-- [ ] Public URL loads on stock Chrome, Firefox, Edge, Safari (Safari is
+- [x] Public URL loads on stock Chrome, Firefox, Edge, Safari (Safari is
       the usual straggler — test it explicitly); threads confirmed working
       (a program with `PAUSE`/input waits doesn't freeze the page).
-      **Blocked on the maintainer enabling GitHub Pages** (Settings → Pages
-      → Source: GitHub Actions) — the `pages-deploy` job cannot publish
-      anywhere until that's done once. Once enabled, the next push to
-      `v2.1.Alpha05WASM` will deploy automatically.
+      **GitHub Pages is enabled** (Settings → Pages → Source: GitHub
+      Actions), so the `pages-deploy` job publishes automatically on each
+      push to `v2.1.Alpha05WASM`.
 
 ---
 

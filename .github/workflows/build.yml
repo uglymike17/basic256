@@ -341,6 +341,7 @@ jobs:
         rm -f public/basic256.html
         cp wasm-deploy/index.html public/index.html
         cp wasm-deploy/coi-serviceworker.min.js public/coi-serviceworker.min.js
+        cp wasm-deploy/favicon.png public/favicon.png
         # GitHub Pages runs deployed sites through Jekyll by default, which
         # ignores/mangles files and directories starting with an underscore
         # -- .nojekyll disables that processing.

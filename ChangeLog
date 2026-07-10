@@ -1,5 +1,11 @@
+2026-07-10 M. Vilain <uglymike17@gmail.com>  
+	* Another Big one: Migrating Basic256 from Qt5 to Qt6 has allowed us to build Basic256 as a WASM application, meaning you can run it from the Web Browser! Currently, it runs here: https://uglymike17.github.io/basic256/
+	There are some caveats on this explained in the README.md file.
+ 
+	* Fix small errors that cropped up during testing.
+
 2026-07-05 M. Vilain <uglymike17@gmail.com>  
-	* Big one: Migrated basic256 from Qt5 to Qt6, which is a major update that will allow for better performance on ARM-based systems like Raspberry Pi.|  
+	* Big one: Migrated Basic256 from Qt5 to Qt6, which is a major update that will allow for better performance on ARM-based systems like Raspberry Pi.|  
 	* Fix small errors that cropped up during edge-tests in TestSuite run.
 
 2026-07-04 M. Vilain <uglymike17@gmail.com>  

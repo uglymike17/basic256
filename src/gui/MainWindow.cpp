@@ -1322,16 +1322,30 @@ void MainWindow::closeEditorTab(int tab){
     if(runState!=RUNSTATESTOP) return;
     BasicEdit *e = (BasicEdit*)editwintabs->widget(tab);
     if(e){
-        bool doclose = true;
-        if (e->document()->isModified()) {
-            doclose = ( QMessageBox::Yes == QMessageBox::warning(this, tr("Program modifications have not been saved."),
-                tr("Do you want to discard your changes?"),
-                QMessageBox::Yes | QMessageBox::No,
-                QMessageBox::No));
-        }
-        if (doclose) {
+        // The actual close, shared by the "no unsaved changes" fast path and
+        // the confirmation dialog's Yes branch.
+        auto doCloseEditor = [this, e]() {
             if(fileSystemWatcher && !(e->filename.isEmpty())) fileSystemWatcher->removePath(e->filename);
             e->deleteLater();
+        };
+        if (e->document()->isModified()) {
+            // Async (RULE 2): QMessageBox::warning()'s exec() never returns on
+            // the WASM main thread without Asyncify -- prompt non-modally and
+            // close in the completion slot instead of blocking for the answer.
+            QMessageBox *msgBox = new QMessageBox(this);
+            msgBox->setAttribute(Qt::WA_DeleteOnClose);
+            msgBox->setIcon(QMessageBox::Warning);
+            msgBox->setWindowTitle(tr("Program modifications have not been saved."));
+            msgBox->setText(tr("Do you want to discard your changes?"));
+            msgBox->setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+            msgBox->setDefaultButton(QMessageBox::No);
+            QObject::connect(msgBox, &QMessageBox::finished, this, [doCloseEditor](int result){
+                if (result == QMessageBox::Yes) doCloseEditor();
+            });
+            msgBox->setWindowModality(Qt::ApplicationModal);
+            msgBox->show();
+        } else {
+            doCloseEditor();
         }
     }
 }
@@ -1482,6 +1496,14 @@ bool MainWindow::loadFile(QString s) {
     s = s.trimmed();
     if (!s.isNull()) {
         bool doload = true;
+        // On WASM these confirmations can't block-and-return on the main thread
+        // (RULE 2), and loadFile() is effectively desktop-only there anyway
+        // (WASM opens via getOpenFileContent()/loadFileContent()). Treat the
+        // prompts like --silent: proceed rather than hang.
+        bool skipLoadPrompts = (guiState == GUISTATESILENT);
+#ifdef Q_OS_WASM
+        skipLoadPrompts = true;
+#endif
             if (QFile::exists(s)) {
                 QFile f(s);
                 if (f.open(QIODevice::ReadOnly)) {
@@ -1506,12 +1528,12 @@ bool MainWindow::loadFile(QString s) {
                     // should ever appear, so always proceed rather than showing a
                     // modal dialog that would otherwise hang the process forever.
                     if (!(mime.inherits("text/plain") && !(fi.fileName().endsWith(".kbs",Qt::CaseInsensitive) && fi.size()==0))) {
-                        doload = (guiState == GUISTATESILENT) || ( QMessageBox::Yes == QMessageBox::warning(this, QObject::tr("Load File"),
+                        doload = skipLoadPrompts || ( QMessageBox::Yes == QMessageBox::warning(this, QObject::tr("Load File"),
                             QObject::tr("It does not seem to be a text file.")+ "\n" + QObject::tr("Load it anyway?"),
                             QMessageBox::Yes | QMessageBox::No,
                             QMessageBox::No));
                     }else if (!fi.fileName().endsWith(".kbs",Qt::CaseInsensitive)) {
-                        doload = (guiState == GUISTATESILENT) || ( QMessageBox::Yes == QMessageBox::warning(this, QObject::tr("Load File"),
+                        doload = skipLoadPrompts || ( QMessageBox::Yes == QMessageBox::warning(this, QObject::tr("Load File"),
                             QObject::tr("You're about to load a file that does not end with the .kbs extension.")+ "\n" + QObject::tr("Load it anyway?"),
                             QMessageBox::Yes | QMessageBox::No,
                             QMessageBox::No));
