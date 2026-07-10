@@ -61,8 +61,13 @@ EM_JS(void, wasmAudioSinkCreate, (int nodeId), {
             src.onended = function() {
                 if (entry.source !== src) return; // stale callback from an already-replaced node
                 entry.playing = false;
-                var endedPtr = w.onEndedPtr;
-                if (endedPtr) { {{{ makeDynCall('vi', 'endedPtr') }}}(entry.id); }
+                // makeDynCall is a build-time macro that did not expand inside this
+                // EM_JS body on Qt 6.11.1/emsdk 4.0.7; call the KEEPALIVE export
+                // directly, with fallbacks that don't depend on macro expansion.
+                if (typeof _wasmAudioSinkOnEnded !== "undefined") { _wasmAudioSinkOnEnded(entry.id); }
+                else if (typeof Module !== "undefined" && Module._wasmAudioSinkOnEnded) { Module._wasmAudioSinkOnEnded(entry.id); }
+                else if (typeof getWasmTableEntry !== "undefined" && w.onEndedPtr) { getWasmTableEntry(w.onEndedPtr)(entry.id); }
+                else if (typeof wasmTable !== "undefined" && w.onEndedPtr) { wasmTable.get(w.onEndedPtr)(entry.id); }
             };
             src.start(0, offsetSeconds);
             entry.source = src;
