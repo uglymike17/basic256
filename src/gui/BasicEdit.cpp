@@ -1086,14 +1086,27 @@ void BasicEdit::handleFileChangedOnDisk(){
     document()->setModified(true);
     updateTitle();
     emit(setCurrentEditorTab(this));
+    fileChangedOnDiskFlag=false; // handled below; dialog is now dispatched
     QFileInfo check_file(filename);
     if(!check_file.exists()){
-        QMessageBox::information(this, tr("File has been removed."),
-        tr("It seems that file %1 was removed from disk. Don't forget to save your work.").arg(filename));
+        QMessageBox *msgBox = new QMessageBox(this);
+        msgBox->setAttribute(Qt::WA_DeleteOnClose);
+        msgBox->setIcon(QMessageBox::Information);
+        msgBox->setWindowTitle(tr("File has been removed."));
+        msgBox->setText(tr("It seems that file %1 was removed from disk. Don't forget to save your work.").arg(filename));
+        msgBox->setStandardButtons(QMessageBox::Ok);
+        msgBox->setWindowModality(Qt::ApplicationModal);
+        msgBox->show();
     }else{
-        if( QMessageBox::Yes == QMessageBox::warning(this, tr("File changed"),
-        tr("The file %1 has changed outside BASIC256 editor. Do you want to reload it?").arg(filename),
-        QMessageBox::Yes | QMessageBox::No, QMessageBox::No)){
+        QMessageBox *msgBox = new QMessageBox(this);
+        msgBox->setAttribute(Qt::WA_DeleteOnClose);
+        msgBox->setIcon(QMessageBox::Warning);
+        msgBox->setWindowTitle(tr("File changed"));
+        msgBox->setText(tr("The file %1 has changed outside BASIC256 editor. Do you want to reload it?").arg(filename));
+        msgBox->setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+        msgBox->setDefaultButton(QMessageBox::No);
+        QObject::connect(msgBox, &QMessageBox::finished, this, [this](int result){
+            if (result != QMessageBox::Yes) return;
             //reload changed file from disk but keep undo history to allow reversing this action
             QFile f(filename);
             if(f.open(QIODevice::ReadOnly)){
@@ -1109,9 +1122,17 @@ void BasicEdit::handleFileChangedOnDisk(){
                 document()->setModified(false);
                 updateTitle();
             }else{
-                QMessageBox::critical(this, tr("Load File"), tr("Unable to open program file") + " \"" + filename + "\".\n" + tr("File permissions problem or file open by another process."));
+                QMessageBox *err = new QMessageBox(this);
+                err->setAttribute(Qt::WA_DeleteOnClose);
+                err->setIcon(QMessageBox::Critical);
+                err->setWindowTitle(tr("Load File"));
+                err->setText(tr("Unable to open program file") + " \"" + filename + "\".\n" + tr("File permissions problem or file open by another process."));
+                err->setStandardButtons(QMessageBox::Ok);
+                err->setWindowModality(Qt::ApplicationModal);
+                err->show();
             }
-        }
+        });
+        msgBox->setWindowModality(Qt::ApplicationModal);
+        msgBox->show();
     }
-    fileChangedOnDiskFlag=false;
 }
