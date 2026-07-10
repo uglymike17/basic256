@@ -35,6 +35,7 @@
 #include <QFileInfo>
 #include <QLibraryInfo>
 #include <QLocale>
+#include <QLoggingCategory>
 #include <QStatusBar>
 #include <QtPlugin>
 #include <QTranslator>
@@ -142,6 +143,13 @@ int main(int argc, char *argv[]) {
     // QT_ENABLE_HIGHDPI_SCALING is the non-deprecated Qt 5.14+ replacement for
     // the Qt::AA_EnableHighDpiScaling attribute that was removed in commit e673dad.
     qputenv("QT_ENABLE_HIGHDPI_SCALING", "1");
+
+    // Silence Qt Multimedia's informational FFmpeg banner ("Using Qt
+    // multimedia with FFmpeg version ...") that the FFmpeg backend prints to
+    // stderr the first time SOUND initialises it. Only the .info level is
+    // disabled, so genuine warnings/errors from this category still surface.
+    QLoggingCategory::setFilterRules(QStringLiteral("qt.multimedia.ffmpeg.info=false"));
+
     QApplication qapp(argc, argv);
 
 #ifdef Q_OS_WIN

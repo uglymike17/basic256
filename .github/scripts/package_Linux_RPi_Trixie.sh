@@ -2,7 +2,7 @@
 set -euo pipefail
 
         cp README.md Basic256/ || true
-        cp Basic256.png Basic256/ || true
+        cp Basic256-IDE.png Basic256-CLI.png Basic256-Web.png Basic256/ || true
 
         # ICU libraries - required by Qt5Core at runtime for Unicode/locale support
         cp /usr/lib/aarch64-linux-gnu/libicuuc.so.*   Basic256/lib/

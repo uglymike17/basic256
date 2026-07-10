@@ -37,17 +37,21 @@ echo "==> Building AppDir at ${APPDIR}"
 mkdir -p "${APPDIR}/usr/bin"
 mkdir -p "${APPDIR}/usr/lib/gstreamer-1.0"
 mkdir -p "${APPDIR}/usr/share/applications"
-mkdir -p "${APPDIR}/usr/share/icons/hicolor/256x256/apps"
+mkdir -p "${APPDIR}/usr/share/icons/hicolor/64x64/apps"
 mkdir -p "${APPDIR}/usr/share/basic256"
 
 # ── Binary & assets ───────────────────────────────────────────────────────────
 cp build/basic256   "${APPDIR}/usr/bin/"
 cp -r Examples      "${APPDIR}/usr/share/basic256/"
 cp README.md        "${APPDIR}/usr/share/basic256/" 2>/dev/null || true
-cp Basic256.png     "${APPDIR}/usr/share/icons/hicolor/256x256/apps/basic256.png"
+cp Basic256-IDE.png Basic256-CLI.png Basic256-Web.png \
+                    "${APPDIR}/usr/share/basic256/" 2>/dev/null || true
+# Desktop/launcher icon: the real 64x64 BASIC256 app logo (same image the
+# running app uses as its window icon), not a screenshot.
+cp resources/icons/basic256.png "${APPDIR}/usr/share/icons/hicolor/64x64/apps/basic256.png"
 
 # Root-level symlinks required by the AppImage specification
-ln -sf "usr/share/icons/hicolor/256x256/apps/basic256.png" "${APPDIR}/basic256.png"
+ln -sf "usr/share/icons/hicolor/64x64/apps/basic256.png" "${APPDIR}/basic256.png"
 
 # ── Desktop file (AppImage spec: must exist, drives Name / Icon / Exec) ───────
 cat > "${APPDIR}/usr/share/applications/basic256.desktop" << 'DESKTOP'

@@ -164,7 +164,9 @@ it manually from:$\nhttps://aka.ms/vs/17/release/vc_redist.x64.exe"
      File CONTRIBUTORS
      File license.txt
      File README.md
-     File Basic256.png
+     File Basic256-IDE.png
+     File Basic256-CLI.png
+     File Basic256-Web.png
 
      ; Pull in the already-deployed Qt6 runtime (every Qt DLL and plugin
      ; subfolder windeployqt determined this exe actually needs) from the
@@ -175,7 +177,7 @@ it manually from:$\nhttps://aka.ms/vs/17/release/vc_redist.x64.exe"
      ; exist in Qt6 at all, and the exact Qt6 replacements depend on which
      ; Multimedia backend Qt6 picked, which windeployqt already resolved
      ; correctly for us.
-     File /r /x "Examples" /x "TestSuite" /x "Translations" /x "basic256.bat" /x "basic256.exe" /x "README.md" /x "Basic256.png" "Basic256\*.*"
+     File /r /x "Examples" /x "TestSuite" /x "Translations" /x "basic256.bat" /x "basic256.exe" /x "README.md" /x "Basic256-IDE.png" /x "Basic256-CLI.png" /x "Basic256-Web.png" "Basic256\*.*"
 
    ;   Write the installation path into the registry
      WriteRegStr HKLM SOFTWARE\BASIC256 "Install_Dir" "$INSTDIR"
@@ -251,8 +253,10 @@ it manually from:$\nhttps://aka.ms/vs/17/release/vc_redist.x64.exe"
      Delete $INSTDIR\ChangeLog
      Delete $INSTDIR\CONTRIBUTORS
      Delete $INSTDIR\license.txt
-     Delete $INSTDIR\README.md      
-     Delete $INSTDIR\Basic256.png   
+     Delete $INSTDIR\README.md
+     Delete $INSTDIR\Basic256-IDE.png
+     Delete $INSTDIR\Basic256-CLI.png
+     Delete $INSTDIR\Basic256-Web.png
      RMDir /r $INSTDIR\espeak-data
      RMDir /r $INSTDIR\dist
      RMDir /r $INSTDIR\Examples

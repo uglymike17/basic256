@@ -81,7 +81,7 @@ The browser build is v1 and has a few known gaps compared to the desktop app:
 
 ## Command line / Terminal usage
 
-![CLI interface](basic256-CLI.png)
+![CLI interface](Basic256-CLI.png)
 
 BASIC256 can also be called from the command line with the following options:
 
@@ -169,7 +169,8 @@ Development continues with an emphasis on educational value while preserving com
 
 ### Language
 
-- `GAUSSIAN()` — random numbers weighted toward a central average (the typical bell curve), complementing the existing uniform `RAND()`
+- `ATAN2()` — a two-argument arctangent returns angle θ (in radians) between the positive x-axis and a ray pointing to the point (x, y) in the Cartesian plane. It correctly determines the angle across all four quadrants
+- `FMOD()` —  This calculates the floating-point remainder of x/y, while MOD() is only for integers
 - `SIMPLEX1D()` / `SIMPLEX2D()` — OpenSimplex noise, a spatially coherent noise generator (an evolution of Perlin noise): the backbone of natural-looking terrain, cloud textures, water ripples and wood grain in computer graphics
 - `MAPWINDOW(xmin,xmax,ymin,ymax)` — coordinate mapping
 - `CLAMP(value,min,max)` — value clamping, e.g. `red = CLAMP(red,0,255)`

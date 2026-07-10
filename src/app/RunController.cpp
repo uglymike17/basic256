@@ -278,7 +278,6 @@ RunController::startDebug() {
 		sound = new SoundSystem();
 #ifdef BASIC256_ENABLE_TTS
 		speech = new QTextToSpeech();
-		qCritical() << "TTS available engines:" << QTextToSpeech::availableEngines() << "- using engine:" << speech->engine();
 		QObject::connect(speech, &QTextToSpeech::errorOccurred, [](QTextToSpeech::ErrorReason reason, const QString &errorString) {
 			qCritical() << "TTS error (reason" << int(reason) << "):" << errorString;
 		});
@@ -339,7 +338,6 @@ RunController::startRun() {
 		sound = new SoundSystem();
 #ifdef BASIC256_ENABLE_TTS
 		speech = new QTextToSpeech();
-		qCritical() << "TTS available engines:" << QTextToSpeech::availableEngines() << "- using engine:" << speech->engine();
 		QObject::connect(speech, &QTextToSpeech::errorOccurred, [](QTextToSpeech::ErrorReason reason, const QString &errorString) {
 			qCritical() << "TTS error (reason" << int(reason) << "):" << errorString;
 		});
