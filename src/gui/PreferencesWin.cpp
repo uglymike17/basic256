@@ -707,9 +707,14 @@ void PreferencesWin::clickClearSavedData() {
 }
 
 void PreferencesWin::clickBrowseSavedData() {
+	// Async (RULE 2): a QDialog exec() never returns on the WASM main thread
+	// without Asyncify. Open non-modally, delete on close, and null the member
+	// so it never dangles.
 	settingsbrowser = new SettingsBrowser(this);
-	settingsbrowser->exec();
-	delete settingsbrowser;
+	settingsbrowser->setAttribute(Qt::WA_DeleteOnClose);
+	QObject::connect(settingsbrowser, &QObject::destroyed, this, [this](){ settingsbrowser = nullptr; });
+	settingsbrowser->setWindowModality(Qt::ApplicationModal);
+	settingsbrowser->show();
 }
 
 
@@ -779,10 +784,17 @@ void SettingsBrowser::treeWidgetCheckboxChanged() {
 }
 
 void SettingsBrowser::clickDeleteButton() {
-	if(QMessageBox::Yes == QMessageBox::question(this, tr("Delete selected settings"), tr("Do you really want to delete selected persistent settings?"), QMessageBox::Yes|QMessageBox::No, QMessageBox::No)){
+	QMessageBox *msgBox = new QMessageBox(this);
+	msgBox->setAttribute(Qt::WA_DeleteOnClose);
+	msgBox->setIcon(QMessageBox::Question);
+	msgBox->setWindowTitle(tr("Delete selected settings"));
+	msgBox->setText(tr("Do you really want to delete selected persistent settings?"));
+	msgBox->setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+	msgBox->setDefaultButton(QMessageBox::No);
+	QObject::connect(msgBox, &QMessageBox::finished, this, [this](int result){
+		if (result != QMessageBox::Yes) return;
 		SETTINGS;
 		settings.beginGroup(SETTINGSGROUPUSER);
-
 		deleteselectedsettings->setEnabled(false);
 		int top=treeWidgetSettings->topLevelItemCount()-1;
 		while(top>=0){
@@ -793,7 +805,6 @@ void SettingsBrowser::clickDeleteButton() {
 			}
 			top--;
 		}
-
 		QTreeWidgetItemIterator it(treeWidgetSettings);
 		while (*it) {
 			QTreeWidgetItem * item = (*it);
@@ -804,6 +815,8 @@ void SettingsBrowser::clickDeleteButton() {
 			}
 		}
 		settings.endGroup();
-	}
+	});
+	msgBox->setWindowModality(Qt::ApplicationModal);
+	msgBox->show();
 }
 
