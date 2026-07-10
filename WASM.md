@@ -1154,8 +1154,9 @@ automatic reload on first visit).
 - [x] Sound WASM guards (`setSourceDevice` path)
 - [x] Web Audio bridge for QAudioSink tone/waveform playback
       (`WasmAudioSink`, Phase 7; `sound:` in-memory-file path still open)
-- [ ] Dialog `exec()` → `open()` conversions (3 of 8 known real sites done;
-      5 more found and deliberately deferred — see Phase 5 notes)
+- [x] Dialog `exec()` → `open()` conversions (all 8 known result-dependent
+      `QMessageBox` sites done — the 5 deferred converted 2026-07-10; the
+      `SettingsBrowser` `QDialog::exec()` also converted)
 - [x] WASM file open/save (`getOpenFileContent`/`saveFileContent`)
 - [x] Examples packaged for browser
 - [x] gh-pages deploy + coi-serviceworker + landing page (code/CI done;
@@ -1720,3 +1721,76 @@ sandbox — each isolated in its own phase gate.
   job's failure mode (once Pages is enabled, or if it fails earlier for
   lack of Pages) matches what's expected here, same "CI green is necessary
   but not sufficient" discipline as every other phase.
+
+- 2026-07-10: **Phase 6 gate closed + the deferred dialog conversions +
+  two SOUND/SAY fixes.** GitHub Pages is now enabled by the maintainer
+  (Settings → Pages → Source: GitHub Actions), so the `pages-deploy` job
+  publishes automatically on each push to `v2.1.Alpha05WASM`; the Phase 6
+  gate checkbox and its note are updated accordingly. The live site is
+  `https://uglymike17.github.io/basic256/`.
+  **Favicon:** added `wasm-deploy/favicon.png` (a byte-for-byte copy of the
+  real 64×64 app logo `resources/icons/basic256.png`, not a bespoke image —
+  same asset the desktop window icon and AppImage launcher use), linked from
+  `wasm-deploy/index.html`'s `<head>` via `rel="icon"` + `apple-touch-icon`,
+  and copied into the published site by a new `cp` line in the
+  `pages-deploy` "Assemble Pages site" step. PNG (not SVG) deliberately, so
+  it renders on Safari too — the browser the Phase 6 gate calls the usual
+  straggler.
+  **Dialog `exec()`→async conversions — the 5 sites deferred on 2026-07-07
+  are now all done** (RULE 2: a modal `exec()` never returns on the WASM
+  main thread without Asyncify). Each blocking `QMessageBox`/`QDialog` was
+  replaced by a heap `new QMessageBox(...)` + `WA_DeleteOnClose` +
+  `show()`, with the post-answer logic moved into a `&QMessageBox::finished`
+  slot's Yes branch; desktop behaviour is unchanged (still `ApplicationModal`,
+  still the same prompts). Sites:
+    - `MainWindow::closeEditorTab()` — "discard changes?" on single-tab
+      close. Close logic factored into a shared `doCloseEditor` lambda used
+      by both the finished-slot Yes branch and the unmodified fast path.
+      `e` stays valid across the async gap via the existing
+      `runState!=RUNSTATESTOP` early-return guard + the modal dialog — same
+      risk profile as the shipped `closeAllPrograms` conversion.
+    - `BasicEdit::handleFileChangedOnDisk()` — all three modals (removed-file
+      info, changed-file reload confirm, and the nested unable-to-open
+      critical) converted; the reload runs in the confirm dialog's Yes
+      branch. `fileChangedOnDiskFlag` is now cleared when the dialog is
+      *dispatched* rather than after it returns (the old trailing reset was
+      dead once the call stopped blocking).
+    - `MainWindow::loadFile()` — the two "not a text file / not .kbs, load
+      anyway?" prompts. Handled by *skipping* rather than converting: a new
+      `skipLoadPrompts` (true under `Q_OS_WASM`, and for `--silent` as
+      before) makes both proceed without a dialog, since `loadFile()` is
+      effectively desktop-only on WASM (the browser opens via
+      `getOpenFileContent()`/`loadFileContent()`). Desktop keeps the prompts.
+    - `PreferencesWin::SettingsBrowser::clickDeleteButton()` — "delete
+      *selected* persistent settings?" body wrapped in the finished slot.
+    - `PreferencesWin::clickBrowseSavedData()` — the `SettingsBrowser`
+      `QDialog::exec()` itself (not a result-dependent `QMessageBox`, so it
+      wasn't in the "8" count): opened non-modally with `WA_DeleteOnClose`
+      replacing the manual `delete`, plus a `destroyed → settingsbrowser =
+      nullptr` connect so the member can't dangle. Grepped every
+      `settingsbrowser` use first to confirm nothing reads it after the old
+      `exec()` returned — only the ctor init and this function touch it.
+  With these, the per-file summary's "Dialog `exec()` → `open()`" row is now
+  ticked.
+  **WASM audio `onended` fix.** The Phase 7 `WasmAudioSink` bridge resolved
+  its async end-of-playback callback with Emscripten's `{{{ makeDynCall('vi',
+  'endedPtr') }}}` macro inside the `EM_JS` body — but that build-time macro
+  **did not expand** on this Qt 6.11.1 / emsdk 4.0.7 combination, leaving the
+  buffer-source `onended` unable to notify C++ (so natural end-of-playback
+  never mapped to `QAudio::IdleState`). Replaced with a direct call to the
+  `EMSCRIPTEN_KEEPALIVE` export `_wasmAudioSinkOnEnded(entry.id)`, with
+  `Module._wasmAudioSinkOnEnded` / `getWasmTableEntry` / `wasmTable.get`
+  fallbacks that don't depend on macro expansion. (Supersedes the makeDynCall
+  approach described in the 2026-07-08 Phase 7 entry — that mechanism was the
+  intent, not what actually worked.)
+  **SOUND/SAY console noise removed** (cross-platform, but most visible in
+  the browser console): suppressed Qt Multimedia's informational
+  `qt.multimedia.ffmpeg` "Using Qt multimedia with FFmpeg version …" banner
+  via `QLoggingCategory::setFilterRules("qt.multimedia.ffmpeg.info=false")`
+  in `Main.cpp` (warnings/errors still surface), and removed a stray
+  `qCritical()` "TTS available engines: …" diagnostic from both
+  `RunController` speak-setup sites (the real `errorOccurred` handler stays).
+  All of the above pushed to `v2.1.Alpha05WASM` and CI-triggered; the
+  SettingsBrowser pair (`clickBrowseSavedData`/`clickDeleteButton`) went as
+  its own commit since it's entangled with the still-open Settings-
+  persistence work rather than the audio changes.
