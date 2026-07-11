@@ -3732,7 +3732,14 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 				case OP_SOUNDPAUSE: {
 					int i = stack->popInt();
-					sound->pause(i);
+					// Must run on the GUI thread: pausing a QMediaPlayer stops
+					// its internal timers, and "Timers cannot be stopped from
+					// another thread". Route through the main thread like
+					// OP_SOUNDSTOP rather than calling sound->pause() here.
+					mymutex->lock();
+					emit(soundPause(i));
+					waitCond->wait(mymutex);
+					mymutex->unlock();
 				}
 				break;
 
@@ -3885,7 +3892,13 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_SOUNDSEEK: {
 					double p = stack->popDouble();
 					int i = stack->popInt();
-					sound->seek(i, p);
+					// Must run on the GUI thread: seeking a QMediaPlayer
+					// starts/stops its internal timers (same reason as
+					// OP_SOUNDPAUSE) -- route through the main thread.
+					mymutex->lock();
+					emit(soundSeek(i, p));
+					waitCond->wait(mymutex);
+					mymutex->unlock();
 				}
 				break;
 
@@ -6883,7 +6896,11 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 				case OP_WAVPAUSE: {
 				//obsolete
-					sound->pause(mediaplayer_id_legacy);
+					// GUI thread (see OP_SOUNDPAUSE) -- pausing touches media timers.
+					mymutex->lock();
+					emit(soundPause(mediaplayer_id_legacy));
+					waitCond->wait(mymutex);
+					mymutex->unlock();
 				}
 				break;
 
@@ -6896,7 +6913,11 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_WAVSEEK: {
 				//obsolete
 					double pos = stack->popDouble();
-					sound->seek(mediaplayer_id_legacy, pos);
+					// GUI thread (see OP_SOUNDSEEK) -- seeking touches media timers.
+					mymutex->lock();
+					emit(soundSeek(mediaplayer_id_legacy, pos));
+					waitCond->wait(mymutex);
+					mymutex->unlock();
 				}
 				break;
 

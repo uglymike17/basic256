@@ -196,6 +196,8 @@ RunController::RunController() {
 	QObject::connect(i, SIGNAL(loadSoundFromArray(QString, QByteArray*)), this, SLOT(loadSoundFromArray(QString, QByteArray*)));
 	QObject::connect(i, SIGNAL(soundStop(int)), this, SLOT(soundStop(int)));
 	QObject::connect(i, SIGNAL(soundPlay(int)), this, SLOT(soundPlay(int)));
+	QObject::connect(i, SIGNAL(soundPause(int)), this, SLOT(soundPause(int)));
+	QObject::connect(i, SIGNAL(soundSeek(int, double)), this, SLOT(soundSeek(int, double)));
 	QObject::connect(i, SIGNAL(soundFade(int, double, int, int)), this, SLOT(soundFade(int, double, int, int)));
 	QObject::connect(i, SIGNAL(soundVolume(int, double)), this, SLOT(soundVolume(int, double)));
 	//QObject::connect(i, SIGNAL(soundExit()), this, SLOT(soundExit()));
@@ -890,6 +892,20 @@ void RunController::soundPlayerOff(int n){
 void RunController::soundPlay(int n){
 	mymutex->lock();
 	sound->play(n);
+	waitCond->wakeAll();
+	mymutex->unlock();
+}
+
+void RunController::soundPause(int n){
+	mymutex->lock();
+	sound->pause(n);
+	waitCond->wakeAll();
+	mymutex->unlock();
+}
+
+void RunController::soundSeek(int n, double pos){
+	mymutex->lock();
+	sound->seek(n, pos);
 	waitCond->wakeAll();
 	mymutex->unlock();
 }

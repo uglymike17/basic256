@@ -255,6 +255,8 @@ class Interpreter : public QThread
 		void loadSoundFromArray(QString, QByteArray*);
 		void soundStop(int);
 		void soundPlay(int);
+		void soundPause(int);
+		void soundSeek(int, double);
 		void soundFade(int, double, int, int);
 		void soundVolume(int, double);
 		//void soundExit();
