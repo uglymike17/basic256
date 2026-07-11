@@ -794,6 +794,8 @@ unless noted.
         - `PreferencesWin.cpp` `SettingsBrowser::clickDeleteButton()` —
           "delete *selected* persistent settings?" (distinct from
           `clickClearSavedData()`'s "delete *all*", which was converted).
+        **Update 2026-07-10:** these sites are now closed — see the
+        2026-07-10 Session log entry for the per-site treatment.
         No `->wait(`/`waitCond->wait` usage found on the GUI side (only in
         `Interpreter.cpp`/`RunController.cpp`, the interpreter-thread side,
         which RULE 2 explicitly allows). One `processEvents()` poll found
@@ -1116,13 +1118,19 @@ automatic reload on first visit).
       tracked as a separate future Phase 7 item below.
       **CI-confirmed green (2026-07-08, run 28946260836)** after two
       follow-up link/compile fixes (see Session log) — the wasm job and all
-      four desktop targets + dress rehearsal build clean. **Still not
-      verified in a real browser** (no local Emscripten toolchain or
-      browser in this environment, same constraint as every prior WASM
-      phase) — needs the maintainer to confirm `SOUND 400,2000` / a
-      `BEEP`-based example is actually audible with no console errors, and
-      that loop/pause/resume/seek/`SOUNDWAIT` all behave sanely, before
-      this item can be considered fully closed.
+      four desktop targets + dress rehearsal build clean. **Browser-verified
+      2026-07-10 by the maintainer.** The first browser run
+      exposed a runtime `makeDynCall is not defined` failure in the
+      `onended` handler that the CI-green build could not catch: `makeDynCall`
+      is a build-time macro that must be expanded by the `{{{ }}}`
+      preprocessor, but inside this `EM_JS` body on Qt 6.11.1/emsdk 4.0.7 it
+      was emitted un-expanded, so the handler threw, natural-end never reached
+      C++, and `SOUNDWAIT` hung after the first tone. Fixed by calling the
+      `EMSCRIPTEN_KEEPALIVE` `wasmAudioSinkOnEnded` export directly (with
+      `getWasmTableEntry`/`wasmTable.get` fallbacks, all `typeof`-guarded)
+      instead of via `makeDynCall` (see Session log, 2026-07-10). Re-verified:
+      `SOUND 400,2000` loop fully audible, program continues, and
+      loop/pause/resume/seek/`SOUNDWAIT` all behave sanely.
 - [ ] `sound:` in-memory-file playback (arbitrary compressed audio bytes
       loaded via `SOUNDLOAD` and played back with
       `QMediaPlayer::setSourceDevice()`) still needs its own Web Audio
@@ -1159,8 +1167,9 @@ automatic reload on first visit).
       `SettingsBrowser` `QDialog::exec()` also converted)
 - [x] WASM file open/save (`getOpenFileContent`/`saveFileContent`)
 - [x] Examples packaged for browser
-- [x] gh-pages deploy + coi-serviceworker + landing page (code/CI done;
-      live-URL gate blocked on the maintainer enabling GitHub Pages)
+- [x] gh-pages deploy + coi-serviceworker + landing page (live at
+      https://uglymike17.github.io/basic256/; Pages enabled + auto-deploys on
+      each push to v2.1.Alpha05WASM; browser matrix confirmed 2026-07-10)
 - [x] README browser-limitations section
 
 ---
@@ -1794,3 +1803,22 @@ sandbox — each isolated in its own phase gate.
   SettingsBrowser pair (`clickBrowseSavedData`/`clickDeleteButton`) went as
   its own commit since it's entangled with the still-open Settings-
   persistence work rather than the audio changes.
+
+- 2026-07-10 (browser verification): Maintainer confirmed the batch above in a
+  real browser, closing the two items that stood at "pushed + CI-triggered" in
+  the preceding entry. The audio fix landed exactly here: the first browser run
+  threw `makeDynCall is not defined` in the `onended` handler (the `{{{ }}}`
+  build-time macro was emitted un-expanded on Qt 6.11.1/emsdk 4.0.7), so
+  natural-end never reached C++ and `SOUNDWAIT` hung after the first tone —
+  fixed by calling the `EMSCRIPTEN_KEEPALIVE` `wasmAudioSinkOnEnded` export
+  directly with `getWasmTableEntry`/`wasmTable.get` fallbacks. Re-verified: a
+  3× `SOUND 400,2000` loop is fully audible, the program continues past the
+  loop, and pause/resume/seek/`SOUNDWAIT` all behave. Phase 6 browser matrix
+  green across Chrome/Firefox/Edge/Safari (page loads, a `PAUSE`/input program
+  doesn't freeze the tab, `.kbs` save→download→re-upload round-trips, mouse +
+  keyboard examples respond); the five converted dialog flows behave and
+  desktop behaviour is unchanged. See the preceding 2026-07-10 entry for the
+  per-change detail. **Remaining open item: Settings persistence** —
+  `NativeFormat` is ephemeral, `WebLocalStorageFormat` spins; still the one
+  unsolved functional gap. All other mandatory scope (Phases 0–6) is now
+  functionally complete and browser-verified.
