@@ -87,17 +87,23 @@ SoundSystem *sound;
 // --- SAY via the browser's Web Speech API ---------------------------------
 // Qt for WebAssembly ships no TextToSpeech backend at all (so
 // BASIC256_ENABLE_TTS is OFF for wasm and QTextToSpeech is never
-// linked/constructed); drive window.speechSynthesis directly instead. SAY is
-// blocking on desktop, so speakWords() below waits until the utterance's
-// onend/onerror fires and calls the basic256SayFinished() export.
+// linked/constructed); drive window.speechSynthesis directly instead.
+//
+// SAY blocks on desktop. On WASM the thing that blocks is the *interpreter
+// thread* -- OP_SAY does emit(speakWords) then waitCond->wait(), and a worker
+// thread is allowed to block (RULE 2). speakWords() itself runs on the MAIN
+// thread and must NOT block or spin: without Asyncify the main thread only
+// delivers browser events -- speechSynthesis's onend AND the Stop button --
+// when it returns to the event loop. So speakWords() is fire-and-forget, and
+// the onend/onerror callback wakes the interpreter via basic256SayFinished().
+// (The earlier version spun a QEventLoop on the main thread here, which froze
+// the whole tab: onend could never fire and Stop could never be delivered.)
 //
 // NB (same trap as WasmAudioSink::onended): makeDynCall does not expand
 // inside EM_JS on this Qt 6.11.1/emsdk 4.0.7 toolchain, so the JS callbacks
 // call the extern "C" EMSCRIPTEN_KEEPALIVE export directly, typeof-guarded.
 #include <emscripten.h>
 #include <emscripten/em_js.h>
-
-static bool s_wasmSayFinished = false;
 
 EM_JS(void, wasmSay, (const char* utf8), {
     var text = UTF8ToString(utf8);
@@ -127,9 +133,14 @@ EM_JS(void, wasmSayCancel, (), {
 
 extern "C" EMSCRIPTEN_KEEPALIVE void basic256SayFinished()
 {
-    // Runs on the main thread (DOM callbacks always do), the same thread
-    // speakWords() spins on -- no cross-thread race on the flag.
-    s_wasmSayFinished = true;
+    // onend/onerror (main thread): the utterance is finished or was cancelled --
+    // wake the interpreter thread blocked in OP_SAY's waitCond->wait(). mymutex
+    // makes this safe if the wait has not quite started yet (standard condition-
+    // variable pattern); a wakeAll with no waiter is a harmless no-op, so onend
+    // and onerror both routing here needs no extra guard.
+    mymutex->lock();
+    waitCond->wakeAll();
+    mymutex->unlock();
 }
 #endif // Q_OS_WASM
 
@@ -236,20 +247,18 @@ RunController::speakWords(QString text) {
 	
 #ifdef Q_OS_WASM
 	if (text.length() != 0) {
-		// Speak via window.speechSynthesis and block (SAY is synchronous on
-		// desktop) until the utterance's onend/onerror fires basic256SayFinished(),
-		// honoring Stop the same way the desktop QTextToSpeech loop below does.
-		s_wasmSayFinished = false;
+		// Fire-and-forget: start speaking and return immediately so the main
+		// thread keeps servicing the browser event loop -- it must NOT block or
+		// spin here, or speechSynthesis's onend and the Stop button could never
+		// be delivered (that froze the tab in the first version). The interpreter
+		// thread stays blocked in OP_SAY's waitCond->wait(); basic256SayFinished()
+		// (onend/onerror) wakes it, and Stop wakes it via stopRun() (which also
+		// calls wasmSayCancel() to silence speech). Return so we do NOT fall
+		// through to the unconditional wake at the end of this function.
 		wasmSay(text.toUtf8().constData());
-		QEventLoop loop;
-		while (!s_wasmSayFinished && i && !i->isStopping() && !i->isStopped()) {
-			loop.processEvents(QEventLoop::AllEvents, 50);
-		}
-		// Stopped mid-utterance: silence anything still speaking.
-		if (!s_wasmSayFinished) {
-			wasmSayCancel();
-		}
+		return;
 	}
+	// empty text: nothing to speak -- fall through to wake the interpreter now.
 #elif defined(BASIC256_ENABLE_TTS)
 	if (text.length() != 0) {
 		// Say something.

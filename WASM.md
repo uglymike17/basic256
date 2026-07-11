@@ -1173,13 +1173,26 @@ automatic reload on first visit).
       export `basic256SayFinished()` **directly** (`_basic256SayFinished` /
       `Module._basic256SayFinished`, `typeof`-guarded — *not* `makeDynCall`,
       which doesn't expand in `EM_JS` on this Qt 6.11.1/emsdk 4.0.7 toolchain,
-      the WasmAudioSink `onended` lesson). `speakWords()` then spins a local
-      `QEventLoop::processEvents` loop until that fires, honoring
-      `i->isStopping()`; Stop mid-utterance (and `stopRun()`) call
+      the WasmAudioSink `onended` lesson). `SAY`'s desktop blocking semantics
+      are preserved on the *interpreter* thread — `OP_SAY` already does
+      `emit(speakWords)` then `waitCond->wait()`, and a worker thread may block
+      (RULE 2). `speakWords()` runs on the **main** thread and is therefore
+      **fire-and-forget**: it starts the utterance and returns immediately, and
+      the `onend`/`onerror` callback wakes the interpreter from
+      `basic256SayFinished()` (`waitCond->wakeAll()`). Stop is handled by
+      `stopRun()`, which wakes the interpreter and calls
       `window.speechSynthesis.cancel()`. `QTextToSpeech` stays unlinked on wasm
       — its member construction is already `#ifdef BASIC256_ENABLE_TTS`, OFF for
-      the wasm build. Maintainer to verify in-browser: `SAY "hello world"` is
-      audible and blocks until done, and Stop silences ongoing speech.
+      the wasm build.
+      **Browser bug found + fixed 2026-07-11:** the first cut spun a
+      `QEventLoop::processEvents` loop in `speakWords()` to block until the
+      callback fired. That froze the whole tab — without Asyncify the main
+      thread only delivers browser events (the `onend` callback *and* the Stop
+      click) when it returns to the event loop, so the spin was a deadlock:
+      `onend` never fired and Stop never arrived. Replaced with the
+      fire-and-forget + callback-wake design above. Maintainer to re-verify
+      in-browser: `SAY "hello world"` audible, UI stays responsive, program
+      continues after it, and Stop interrupts a long utterance.
 - [ ] IDBFS mount for a persistent `/home/web_user` so saved programs
       survive reloads.
 - [ ] A trimmed "player" build (graph window only, program preloaded from
@@ -1938,3 +1951,27 @@ sandbox — each isolated in its own phase gate.
   `SOUNDLOAD`ed `.wav`/`.mp3` is audible, `SOUNDLENGTH` matches, seek/pause/
   resume behave, and a non-audio file raises `WARNING_SOUNDERROR` without
   hanging.
+
+- 2026-07-11: **Fix — WASM `SAY` froze the browser tab.** Browser test showed
+  the utterance was clearly audible but the UI then locked up completely (tab
+  had to be force-closed, no console output) and Stop had no effect during a
+  long utterance. Root cause was the RULE 2 trap flagged when the feature
+  shipped: `RunController::speakWords()` runs on the **main** thread and the
+  first cut spun a `QEventLoop::processEvents` loop there to block until the
+  `onend` callback set a flag. Without Asyncify the main thread only delivers
+  browser events — the `speechSynthesis` `onend` callback *and* the Stop
+  button click — when it returns to the event loop, so the spin was a
+  self-deadlock: `onend` could never fire (flag never set), Stop could never
+  be delivered (`isStopping()` never set), and the loop ran forever. Fix:
+  `speakWords()` is now **fire-and-forget** — it starts the utterance and
+  returns immediately, keeping the main thread free. `SAY`'s blocking is
+  carried entirely by the *interpreter* thread, which was already blocked in
+  `OP_SAY`'s `waitCond->wait()` (a worker thread may block); the `onend`/
+  `onerror` callback now wakes it directly from `basic256SayFinished()`
+  (`mymutex`-guarded `waitCond->wakeAll()`), and Stop wakes it via `stopRun()`
+  (which also calls `wasmSayCancel()`). Empty-`SAY` still wakes immediately.
+  The `s_wasmSayFinished` flag and the `QEventLoop` spin are gone. `sound:`
+  decode and the audio bridge already block only on the interpreter/worker
+  thread, so they were never affected. Committed separately on top of the
+  original SAY commit so the regression stays cleanly attributable. Pending
+  re-verification in-browser.
