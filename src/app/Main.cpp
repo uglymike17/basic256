@@ -45,6 +45,7 @@
 #include "Version.h"
 #include "MainWindow.h"
 #include "BasicEdit.h"
+#include "WasmSettings.h"
 
 
 //Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
@@ -184,6 +185,20 @@ int main(int argc, char *argv[]) {
     QCoreApplication::setOrganizationName(SETTINGSORG);
     QCoreApplication::setApplicationName(SETTINGSAPP);
     QCoreApplication::setApplicationVersion(VERSION);
+
+#ifdef Q_OS_WASM
+    // WASM persistence (WASM.md Phase 7). The Emscripten FS is ephemeral MEMFS;
+    // wasm-deploy/idbfs.js (--pre-js) has already mounted IDBFS at /persist and
+    // synced it in (main() is gated on that). Point NativeFormat QSettings at
+    // /persist so preferences and SETSETTING data land in the persisted mount,
+    // and flush it back to IndexedDB after changes / on quit via WasmSettings.
+    // This must run before the first QSettings is constructed (MainWindow reads
+    // settings during construction below).
+    QSettings::setDefaultFormat(QSettings::NativeFormat);
+    QSettings::setPath(QSettings::NativeFormat, QSettings::UserScope, "/persist");
+    WasmSettings::init();
+    QObject::connect(&qapp, &QCoreApplication::aboutToQuit, [](){ WasmSettings::persistNow(); });
+#endif
 
 #if defined(WIN32) && !defined(WIN32PORTABLE)
     associateFileTypes(QStringList(".kbs"));

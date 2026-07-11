@@ -98,6 +98,7 @@ set(SOURCES_CORE
     src/core/Stack.cpp
     src/core/Variables.cpp
     src/core/WasmAudioSink.cpp
+    src/core/WasmSettings.cpp
 )
 
 set(HEADERS_CORE
@@ -120,6 +121,7 @@ set(HEADERS_CORE
     src/core/Variables.h
     src/core/Version.h
     src/core/WasmAudioSink.h
+    src/core/WasmSettings.h
     src/core/WordCodes.h
 )
 
@@ -455,6 +457,20 @@ if(EMSCRIPTEN)
     target_compile_options(basic256core PRIVATE -Oz)
     target_compile_options(basic256 PRIVATE -Oz)
     target_link_options(basic256 PRIVATE -Oz)
+
+    # WASM Phase 7: persistence. wasm-deploy/idbfs.js (--pre-js) mounts IDBFS
+    # (IndexedDB-backed) at /persist and loads it before main() runs; Main.cpp
+    # points NativeFormat QSettings there so preferences / SETSETTING data
+    # survive reloads (see src/core/WasmSettings.{h,cpp}). -lidbfs.js links
+    # Emscripten's IDBFS backend, which is not included by default. The
+    # "SHELL:" prefix keeps "--pre-js <file>" together as one two-token option
+    # (CMake would otherwise be free to de-duplicate/reorder it); LINK_DEPENDS
+    # relinks if the bootstrap script changes.
+    target_link_options(basic256 PRIVATE
+        "SHELL:--pre-js ${CMAKE_CURRENT_SOURCE_DIR}/wasm-deploy/idbfs.js"
+        -lidbfs.js)
+    set_target_properties(basic256 PROPERTIES
+        LINK_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/wasm-deploy/idbfs.js")
 endif()
 
 # Derive the build's VERSION display string (About box, applicationVersion)

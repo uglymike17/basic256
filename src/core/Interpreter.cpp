@@ -55,6 +55,7 @@
 #include "Sound.h"
 #include "Constants.h"
 #include "BasicKeyboard.h"
+#include "WasmSettings.h"
 
 
 extern SoundSystem *sound;
@@ -5944,6 +5945,14 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						}
 						settings.endGroup();
 						settings.endGroup();
+#ifdef Q_OS_WASM
+						// Flush to the settings file and schedule a debounced
+						// persist of the /persist IDBFS mount to IndexedDB
+						// (coalesces SETSETTING in a loop into one sync). Runs on
+						// the interpreter thread; persistSoon() marshals to main.
+						settings.sync();
+						WasmSettings::persistSoon();
+#endif
 					} else {
 						if(stuff.isEmpty()){
 							fakeSettings[app].remove(key);

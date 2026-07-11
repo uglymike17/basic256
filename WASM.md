@@ -881,6 +881,11 @@ unless noted.
       existing `settings.value(key, default)` usage (29 sites, all with a
       default) does already tolerate missing/first-run-empty keys — that
       part of the original item is still true and needs no further work.
+      **Resolved 2026-07-11 (pending browser verification):** persistence is
+      now provided by an IDBFS mount rather than a QSettings format change —
+      `NativeFormat` (which writes real files) is redirected to an
+      IndexedDB-backed `/persist` mount and flushed with `FS.syncfs`. See the
+      Phase 7 "IDBFS mount" item and the 2026-07-11 Session log entry.
 - [x] **Clipboard, fonts, HiDPI:** quick manual checks; Qt bundles a
       fallback font, clipboard needs the page served over HTTPS.
       **Code-level check done, browser check still needed:** grepped every
@@ -1199,8 +1204,40 @@ automatic reload on first visit).
       **Re-verified in-browser 2026-07-11:** `SAY` audible on Chrome, UI stays
       responsive, program continues after it, and a 25 s utterance speaks to
       completion (keepalive confirmed past the ~15 s cutoff).
-- [ ] IDBFS mount for a persistent `/home/web_user` so saved programs
-      survive reloads.
+- [x] IDBFS mount for a persistent store so settings survive reloads —
+      **also closes the long-open Settings-persistence item (Phase 5).**
+      **Implemented 2026-07-11 (pending CI-green + browser verification).**
+      The Emscripten FS is ephemeral MEMFS, so `QSettings` writes were lost on
+      reload (`NativeFormat` silently wrote to MEMFS; `WebLocalStorageFormat`
+      spun — see Phase 5 Settings item / Session log). Fix: mount IDBFS
+      (IndexedDB-backed) and keep `NativeFormat` (which *does* write real files
+      to the FS), so it just needs a persistent path.
+      - `wasm-deploy/idbfs.js` (a `--pre-js`, added to the `if(EMSCRIPTEN)`
+        link block with `-lidbfs.js`): in `Module.preRun`, `FS.mount(IDBFS, {},
+        '/persist')` then `FS.syncfs(true, …)`, bracketed by
+        `addRunDependency`/`removeRunDependency` so `main()` is gated until the
+        initial load finishes (Qt reads settings very early). preRun runs on
+        the main thread only, where the FS lives.
+      - `Main.cpp` (`#ifdef Q_OS_WASM`, before the first `QSettings`):
+        `setDefaultFormat(NativeFormat)` + `setPath(NativeFormat, UserScope,
+        "/persist")`, so the `SETTINGS` macro's `QSettings(org, app)` writes to
+        `/persist/<org>/<app>.conf`. (If a future Qt WASM build ignores
+        `setPath` for `NativeFormat`, the fallback is `qputenv("HOME",
+        "/persist")` — noted, not needed as far as the docs go.)
+      - `src/core/WasmSettings.{h,cpp}`: a debounced persist helper (a
+        single-shot `QTimer`, main-thread affinity) exposing `persistSoon()`
+        (debounced ~1 s, coalesces `SETSETTING` bursts) and `persistNow()`
+        (immediate). Both are thread-safe and marshal the actual
+        `EM_JS`-wrapped `FS.syncfs(false, …)` to the main thread. Called after
+        settings writes: `persistNow()` on Preferences save, on
+        clear/delete-settings, and on `aboutToQuit`; `persistSoon()` after
+        `OP_SETSETTING` (interpreter thread). Also suppressed the blocking
+        "Preferences saved" `QMessageBox::information()` on WASM (a static
+        `exec()` that would freeze the tab, RULE 2) so the save flow completes.
+      This gives the deferred `SettingsBrowser` pair a real store to browse.
+      Maintainer to verify in-browser: change a preference / run
+      `SETSETTING`, reload the page, and confirm the value survived; the
+      Settings browser lists persisted keys.
 - [ ] A trimmed "player" build (graph window only, program preloaded from
       URL parameter) for embedding fractal/demo programs in web pages.
 - [ ] Revisit binary size: dynamic linking / `qt-cmake` deploy options,
@@ -1225,6 +1262,9 @@ automatic reload on first visit).
       `QMessageBox` sites done — the 5 deferred converted 2026-07-10; the
       `SettingsBrowser` `QDialog::exec()` also converted)
 - [x] WASM file open/save (`getOpenFileContent`/`saveFileContent`)
+- [x] Settings persistence via IDBFS mount (`/persist` + `NativeFormat` +
+      `FS.syncfs`; `WasmSettings`, `wasm-deploy/idbfs.js`, Phase 7 — pending
+      browser verification)
 - [x] Examples packaged for browser
 - [x] gh-pages deploy + coi-serviceworker + landing page (live at
       https://uglymike17.github.io/basic256/; Pages enabled + auto-deploys on
@@ -1989,3 +2029,37 @@ sandbox — each isolated in its own phase gate.
   stays responsive, the program continues past it, and a 25 s utterance speaks
   all the way through — confirming both the main-thread-block fix and the
   keepalive past Chrome's ~15 s cutoff. Phase 7 `SAY` item ticked.
+
+- 2026-07-11: **Phase 7 IDBFS settings persistence implemented — closes the
+  long-open Settings item** (code only; pending CI-green + browser
+  verification). The Emscripten FS is ephemeral MEMFS, so `QSettings` never
+  survived a reload: `NativeFormat` wrote to MEMFS (lost on reload) and the
+  earlier `WebLocalStorageFormat` attempt spun the tab (see the 2026-07-08
+  Phase 5 Settings entries). This keeps `NativeFormat` — which *does* write
+  real files — and gives it a persistent path via an IDBFS (IndexedDB) mount:
+  - `wasm-deploy/idbfs.js`, added to the `if(EMSCRIPTEN)` link block as a
+    `--pre-js` (plus `-lidbfs.js` for the IDBFS backend). In `Module.preRun`
+    it `FS.mount(IDBFS, {}, '/persist')` then `FS.syncfs(true, …)`, gated by
+    `addRunDependency`/`removeRunDependency` so `main()` doesn't start until
+    the initial load completes (Qt reads settings very early). preRun runs on
+    the main thread only — where the Emscripten FS lives.
+  - `Main.cpp` (`#ifdef Q_OS_WASM`, before the first `QSettings`):
+    `QSettings::setDefaultFormat(NativeFormat)` +
+    `setPath(NativeFormat, UserScope, "/persist")`, so the `SETTINGS` macro
+    writes to `/persist/<org>/<app>.conf`. Fallback if a future Qt WASM ignores
+    `setPath`: `qputenv("HOME", "/persist")` (documented, not currently used).
+  - `src/core/WasmSettings.{h,cpp}` (new, core, `Q_OS_WASM`-only, no `Q_OBJECT`
+    — a `QTimer` + lambdas): `persistSoon()` (debounced ~1 s, coalesces
+    `SETSETTING` loops) and `persistNow()` (immediate). Both thread-safe;
+    the `EM_JS`-wrapped `FS.syncfs(false, …)` always runs on the main thread
+    (the debounce `QTimer` has main-thread affinity; off-thread callers marshal
+    via `QMetaObject::invokeMethod`). Wired: `persistNow()` on Preferences save,
+    clear-all, and `SettingsBrowser` delete, and on `QCoreApplication::
+    aboutToQuit`; `persistSoon()` after `OP_SETSETTING` (interpreter thread).
+  - Also suppressed the blocking "Preferences saved"
+    `QMessageBox::information()` on WASM (a static `exec()` that freezes the
+    main thread, RULE 2) so the save flow completes; desktop keeps the dialog.
+  All changes are `#ifdef Q_OS_WASM`; desktop settings behaviour is untouched.
+  This also finally gives the deferred `SettingsBrowser` dialog pair a real
+  store to browse. Verify in-browser: change a preference / run `SETSETTING`,
+  reload, and confirm the value persisted (and the Settings browser lists it).

@@ -28,6 +28,7 @@
 #include "Settings.h"
 #include "MainWindow.h"
 #include "md5.h"
+#include "WasmSettings.h"
 
 PreferencesWin::PreferencesWin (QWidget * parent, bool showAdvanced)
 	:QDialog(parent) {
@@ -628,10 +629,21 @@ void PreferencesWin::clickSaveButton() {
 		if (orientlandscape->isChecked()) settings.setValue(SETTINGSPRINTERORIENT, QPageLayout::Landscape);
 #endif
 
+#ifdef Q_OS_WASM
+		// Explicit save -- flush the file now and persist /persist to IndexedDB
+		// immediately (not debounced), so a reload right after saving keeps it.
+		settings.sync();
+		WasmSettings::persistNow();
+#endif
 
 		// *******************************************************************************************
 		// all done
+#ifndef Q_OS_WASM
+		// Skip on WASM: a static QMessageBox::information() blocks on exec(),
+		// which freezes the main thread there (RULE 2). The save already
+		// happened (and was persisted above); just close the window.
 		QMessageBox::information(this, tr(SETTINGSAPP), tr("Preferences and settings have been saved."),QMessageBox::Ok, QMessageBox::Ok);
+#endif
 		//
 		close();
 	}
@@ -697,6 +709,10 @@ void PreferencesWin::clickClearSavedData() {
 			settings.beginGroup(SETTINGSGROUPUSER);
 			settings.remove("");
 			settings.endGroup();
+#ifdef Q_OS_WASM
+			settings.sync();
+			WasmSettings::persistNow();
+#endif
 		}
 	});
 	// open() forces window-modal, unlike exec()'s old application-modal
@@ -815,6 +831,10 @@ void SettingsBrowser::clickDeleteButton() {
 			}
 		}
 		settings.endGroup();
+#ifdef Q_OS_WASM
+		settings.sync();
+		WasmSettings::persistNow();
+#endif
 	});
 	msgBox->setWindowModality(Qt::ApplicationModal);
 	msgBox->show();
