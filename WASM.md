@@ -1190,9 +1190,12 @@ automatic reload on first visit).
       thread only delivers browser events (the `onend` callback *and* the Stop
       click) when it returns to the event loop, so the spin was a deadlock:
       `onend` never fired and Stop never arrived. Replaced with the
-      fire-and-forget + callback-wake design above. Maintainer to re-verify
-      in-browser: `SAY "hello world"` audible, UI stays responsive, program
-      continues after it, and Stop interrupts a long utterance.
+      fire-and-forget + callback-wake design above. A periodic
+      `pause()`+`resume()` keepalive (10 s interval, cleared on end/error/Stop)
+      also guards against Chrome silently stopping utterances longer than ~15 s.
+      Maintainer to re-verify in-browser: `SAY "hello world"` audible, UI stays
+      responsive, program continues after it, Stop interrupts a long utterance,
+      and a long (>15 s) `SAY` speaks to completion.
 - [ ] IDBFS mount for a persistent `/home/web_user` so saved programs
       survive reloads.
 - [ ] A trimmed "player" build (graph window only, program preloaded from
@@ -1973,5 +1976,7 @@ sandbox — each isolated in its own phase gate.
   The `s_wasmSayFinished` flag and the `QEventLoop` spin are gone. `sound:`
   decode and the audio bridge already block only on the interpreter/worker
   thread, so they were never affected. Committed separately on top of the
-  original SAY commit so the regression stays cleanly attributable. Pending
-  re-verification in-browser.
+  original SAY commit so the regression stays cleanly attributable. Also added
+  a periodic `pause()`+`resume()` keepalive (10 s interval, module-scoped id,
+  cleared on end/error/Stop) so Chrome doesn't silently cut off utterances
+  longer than ~15 s. Pending re-verification in-browser.

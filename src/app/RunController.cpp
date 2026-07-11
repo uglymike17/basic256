@@ -108,18 +108,35 @@ SoundSystem *sound;
 EM_JS(void, wasmSay, (const char* utf8), {
     var text = UTF8ToString(utf8);
     var synth = window.speechSynthesis;
-    if (!synth) {
-        // no Web Speech support -- report "finished" immediately so SAY doesn't hang
+    var wake = function() {
         if (typeof _basic256SayFinished !== "undefined") { _basic256SayFinished(); }
         else if (typeof Module !== "undefined" && Module._basic256SayFinished) { Module._basic256SayFinished(); }
+    };
+    // Kill any keepalive still running from a prior utterance so at most one
+    // ever exists (normally its own onend already cleared it -- SAY is
+    // serialized, the interpreter can't start the next one until this one wakes
+    // it, so there is no live overlap; this is belt-and-suspenders).
+    if (Module.__b256SayKeepAlive) { clearInterval(Module.__b256SayKeepAlive); Module.__b256SayKeepAlive = 0; }
+    if (!synth) {
+        wake();  // no Web Speech support -- wake immediately so SAY doesn't hang
         return;
     }
     var u = new SpeechSynthesisUtterance(text);
+    // Chrome silently stops speaking after ~15s and may never fire onend on a
+    // long utterance; a periodic pause()+resume() under that window keeps it
+    // going (the standard Web Speech keepalive). Harmless on browsers without
+    // the bug -- the speaking-guard makes it a no-op once speech has ended.
+    Module.__b256SayKeepAlive = setInterval(function() {
+        if (synth.speaking) { synth.pause(); synth.resume(); }
+    }, 10000);
+    var finished = false;
     var done = function() {
+        if (finished) return;   // onend and onerror can both fire -- wake once
+        finished = true;
+        if (Module.__b256SayKeepAlive) { clearInterval(Module.__b256SayKeepAlive); Module.__b256SayKeepAlive = 0; }
         // getVoices() is async (voiceschanged); we deliberately use the default
         // voice rather than block for a specific one.
-        if (typeof _basic256SayFinished !== "undefined") { _basic256SayFinished(); }
-        else if (typeof Module !== "undefined" && Module._basic256SayFinished) { Module._basic256SayFinished(); }
+        wake();
     };
     u.onend = done;
     u.onerror = done;
@@ -128,6 +145,7 @@ EM_JS(void, wasmSay, (const char* utf8), {
 });
 
 EM_JS(void, wasmSayCancel, (), {
+    if (Module.__b256SayKeepAlive) { clearInterval(Module.__b256SayKeepAlive); Module.__b256SayKeepAlive = 0; }
     if (window.speechSynthesis) { window.speechSynthesis.cancel(); }
 });
 
