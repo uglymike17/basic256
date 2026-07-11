@@ -288,7 +288,15 @@ bool Sound::waitLoadedMediaValidation() {
 	//QObject::connect(media, SIGNAL(stateChanged(QMediaPlayer::State)), loop, SLOT(quit()));
 	QObject::connect(media, SIGNAL(mediaStatusChanged(QMediaPlayer::MediaStatus)), loop, SLOT(quit()));
 	QObject::connect(media, SIGNAL(durationChanged(qint64)), loop, SLOT(quit()));
-	if(!isStopping){
+	// Wait until the duration is actually resolved (valid media) or the 3s
+	// timer expires (fake/undecodable media stays at media_duration<0). This
+	// mirrors length()'s wait loop. A single loop->exec() is NOT enough: it
+	// wakes on the *first* signal, and the Qt 6.11 FFmpeg backend emits
+	// mediaStatusChanged (LoadingMedia/LoadedMedia) before durationChanged for
+	// an in-memory setSourceDevice() source -- so it would return with
+	// media_duration still -1, wrongly reporting a valid mp3 as invalid and
+	// making Sound::play() bail out before ever calling media->play().
+	while(!isStopping && timer->isActive() && media_duration<0){
 		loop->exec(QEventLoop::ExcludeUserInputEvents);
 	}
 	//qDebug() << "Sound::waitLoadedMediaValidation() timer" << timer->isActive();
