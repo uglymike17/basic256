@@ -1160,9 +1160,12 @@ automatic reload on first visit).
       `AudioBuffer.duration` is read). Maintainer to verify in-browser: a
       `SOUNDLOAD`ed `.wav`/`.mp3` plays, `SoundLength` is right, seek/pause/resume
       work, and a bogus file raises `WARNING_SOUNDERROR` without hanging.
-- [ ] `SAY` via the browser's Web Speech API behind `BASIC256_ENABLE_TTS`'s
+- [x] `SAY` via the browser's Web Speech API behind `BASIC256_ENABLE_TTS`'s
       WASM variant.
-      **Implemented 2026-07-11 (pending CI-green + browser verification).**
+      **Implemented + browser-verified 2026-07-11 by the maintainer**
+      (audible on Chrome, UI stays responsive, program continues after, and a
+      25 s utterance — well past Chrome's ~15 s cutoff — speaks to completion,
+      confirming the keepalive).
       Qt for WebAssembly ships no TextToSpeech backend at all, so this bypasses
       `QTextToSpeech` entirely and drives `window.speechSynthesis` directly.
       `RunController::speakWords()` gains a `#ifdef Q_OS_WASM` branch ahead of
@@ -1193,9 +1196,9 @@ automatic reload on first visit).
       fire-and-forget + callback-wake design above. A periodic
       `pause()`+`resume()` keepalive (10 s interval, cleared on end/error/Stop)
       also guards against Chrome silently stopping utterances longer than ~15 s.
-      Maintainer to re-verify in-browser: `SAY "hello world"` audible, UI stays
-      responsive, program continues after it, Stop interrupts a long utterance,
-      and a long (>15 s) `SAY` speaks to completion.
+      **Re-verified in-browser 2026-07-11:** `SAY` audible on Chrome, UI stays
+      responsive, program continues after it, and a 25 s utterance speaks to
+      completion (keepalive confirmed past the ~15 s cutoff).
 - [ ] IDBFS mount for a persistent `/home/web_user` so saved programs
       survive reloads.
 - [ ] A trimmed "player" build (graph window only, program preloaded from
@@ -1980,3 +1983,9 @@ sandbox — each isolated in its own phase gate.
   a periodic `pause()`+`resume()` keepalive (10 s interval, module-scoped id,
   cleared on end/error/Stop) so Chrome doesn't silently cut off utterances
   longer than ~15 s. Pending re-verification in-browser.
+
+- 2026-07-11: **WASM `SAY` browser-verified by the maintainer.** After the
+  fire-and-forget + keepalive fixes above: `SAY` is audible on Chrome, the UI
+  stays responsive, the program continues past it, and a 25 s utterance speaks
+  all the way through — confirming both the main-thread-block fix and the
+  keepalive past Chrome's ~15 s cutoff. Phase 7 `SAY` item ticked.
