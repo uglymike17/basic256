@@ -881,11 +881,12 @@ unless noted.
       existing `settings.value(key, default)` usage (29 sites, all with a
       default) does already tolerate missing/first-run-empty keys — that
       part of the original item is still true and needs no further work.
-      **Resolved 2026-07-11 (pending browser verification):** persistence is
-      now provided by an IDBFS mount rather than a QSettings format change —
-      `NativeFormat` (which writes real files) is redirected to an
-      IndexedDB-backed `/persist` mount and flushed with `FS.syncfs`. See the
-      Phase 7 "IDBFS mount" item and the 2026-07-11 Session log entry.
+      **Resolved + browser-verified 2026-07-11:** persistence is now provided
+      by an IDBFS mount rather than a QSettings format change — `NativeFormat`
+      (which writes real files) is redirected to an IndexedDB-backed `/persist`
+      mount and flushed with `FS.syncfs`. Maintainer confirmed a Preferences
+      change survives a page reload. See the Phase 7 "IDBFS mount" item and the
+      2026-07-11 Session log entries.
 - [x] **Clipboard, fonts, HiDPI:** quick manual checks; Qt bundles a
       fallback font, clipboard needs the page served over HTTPS.
       **Code-level check done, browser check still needed:** grepped every
@@ -1206,7 +1207,10 @@ automatic reload on first visit).
       completion (keepalive confirmed past the ~15 s cutoff).
 - [x] IDBFS mount for a persistent store so settings survive reloads —
       **also closes the long-open Settings-persistence item (Phase 5).**
-      **Implemented 2026-07-11 (pending CI-green + browser verification).**
+      **Implemented + browser-verified 2026-07-11 by the maintainer** —
+      changing an Edit → Preferences setting and reloading the page keeps the
+      change (confirming the IDBFS mount, the `NativeFormat`→`/persist` path,
+      and the `persistNow()`/`FS.syncfs` flush all work end to end).
       The Emscripten FS is ephemeral MEMFS, so `QSettings` writes were lost on
       reload (`NativeFormat` silently wrote to MEMFS; `WebLocalStorageFormat`
       spun — see Phase 5 Settings item / Session log). Fix: mount IDBFS
@@ -1235,9 +1239,9 @@ automatic reload on first visit).
         "Preferences saved" `QMessageBox::information()` on WASM (a static
         `exec()` that would freeze the tab, RULE 2) so the save flow completes.
       This gives the deferred `SettingsBrowser` pair a real store to browse.
-      Maintainer to verify in-browser: change a preference / run
-      `SETSETTING`, reload the page, and confirm the value survived; the
-      Settings browser lists persisted keys.
+      **Verified:** Preferences change survives a page reload. Not yet
+      separately exercised by the maintainer (same mechanism, expected to
+      work): `SETSETTING` persistence and the Settings browser listing keys.
 - [ ] A trimmed "player" build (graph window only, program preloaded from
       URL parameter) for embedding fractal/demo programs in web pages.
 - [ ] Revisit binary size: dynamic linking / `qt-cmake` deploy options,
@@ -1263,8 +1267,8 @@ automatic reload on first visit).
       `SettingsBrowser` `QDialog::exec()` also converted)
 - [x] WASM file open/save (`getOpenFileContent`/`saveFileContent`)
 - [x] Settings persistence via IDBFS mount (`/persist` + `NativeFormat` +
-      `FS.syncfs`; `WasmSettings`, `wasm-deploy/idbfs.js`, Phase 7 — pending
-      browser verification)
+      `FS.syncfs`; `WasmSettings`, `wasm-deploy/idbfs.js`, Phase 7 —
+      browser-verified: a Preferences change survives a reload)
 - [x] Examples packaged for browser
 - [x] gh-pages deploy + coi-serviceworker + landing page (live at
       https://uglymike17.github.io/basic256/; Pages enabled + auto-deploys on
@@ -2063,3 +2067,12 @@ sandbox — each isolated in its own phase gate.
   This also finally gives the deferred `SettingsBrowser` dialog pair a real
   store to browse. Verify in-browser: change a preference / run `SETSETTING`,
   reload, and confirm the value persisted (and the Settings browser lists it).
+
+- 2026-07-11: **WASM IDBFS settings persistence browser-verified by the
+  maintainer.** Changing an Edit → Preferences setting and reloading the page
+  keeps the change — confirming the whole chain end to end: the `--pre-js`
+  IDBFS mount + initial `FS.syncfs(true)` load, `NativeFormat` QSettings
+  redirected to `/persist`, and the `persistNow()` → `FS.syncfs(false)` flush
+  on save. Phase 7 "IDBFS mount" and Phase 5 "Settings" items ticked as
+  verified. (`SETSETTING` persistence and the Settings-browser listing run
+  through the same mechanism but weren't separately exercised.)
