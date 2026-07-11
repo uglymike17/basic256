@@ -31,6 +31,7 @@
 #include <QFileDialog>
 #include <QClipboard>
 #include <QTimer>
+#include <QEventLoop>
 #include <QDebug>
 
 
@@ -80,6 +81,57 @@ extern BasicKeyboard * basicKeyboard;
 extern Error *error;
 
 SoundSystem *sound;
+
+
+#ifdef Q_OS_WASM
+// --- SAY via the browser's Web Speech API ---------------------------------
+// Qt for WebAssembly ships no TextToSpeech backend at all (so
+// BASIC256_ENABLE_TTS is OFF for wasm and QTextToSpeech is never
+// linked/constructed); drive window.speechSynthesis directly instead. SAY is
+// blocking on desktop, so speakWords() below waits until the utterance's
+// onend/onerror fires and calls the basic256SayFinished() export.
+//
+// NB (same trap as WasmAudioSink::onended): makeDynCall does not expand
+// inside EM_JS on this Qt 6.11.1/emsdk 4.0.7 toolchain, so the JS callbacks
+// call the extern "C" EMSCRIPTEN_KEEPALIVE export directly, typeof-guarded.
+#include <emscripten.h>
+#include <emscripten/em_js.h>
+
+static bool s_wasmSayFinished = false;
+
+EM_JS(void, wasmSay, (const char* utf8), {
+    var text = UTF8ToString(utf8);
+    var synth = window.speechSynthesis;
+    if (!synth) {
+        // no Web Speech support -- report "finished" immediately so SAY doesn't hang
+        if (typeof _basic256SayFinished !== "undefined") { _basic256SayFinished(); }
+        else if (typeof Module !== "undefined" && Module._basic256SayFinished) { Module._basic256SayFinished(); }
+        return;
+    }
+    var u = new SpeechSynthesisUtterance(text);
+    var done = function() {
+        // getVoices() is async (voiceschanged); we deliberately use the default
+        // voice rather than block for a specific one.
+        if (typeof _basic256SayFinished !== "undefined") { _basic256SayFinished(); }
+        else if (typeof Module !== "undefined" && Module._basic256SayFinished) { Module._basic256SayFinished(); }
+    };
+    u.onend = done;
+    u.onerror = done;
+    synth.cancel();      // drop anything still queued/speaking
+    synth.speak(u);      // first call needs a prior user gesture; Run click satisfies it
+});
+
+EM_JS(void, wasmSayCancel, (), {
+    if (window.speechSynthesis) { window.speechSynthesis.cancel(); }
+});
+
+extern "C" EMSCRIPTEN_KEEPALIVE void basic256SayFinished()
+{
+    // Runs on the main thread (DOM callbacks always do), the same thread
+    // speakWords() spins on -- no cross-thread race on the flag.
+    s_wasmSayFinished = true;
+}
+#endif // Q_OS_WASM
 
 
 RunController::RunController() {
@@ -182,7 +234,23 @@ RunController::speakWords(QString text) {
 	//qDebug() << "Voice:" << speech->voice().name();
 	//qDebug() << "Volume:" << speech->volume();
 	
-#ifdef BASIC256_ENABLE_TTS
+#ifdef Q_OS_WASM
+	if (text.length() != 0) {
+		// Speak via window.speechSynthesis and block (SAY is synchronous on
+		// desktop) until the utterance's onend/onerror fires basic256SayFinished(),
+		// honoring Stop the same way the desktop QTextToSpeech loop below does.
+		s_wasmSayFinished = false;
+		wasmSay(text.toUtf8().constData());
+		QEventLoop loop;
+		while (!s_wasmSayFinished && i && !i->isStopping() && !i->isStopped()) {
+			loop.processEvents(QEventLoop::AllEvents, 50);
+		}
+		// Stopped mid-utterance: silence anything still speaking.
+		if (!s_wasmSayFinished) {
+			wasmSayCancel();
+		}
+	}
+#elif defined(BASIC256_ENABLE_TTS)
 	if (text.length() != 0) {
 		// Say something.
 		speech->say(text);
@@ -435,7 +503,9 @@ void RunController::stopRun() {
 		i->setStatus(R_STOPING);//no more ops
 		
 		// wait for speech to stop
-#ifdef BASIC256_ENABLE_TTS
+#ifdef Q_OS_WASM
+		wasmSayCancel();
+#elif defined(BASIC256_ENABLE_TTS)
 		if(speech && speech->state()==QTextToSpeech::Speaking) {
 			speech->stop();
 		}

@@ -1140,6 +1140,24 @@ automatic reload on first visit).
       log entry) to keep that change reviewable on its own.
 - [ ] `SAY` via the browser's Web Speech API behind `BASIC256_ENABLE_TTS`'s
       WASM variant.
+      **Implemented 2026-07-11 (pending CI-green + browser verification).**
+      Qt for WebAssembly ships no TextToSpeech backend at all, so this bypasses
+      `QTextToSpeech` entirely and drives `window.speechSynthesis` directly.
+      `RunController::speakWords()` gains a `#ifdef Q_OS_WASM` branch ahead of
+      the `BASIC256_ENABLE_TTS` branch (precedence: WASM Web Speech → desktop
+      `QTextToSpeech` → `ERROR_NOTAVAILABLE`). A file-scope `EM_JS` `wasmSay()`
+      builds a `SpeechSynthesisUtterance`; to preserve `SAY`'s blocking
+      semantics its `onend`/`onerror` call the `extern "C" EMSCRIPTEN_KEEPALIVE`
+      export `basic256SayFinished()` **directly** (`_basic256SayFinished` /
+      `Module._basic256SayFinished`, `typeof`-guarded — *not* `makeDynCall`,
+      which doesn't expand in `EM_JS` on this Qt 6.11.1/emsdk 4.0.7 toolchain,
+      the WasmAudioSink `onended` lesson). `speakWords()` then spins a local
+      `QEventLoop::processEvents` loop until that fires, honoring
+      `i->isStopping()`; Stop mid-utterance (and `stopRun()`) call
+      `window.speechSynthesis.cancel()`. `QTextToSpeech` stays unlinked on wasm
+      — its member construction is already `#ifdef BASIC256_ENABLE_TTS`, OFF for
+      the wasm build. Maintainer to verify in-browser: `SAY "hello world"` is
+      audible and blocks until done, and Stop silences ongoing speech.
 - [ ] IDBFS mount for a persistent `/home/web_user` so saved programs
       survive reloads.
 - [ ] A trimmed "player" build (graph window only, program preloaded from
@@ -1822,3 +1840,32 @@ sandbox — each isolated in its own phase gate.
   `NativeFormat` is ephemeral, `WebLocalStorageFormat` spins; still the one
   unsolved functional gap. All other mandatory scope (Phases 0–6) is now
   functionally complete and browser-verified.
+
+- 2026-07-11: **Phase 7 `SAY` via Web Speech API implemented** (code only;
+  pending CI-green + maintainer browser verification). Qt for WebAssembly
+  ships no TextToSpeech backend (the wasm SDK omits the module, hence
+  `BASIC256_ENABLE_TTS=OFF` and `speakWords()` previously fell to
+  `ERROR_NOTAVAILABLE`), so this bypasses `QTextToSpeech` and drives
+  `window.speechSynthesis` directly. In `RunController.cpp`: a file-scope
+  `#ifdef Q_OS_WASM` bridge adds an `EM_JS wasmSay(const char*)` (builds a
+  `SpeechSynthesisUtterance`, `cancel()` then `speak()`), an `EM_JS
+  wasmSayCancel()`, and an `extern "C" EMSCRIPTEN_KEEPALIVE basic256SayFinished()`
+  export; the utterance's `onend`/`onerror` call that export **directly**
+  (`_basic256SayFinished` / `Module._basic256SayFinished`, `typeof`-guarded) —
+  deliberately not `makeDynCall`, which doesn't expand inside `EM_JS` on this
+  Qt 6.11.1/emsdk 4.0.7 toolchain (the WasmAudioSink `onended` bug). `SAY`'s
+  desktop blocking semantics are preserved by a new `#ifdef Q_OS_WASM` branch
+  in `speakWords()` placed **ahead of** the `BASIC256_ENABLE_TTS` branch
+  (precedence: WASM Web Speech → desktop `QTextToSpeech` → `ERROR_NOTAVAILABLE`):
+  it spins a local `QEventLoop::processEvents` loop until `basic256SayFinished()`
+  fires, re-checking `i->isStopping()`/`isStopped()` each pass, and calls
+  `wasmSayCancel()` if Stopped mid-utterance; `stopRun()` also gained a
+  `#ifdef Q_OS_WASM wasmSayCancel()` branch. No CMake change — no TextToSpeech
+  link, `BASIC256_ENABLE_TTS` stays OFF for wasm, and the `QTextToSpeech speech`
+  member/construction remain under the existing `#ifdef BASIC256_ENABLE_TTS`
+  (already excluded from the wasm build). Notes for verification: `getVoices()`
+  is async (`voiceschanged`) so the default voice is used without blocking;
+  the browser autoplay policy needs a prior user gesture, satisfied by the Run
+  click; `speechSynthesis` is main-thread-only, which is where the queued
+  `speakWords` slot runs. Verify in-browser: `SAY "hello world"` audible +
+  blocking, and `SAY` mid-program then Stop leaves no speech running.
