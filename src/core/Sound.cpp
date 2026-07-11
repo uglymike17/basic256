@@ -38,6 +38,7 @@ Sound::Sound(QObject *parent) :
 	isStopping = false;
 	needValidation = true;
 	isValidated = false;
+	isDecodedMemory = false;
 	individualVolume = 1.0;
 	media_duration = -1; //used only by mediaplayer because duration may not be available when initial playback begins
 	masterVolume = 10;
@@ -80,6 +81,27 @@ int Sound::state() {
 void Sound::play() {
 	if(!isStopping){
 		if(audio){
+#ifdef Q_OS_WASM
+			if(isDecodedMemory){
+				// A "sound:" resource decoded asynchronously by WasmAudioSink.
+				// media_duration<0 means this instance's decodeAudioData has not
+				// resolved yet -- block for it exactly like the desktop media
+				// path validates on first play (handleDecodeFinished sets
+				// media_duration + isValidated and wakes exitWaitingLoop). Once
+				// decoded, loops/replays skip this (media_duration>=0 already).
+				if(media_duration < 0){
+					waitLoadedMediaValidation();
+					if(needValidation){
+						needValidation = false;
+						emit(validateLoadedSound(source, isValidated));
+					}
+				}
+				if(!isValidated){
+					if(*error)(*error)->q(WARNING_SOUNDERROR);
+					return;
+				}
+			}
+#endif
 			if(soundStateExpected == 2){
 				soundStateExpected = 1;
 				audio->resume();
@@ -229,6 +251,28 @@ void Sound::onStateChanged(QAudio::State state)
 // }
 
 bool Sound::waitLoadedMediaValidation() {
+#ifdef Q_OS_WASM
+	if(audio && isDecodedMemory){
+		// WasmAudioSink variant: block until the async decodeAudioData resolves
+		// (handleDecodeFinished sets media_duration and emits exitWaitingLoop).
+		// media_duration<0 == still pending; >=0 == done (>0 valid, 0 invalid).
+		// A safety timer prevents an indefinite block if the callback is missed.
+		if(media_duration < 0){
+			QTimer *timer = new QTimer();
+			timer->setSingleShot(true);
+			QEventLoop *loop = new QEventLoop();
+			QObject::connect(this, SIGNAL(exitWaitingLoop()), loop, SLOT(quit()));
+			QObject::connect(timer, SIGNAL(timeout()), loop, SLOT(quit()));
+			timer->start(5000);
+			while(!isStopping && timer->isActive() && media_duration < 0){
+				loop->exec(QEventLoop::ExcludeUserInputEvents);
+			}
+			delete (loop);
+			delete (timer);
+		}
+		return (media_duration > 0);
+	}
+#endif
 	//this function waits a bit after play command to check if buffer contain a valid media file
 	//because QMediaPlayer::play remains in Play state when a fake sound is loaded into memory and played
 	//The only trick I found is that when first mediaStatusChanged is emitted, the duration is 0 for fake media
@@ -385,6 +429,15 @@ double Sound::length() {
 	//For QMediaPlayer the length of played sound may not be available when initial playback begins (asyncron mode).
 	//If we need the length for a media we may wait a bit right after sound starts to play, but not longer than 2 seconds.
 	if(audio){
+#ifdef Q_OS_WASM
+		if(isDecodedMemory){
+			// Compressed sound decoded to ctx.sampleRate -- the PCM byte-count
+			// formula below does not apply; use the decoded duration reported by
+			// decodeAudioData (in media_duration ms), waiting for it if pending.
+			if(media_duration < 0) waitLoadedMediaValidation();
+			return (media_duration > 0) ? (media_duration / 1000.0) : (-1.0);
+		}
+#endif
 		return ( buffer->size() / (double) sizeof(int16_t) / (double)sound_samplerate );
 	}else if(media){
 		bool timeisup = false;
@@ -433,6 +486,11 @@ int Sound::lastError() {
 void Sound::prepareConnections() {
 	if(audio){
 		connect(audio, SIGNAL(stateChanged(QAudio::State)), this, SLOT(handleAudioStateChanged(QAudio::State)));
+#ifdef Q_OS_WASM
+		// decodeFinished only ever fires for a decoded "sound:" resource; the
+		// raw-PCM "beep:" audio path never calls decode(), so this is inert there.
+		connect(audio, SIGNAL(decodeFinished(bool,double)), this, SLOT(handleDecodeFinished(bool,double)));
+#endif
 	}else if(media){
 		connect(media, SIGNAL(mediaStatusChanged(QMediaPlayer::MediaStatus)), this, SLOT(handleMediaStatusChanged(QMediaPlayer::MediaStatus)));
 		connect(media, &QMediaPlayer::playbackStateChanged, this, &Sound::handleMediaStateChanged);
@@ -567,6 +625,18 @@ void Sound::handleAudioStateChanged(QAudio::State newState){
 		break;
 	}
 }
+
+#ifdef Q_OS_WASM
+void Sound::handleDecodeFinished(bool ok, double durationMs){
+	// WasmAudioSink finished decodeAudioData for a "sound:" resource. Mirror the
+	// desktop media-duration/validation slots: media_duration>=0 now signals the
+	// decode completed (>0 valid + gives the length, 0 == decode rejected), and
+	// exitWaitingLoop() releases waitLoadedMediaValidation()/length()/wait().
+	media_duration = ok ? (qint64)durationMs : 0;
+	isValidated = ok;
+	emit exitWaitingLoop();
+}
+#endif
 
 void Sound::systemMassCommand(int i){
 	//0 - stop all playing sounds
@@ -843,11 +913,58 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 	QUrl url(s);
 	if(s.startsWith("sound:")){
 #ifdef Q_OS_WASM
-		// In-memory playback (QMediaPlayer::setSourceDevice()) is documented
-		// as unsupported in Qt for WebAssembly. The QAudioSink tone path
-		// ("beep:", below) and URL-based QMediaPlayer::setSource() playback
-		// (file/http/https/ftp, below) are unaffected and stay available.
-		if(*error)(*error)->q(ERROR_NOTAVAILABLE);
+		// QMediaPlayer::setSourceDevice() (the desktop in-memory path) is
+		// unsupported in Qt for WebAssembly, so decode the compressed bytes to a
+		// Web Audio AudioBuffer via WasmAudioSink::decode() (decodeAudioData) and
+		// play that through the same audio-> start/pause/resume/seek machinery the
+		// "beep:" raw-PCM path uses. Validation ("is this a real audio file?")
+		// becomes "did decodeAudioData resolve?" -- handled at first play() via
+		// waitLoadedMediaValidation(), mapping onto media_duration exactly as the
+		// desktop QMediaPlayer path does.
+		if(loadedsounds.count(s)){
+			lastIdUsed++;
+			//Do not play a loaded sound that is not a valid one
+			//(play if sound is validated already or try to play for the first time)
+			if(loadedsounds[s].needValidation || loadedsounds[s].isValidated){
+				soundsmap[lastIdUsed] = new Sound(this);
+				soundsmap[lastIdUsed]->id = lastIdUsed;
+				soundsmap[lastIdUsed]->error = error;
+				soundsmap[lastIdUsed]->isPlayer = isPlayer; //set if this is a player that not delete sound at stop
+				connect(this, SIGNAL(stopsSoundsAndWaiting()), soundsmap[lastIdUsed], SLOT(stopsSoundsAndWaiting()));
+				connect(this, SIGNAL(systemMassCommand(int)), soundsmap[lastIdUsed], SLOT(systemMassCommand(int)));
+				connect(soundsmap[lastIdUsed], SIGNAL(deleteMe(int)), this, SLOT(deleteMe(int)));
+				connect(soundsmap[lastIdUsed], SIGNAL(validateLoadedSound(QString, bool)), this, SLOT(validateLoadedSound(QString, bool)));
+				soundsmap[lastIdUsed]->type = SOUNDTYPE_MEMORY;
+				soundsmap[lastIdUsed]->isDecodedMemory = true;
+				soundsmap[lastIdUsed]->source = s;
+				soundsmap[lastIdUsed]->buffer = new QBuffer(loadedsounds[s].byteArray);
+				soundsmap[lastIdUsed]->buffer->open(QIODevice::ReadOnly);
+				soundsmap[lastIdUsed]->buffer->seek(0);
+				soundsmap[lastIdUsed]->audio = new AudioSinkType(format, soundsmap[lastIdUsed]);
+				soundsmap[lastIdUsed]->individualVolume = loadedsounds[s].individualVolume;
+				soundsmap[lastIdUsed]->updatedMasterVolume(masterVolume);
+				soundsmap[lastIdUsed]->sound_samplerate=sound_samplerate;
+				soundsmap[lastIdUsed]->prepareConnections();
+				soundsmap[lastIdUsed]->needValidation = loadedsounds[s].needValidation;
+				soundsmap[lastIdUsed]->isValidated = loadedsounds[s].isValidated;
+				soundsmap[lastIdUsed]->scheduledFade=loadedsounds[s].scheduledFade;
+				soundsmap[lastIdUsed]->fadeVolume=loadedsounds[s].fadeVolume;
+				soundsmap[lastIdUsed]->fadeCountdown=loadedsounds[s].fadeCountdown;
+				soundsmap[lastIdUsed]->fadeDelayCountdown=loadedsounds[s].fadeDelayCountdown;
+				soundsmap[lastIdUsed]->loopSaved=loadedsounds[s].loop;
+				soundsmap[lastIdUsed]->loopCountdown=loadedsounds[s].loop;
+				// Kick off the async decode now so SoundLength/first play can wait
+				// on it (works for players too, which are set up but not played here).
+				soundsmap[lastIdUsed]->audio->decode(*loadedsounds[s].byteArray);
+				if(!isPlayer){
+					soundsmap[lastIdUsed]->play(); //if is a regular sound then play it, if is a player, then do not play it
+				}
+				soundID=lastIdUsed;
+			}
+		}else{
+			//there is no resource loaded with that ID
+			if(*error)(*error)->q(ERROR_SOUNDRESOURCE);
+		}
 #else
 		if(loadedsounds.count(s)){
 			lastIdUsed++;

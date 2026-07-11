@@ -114,6 +114,46 @@ EM_JS(void, wasmAudioSinkPlay, (int nodeId, int samplesPtr, int frameCount, int 
     w.startFrom(entry, offsetSeconds);
 });
 
+// Compressed-audio decode: copy byteLen bytes from wasm memory into a private
+// ArrayBuffer (the caller's QByteArray does not outlive this synchronous call,
+// same as the PCM path) and hand it to ctx.decodeAudioData. The copy also
+// sidesteps decodeAudioData detaching its input (it would otherwise detach the
+// live wasm heap). Result reaches C++ via the wasmAudioSinkOnDecoded export --
+// called directly (NOT makeDynCall, which does not expand in EM_JS on this Qt
+// 6.11.1/emsdk 4.0.7 toolchain, the same trap as the onended handler above).
+// decodeAudioData resolves to ctx.sampleRate, not necessarily 44.1 kHz -- we
+// only ever read AudioBuffer.duration, never assume a rate. The success/error
+// callbacks and the returned Promise are both wired (older Safari has only the
+// callback form, modern browsers resolve the Promise) behind a `done` guard so
+// exactly one result is reported.
+EM_JS(void, wasmAudioSinkDecode, (int nodeId, int bytesPtr, int byteLen), {
+    var report = function(ok, durMs) {
+        if (typeof _wasmAudioSinkOnDecoded !== "undefined") { _wasmAudioSinkOnDecoded(nodeId, ok, durMs); }
+        else if (typeof Module !== "undefined" && Module._wasmAudioSinkOnDecoded) { Module._wasmAudioSinkOnDecoded(nodeId, ok, durMs); }
+    };
+    var w = Module.__wasmAudio;
+    var entry = w && w.nodes.get(nodeId);
+    if (!entry || !w.ctx) { report(0, 0); return; }
+    var ab = new ArrayBuffer(byteLen);
+    new Uint8Array(ab).set(HEAPU8.subarray(bytesPtr, bytesPtr + byteLen));
+    var done = false;
+    var ok = function(buf) {
+        if (done) return; done = true;
+        entry.buffer = buf;
+        report(1, buf.duration * 1000);
+    };
+    var bad = function() {
+        if (done) return; done = true;
+        report(0, 0);
+    };
+    try {
+        var p = w.ctx.decodeAudioData(ab, ok, bad);
+        if (p && typeof p.then === "function") { p.then(ok, bad); }
+    } catch (e) {
+        bad();
+    }
+});
+
 EM_JS(void, wasmAudioSinkStop, (int nodeId), {
     var w = Module.__wasmAudio;
     var entry = w && w.nodes.get(nodeId);
@@ -177,6 +217,11 @@ extern "C" EMSCRIPTEN_KEEPALIVE void wasmAudioSinkOnEnded(int nodeId)
     WasmAudioSink::handleEnded(nodeId);
 }
 
+extern "C" EMSCRIPTEN_KEEPALIVE void wasmAudioSinkOnDecoded(int nodeId, int ok, double durationMs)
+{
+    WasmAudioSink::handleDecoded(nodeId, ok, durationMs);
+}
+
 static QMap<int, WasmAudioSink*> *s_wasmAudioSinkInstances = nullptr;
 static int s_wasmAudioSinkNextId = 1;
 static bool s_wasmAudioSinkCallbackRegistered = false;
@@ -186,7 +231,9 @@ WasmAudioSink::WasmAudioSink(const QAudioFormat &format, QObject *parent) :
     m_nodeId(s_wasmAudioSinkNextId++),
     m_sampleRate(format.sampleRate()),
     m_pendingOffsetSeconds(0.0),
-    m_state(QAudio::StoppedState)
+    m_state(QAudio::StoppedState),
+    m_hasDecoded(false),
+    m_decodedDurationMs(-1.0)
 {
     if (!s_wasmAudioSinkInstances) s_wasmAudioSinkInstances = new QMap<int, WasmAudioSink*>();
     s_wasmAudioSinkInstances->insert(m_nodeId, this);
@@ -205,6 +252,15 @@ WasmAudioSink::~WasmAudioSink()
 
 void WasmAudioSink::start(QIODevice *device)
 {
+    if (m_hasDecoded) {
+        // A compressed sound already decoded to an AudioBuffer JS-side
+        // (see decode()); play that instead of interpreting the QIODevice's
+        // still-compressed bytes as raw PCM. samplesPtr==0 == "reuse buffer".
+        wasmAudioSinkPlay(m_nodeId, 0, 0, m_sampleRate, 0.0);
+        m_pendingOffsetSeconds = 0.0;
+        setState(QAudio::ActiveState);
+        return;
+    }
     device->seek(0);
     QByteArray bytes = device->readAll();
     int frameCount = bytes.size() / (int)sizeof(int16_t);
@@ -212,6 +268,15 @@ void WasmAudioSink::start(QIODevice *device)
     wasmAudioSinkPlay(m_nodeId, static_cast<int>(reinterpret_cast<intptr_t>(samples)), frameCount, m_sampleRate, 0.0);
     m_pendingOffsetSeconds = 0.0;
     setState(QAudio::ActiveState);
+}
+
+void WasmAudioSink::decode(const QByteArray &bytes)
+{
+    m_hasDecoded = false;
+    m_decodedDurationMs = -1.0;
+    wasmAudioSinkDecode(m_nodeId,
+                        static_cast<int>(reinterpret_cast<intptr_t>(bytes.constData())),
+                        bytes.size());
 }
 
 void WasmAudioSink::stop()
@@ -271,6 +336,20 @@ void WasmAudioSink::handleEnded(int nodeId)
     if (!s_wasmAudioSinkInstances) return;
     WasmAudioSink *sink = s_wasmAudioSinkInstances->value(nodeId, nullptr);
     if (sink) sink->onEnded();
+}
+
+void WasmAudioSink::onDecoded(int ok, double durationMs)
+{
+    m_hasDecoded = (ok != 0);
+    m_decodedDurationMs = (ok != 0) ? durationMs : -1.0;
+    emit decodeFinished(ok != 0, durationMs);
+}
+
+void WasmAudioSink::handleDecoded(int nodeId, int ok, double durationMs)
+{
+    if (!s_wasmAudioSinkInstances) return;
+    WasmAudioSink *sink = s_wasmAudioSinkInstances->value(nodeId, nullptr);
+    if (sink) sink->onDecoded(ok, durationMs);
 }
 
 #endif // Q_OS_WASM

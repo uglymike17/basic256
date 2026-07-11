@@ -57,12 +57,14 @@
 #include <QAudio>
 #include <QAudioFormat>
 #include <QIODevice>
+#include <QByteArray>
 
-// Forward-declared here (matching its real, extern "C" definition in
-// WasmAudioSink.cpp) so the friend declaration below binds to the same
-// entity instead of silently declaring a second, C++-linkage overload --
+// Forward-declared here (matching their real, extern "C" definitions in
+// WasmAudioSink.cpp) so the friend declarations below bind to the same
+// entities instead of silently declaring second, C++-linkage overloads --
 // the two linkages are not interchangeable and Clang rejects the mismatch.
 extern "C" void wasmAudioSinkOnEnded(int nodeId);
+extern "C" void wasmAudioSinkOnDecoded(int nodeId, int ok, double durationMs);
 
 class WasmAudioSink : public QObject
 {
@@ -79,6 +81,18 @@ class WasmAudioSink : public QObject
         QAudio::State state() const { return m_state; }
         QAudio::Error error() const { return QAudio::NoError; }
 
+        // Compressed in-memory playback (SOUND resources loaded via SOUNDLOAD,
+        // the desktop QMediaPlayer::setSourceDevice() path, which Qt for
+        // WebAssembly does not support). Asynchronously decodes the compressed
+        // bytes to a Web Audio AudioBuffer via ctx.decodeAudioData(); on
+        // completion emits decodeFinished(ok, durationMs). Once decoded, the
+        // ordinary start()/suspend()/resume()/seekTo() surface plays it -- the
+        // decoded AudioBuffer is stored JS-side and reused, so start() does not
+        // re-read the QIODevice as raw PCM. The bytes are copied out during
+        // this synchronous call and need not outlive it (same as the PCM path).
+        void decode(const QByteArray &bytes);
+        bool hasDecodedBuffer() const { return m_hasDecoded; }
+
         // Used by Sound::position() instead of buffer->pos() on WASM --
         // WasmAudioSink reads the whole QIODevice up front (Web Audio needs
         // a fully decoded AudioBuffer, it can't stream from a pull-model
@@ -93,18 +107,26 @@ class WasmAudioSink : public QObject
 
     signals:
         void stateChanged(QAudio::State state);
+        // Emitted once when decode() finishes (ok==false on a decodeAudioData
+        // reject -- i.e. the bytes were not a valid/supported audio file).
+        void decodeFinished(bool ok, double durationMs);
 
     private:
         static void handleEnded(int nodeId);
         void onEnded();
+        static void handleDecoded(int nodeId, int ok, double durationMs);
+        void onDecoded(int ok, double durationMs);
         void setState(QAudio::State s);
 
         int m_nodeId;
         int m_sampleRate;
         double m_pendingOffsetSeconds; // valid while Suspended/Stopped: where a future resume()/seekTo() should start from
         QAudio::State m_state;
+        bool m_hasDecoded;             // true once decode() produced a usable AudioBuffer (JS-side)
+        double m_decodedDurationMs;    // decoded length; <0 while a decode is still pending
 
         friend void wasmAudioSinkOnEnded(int nodeId);
+        friend void wasmAudioSinkOnDecoded(int nodeId, int ok, double durationMs);
 };
 
 #endif // Q_OS_WASM

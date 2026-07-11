@@ -99,6 +99,7 @@ class Sound : public QObject
         bool isPausedBySystem; //flag
         bool needValidation; //when play a loaded file and we don't know if is a valid file... otherwise player remains in Playing state forever
         bool isValidated;
+        bool isDecodedMemory; //WASM only: a "sound:" resource played through WasmAudioSink after async decodeAudioData (vs. the raw-PCM "beep:" audio path)
         int loopCountdown; //used for loop counting
         int loopSaved; //used for players to remember the initial number of loops
         QMediaPlayer* media;
@@ -148,6 +149,9 @@ public slots:
 
 private slots:
         void handleAudioStateChanged(QAudio::State);
+#ifdef Q_OS_WASM
+        void handleDecodeFinished(bool ok, double durationMs);
+#endif
         void onStateChanged(QAudio::State state);
         void handleMediaStateChanged(QMediaPlayer::PlaybackState);
         void handleMediaDurationChanged(qint64);

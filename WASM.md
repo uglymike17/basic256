@@ -1136,8 +1136,30 @@ automatic reload on first visit).
       `QMediaPlayer::setSourceDevice()`) still needs its own Web Audio
       bridge — `decodeAudioData` + a `Promise`-based JS interaction, a
       different technique from the synchronous raw-PCM approach used for
-      the QAudioSink path above. Deliberately deferred (see this session's
-      log entry) to keep that change reviewable on its own.
+      the QAudioSink path above.
+      **Implemented 2026-07-11 (pending CI-green + browser verification).**
+      Builds on `WasmAudioSink`, which already plays a Web Audio `AudioBuffer`:
+      a new `WasmAudioSink::decode(bytes)` + `EM_JS wasmAudioSinkDecode()` copies
+      the compressed bytes out of the heap into a private `ArrayBuffer` and calls
+      `ctx.decodeAudioData()` (both the callback and Promise forms, behind a
+      `done` guard so exactly one result is reported), storing the resulting
+      `AudioBuffer` into the same `entry.buffer` the PCM path uses; completion
+      reaches C++ via a new `EMSCRIPTEN_KEEPALIVE wasmAudioSinkOnDecoded(nodeId,
+      ok, durationMs)` export called **directly** (not `makeDynCall` — the
+      onended lesson) → `decodeFinished(ok, durationMs)` signal. In `Sound.cpp`
+      the WASM `sound:` branch now creates a `WasmAudioSink` (not
+      `ERROR_NOTAVAILABLE`), flags the instance `isDecodedMemory`, kicks off the
+      decode, and lets the existing `start`/`pause`/`resume`/`seekTo`/`position`
+      surface play it — `start()` detects the already-decoded buffer and reuses
+      it instead of re-reading the QIODevice as PCM. Async decode maps onto the
+      desktop first-play validation: `waitLoadedMediaValidation()` /
+      `media_duration` now wait on `decodeFinished` (a decode reject → `ok==0` →
+      `WARNING_SOUNDERROR`, matching the desktop invalid-file behavior), so
+      `SoundLength`/`SoundPlay`/`SoundWait`/pause/resume/seek all flow through
+      unchanged. Decodes to `ctx.sampleRate` (no 44.1 kHz assumption — only
+      `AudioBuffer.duration` is read). Maintainer to verify in-browser: a
+      `SOUNDLOAD`ed `.wav`/`.mp3` plays, `SoundLength` is right, seek/pause/resume
+      work, and a bogus file raises `WARNING_SOUNDERROR` without hanging.
 - [ ] `SAY` via the browser's Web Speech API behind `BASIC256_ENABLE_TTS`'s
       WASM variant.
       **Implemented 2026-07-11 (pending CI-green + browser verification).**
@@ -1869,3 +1891,50 @@ sandbox — each isolated in its own phase gate.
   click; `speechSynthesis` is main-thread-only, which is where the queued
   `speakWords` slot runs. Verify in-browser: `SAY "hello world"` audible +
   blocking, and `SAY` mid-program then Stop leaves no speech running.
+
+- 2026-07-11: **Phase 7 `sound:` in-memory compressed playback implemented**
+  (code only; pending CI-green + browser verification; kept as its own commit
+  so a browser regression is cleanly attributable). Closes the last deferred
+  Phase 7 audio gap — `SOUNDLOAD`ed compressed files (`.wav`/`.mp3`/…) played
+  via `SOUND`/`SOUNDPLAY`, which desktop routes through
+  `QMediaPlayer::setSourceDevice(QBuffer)` and WASM previously stubbed to
+  `ERROR_NOTAVAILABLE`. Builds directly on `WasmAudioSink` (which already plays
+  a decoded `AudioBuffer`): the only genuinely new piece is turning compressed
+  bytes into that buffer. `WasmAudioSink` gains `decode(const QByteArray&)` +
+  `EM_JS wasmAudioSinkDecode(nodeId, bytesPtr, byteLen)` — copies the bytes out
+  of the heap into a private `ArrayBuffer` (they don't outlive the synchronous
+  call, same as the PCM path; the copy also avoids `decodeAudioData` detaching
+  the live wasm heap), calls `ctx.decodeAudioData()` wiring **both** its
+  callback and Promise forms behind a `done` guard (older Safari has only the
+  callbacks; modern browsers resolve the Promise) so exactly one result fires,
+  stores the `AudioBuffer` into the same `entry.buffer` slot `startFrom` already
+  plays, and reports completion via a new `EMSCRIPTEN_KEEPALIVE`
+  `wasmAudioSinkOnDecoded(nodeId, ok, durationMs)` export called **directly**
+  (`_wasmAudioSinkOnDecoded` / `Module._…`, `typeof`-guarded — not `makeDynCall`,
+  the recurring trap) → a `decodeFinished(ok, durationMs)` Qt signal. `decode()`
+  decodes to `ctx.sampleRate`; only `AudioBuffer.duration` is read, never a
+  hard-coded rate. `WasmAudioSink::start()` now detects an already-decoded
+  buffer and replays it (`samplesPtr==0`) instead of re-reading the QIODevice's
+  still-compressed bytes as PCM. In `Sound.{h,cpp}`: the WASM `sound:` branch
+  now mirrors the `beep:` setup but flags the instance `isDecodedMemory`, kicks
+  off `audio->decode(bytes)` at setup, and connects `decodeFinished` →
+  `handleDecodeFinished` (sets `media_duration` + `isValidated`, wakes
+  `exitWaitingLoop`). The async decode maps onto the *existing* desktop
+  first-play validation machinery rather than any new wait logic:
+  `waitLoadedMediaValidation()` gained a `#ifdef Q_OS_WASM` branch that blocks on
+  `media_duration` going non-negative (5 s safety timer), `play()` waits there
+  before the first `start()` (loops/replays skip it — `media_duration>=0`
+  already), and `length()` returns `media_duration/1000` for the decoded case
+  instead of the raw-PCM byte-count formula. A `decodeAudioData` reject →
+  `ok==0` → `media_duration=0` → `WARNING_SOUNDERROR`, matching the desktop
+  invalid-in-memory-file behavior; validity is cached back through the existing
+  `validateLoadedSound` slot, and each play still awaits its own instance's
+  decode before starting (so a cached-valid resource never starts on an
+  undecoded buffer). `SoundLength`/`SoundPlay`/`SoundWait`/pause/resume/seek/
+  position therefore need no per-feature WASM code. Late decode callbacks after
+  a sink is destroyed are safe (the `nodeId → instance` map lookup returns
+  null). All changes are `#ifdef Q_OS_WASM`; desktop `sound:` (QMediaPlayer)
+  and the `beep:` raw-PCM audio path are untouched. Verify in-browser: a
+  `SOUNDLOAD`ed `.wav`/`.mp3` is audible, `SOUNDLENGTH` matches, seek/pause/
+  resume behave, and a non-audio file raises `WARNING_SOUNDERROR` without
+  hanging.
