@@ -1478,6 +1478,26 @@ void MainWindow::loadFileContent(QString fileName, const QByteArray &content) {
     }
 }
 
+void MainWindow::hidePlayerChrome() {
+    // The URL-launched player (WasmLaunch) wants the graphics canvas and nothing
+    // else -- an embedded demo has no use for a menu bar offering "Open
+    // Example..." and "Exit", nor for the graphics toolbar's zoom/save buttons.
+    //
+    // Deliberately NOT folded into configureGuiState()'s GUISTATEGRAPH branch:
+    // that would also strip desktop -g/--graph, which is a different use case
+    // and keeps its chrome (maintainer decision 2026-07-12). GUISTATEGRAPH
+    // itself hides the *main* toolbar but never touches the graphics one, which
+    // is why the toolbar is still up by the time we get here.
+    //
+    // Safe to persist: saveCustomizations() keys every setting by guiState, so
+    // what this writes lands under the graph-mode (3) keys, never the normal
+    // IDE's (0) -- and on wasm, graph mode is only ever reached through here.
+    menuBar()->hide();
+    statusBar()->hide();
+    graphwin_toolbar_visible_act->setChecked(false);
+    graphwin_widget->slotShowToolBar(false);
+}
+
 void MainWindow::openExample() {
     // DemoWASM/examples.qrc (CMakeLists.txt, EMSCRIPTEN-only) bundles a
     // curated, self-contained subset of Examples/ under this prefix.

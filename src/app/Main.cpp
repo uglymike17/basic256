@@ -326,6 +326,16 @@ int main(int argc, char *argv[]) {
 
     MainWindow mainwin(nullptr, Qt::WindowFlags(), localecode, guimode, fullScreen);
     mainwin.setObjectName( "mainwin" );
+
+#ifdef Q_OS_WASM
+    // An embedded demo shows the canvas and nothing else. GUISTATEGRAPH alone
+    // still leaves a menu bar (File/Help) and the graphics toolbar up; strip
+    // those here rather than in configureGuiState(), so desktop -g/--graph is
+    // left exactly as it was.
+    if (launch.source != WasmLaunch::Source::None) {
+        mainwin.hidePlayerChrome();
+    }
+#endif
     // --silent: MainWindow and its child windows (Edit/Graphics/Text Output) are
     // still constructed internally (the interpreter is wired to them), but they
     // are never shown, so no window ever appears on screen.

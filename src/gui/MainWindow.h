@@ -71,6 +71,7 @@ public:
     bool loadFile(QString);
 #ifdef Q_OS_WASM
     void loadFileContent(QString fileName, const QByteArray &content);
+    void hidePlayerChrome();
 #endif
     void resizeToFitGraph(int canvasW, int canvasH);
 

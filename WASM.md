@@ -1293,6 +1293,25 @@ automatic reload on first visit).
       Fetch completion reaches C++ via an `EMSCRIPTEN_KEEPALIVE`
       `wasmLaunchOnFetched()` export called **directly**, same as
       `wasmAudioSinkOnDecoded`/`basic256SayFinished`.
+      **Chrome (follow-up, 2026-07-12).** First browser run showed `-g` does not
+      actually mean "only the Graphics Output window": `configureGuiState()`
+      hides the *main* toolbar but never touches the **graphics** toolbar (so
+      line ~429 restores it from settings), and the **menu bar** is not hidden in
+      any mode — leaving File (Open Example…, Exit) and Help. That is a
+      pre-existing `-g` gap, not something the deep-link introduced. **Maintainer
+      decision: fix it for the WASM deep-link only** — desktop `-g/--graph` keeps
+      its menu bar and toolbar. New `MainWindow::hidePlayerChrome()`
+      (`Q_OS_WASM`-only), called from `Main.cpp` when a launch parameter is
+      present, hides the menu bar, the status bar and the graphics toolbar. It is
+      *not* folded into `configureGuiState()`'s `GUISTATEGRAPH` branch, which is
+      exactly what keeps desktop `-g` untouched. Persisting this is harmless:
+      `saveCustomizations()` keys every setting by `guiState`, so it writes the
+      graph-mode (3) keys, never the normal IDE's (0).
+      **Running your own programs:** `?run=` is restricted to the bundled
+      `:/examples` set on purpose (the name goes into a resource path). Anything
+      else goes through `?src=` (base64, nothing to host) or `?url=`, which
+      accepts a **relative** path — `?url=demos/fractal.kbs` is same-origin, so no
+      CORS is involved; just drop the `.kbs` into the deployed directory.
       Maintainer to verify in-browser: `?run=mandelbrot` auto-runs graphics-only;
       a bad name / bad base64 / unreachable URL raises the "unable to load"
       box instead of hanging; and no parameters still opens the normal IDE.
