@@ -19,6 +19,7 @@
 
 #ifdef Q_OS_WASM
 
+#include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QRegularExpression>
@@ -103,10 +104,36 @@ QByteArray queryString() {
 }
 
 // Bundled example names are pasted straight into a ":/examples/..." path, so
-// keep them to a shape that cannot walk out of the resource prefix.
+// keep them to a shape that cannot walk out of the resource prefix. The
+// extension match is case-insensitive to match resolveExampleName() below --
+// otherwise ".KBS" would be rejected here before the forgiving lookup ever ran.
 bool isSafeExampleName(const QString &name) {
-    static const QRegularExpression rx("^[A-Za-z0-9_\\-]+(\\.kbs)?$");
+    static const QRegularExpression rx("^[A-Za-z0-9_\\-]+(\\.kbs)?$",
+                                       QRegularExpression::CaseInsensitiveOption);
     return rx.match(name).hasMatch();
+}
+
+// Map a ?run= name onto the actual file in :/examples, case-insensitively.
+//
+// Qt resource paths are case-sensitive and every bundled example is lowercase,
+// so ":/examples/Mandelbrot.kbs" simply does not exist -- ?run=Mandelbrot failed
+// with "unable to load" while ?run=mandelbrot worked. These links get typed and
+// shared by hand, so an exact-case requirement is a papercut with no upside.
+// Try the name as given first, then fall back to a case-insensitive sweep of the
+// directory. Returns the real, correctly-cased file name, or empty if no match.
+QString resolveExampleName(const QString &requested) {
+    const QString wanted = requested.endsWith(".kbs", Qt::CaseInsensitive)
+                               ? requested
+                               : requested + ".kbs";
+
+    if (QFile::exists(":/examples/" + wanted)) return wanted;
+
+    QDir dir(":/examples");
+    const QStringList files = dir.entryList(QStringList() << "*.kbs", QDir::Files, QDir::Name);
+    for (const QString &f : files) {
+        if (f.compare(wanted, Qt::CaseInsensitive) == 0) return f;
+    }
+    return QString();
 }
 
 // Normalise a ?url= value into exactly the string fetch() will parse.
@@ -223,7 +250,8 @@ void resolve(const Request &req, std::function<void(bool, QByteArray)> done) {
 
     case Source::Example: {
         if (!isSafeExampleName(req.value)) { done(false, QByteArray()); return; }
-        QString name = req.value.endsWith(".kbs") ? req.value : req.value + ".kbs";
+        const QString name = resolveExampleName(req.value);
+        if (name.isEmpty()) { done(false, QByteArray()); return; }
         QFile f(":/examples/" + name);
         if (!f.open(QIODevice::ReadOnly)) { done(false, QByteArray()); return; }
         QByteArray src = f.readAll();

@@ -1262,7 +1262,11 @@ automatic reload on first visit).
       - `?run=<name>` (`?program=` is a synonym) — a program bundled in
         `DemoWASM/examples.qrc` (`:/examples`, the same 42 files the Open Example
         picker uses). `.kbs` optional. The name is restricted to `[A-Za-z0-9_-]`
-        so it cannot `../` its way out of the resource prefix.
+        so it cannot `../` its way out of the resource prefix. **Matched
+        case-insensitively** (`resolveExampleName()`, added 2026-07-12 after
+        `?run=Mandelbrot` failed in the browser): Qt resource paths are
+        case-sensitive and every bundled example is lowercase, so an exact-case
+        requirement is a papercut on a link people type and share by hand.
       - `?src=<base64>` — the source itself, in the link. Decoded strictly
         (`AbortOnBase64DecodingErrors`), URL-safe alphabet first then standard:
         the *lenient* `fromBase64()` silently drops out-of-alphabet characters,
