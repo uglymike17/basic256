@@ -1166,6 +1166,21 @@ automatic reload on first visit).
       `AudioBuffer.duration` is read). Maintainer to verify in-browser: a
       `SOUNDLOAD`ed `.wav`/`.mp3` plays, `SoundLength` is right, seek/pause/resume
       work, and a bogus file raises `WARNING_SOUNDERROR` without hanging.
+      **Browser bug found + fixed 2026-07-12: `SOUNDWAIT` never returned for a
+      `SOUNDPLAYER` sound.** `WasmAudioSink::setState()` emitted `stateChanged`
+      *unconditionally*, where a real `QAudioSink` only signals an actual
+      transition — and `Sound.cpp` depends on the latter. At a sound's natural
+      end, `handleAudioStateChanged(Idle)` → `audio->stop()` →
+      `stateChanged(Stopped)` → `handleAudioStateChanged(Stopped)` →
+      `audio->stop()` → … : both branches call `stop()` while still connected, so
+      the redundant `stop()`-while-stopped re-announced `StoppedState` forever.
+      Infinite recursion → stack overflow → the wasm module traps, and the
+      interpreter (blocked in `SOUNDWAIT`) never resumes. Only bites the
+      `isPlayer` path: the non-player branch happens to call
+      `audio->disconnect(this)` *before* `stop()`, which is exactly why the
+      earlier `SOUND`/`SOUNDPLAY` browser tests passed and never exposed it. Fix:
+      `setState()` returns early when the state is unchanged (one line), matching
+      `QAudioSink`'s contract.
 - [x] `SAY` via the browser's Web Speech API behind `BASIC256_ENABLE_TTS`'s
       WASM variant.
       **Implemented + browser-verified 2026-07-11 by the maintainer**

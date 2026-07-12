@@ -319,6 +319,17 @@ bool WasmAudioSink::seekTo(double seconds)
 
 void WasmAudioSink::setState(QAudio::State s)
 {
+    // Only signal real transitions -- QAudioSink does the same, and Sound.cpp
+    // depends on it. Emitting unconditionally made a redundant stop() re-announce
+    // StoppedState, and for a "player" instance (isPlayer, i.e. SOUNDPLAYER) that
+    // is an infinite recursion: handleAudioStateChanged(Idle) -> audio->stop() ->
+    // stateChanged(Stopped) -> handleAudioStateChanged(Stopped) -> audio->stop()
+    // -> ... Both branches call stop() while still connected. It blew the stack
+    // the moment a SOUNDPLAYER sound reached its natural end, so the interpreter
+    // never returned from SOUNDWAIT. (The non-player branch survives only because
+    // it happens to call audio->disconnect(this) *before* stop(), which is why
+    // the SOUND/SOUNDPLAY browser tests never caught this.)
+    if (m_state == s) return;
     m_state = s;
     emit stateChanged(m_state);
 }
