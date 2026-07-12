@@ -57,15 +57,20 @@
 // them (?url=demos/x.kbs&mode=text works as readily as ?run=...&mode=text). Each
 // value maps onto a guimode that already exists for a command-line switch:
 //
-//   graph  (default)  GUISTATEGRAPH  -g  graphics only, auto-run
-//   text              GUISTATETEXT   -t  text output only, auto-run
-//   app               GUISTATEAPP    -a  text + graphics, no editor, auto-run
-//   ide               GUISTATERUN    -r  full IDE, auto-run
-//   edit              GUISTATENORMAL     full IDE, loaded but NOT run
+//   ide  (default)  GUISTATERUN    -r  full IDE, auto-run
+//   edit            GUISTATENORMAL     full IDE, loaded but NOT run
+//   graph           GUISTATEGRAPH  -g  graphics only, auto-run  (the player)
+//   text            GUISTATETEXT   -t  text output only, auto-run
+//   app             GUISTATEAPP    -a  text + graphics, no editor, auto-run
 //
 // graph/text/app are "player" modes: chrome (menu bar, status bar, output
-// toolbars) is stripped. ide/edit keep the full IDE furniture -- you are meant
-// to work in them. An unrecognised mode falls back to graph.
+// toolbars) is stripped. ide/edit keep the full IDE furniture -- you are meant to
+// work in them. An unrecognised mode falls back to ide.
+//
+// A bare ?run=<file> lands in the IDE, running: more often than not that is what
+// someone following a link wants, and it leaves the program visible, editable and
+// stoppable. Embedding a chrome-free demo is the deliberate act (&mode=graph),
+// not the default.
 namespace WasmLaunch {
 
 enum class Source {

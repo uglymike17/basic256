@@ -296,14 +296,14 @@ int main(int argc, char *argv[]) {
 #ifdef Q_OS_WASM
     // A browser hands main() no argv, so none of the switches above can ever
     // fire on WASM. Take the same two decisions from the page URL instead: which
-    // program to run, and the graphics-only "player" GUI that -g/--graph selects
-    // (?run=mandelbrot => a running, chrome-free demo at a link). guimode is a
-    // MainWindow constructor argument, which is why parseQuery() is synchronous;
-    // only a ?url= program's *fetch* is async, and that happens further down.
+    // program to run (?run=/?src=/?url=) and which GUI to show it in (?mode=,
+    // defaulting to the full IDE, running). guimode is a MainWindow constructor
+    // argument, which is why parseQuery() is synchronous; only a ?url= program's
+    // *fetch* is async, and that happens further down.
     WasmLaunch::Request launch = WasmLaunch::parseQuery();
     if (launch.source != WasmLaunch::Source::None) {
-        // ?mode= (graph|text|app|ide|edit); graph -- the -g player -- is the
-        // default, so a link written before ?mode= existed behaves as it did.
+        // ?mode= (ide|edit|graph|text|app); ide -- the -r full IDE, running -- is
+        // the default. The chrome-free player is &mode=graph.
         guimode = launch.guimode;
     }
 #endif

@@ -118,26 +118,33 @@ bool isSafeExampleName(const QString &name) {
 // ?mode= -> the guimode MainWindow is constructed with, plus whether this is a
 // "player" (chrome stripped) or a working IDE. Every mode here already exists
 // for a command-line switch; the URL just gives wasm a way to ask for one, since
-// a browser supplies no argv. Unrecognised values fall back to the graph-only
-// player, which is the default and what an embedded demo wants.
+// a browser supplies no argv.
+//
+// The default (and the fallback for an unrecognised value) is the **full IDE,
+// running** -- maintainer decision 2026-07-12, reversing the graph-only default
+// this shipped with. A bare ?run=<file> is far more often "show me this program"
+// than "embed this demo", and the IDE is the honest landing place: the program is
+// visible, editable and stoppable. The chrome-free player is still one parameter
+// away (&mode=graph), which is the right way round -- embedding is the deliberate
+// act, not the accident.
 void applyMode(const QString &mode, WasmLaunch::Request &req) {
     const QString m = mode.trimmed().toLower();
 
-    if (m == QLatin1String("text")) {
+    if (m == QLatin1String("graph")) {
+        req.guimode = GUISTATEGRAPH;        // -g : graphics only -- the player
+        req.playerChrome = true;
+    } else if (m == QLatin1String("text")) {
         req.guimode = GUISTATETEXT;         // -t
         req.playerChrome = true;
     } else if (m == QLatin1String("app")) {
         req.guimode = GUISTATEAPP;          // -a : text + graphics, no editor
         req.playerChrome = true;
-    } else if (m == QLatin1String("ide")) {
-        req.guimode = GUISTATERUN;          // -r : full IDE, auto-run
-        req.playerChrome = false;
     } else if (m == QLatin1String("edit")) {
         req.guimode = GUISTATENORMAL;       // full IDE, loaded but not run
         req.playerChrome = false;           // (ifGuiStateRun() is a no-op here)
     } else {
-        req.guimode = GUISTATEGRAPH;        // -g : the default player
-        req.playerChrome = true;
+        req.guimode = GUISTATERUN;          // -r : full IDE, auto-run -- the default
+        req.playerChrome = false;
     }
 }
 

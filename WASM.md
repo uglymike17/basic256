@@ -1267,8 +1267,9 @@ automatic reload on first visit).
       argv. So the same binary grows a second launch path that reads the two
       decisions argv would have carried — which program, and which GUI — out of
       the page URL:
-      `https://uglymike17.github.io/basic256/?run=mandelbrot` is a running,
-      chrome-free demo.
+      `https://uglymike17.github.io/basic256/?run=mandelbrot&mode=graph` is a
+      running, chrome-free demo. (Without `&mode=`, it opens in the IDE and runs —
+      see the `?mode=` follow-up below.)
       New `src/core/WasmLaunch.{h,cpp}` (`Q_OS_WASM`-only, empty TU on desktop,
       same shape as `WasmSettings`/`WasmAudioSink`). `parseQuery()` reads
       `location.search` and returns a `Request{source, value, title}`;
@@ -1302,14 +1303,15 @@ automatic reload on first visit).
         link fails visibly ("unable to load…") instead of silently opening the
         IDE.
       `Main.cpp` calls `parseQuery()` *before* constructing `MainWindow` (guimode
-      is a ctor argument — which is why parsing is synchronous) and forces
-      `GUISTATEGRAPH` if any program parameter is present. After `show()`, the
+      is a ctor argument — which is why parsing is synchronous) and sets guimode
+      from `?mode=` if any program parameter is present. After `show()`, the
       deep-link branch bypasses the argv/filename path entirely (there is no argv
       and no real filesystem) and feeds the bytes to `loadFileContent()` — the
       same entry point the browser's file picker uses — then `ifGuiStateRun()`,
-      exactly as `-g` would. `resolve()` completes inline for `?run=`/`?src=` (so
-      the run is already under way when `exec()` is entered, as on desktop) and
-      calls back later for `?url=`, once the event loop is turning.
+      exactly as the matching command-line switch would. `resolve()` completes
+      inline for `?run=`/`?src=` (so the run is already under way when `exec()` is
+      entered, as on desktop) and calls back later for `?url=`, once the event
+      loop is turning.
       **JS bridge deliberately uses only `HEAPU8` + `UTF8ToString`** — the two
       Emscripten runtime helpers this build has actually proven in a browser. No
       `stringToNewUTF8`, no `_malloc`, no `Module.ccall`: this build sets no
@@ -1331,15 +1333,20 @@ automatic reload on first visit).
       command-line switch, so nothing new was added to `MainWindow`:
       | `?mode=` | guimode | switch | |
       |---|---|---|---|
-      | `graph` *(default)* | `GUISTATEGRAPH` | `-g` | graphics only, auto-run |
+      | `ide` *(default)* | `GUISTATERUN` | `-r` | full IDE, auto-run |
+      | `edit` | `GUISTATENORMAL` | — | full IDE, loaded but **not** run |
+      | `graph` | `GUISTATEGRAPH` | `-g` | graphics only, auto-run (the player) |
       | `text` | `GUISTATETEXT` | `-t` | text output only, auto-run |
       | `app` | `GUISTATEAPP` | `-a` | text + graphics, no editor, auto-run |
-      | `ide` | `GUISTATERUN` | `-r` | full IDE, auto-run |
-      | `edit` | `GUISTATENORMAL` | — | full IDE, loaded but **not** run |
       `graph`/`text`/`app` are *player* modes and get `hidePlayerChrome()`;
       `ide`/`edit` are meant to be worked in and keep the full IDE furniture. An
-      unrecognised mode falls back to `graph`, and `graph` being the default means
-      every link written before `?mode=` existed behaves exactly as it did.
+      unrecognised mode falls back to `ide`.
+      **Default flipped to `ide` 2026-07-12** (maintainer decision; it first
+      shipped defaulting to `graph`). A bare `?run=<file>` is far more often "show
+      me this program" than "embed this demo", and the IDE is the honest landing
+      place — visible, editable, stoppable. The chrome-free player is one
+      parameter away (`&mode=graph`), which is the right way round: embedding
+      should be the deliberate act, not the accident.
       `edit` needs no new plumbing: `ifGuiStateRun()` is already a no-op for
       `GUISTATENORMAL`, so the program simply loads. One gap this surfaced: the
       deep-link branch skips `main()`'s trailing `newProgram()`, so a *failed*
@@ -1364,9 +1371,10 @@ automatic reload on first visit).
       else goes through `?src=` (base64, nothing to host) or `?url=` with a
       relative path — `?url=demos/fractal.kbs` — so just drop the `.kbs` into the
       deployed directory.
-      Maintainer to verify in-browser: `?run=mandelbrot` auto-runs graphics-only;
-      a bad name / bad base64 / unreachable URL raises the "unable to load"
-      box instead of hanging; and no parameters still opens the normal IDE.
+      Maintainer to verify in-browser: `?run=mandelbrot` opens the IDE and runs;
+      `&mode=graph` gives the chrome-free player; a bad name / bad base64 /
+      rejected URL raises the "unable to load" box instead of hanging; and no
+      parameters still opens the normal IDE.
 - [ ] Revisit binary size: dynamic linking / `qt-cmake` deploy options,
       strip unused Qt features.
 
