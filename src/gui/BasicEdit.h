@@ -93,6 +93,13 @@ class BasicEdit : public QPlainTextEdit, public ViewWidgetIFace
         void addFileToRecentList(QString);
         void updateEditorButtons();
         void setCurrentEditorTab(BasicEdit*);
+        // Emitted around writeFile()'s own write so MainWindow can drop the file
+        // from its QFileSystemWatcher while we save it and pick it back up after.
+        // Must be driven from the write itself, not from saveProgram(): the
+        // overwrite prompt is non-modal (WASM RULE 2), so saveProgram() returns
+        // long before the user answers it and the write actually happens.
+        void unwatchFile(QString);
+        void watchFile(QString);
 
 
 	protected:

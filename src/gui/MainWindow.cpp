@@ -1200,20 +1200,34 @@ void MainWindow::activeEditorPrint(){
         e->slotPrint();
     }
 }
+// Suspending the watch around the save is BasicEdit::writeFile()'s job, not
+// ours: the overwrite prompt is non-modal (WASM RULE 2), so saveProgram()
+// returns before the user has even answered it, and bracketing the *call* here
+// re-armed the watcher while the write was still pending -- the editor then saw
+// its own save land and asked whether to reload the file it had just written.
 void MainWindow::activeEditorSaveProgram(){
     BasicEdit *e = (BasicEdit*)editwintabs->currentWidget();
     if(e){
-        if(fileSystemWatcher && !(e->filename.isEmpty())) fileSystemWatcher->removePath(e->filename);
         e->saveProgram();
-        if(fileSystemWatcher && !(e->filename.isEmpty())) fileSystemWatcher->addPath(e->filename);
     }
 }
 void MainWindow::activeEditorSaveAsProgram(){
     BasicEdit *e = (BasicEdit*)editwintabs->currentWidget();
     if(e){
+        // Save As detaches this editor from its current file, so stop watching
+        // that one; the new path gets watched by writeFile()'s watchFile().
         if(fileSystemWatcher && !(e->filename.isEmpty())) fileSystemWatcher->removePath(e->filename);
         e->saveAsProgram();
-        if(fileSystemWatcher && !(e->filename.isEmpty())) fileSystemWatcher->addPath(e->filename);
+    }
+}
+
+void MainWindow::unwatchFile(QString fn){
+    if(fileSystemWatcher && !fn.isEmpty()) fileSystemWatcher->removePath(fn);
+}
+
+void MainWindow::watchFile(QString fn){
+    if(fileSystemWatcher && !fn.isEmpty() && !fileSystemWatcher->files().contains(fn)){
+        fileSystemWatcher->addPath(fn);
     }
 }
 void MainWindow::activeEditorUndo(){
@@ -1381,6 +1395,8 @@ BasicEdit* MainWindow::newEditor(QString title){
             QObject::connect(editor, SIGNAL(addFileToRecentList(QString)), this, SLOT(addFileToRecentList(QString)));
             QObject::connect(editor, SIGNAL(setCurrentEditorTab(BasicEdit*)), this, SLOT(setCurrentEditorTab(BasicEdit*)));
             QObject::connect(this, SIGNAL(saveAllStep(int)), editor, SLOT(saveAllStep(int)));
+            QObject::connect(editor, SIGNAL(unwatchFile(QString)), this, SLOT(unwatchFile(QString)));
+            QObject::connect(editor, SIGNAL(watchFile(QString)), this, SLOT(watchFile(QString)));
             if(fileSystemWatcher) QObject::connect(fileSystemWatcher, SIGNAL(fileChanged(QString)), editor, SLOT(fileChangedOnDiskSlot(QString)) );
         }
     }

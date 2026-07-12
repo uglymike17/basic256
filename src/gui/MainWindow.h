@@ -229,6 +229,8 @@ private slots:
     void activeEditorPrint();
     void activeEditorSaveProgram();
     void activeEditorSaveAsProgram();
+    void unwatchFile(QString);
+    void watchFile(QString);
     void activeEditorUndo();
     void activeEditorRedo();
     void activeEditorCut();

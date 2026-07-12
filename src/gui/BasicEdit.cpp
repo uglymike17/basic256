@@ -248,6 +248,9 @@ void BasicEdit::saveFile(bool overwrite) {
 
 #ifndef Q_OS_WASM
 void BasicEdit::writeFile() {
+	// Suspend the on-disk watch for the duration of our own write, or the
+	// watcher reports it back to us as "the file changed outside the editor".
+	emit(unwatchFile(filename));
 	QFile f(filename);
 	f.open(QIODevice::WriteOnly | QIODevice::Truncate);
 	f.write(this->document()->toPlainText().toUtf8());
@@ -257,6 +260,7 @@ void BasicEdit::writeFile() {
 	setTitle(fi.fileName());
 	QDir::setCurrent(fi.absolutePath());
 	emit(addFileToRecentList(filename));
+	emit(watchFile(filename));
 }
 #endif
 
@@ -1083,11 +1087,30 @@ void BasicEdit::fileChangedOnDiskSlot(QString fn){
 }
 
 void BasicEdit::handleFileChangedOnDisk(){
+    fileChangedOnDiskFlag=false; // handled below; dialog is now dispatched
+    QFileInfo check_file(filename);
+
+    // Nothing to tell the user if what is on disk is already what is on screen.
+    // writeFile() suspends the watch while it saves, but a notification queued
+    // just before removePath() can still land afterwards, and a file replaced
+    // rather than rewritten in place drops off QFileSystemWatcher entirely --
+    // so re-arm the watch and stay quiet rather than prompting to reload the
+    // very text the editor is showing.
+    if(check_file.exists()){
+        QFile f(filename);
+        if(f.open(QIODevice::ReadOnly)){
+            QByteArray ondisk = f.readAll();
+            f.close();
+            if(ondisk == this->document()->toPlainText().toUtf8()){
+                emit(watchFile(filename));
+                return;
+            }
+        }
+    }
+
     document()->setModified(true);
     updateTitle();
     emit(setCurrentEditorTab(this));
-    fileChangedOnDiskFlag=false; // handled below; dialog is now dispatched
-    QFileInfo check_file(filename);
     if(!check_file.exists()){
         QMessageBox *msgBox = new QMessageBox(this);
         msgBox->setAttribute(Qt::WA_DeleteOnClose);
@@ -1121,6 +1144,9 @@ void BasicEdit::handleFileChangedOnDisk(){
                 cursor.endEditBlock();
                 document()->setModified(false);
                 updateTitle();
+                // A file replaced (rather than rewritten in place) is dropped by
+                // QFileSystemWatcher -- make sure we are still watching it.
+                emit(watchFile(filename));
             }else{
                 QMessageBox *err = new QMessageBox(this);
                 err->setAttribute(Qt::WA_DeleteOnClose);
