@@ -51,19 +51,36 @@
 //                 able to point that at somebody else's server.
 //
 // ?program= is accepted as a synonym for ?run=.
+//
+// ?mode=<mode> picks how it is shown. It is a separate parameter from the three
+// above -- they say *what* to run, this says *how* -- so it composes with all of
+// them (?url=demos/x.kbs&mode=text works as readily as ?run=...&mode=text). Each
+// value maps onto a guimode that already exists for a command-line switch:
+//
+//   graph  (default)  GUISTATEGRAPH  -g  graphics only, auto-run
+//   text              GUISTATETEXT   -t  text output only, auto-run
+//   app               GUISTATEAPP    -a  text + graphics, no editor, auto-run
+//   ide               GUISTATERUN    -r  full IDE, auto-run
+//   edit              GUISTATENORMAL     full IDE, loaded but NOT run
+//
+// graph/text/app are "player" modes: chrome (menu bar, status bar, output
+// toolbars) is stripped. ide/edit keep the full IDE furniture -- you are meant
+// to work in them. An unrecognised mode falls back to graph.
 namespace WasmLaunch {
 
 enum class Source {
     None,       // no launch parameters -- start the normal IDE
     Example,    // ?run= / ?program=  : bundled qrc example
     Inline,     // ?src=              : base64 source in the URL
-    Url         // ?url=              : fetched over the network
+    Url         // ?url=              : fetched, same-origin only
 };
 
 struct Request {
     Source source = Source::None;
-    QString value;              // example name, base64 blob, or URL
+    QString value;              // example name, base64 blob, or relative path
     QString title;              // display name for the editor tab / title bar
+    int guimode = 0;            // GUISTATE* for MainWindow's ctor; set by parseQuery()
+    bool playerChrome = false;  // true => strip menu bar / status bar / toolbars
 };
 
 // Parse location.search. Synchronous and safe to call before the GUI exists --

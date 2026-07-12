@@ -19,6 +19,8 @@
 
 #ifdef Q_OS_WASM
 
+#include "Constants.h"
+
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -111,6 +113,32 @@ bool isSafeExampleName(const QString &name) {
     static const QRegularExpression rx("^[A-Za-z0-9_\\-]+(\\.kbs)?$",
                                        QRegularExpression::CaseInsensitiveOption);
     return rx.match(name).hasMatch();
+}
+
+// ?mode= -> the guimode MainWindow is constructed with, plus whether this is a
+// "player" (chrome stripped) or a working IDE. Every mode here already exists
+// for a command-line switch; the URL just gives wasm a way to ask for one, since
+// a browser supplies no argv. Unrecognised values fall back to the graph-only
+// player, which is the default and what an embedded demo wants.
+void applyMode(const QString &mode, WasmLaunch::Request &req) {
+    const QString m = mode.trimmed().toLower();
+
+    if (m == QLatin1String("text")) {
+        req.guimode = GUISTATETEXT;         // -t
+        req.playerChrome = true;
+    } else if (m == QLatin1String("app")) {
+        req.guimode = GUISTATEAPP;          // -a : text + graphics, no editor
+        req.playerChrome = true;
+    } else if (m == QLatin1String("ide")) {
+        req.guimode = GUISTATERUN;          // -r : full IDE, auto-run
+        req.playerChrome = false;
+    } else if (m == QLatin1String("edit")) {
+        req.guimode = GUISTATENORMAL;       // full IDE, loaded but not run
+        req.playerChrome = false;           // (ifGuiStateRun() is a no-op here)
+    } else {
+        req.guimode = GUISTATEGRAPH;        // -g : the default player
+        req.playerChrome = true;
+    }
 }
 
 // Map a ?run= name onto the actual file in :/examples, case-insensitively.
@@ -214,6 +242,11 @@ Request parseQuery() {
     if (q.isEmpty()) return req;
 
     QUrlQuery query(q);
+
+    // ?mode= says how to show it, independently of which source names it, so it
+    // is resolved once up front and applies to whichever branch below matches.
+    // (It is inert if no program parameter is present: no launch, normal IDE.)
+    applyMode(query.queryItemValue("mode", QUrl::FullyDecoded), req);
 
     // Precedence: a bundled example beats inline source beats a fetched URL.
     QString name = query.queryItemValue("run", QUrl::FullyDecoded);

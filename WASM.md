@@ -1305,6 +1305,31 @@ automatic reload on first visit).
       Fetch completion reaches C++ via an `EMSCRIPTEN_KEEPALIVE`
       `wasmLaunchOnFetched()` export called **directly**, same as
       `wasmAudioSinkOnDecoded`/`basic256SayFinished`.
+      **`?mode=` (follow-up, 2026-07-12).** The first cut hardcoded graphics-only
+      for every launch. `?mode=` now picks the GUI, as a **separate** parameter
+      from the three above — they say *what* to run, it says *how* — so it
+      composes with all of them (`?url=demos/x.kbs&mode=text` works as readily as
+      `?run=…&mode=text`). Folding mode into the source name (the maintainer's
+      first sketch: `?rung=`/`?runt=`/`?runi=`) was rejected for exactly that
+      reason: it would have needed `?srcg=`/`?urlg=`/… variants to reach the same
+      generality. Every value maps onto a guimode that already exists for a
+      command-line switch, so nothing new was added to `MainWindow`:
+      | `?mode=` | guimode | switch | |
+      |---|---|---|---|
+      | `graph` *(default)* | `GUISTATEGRAPH` | `-g` | graphics only, auto-run |
+      | `text` | `GUISTATETEXT` | `-t` | text output only, auto-run |
+      | `app` | `GUISTATEAPP` | `-a` | text + graphics, no editor, auto-run |
+      | `ide` | `GUISTATERUN` | `-r` | full IDE, auto-run |
+      | `edit` | `GUISTATENORMAL` | — | full IDE, loaded but **not** run |
+      `graph`/`text`/`app` are *player* modes and get `hidePlayerChrome()`;
+      `ide`/`edit` are meant to be worked in and keep the full IDE furniture. An
+      unrecognised mode falls back to `graph`, and `graph` being the default means
+      every link written before `?mode=` existed behaves exactly as it did.
+      `edit` needs no new plumbing: `ifGuiStateRun()` is already a no-op for
+      `GUISTATENORMAL`, so the program simply loads. One gap this surfaced: the
+      deep-link branch skips `main()`'s trailing `newProgram()`, so a *failed*
+      load in `ide`/`edit` would have left an IDE with no document — the error
+      path now calls `newProgram()` first.
       **Chrome (follow-up, 2026-07-12).** First browser run showed `-g` does not
       actually mean "only the Graphics Output window": `configureGuiState()`
       hides the *main* toolbar but never touches the **graphics** toolbar (so

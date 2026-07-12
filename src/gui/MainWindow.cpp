@@ -1479,23 +1479,31 @@ void MainWindow::loadFileContent(QString fileName, const QByteArray &content) {
 }
 
 void MainWindow::hidePlayerChrome() {
-    // The URL-launched player (WasmLaunch) wants the graphics canvas and nothing
-    // else -- an embedded demo has no use for a menu bar offering "Open
-    // Example..." and "Exit", nor for the graphics toolbar's zoom/save buttons.
+    // The URL-launched player (WasmLaunch) shows its output and nothing else --
+    // an embedded demo has no use for a menu bar offering "Open Example..." and
+    // "Exit", nor for the output toolbars' zoom/save/clear buttons.
     //
-    // Deliberately NOT folded into configureGuiState()'s GUISTATEGRAPH branch:
-    // that would also strip desktop -g/--graph, which is a different use case
-    // and keeps its chrome (maintainer decision 2026-07-12). GUISTATEGRAPH
-    // itself hides the *main* toolbar but never touches the graphics one, which
-    // is why the toolbar is still up by the time we get here.
+    // Called for the player modes (?mode=graph|text|app); ide/edit are meant to
+    // be worked in and keep the full furniture. Both output toolbars are hidden
+    // unconditionally: graph mode never shows the text one and text mode never
+    // shows the graphics one, so the redundant call is a no-op rather than a
+    // reason to branch on guiState here.
+    //
+    // Deliberately NOT folded into configureGuiState(): that would also strip
+    // desktop -g/-t/-a, a different use case which keeps its chrome (maintainer
+    // decision 2026-07-12). configureGuiState() hides the *main* toolbar but
+    // never touches the output ones, which is why they are still up by the time
+    // we get here.
     //
     // Safe to persist: saveCustomizations() keys every setting by guiState, so
-    // what this writes lands under the graph-mode (3) keys, never the normal
-    // IDE's (0) -- and on wasm, graph mode is only ever reached through here.
+    // what this writes lands under the player mode's keys, never the normal
+    // IDE's (0) -- and on wasm those modes are only ever reached through here.
     menuBar()->hide();
     statusBar()->hide();
     graphwin_toolbar_visible_act->setChecked(false);
     graphwin_widget->slotShowToolBar(false);
+    outwin_toolbar_visible_act->setChecked(false);
+    outwin_widget->slotShowToolBar(false);
 }
 
 void MainWindow::openExample() {

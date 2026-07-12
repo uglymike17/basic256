@@ -302,7 +302,9 @@ int main(int argc, char *argv[]) {
     // only a ?url= program's *fetch* is async, and that happens further down.
     WasmLaunch::Request launch = WasmLaunch::parseQuery();
     if (launch.source != WasmLaunch::Source::None) {
-        guimode = GUISTATEGRAPH;
+        // ?mode= (graph|text|app|ide|edit); graph -- the -g player -- is the
+        // default, so a link written before ?mode= existed behaves as it did.
+        guimode = launch.guimode;
     }
 #endif
 
@@ -328,11 +330,12 @@ int main(int argc, char *argv[]) {
     mainwin.setObjectName( "mainwin" );
 
 #ifdef Q_OS_WASM
-    // An embedded demo shows the canvas and nothing else. GUISTATEGRAPH alone
-    // still leaves a menu bar (File/Help) and the graphics toolbar up; strip
-    // those here rather than in configureGuiState(), so desktop -g/--graph is
-    // left exactly as it was.
-    if (launch.source != WasmLaunch::Source::None) {
+    // An embedded demo shows its output and nothing else. GUISTATEGRAPH/TEXT/APP
+    // still leave a menu bar (File/Help), a status bar and the output toolbars
+    // up; strip those here rather than in configureGuiState(), so desktop
+    // -g/-t/-a are left exactly as they were. The ide/edit modes are meant to be
+    // worked in, so they keep the full IDE furniture.
+    if (launch.source != WasmLaunch::Source::None && launch.playerChrome) {
         mainwin.hidePlayerChrome();
     }
 #endif
@@ -361,6 +364,11 @@ int main(int argc, char *argv[]) {
         const QString title = launch.title;
         WasmLaunch::resolve(launch, [mw, title](bool ok, QByteArray src) {
             if (!ok) {
+                // Nothing was loaded, so no editor tab exists -- this branch
+                // skips the newProgram() call at the bottom of main(). Harmless
+                // in the player modes (no editor is shown), but ?mode=ide/edit
+                // would come up as an IDE with no document at all.
+                mw->newProgram();
                 // RULE 2: exec() never returns on the WASM main thread, so the
                 // box has to be shown non-modally.
                 QMessageBox *msgBox = new QMessageBox(mw);
