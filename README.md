@@ -18,39 +18,50 @@ editor and interpreter, with no install needed.
 
 ### Running a program straight from the link
 
-You can point the app at a program with a `?run=` parameter in the URL, and choose
-how it starts with `mode=`:
+You can point the app at a program from the URL. **Which** program to run is one
+parameter, and **how** to show it is another.
 
-| `?mode=` | guimode | switch | |
-|---|---|---|---|
-| `graph` *(default)* | `GUISTATEGRAPH` | `-g` | graphics only, auto-run |
-| `text` | `GUISTATETEXT` | `-t` | text output only, auto-run |
-| `app` | `GUISTATEAPP` | `-a` | text + graphics, no editor, auto-run |
-| `ide` | `GUISTATERUN` | `-r` | full IDE, auto-run |
-| `edit` | `GUISTATENORMAL` | — | full IDE, loaded but **not** run |
+Three ways to name the program:
 
-These mirror the `-g`, `-t`, `-a` and `-r` switches of the command-line version. The modes will only work on the files that come bundeled in the server (here the Example programs) like so:
+| parameter | where it looks | example |
+|---|---|---|
+| `?run=` | the **Example** programs built into the app | `?run=mandelbrot` |
+| `?url=` | a file **on the site**, relative to the page | `?url=demos/bubble.kbs` |
+| `?src=` | the program source itself, base64-encoded in the link | `?src=<base64>` |
 
+`?run=` only sees the bundled Examples — dropping a `.kbs` onto your web server
+does *not* make it visible to `?run=`; that's what `?url=` is for. `?url=` is
+restricted to the site serving the page (a relative path), so a link can't point
+the app at somebody else's server.
 
-![Browser interface](Basic256-Web_GraphicsOnly.png)
+Then `&mode=` chooses the window layout. These mirror the command-line switches:
 
-If you just start up the IDE, you can of course program or paste a file in the web IDE like I did here. 
+| `?mode=` | switch | |
+|---|---|---|
+| `ide` *(default)* | `-r` | full IDE, auto-run |
+| `edit` | — | full IDE, loaded but **not** run |
+| `graph` | `-g` | graphics only, auto-run |
+| `text` | `-t` | text output only, auto-run |
+| `app` | `-a` | text + graphics, no editor, auto-run |
 
+So a plain link opens the IDE with the program loaded and running — you can see
+it, stop it and edit it:
+
+**https://uglymike17.github.io/basic256/?run=mandelbrot**
 
 ![Browser interface](Basic256-Web.png)
 
-The program is loaded from the site itself, so you can run any file the site
-actually hosts:
+Add `&mode=graph` and you get just the canvas, with no menus or toolbars — the
+form to use when embedding a demo in a page:
 
-- **On the hosted demo (github.io),** that's the bundled **Example** programs (and their
-  images and sounds).
-- **On your own server,** it's whatever you put there — add folders such as
-  `/demos`, `/images` or `/sounds` and reference them from the URL or from inside
-  your programs.
+**https://uglymike17.github.io/basic256/?run=mandelbrot&mode=graph**
 
-(The real rule is simply *which files are deployed*, not GitHub versus your own
-server — if you fork the project and publish your own GitHub Pages with extra
-folders, those work too.)
+![Browser interface](Basic256-Web_GraphicsOnly.png)
+
+`mode` works with any of the three, so `?url=demos/bubble.kbs&mode=graph` runs
+your own hosted program as a bare-canvas demo. On your own server, add folders
+such as `/demos`, `/images` or `/sounds` and reference them from `?url=` or from
+inside your programs.
 
 ### Hosting it yourself
 
