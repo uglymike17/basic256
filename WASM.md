@@ -1242,8 +1242,60 @@ automatic reload on first visit).
       **Verified:** Preferences change survives a page reload. Not yet
       separately exercised by the maintainer (same mechanism, expected to
       work): `SETSETTING` persistence and the Settings browser listing keys.
-- [ ] A trimmed "player" build (graph window only, program preloaded from
+- [x] A trimmed "player" build (graph window only, program preloaded from
       URL parameter) for embedding fractal/demo programs in web pages.
+      **Implemented 2026-07-12 (pending CI-green + browser verification).**
+      Not a *build* at all in the end — no new target, no second binary. The
+      graphics-only GUI already exists (`Main.cpp` guimode 3 == `GUISTATEGRAPH`,
+      the `-g/--graph` switch: "only the Graphics Output window"); the only thing
+      missing on wasm was a way to *select* it, since a browser hands `main()` no
+      argv. So the same binary grows a second launch path that reads the two
+      decisions argv would have carried — which program, and which GUI — out of
+      the page URL:
+      `https://uglymike17.github.io/basic256/?run=mandelbrot` is a running,
+      chrome-free demo.
+      New `src/core/WasmLaunch.{h,cpp}` (`Q_OS_WASM`-only, empty TU on desktop,
+      same shape as `WasmSettings`/`WasmAudioSink`). `parseQuery()` reads
+      `location.search` and returns a `Request{source, value, title}`;
+      `resolve()` turns that into program bytes. Three sources, in precedence
+      order:
+      - `?run=<name>` (`?program=` is a synonym) — a program bundled in
+        `DemoWASM/examples.qrc` (`:/examples`, the same 42 files the Open Example
+        picker uses). `.kbs` optional. The name is restricted to `[A-Za-z0-9_-]`
+        so it cannot `../` its way out of the resource prefix.
+      - `?src=<base64>` — the source itself, in the link. Decoded strictly
+        (`AbortOnBase64DecodingErrors`), URL-safe alphabet first then standard:
+        the *lenient* `fromBase64()` silently drops out-of-alphabet characters,
+        which would turn `btoa()` output read as URL-safe into plausible garbage
+        rather than an honest failure.
+      - `?url=<url>` — `fetch()`ed, and therefore subject to CORS: the origin
+        serving the program must permit the read. **This executes a program named
+        by whoever wrote the link**, in the page's origin (where it can reach the
+        IDBFS `/persist` store). That is the feature, but it is worth a
+        maintainer decision before it ships publicly — an allowlist, or dropping
+        `?url=` and keeping only `?run=`/`?src=`, are both cheap.
+      `Main.cpp` calls `parseQuery()` *before* constructing `MainWindow` (guimode
+      is a ctor argument — which is why parsing is synchronous) and forces
+      `GUISTATEGRAPH` if any program parameter is present. After `show()`, the
+      deep-link branch bypasses the argv/filename path entirely (there is no argv
+      and no real filesystem) and feeds the bytes to `loadFileContent()` — the
+      same entry point the browser's file picker uses — then `ifGuiStateRun()`,
+      exactly as `-g` would. `resolve()` completes inline for `?run=`/`?src=` (so
+      the run is already under way when `exec()` is entered, as on desktop) and
+      calls back later for `?url=`, once the event loop is turning.
+      **JS bridge deliberately uses only `HEAPU8` + `UTF8ToString`** — the two
+      Emscripten runtime helpers this build has actually proven in a browser. No
+      `stringToNewUTF8`, no `_malloc`, no `Module.ccall`: this build sets no
+      `EXPORTED_RUNTIME_METHODS`, and the `makeDynCall` episode (2026-07-10)
+      showed a helper that merely *links* can still be missing at runtime. So JS
+      never allocates wasm memory — it parks the bytes in a JS-side holder,
+      reports the length to C++, and C++ hands back a pointer to copy into.
+      Fetch completion reaches C++ via an `EMSCRIPTEN_KEEPALIVE`
+      `wasmLaunchOnFetched()` export called **directly**, same as
+      `wasmAudioSinkOnDecoded`/`basic256SayFinished`.
+      Maintainer to verify in-browser: `?run=mandelbrot` auto-runs graphics-only;
+      a bad name / bad base64 / unreachable URL raises the "unable to load"
+      box instead of hanging; and no parameters still opens the normal IDE.
 - [ ] Revisit binary size: dynamic linking / `qt-cmake` deploy options,
       strip unused Qt features.
 

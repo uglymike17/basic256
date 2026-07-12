@@ -36,6 +36,7 @@
 #include <QLibraryInfo>
 #include <QLocale>
 #include <QLoggingCategory>
+#include <QMessageBox>
 #include <QStatusBar>
 #include <QtPlugin>
 #include <QTranslator>
@@ -46,6 +47,7 @@
 #include "MainWindow.h"
 #include "BasicEdit.h"
 #include "WasmSettings.h"
+#include "WasmLaunch.h"
 
 
 //Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
@@ -291,6 +293,19 @@ int main(int argc, char *argv[]) {
         qInstallMessageHandler([](QtMsgType, const QMessageLogContext &, const QString &) {});
     }
 
+#ifdef Q_OS_WASM
+    // A browser hands main() no argv, so none of the switches above can ever
+    // fire on WASM. Take the same two decisions from the page URL instead: which
+    // program to run, and the graphics-only "player" GUI that -g/--graph selects
+    // (?run=mandelbrot => a running, chrome-free demo at a link). guimode is a
+    // MainWindow constructor argument, which is why parseQuery() is synchronous;
+    // only a ?url= program's *fetch* is async, and that happens further down.
+    WasmLaunch::Request launch = WasmLaunch::parseQuery();
+    if (launch.source != WasmLaunch::Source::None) {
+        guimode = GUISTATEGRAPH;
+    }
+#endif
+
     QTranslator qtTranslator;
 #ifdef WIN32
     qtTranslator.load("qt_" + localecode);
@@ -320,7 +335,41 @@ int main(int argc, char *argv[]) {
     }
 
     bool loaded=false;
- 
+
+#ifdef Q_OS_WASM
+    // Deep-link launch. This bypasses the filename path below entirely -- there
+    // is no argv and no real filesystem to load from. The source arrives as
+    // bytes (a qrc example, base64 out of the URL, or a fetch()) and goes in
+    // through loadFileContent(), the same entry point the browser's file picker
+    // uses, then ifGuiStateRun() starts it exactly as -g would have.
+    //
+    // resolve() completes inline for ?run=/?src= (so the run is already under
+    // way when exec() is entered, as on desktop) but only calls back later for
+    // ?url=, once the event loop is turning and the fetch has landed.
+    if (launch.source != WasmLaunch::Source::None) {
+        MainWindow *mw = &mainwin;
+        const QString title = launch.title;
+        WasmLaunch::resolve(launch, [mw, title](bool ok, QByteArray src) {
+            if (!ok) {
+                // RULE 2: exec() never returns on the WASM main thread, so the
+                // box has to be shown non-modally.
+                QMessageBox *msgBox = new QMessageBox(mw);
+                msgBox->setAttribute(Qt::WA_DeleteOnClose);
+                msgBox->setIcon(QMessageBox::Warning);
+                msgBox->setWindowTitle(QObject::tr("Run Program"));
+                msgBox->setText(QObject::tr("Unable to load the program requested in the page address (%1).").arg(title));
+                msgBox->setStandardButtons(QMessageBox::Ok);
+                msgBox->show();
+                return;
+            }
+            mw->loadFileContent(title, src);
+            mw->ifGuiStateRun();
+        });
+        setlocale(LC_ALL, "C");
+        return qapp.exec();
+    }
+#endif
+
 #ifdef ANDROID
     // android - dont load initial file but set default folder to sdcard if exists
     if (QDir("/storage/sdcard0").exists()) {
