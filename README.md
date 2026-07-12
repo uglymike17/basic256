@@ -9,17 +9,79 @@
 
 BASIC256 is a simple, graphical dialect of BASIC designed for education. It enables beginners to learn programming through immediate visual feedback, graphics, sound and experimentation. This repository continues the original SourceForge project, modernizing the codebase (Qt6, CMake, CI, multi-platform) while preserving the spirit and compatibility of the original language.
 
-## ▶ Try it in your browser
+## Try it in your browser
 
-Thanks to Qt for WebAssembly, BASIC256 runs directly in the browser — no install needed:
+Thanks to Qt for WebAssembly, BASIC256 runs directly in your browser — the full
+editor and interpreter, with no install needed.
 
-**https://uglymike17.github.io/basic256/**
+**Live demo:** https://uglymike17.github.io/basic256/
 
-(The first load triggers one automatic page reload — that's a small helper script setting up the cross-origin isolation headers GitHub Pages can't send directly, needed for the multithreaded WASM build.)
+### Running a program straight from the link
+
+You can point the app at a program with a `?run=` parameter in the URL, and choose
+how it starts with `mode=`:
+
+| `?mode=` | guimode | switch | |
+|---|---|---|---|
+| `graph` *(default)* | `GUISTATEGRAPH` | `-g` | graphics only, auto-run |
+| `text` | `GUISTATETEXT` | `-t` | text output only, auto-run |
+| `app` | `GUISTATEAPP` | `-a` | text + graphics, no editor, auto-run |
+| `ide` | `GUISTATERUN` | `-r` | full IDE, auto-run |
+| `edit` | `GUISTATENORMAL` | — | full IDE, loaded but **not** run |
+
+These mirror the `-g`, `-t`, `-a` and `-r` switches of the command-line version. The modes will only work on the files that come bundeled in the server (here the Example programs) like so:
+
+
+![Browser interface](Basic256-Web_GraphicsOnly.png)
+
+If you just start up the IDE, you can of course program or paste a file in the web IDE like I did here. 
+
 
 ![Browser interface](Basic256-Web.png)
 
-## What it looks like
+The program is loaded from the site itself, so you can run any file the site
+actually hosts:
+
+- **On the hosted demo (github.io),** that's the bundled **Example** programs (and their
+  images and sounds).
+- **On your own server,** it's whatever you put there — add folders such as
+  `/demos`, `/images` or `/sounds` and reference them from the URL or from inside
+  your programs.
+
+(The real rule is simply *which files are deployed*, not GitHub versus your own
+server — if you fork the project and publish your own GitHub Pages with extra
+folders, those work too.)
+
+### Hosting it yourself
+
+Copy the WASM build to any static host served over **HTTPS**, and send these two
+headers that the multithreaded build relies on:
+
+```
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: require-corp
+```
+
+With those in place the page loads in a single pass — no reload — and the bundled
+`coi-serviceworker` helper (only needed because GitHub Pages can't send those
+headers itself) is no longer required.
+
+### Good to know
+
+Running inside a browser sandbox, a few things differ from the desktop version:
+
+- **Files** live in an in-browser filesystem rather than on your disk; programs
+  load and save through the browser.
+- **Sound and `say`** use the browser's audio and speech support, and the first
+  sound may need a click first (browsers block audio until you interact with the
+  page).
+- **Networking** (TCP sockets) isn't available in the browser.
+- **Speed:** the browser build runs slower than the native one, so large fractals
+  and particle simulations will run at a gentler pace.
+
+
+
+## What the standard desktop app looks like
 
 Started normally, BASIC256 opens a 3-pane IDE with edit, output and graphics windows:
 
@@ -73,9 +135,7 @@ There is however a possibility to add your own Developer ID in the build script,
 
 The browser build is v1 and has a few known gaps compared to the desktop app:
 
-- `SYSTEM`, serial port commands (`SERIALOPEN`...), `NETSERVER`/TCP server sockets, `DBOPEN`/SQL, `PRINTER...` and `SAY` (text-to-speech) are not available in a browser sandbox. Programs calling them get a clear "Feature not available on this platform" error and keep running — they don't crash or hang.
-- Sound loaded via `SOUNDLOAD` (arbitrary audio files) doesn't play yet; BEEP/waveform sound (`SOUND freq,duration`) does.
-- There's no real file-open/file-save dialog for BASIC's own file commands — use your browser's own download/upload prompts for loading and saving `.kbs` programs instead.
+- `SYSTEM`, serial port commands (`SERIALOPEN`...), `NETSERVER`/TCP server sockets, `DBOPEN`/SQL and `PRINTER...` are not available in a browser sandbox. Programs calling them get a clear "Feature not available on this platform" error and keep running — they don't crash or hang.
 - Files a running program creates only live for the current browser session (no persistent storage yet).
 - `NETREAD` (fetching a URL) is subject to the target site's CORS policy, same as any browser page.
 

@@ -1,0 +1,39 @@
+#****************
+# Bubble Universe 
+#****************
+print "A cool looking animated demo style program in Basic256"
+gosub ScreenSetup
+gosub Initialization
+while true
+  gosub Draw
+end while 
+
+ScreenSetup:
+  Fastgraphics 	# write to video buffer.
+  graphsize 600,600
+  color rgb(0,0,0)
+  rect (0,0,600,600) 
+  refresh
+return
+
+Initialization:  
+  t = 0.0: n = 255: dimen = 600: cx = 300 : cy = 300: s = 2 * dimen / 9
+  dt = PI / 300: r = PI * 2 / 235: fps =0: time =0
+return
+
+Draw:
+  color rgb(0,0,0,40)
+  rect (0,0,600,600)
+  x = 0: v = 0: u = 0
+  for  i = 0 to n-1 step 2
+    for j = 0 to n-1 step 2
+      u = sin(i + v) + sin(r * i + x)
+      v = cos(i + v) + cos(r * i + x)
+      x = u + t
+      color rgb(i, j, n - (i + j) / 2)
+      plot(s * u + cx, s * v + cy)
+    next j
+  next i
+  refresh
+  t = t + dt
+return
