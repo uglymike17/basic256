@@ -1268,12 +1268,20 @@ automatic reload on first visit).
         the *lenient* `fromBase64()` silently drops out-of-alphabet characters,
         which would turn `btoa()` output read as URL-safe into plausible garbage
         rather than an honest failure.
-      - `?url=<url>` — `fetch()`ed, and therefore subject to CORS: the origin
-        serving the program must permit the read. **This executes a program named
-        by whoever wrote the link**, in the page's origin (where it can reach the
-        IDBFS `/persist` store). That is the feature, but it is worth a
-        maintainer decision before it ships publicly — an allowlist, or dropping
-        `?url=` and keeping only `?run=`/`?src=`, are both cheap.
+      - `?url=<path>` — `fetch()`ed. **Same-origin only** (maintainer decision
+        2026-07-12): a path relative to the deployed page, e.g.
+        `?url=demos/fractal.kbs`, which is the actual use case — drop a `.kbs`
+        beside `index.html` and link to it. `isSameOriginPath()` rejects any
+        scheme (`https:`, and equally `data:`/`javascript:`) and any authority,
+        in both spellings — `//host/x` *and* `\\host\x`, since the WHATWG URL
+        parser folds backslash onto slash for special schemes, so `fetch()`
+        would treat the backslash form as protocol-relative too. Rationale: a
+        fetched program runs in the **page's** origin, where it can reach the
+        IDBFS `/persist` store; CORS gates the *read*, but any permissively
+        configured static host would clear it, so CORS is not the boundary we
+        want. Checked in `resolve()` rather than `parseQuery()` so a rejected
+        link fails visibly ("unable to load…") instead of silently opening the
+        IDE.
       `Main.cpp` calls `parseQuery()` *before* constructing `MainWindow` (guimode
       is a ctor argument — which is why parsing is synchronous) and forces
       `GUISTATEGRAPH` if any program parameter is present. After `show()`, the
@@ -1309,9 +1317,9 @@ automatic reload on first visit).
       graph-mode (3) keys, never the normal IDE's (0).
       **Running your own programs:** `?run=` is restricted to the bundled
       `:/examples` set on purpose (the name goes into a resource path). Anything
-      else goes through `?src=` (base64, nothing to host) or `?url=`, which
-      accepts a **relative** path — `?url=demos/fractal.kbs` is same-origin, so no
-      CORS is involved; just drop the `.kbs` into the deployed directory.
+      else goes through `?src=` (base64, nothing to host) or `?url=` with a
+      relative path — `?url=demos/fractal.kbs` — so just drop the `.kbs` into the
+      deployed directory.
       Maintainer to verify in-browser: `?run=mandelbrot` auto-runs graphics-only;
       a bad name / bad base64 / unreachable URL raises the "unable to load"
       box instead of hanging; and no parameters still opens the normal IDE.

@@ -43,8 +43,12 @@
 //                 [A-Za-z0-9_-] so it cannot escape the resource prefix.
 //   ?src=<b64>    the program source itself, base64 (standard or URL-safe
 //                 alphabet). Self-contained -- no server needed.
-//   ?url=<url>    fetched with the browser's fetch(). Subject to CORS: the
-//                 origin serving the program must permit the read.
+//   ?url=<path>   fetched with the browser's fetch(). **Same-origin only**: a
+//                 path relative to the deployed page ("?url=demos/fractal.kbs"),
+//                 so you can host your own programs beside index.html. Anything
+//                 carrying a scheme or an authority is rejected -- a fetched
+//                 program runs in the page's origin, and a link should not be
+//                 able to point that at somebody else's server.
 //
 // ?program= is accepted as a synonym for ?run=.
 namespace WasmLaunch {

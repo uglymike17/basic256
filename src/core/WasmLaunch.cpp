@@ -109,6 +109,52 @@ bool isSafeExampleName(const QString &name) {
     return rx.match(name).hasMatch();
 }
 
+// Normalise a ?url= value into exactly the string fetch() will parse.
+//
+// This is not cosmetic. The WHATWG URL parser *removes* every ASCII tab and
+// newline from a URL before parsing it, and trims leading/trailing C0 controls
+// and spaces. So "https:%09//evil.com" arrives here (percent-decoded) as
+// "https:\t//evil.com", which any sane reading calls a relative path -- while
+// fetch() strips the tab, sees the scheme, and goes cross-origin. Validating the
+// raw string would therefore check something the browser never parses. Strip the
+// same characters the browser does, validate *that*, and fetch *that*.
+QString sanitizeUrlPath(const QString &raw) {
+    QString s = raw;
+    s.remove(QLatin1Char('\t'));
+    s.remove(QLatin1Char('\n'));
+    s.remove(QLatin1Char('\r'));
+    while (!s.isEmpty() && s.at(0).unicode() <= 0x20)                s.remove(0, 1);
+    while (!s.isEmpty() && s.at(s.size() - 1).unicode() <= 0x20)     s.chop(1);
+    return s;
+}
+
+// ?url= is same-origin only (maintainer decision 2026-07-12): it must be a path
+// relative to the deployed page, so it can serve its actual purpose -- "drop a
+// .kbs next to index.html and link to it" -- without a link being able to name
+// someone else's origin. A fetched program runs in the page's origin, where it
+// can reach the IDBFS /persist store; CORS would gate the *read*, but any origin
+// willing to serve the file (most static hosts, permissively) would clear it --
+// so CORS is not the boundary we want.
+//
+// Takes an already-sanitized path. Rejects an authority in either spelling
+// ("//host/x" and "\\host\x" -- the URL parser folds backslash onto slash for
+// special schemes, so fetch() reads the backslash form as protocol-relative
+// too), and any scheme at all ("https:", but equally "data:", "javascript:").
+bool isSameOriginPath(const QString &path) {
+    if (path.isEmpty()) return false;
+
+    const auto isSep = [](QChar c){
+        return c == QLatin1Char('/') || c == QLatin1Char('\\');
+    };
+    if (path.size() >= 2 && isSep(path.at(0)) && isSep(path.at(1))) return false;
+    if (path.startsWith(QLatin1Char('\\'))) return false;
+
+    const QUrl u(path);
+    if (!u.isRelative()) return false;        // carries a scheme
+    if (!u.host().isEmpty()) return false;    // carries an authority
+    return true;
+}
+
 } // namespace
 
 extern "C" EMSCRIPTEN_KEEPALIVE void wasmLaunchOnFetched(int ok, int len)
@@ -206,8 +252,15 @@ void resolve(const Request &req, std::function<void(bool, QByteArray)> done) {
     }
 
     case Source::Url: {
+        // Checked here rather than in parseQuery() so a cross-origin link fails
+        // visibly ("unable to load...") instead of silently opening the IDE.
+        // Fetch the sanitized string, not req.value -- validating one string and
+        // fetching another is exactly the bug sanitizeUrlPath() exists to avoid.
+        const QString path = sanitizeUrlPath(req.value);
+        if (!isSameOriginPath(path)) { done(false, QByteArray()); return; }
         g_pending = done;                       // completed by wasmLaunchOnFetched()
-        wasmLaunchFetch(req.value.toUtf8().constData());
+        const QByteArray utf8 = path.toUtf8();
+        wasmLaunchFetch(utf8.constData());
         return;
     }
 
