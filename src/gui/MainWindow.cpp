@@ -33,6 +33,7 @@
 #include <QtWidgets/QStatusBar>
 #include <QtWidgets/QDialog>
 #include <QtWidgets/QLabel>
+#include <QtGui/QFontDatabase>
 #include <QtGui/QShortcut>
 #ifdef Q_OS_WASM
 #include <QDir>
@@ -582,8 +583,42 @@ void MainWindow::loadCustomizations() {
     outwin_toolbar_visible_act->setChecked(v);
 
     // set initial font
-    QString initialFontString = settings.value(SETTINGSFONT + QString::number(guiState),SETTINGSFONTDEFAULT).toString();
-    editorFont.fromString(initialFontString);
+    //
+    // The menus follow the system text size (Main.cpp pushes Windows'
+    // lfMessageFont into QApplication::setFont()); the editor and Text Output did
+    // not, because they loaded a hardcoded "DejaVu Sans Mono,11". So raising the
+    // system text size grew the menus and left the code at 11pt.
+    //
+    // Now: unless the user has explicitly picked a font, derive it from the system
+    // on every launch, so it keeps tracking the system size rather than freezing
+    // at whatever it happened to be the first time. Persisting an auto-derived
+    // size would defeat the whole point -- it would stop following the moment the
+    // system setting changed again.
+    QString initialFontString = settings.value(SETTINGSFONT + QString::number(guiState), QString()).toString();
+
+    if (settings.contains(SETTINGSFONTUSERSET + QString::number(guiState))) {
+        fontUserSet = settings.value(SETTINGSFONTUSERSET + QString::number(guiState)).toBool();
+    } else {
+        // Pre-existing profile with no flag to read, so infer one -- once. Every
+        // run wrote the font back out on close, so somebody who never opened the
+        // font dialog still has the old hardcoded default stored: treat exactly
+        // that as "never chosen". Anything else was a deliberate choice, and is
+        // kept. saveCustomizations() then persists the flag, so this inference
+        // never runs again -- it must not, because by then the stored font is the
+        // system-derived one and would look like a deliberate choice.
+        QFont legacy;
+        legacy.fromString(SETTINGSFONTDEFAULT);
+        QFont stored;
+        if (!initialFontString.isEmpty()) stored.fromString(initialFontString);
+        fontUserSet = !initialFontString.isEmpty() &&
+                      !(stored.family() == legacy.family() && stored.pointSize() == legacy.pointSize());
+    }
+
+    if (fontUserSet && !initialFontString.isEmpty()) {
+        editorFont.fromString(initialFontString);
+    } else {
+        editorFont = defaultEditorFont();
+    }
     outwin->setFont(editorFont);
 
 #ifndef ANDROID
@@ -631,8 +666,11 @@ void MainWindow::saveCustomizations() {
     // var
 	settings.setValue(SETTINGSVARVISIBLE + QString::number(guiState), varwin_visible_act->isChecked());
 
-    // font
+    // font (the flag too: while it is false the stored font is ignored on load
+    // and re-derived from the system, so the editor keeps following the system
+    // text size instead of freezing at whatever it was the first time)
     settings.setValue(SETTINGSFONT + QString::number(guiState), editorFont.toString());
+    settings.setValue(SETTINGSFONTUSERSET + QString::number(guiState), fontUserSet);
 
     // zoom
     settings.setValue(SETTINGSZOOM, QString::number(graphwin->getZoom()));
@@ -1177,10 +1215,24 @@ void MainWindow::addFileToRecentList(QString fn) {
 }
 
 
+QFont MainWindow::defaultEditorFont() {
+    // The system's own fixed-width face (Consolas/Courier New on Windows, the
+    // desktop monospace elsewhere) at the size the rest of the UI is using. The
+    // editor must stay monospace -- it is code -- so only the *size* follows the
+    // system UI font, which is the part that was out of step with the menus.
+    QFont f = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    const qreal uiSize = QApplication::font().pointSizeF();
+    if (uiSize > 0) f.setPointSizeF(uiSize);
+    return f;
+}
+
 void MainWindow::dialogFontSelect() {
     bool ok;
     editorFont = QFontDialog::getFont(&ok, editorFont, this, QString(), QFontDialog::MonospacedFonts);
     if (ok) {
+        // An explicit choice pins the font: stop re-deriving it from the system.
+        // Written out by saveCustomizations() along with the font itself.
+        fontUserSet = true;
         mymutex->lock();
         if(guiState!=GUISTATEAPP){
             for(int i=0; i<editwintabs->count(); i++){

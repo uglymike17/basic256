@@ -160,6 +160,11 @@ public:
     RunController *rc;
     EditSyntaxHighlighter * editsyntax;
     QFont editorFont;
+    // false => editorFont is derived from the system font on every launch (so it
+    // tracks the system text size, like the menus); true => the user picked one in
+    // Options > Font and it is pinned. See MainWindow::defaultEditorFont().
+    bool fontUserSet = false;
+    static QFont defaultEditorFont();
 
 
 	QString localecode;

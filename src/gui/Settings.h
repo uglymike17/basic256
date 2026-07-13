@@ -42,7 +42,15 @@
     #define SETTINGSFONT "Main/Font/"
     #define SETTINGSTOOLBARVISIBLE "Main/ToolbarVisible/"
     #define SETTINGSTOOLBARVISIBLEDEFAULT true
+    // Legacy hardcoded editor font. No longer the default -- the editor now
+    // follows the system font (see MainWindow::defaultEditorFont()) unless the
+    // user picks one in Options > Font. Kept only to recognise a stored font that
+    // is really just this old default, i.e. one nobody ever chose.
     #define SETTINGSFONTDEFAULT "DejaVu Sans Mono,11,-1,5,50,0,0,0,0,0"
+    // true once the user has explicitly chosen a font, which pins it; while false
+    // the font is re-derived from the system on every launch, so it keeps
+    // following the system text size the way the menus do.
+    #define SETTINGSFONTUSERSET "Main/FontUserSet/"
 
     
     #define SETTINGSEDITVISIBLE "Edit/Visible/"
