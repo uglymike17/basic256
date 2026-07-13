@@ -111,7 +111,7 @@ for i = 1 to 200
 next i
 ```
 
-For more advanced example programs than the ones included in the Examples directory (fractals, attractors, simulations and more), have a look at https://uglymike.static.domains.
+For more advanced example programs than the ones included in the Examples directory (fractals, attractors, simulations and more), have a look at https://uglymike.static.domains or for older programs, do visit https://basic256.blogspot.com/.
 
 ## Download & install
 
