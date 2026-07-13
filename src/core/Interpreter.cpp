@@ -1894,6 +1894,13 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 							int columns = edest->arrayCols();
 							int rows = edest->arrayRows();
 							if (!error->pending() && DataElement::getType(edest)==T_ARRAY) {
+								// Pushes nothing. It used to push `columns` once per row and
+								// then `rows`, but OP_ARRAYFILL is only ever emitted at
+								// statement level (dimstmt/redimstmt/arrayassign) and nothing
+								// popped them -- so every "... fill v" leaked rows+1 ints onto
+								// a stack that grows on demand. Harmless once; unbounded for a
+								// fill inside a loop, which a zero-filling bare DIM now makes
+								// commonplace.
 								for(int row = 0; row<rows; row++) {
 									for (int col = 0; col<columns; col++) {
 										DataElement *temp = edest->arrayGetData(row, col);			// DONT RELEASE
@@ -1901,9 +1908,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 											edest->arraySetData(row, col, e);
 										}
 									}
-									stack->pushInt(columns);
 								}
-								stack->pushInt(rows);
 							}
 						 } else {
 							// trying to fill a regular variable - just do an assign

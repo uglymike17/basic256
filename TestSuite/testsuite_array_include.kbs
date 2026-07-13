@@ -32,15 +32,21 @@ c[1] /= c[7] : call n("c[1] after c[1] /= c[7]", c[1], 28.0)
 redim c(20)
 call n("c[1]=28 after redim",c[1],28)
 call n("c[9]=0 after redim",c[9],0)
+# redim zero-fills only the NEW elements -- the existing ones above are untouched
+call n("c[10]=0 after redim (new element)",c[10],0)
+call n("c[19]=0 after redim (new element)",c[19],0)
+call boolean("new element assigned after redim",assigned(c[19]))
 input "Input the number -3.14 > ", c[2]
 call n("c[2]=-3.14 after rinput",c[2],-3.14)
 input "Input the string 'crap' > ", c[2]
 call s("c[2]=crap after input crap",c[2],"crap")
 
+# the ten elements added by the redim above are now 0, where they used to be
+# unassigned and imploded as empty strings
 a = implode(c,"|")
-call s("implode c with delim",a,"9|28.0|crap|6|5|4|3|2|1|0||||||||||")
+call s("implode c with delim",a,"9|28.0|crap|6|5|4|3|2|1|0|0|0|0|0|0|0|0|0|0|0")
 a = implode(c[])
-call s("implode c with no delim",a,"928.0crap6543210")
+call s("implode c with no delim",a,"928.0crap65432100000000000")
 
 b = serialize(c[])
 print b

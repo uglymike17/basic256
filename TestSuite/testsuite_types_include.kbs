@@ -35,6 +35,13 @@ newvar[1] = 213123
 newvar[2] = newvar[1] / 11
 newvar[3] = "dsdf"
 call n("typeof array newvar ", typeof(newvar), TYPE_ARRAY)
+# dim now zero-fills, so a fresh element is an int 0, not unassigned
+call n("typeof zero-filled newvar[0] ", typeof(newvar[0]), TYPE_INT)
+call n("zero-filled newvar[0] = 0 ", newvar[0], 0)
+call boolean("assigned newvar[0] after dim ", assigned(newvar[0]))
+# unassign is still the way to get an unassigned element, and typeof/assigned
+# must still see it
+unassign newvar[0]
 call n("typeof unassigned newvar[0] ", typeof(newvar[0]), TYPE_UNASSIGNED)
 call boolean("not assigned newvar[0] ", not assigned(newvar[0]))
 call n("typeof int newvar[1] ", typeof(newvar[1]), TYPE_INT)

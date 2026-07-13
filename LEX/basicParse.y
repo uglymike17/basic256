@@ -297,6 +297,32 @@
 		return numsyms - 1;
 	}
 
+	// Emit the implicit fill for a DIM/REDIM written without an explicit FILL
+	// clause, so a fresh array's elements are usable immediately instead of
+	// raising "Element of array a[1] has not been assigned a value".
+	//
+	// BASIC256 has no static types -- the lexer's identifier pattern is
+	// [a-zA-Z][a-zA-Z0-9_$]*, so '$' is just a character in the name -- and the
+	// trailing '$' is therefore the only signal that a variable is meant to hold
+	// text. It is the signal users already rely on, so use it: '$' names fill with
+	// "", everything else with 0. Filling a string array with the number 0 would
+	// make PRINT a$[0] show "0" rather than nothing.
+	//
+	// mode: 1 = every element (DIM creates the array fresh, so all of them);
+	//       0 = only the still-unassigned ones (REDIM grows an existing array, and
+	//           the values already in it must survive).
+	void addDefaultFill(int v, int mode) {
+		char *name = (v >= 0 && v < numsyms) ? symtable[v] : NULL;
+		size_t len = name ? strlen(name) : 0;
+		if (len > 0 && name[len - 1] == '$') {
+			addStringOp(OP_PUSHSTRING, "");
+		} else {
+			addIntOp(OP_PUSHINT, 0);
+		}
+		addIntOp(OP_PUSHINT, mode);
+		addIntOp(OP_ARRAYFILL, v);
+	}
+
 	#define INTERNALSYMBOLEXIT 0 //at the end of the loop - all done
 	#define INTERNALSYMBOLCONTINUE 1 //at the test of the loop
         #define INTERNALSYMBOLTOP 2 // at the top of the loop - all done
@@ -2844,7 +2870,10 @@ mapstmt: 	B256MAP functionvariables {
 			}
 
 dimstmt: 	B256DIM array_element {
-				addIntOp(OP_DIM, varnumber[--nvarnumber]);
+				// No FILL clause: zero-fill by default (0, or "" for a $ name).
+				int v = varnumber[--nvarnumber];
+				addIntOp(OP_DIM, v);
+				addDefaultFill(v, 1);
 			}
 			| B256DIM array_element B256FILL expr {
 				addOp(OP_STACKTOPTO2);
@@ -2853,9 +2882,11 @@ dimstmt: 	B256DIM array_element {
 				addIntOp(OP_ARRAYFILL, varnumber[nvarnumber]);
 			}
 			| B256DIM variable_a expr {
+				int v = varnumber[--nvarnumber];
 				addIntOp(OP_PUSHINT, 1);
 				addOp(OP_STACKSWAP);
-				addIntOp(OP_DIM, varnumber[--nvarnumber]);
+				addIntOp(OP_DIM, v);
+				addDefaultFill(v, 1);
 			}
 			| B256DIM variable_a expr B256FILL expr {
 				addOp(OP_STACKSWAP);
@@ -2866,7 +2897,9 @@ dimstmt: 	B256DIM array_element {
 				addIntOp(OP_ARRAYFILL, varnumber[nvarnumber]);
 			}
 			| B256DIM variable_a args_ee {
-				addIntOp(OP_DIM, varnumber[--nvarnumber]);
+				int v = varnumber[--nvarnumber];
+				addIntOp(OP_DIM, v);
+				addDefaultFill(v, 1);
 			}
 			| B256DIM variable_a args_ee B256FILL expr {
 				addOp(OP_STACKTOPTO2);
@@ -2884,7 +2917,11 @@ dimstmt: 	B256DIM array_element {
 			;
 
 redimstmt:	B256REDIM array_element {
-				addIntOp(OP_REDIM, varnumber[--nvarnumber]);
+				// No FILL clause: zero-fill the *new* elements only (mode 0), so a
+				// grown array keeps the values it already held.
+				int v = varnumber[--nvarnumber];
+				addIntOp(OP_REDIM, v);
+				addDefaultFill(v, 0);
 			}
 			| B256REDIM array_element B256FILL expr {
 				addOp(OP_STACKTOPTO2);
@@ -2893,9 +2930,11 @@ redimstmt:	B256REDIM array_element {
 				addIntOp(OP_ARRAYFILL, varnumber[nvarnumber]);
 			}
 			| B256REDIM variable_a expr {
+				int v = varnumber[--nvarnumber];
 				addIntOp(OP_PUSHINT, 1);
 				addOp(OP_STACKSWAP);
-				addIntOp(OP_REDIM, varnumber[--nvarnumber]);
+				addIntOp(OP_REDIM, v);
+				addDefaultFill(v, 0);
 			}
 			| B256REDIM variable_a expr B256FILL expr {
 				addOp(OP_STACKSWAP);
@@ -2906,7 +2945,9 @@ redimstmt:	B256REDIM array_element {
 				addIntOp(OP_ARRAYFILL, varnumber[nvarnumber]);
 			}
 			| B256REDIM variable_a args_ee {
-				addIntOp(OP_REDIM, varnumber[--nvarnumber]);
+				int v = varnumber[--nvarnumber];
+				addIntOp(OP_REDIM, v);
+				addDefaultFill(v, 0);
 			}
 			| B256REDIM variable_a args_ee B256FILL expr {
 				addOp(OP_STACKTOPTO2);
