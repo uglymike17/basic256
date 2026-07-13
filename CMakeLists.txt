@@ -207,14 +207,26 @@ set(HEADERS_CORE
 set(RESOURCES
     resources/resource.qrc
 )
-# WASM Phase 5: bundle a curated subset of Examples/ (self-contained .kbs
-# files only -- no external image/sound assets, none using a
-# BASIC256_ENABLE_* flag that's off for wasm) as a Qt resource so
-# File->Open Example works without a real filesystem. Lives in DemoWASM/,
-# separate from Examples/, so the WASM curation can be maintained
-# independently of the full example set. Desktop builds don't need this:
-# Examples/ already ships as loose files next to the binary via the
-# packaging scripts, and the normal Open dialog can browse to them.
+# WASM Phase 5: bundle the DemoWASM/ example programs as a Qt resource so
+# File->Open Example (and ?run=) work without a real filesystem. Lives in
+# DemoWASM/, separate from Examples/, so the WASM set can be curated
+# independently of the full one. Desktop builds don't need this: Examples/ already
+# ships as loose files next to the binary via the packaging scripts, and the
+# normal Open dialog can browse to them.
+#
+# DemoWASM/ mirrors Examples/'s category folders but is deliberately a subset --
+# self-contained .kbs only, no external image/sound assets, nothing needing a
+# BASIC256_ENABLE_* flag that is off for wasm. So it drops the database programs
+# (no DBOPEN), and Original_Examples/ omits Examples/'s dice/ imgload/ networking/
+# sound/ sprites/ testing/ subfolders. Those would need assets a program cannot
+# reach in the browser anyway: an IMGLOAD("test.bmp") looks in the (empty)
+# Emscripten MEMFS and then on the network, and nothing maps a program's relative
+# path onto ":/examples/...". Reaching them would mean resolving relative media
+# paths against the page URL -- see WASM.md.
+#
+# The .qrc lists nested paths (<file>Games/PacMan.kbs</file> ->
+# ":/examples/Games/PacMan.kbs"); rcc handles that natively, so nothing here
+# changes when the tree is regrouped.
 if(EMSCRIPTEN)
     list(APPEND RESOURCES DemoWASM/examples.qrc)
 endif()

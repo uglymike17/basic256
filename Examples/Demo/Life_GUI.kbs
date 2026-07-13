@@ -1,0 +1,1949 @@
+#************
+#Screen setup
+#************
+fastgraphics
+size_x=451
+size_y=451
+canvas_x=300
+canvas_y=300
+topfiller=50
+startposx= 80
+startposy= -50
+slower1=0
+graphvisible(1)
+editvisible(1)
+outputvisible(0)
+graphsize canvas_x,canvas_y
+dim step1(7,5)
+dim step2(6,5)
+dim step3(6,5)
+dim step4(6,5)
+step1={0,0,1,0,1,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0}
+step2={0,0,0,0,0,1,0,0,0,0,1,1,0,1,1,0,0,0,0,0}
+step3={0,0,0,0,0,0,1,0,0,0,0,1,0,1,1,1,0,0,0,0}
+step4={0,0,0,0,0,0,0,0,0,1,0,1,0,0,1,1,0,0,1,0}
+gosub drawsplash
+clickclear
+sw_realstart=0
+sw_controls=0
+sw_About=0
+#****************************
+#variables, switches & arrays
+#****************************
+#use color
+sw_color=1
+#start the automaton
+sw_go=0
+#show grid
+sw_grid=1
+# fill screen randomly
+sw_rand=0
+#Clear the screen at Stop
+sw_clear=0
+# life cell was found
+sw_found=0
+sw_stepper=0
+sw_step=0
+# default uleset to follow
+variant$="s23b3"
+#position of the 'b' in the ruleset
+posb=4
+#Show the Load shapes option
+sw_load=1
+#number of cells on a side
+cellsize=90 
+#size of the cells
+cell=(size_x-1)/cellsize
+#number of performed iterations
+iteration=0
+dim area(cellsize+2,cellsize+2)
+dim area2(cellsize+2,cellsize+2)
+dim areacol(cellsize+2,cellsize+2)
+dim area2col(cellsize+2,cellsize+2)
+dim areacheck(cellsize+2,cellsize+2) fill 0
+dim areacheck2(cellsize+2,cellsize+2) fill 0
+dim exstring(50)
+#grid checkbox state
+ch_grid_mark=1:t_ch_grid_mark=ch_grid_mark
+# clear checkbox state
+ch_clear_mark=0:t_ch_clear_mark=ch_clear_mark
+# Zoom checkbox state
+ch_zoom_mark=0:t_ch_zoom_mark=ch_zoom_mark
+#Color checkbox state
+ch_color_mark=0:t_ch_color_mark=ch_color_mark
+#rule set array
+dim lifevariant$(11)
+lifevariant$={"s23b3","s1358b357","s1b1","s1357b1357","s45678b3","sb342","s34b34","s23b36", "s235678b3678", "s1234b37", "s012345678b3"}
+#rule name array
+dim sp_variant_list$(11)
+sp_variant_list$={"Conway's Life", "Amoeba", "Gnarl", "Replicator", "Coral", "Serviettes", "34Life", "HighLife", "Stains", "Maze", "Flakes"}
+sp_variant_array_active=0
+#Predefined shapes array
+dim sp_load_list$(6)
+sp_load_list$={"Glider", "LWSS", "MWSS", "GliderGun","B29","Smiley"}
+sp_load_array_active=0
+box$=getslice (startposx,startposy,50,40)
+waitinput:
+if mousey > b_start_locy and mousey<b_start_locy+b_height then
+  if mousex>b_start_locx and mousex<b_start_locx+b_width then
+    if clickb=1 then
+      b_locx=b_start_locx:b_locy=b_start_locy
+      b_width=65:b_height=20
+      b_text$="Start":b_textsize=10
+      b_offsetx=15:b_offsety= 2
+      b_pressed=1
+      gosub button
+      pause 0.2
+      b_locx=b_start_locx:b_locy=b_start_locy
+      b_width=65:b_height=20
+      b_text$="Start":b_textsize=10
+      b_offsetx=15:b_offsety= 2
+      b_pressed=0
+      gosub button
+      clickclear
+      sw_realstart=1
+    endif
+  else
+    if mousex>b_control_locx and mousex<b_control_locx+b_width then
+      if clickb=1 then
+        b_locx=b_control_locx:b_locy=b_control_locy
+        b_width=65:b_height=20
+        b_text$="Control":b_textsize=10
+        b_offsetx=15:b_offsety= 2
+        b_pressed=1
+        gosub button
+        pause 0.2
+        b_locx=b_control_locx:b_locy=b_control_locy
+        b_width=65:b_height=20
+        b_text$="Control":b_textsize=10
+        b_offsetx=15:b_offsety= 2
+        b_pressed=0
+        gosub button
+        clickclear
+        sw_controls=1
+        sw_realstart=1
+      endif
+    else
+      if mousex>b_about_locx and mousex<b_about_locx+b_width then
+        if clickb=1 then
+          b_locx=b_about_locx:b_locy=b_about_locy
+          b_width=65:b_height=20
+          b_text$="About":b_textsize=10
+          b_offsetx=12:b_offsety= 2
+          b_pressed=1
+          gosub button
+          pause 0.2
+          b_locx=b_about_locx:b_locy=b_about_locy
+          b_width=65:b_height=20  
+          b_text$="About":b_textsize=10
+          b_offsetx=12:b_offsety= 2
+          b_pressed=0
+          sw_controls=0
+          sw_realstart=0 
+          sw_About=1     
+          gosub button
+        endif
+      endif
+    endif
+  endif
+endif
+if sw_About=1 then gosub AboutInfo
+if sw_realstart=1 then 
+#  gosub clickrandom
+  sp_percent_init=40
+  gosub Random 
+  gosub showgrid
+  sw_go=1
+  clickclear
+  goto realstart
+endif  
+pause 0.01      
+goto waitinput
+#************
+#Screen setup
+#************
+realstart:
+fastgraphics
+size_x=451
+size_y=451
+canvas_x=471
+canvas_y=561
+topfiller=100
+sidefiller=10
+graphsize canvas_x,canvas_y
+
+#*********************
+# Initial screen draw
+#*********************
+gosub drawscreen
+if sw_controls=1 then gosub LifeControls
+gosub drawscreen
+#****************************
+#check for desired activity
+#****************************
+oldmousex=mousex
+oldmousey=mousey
+clickclear
+inputloop:
+if oldmousex=mousex and oldmousey=mousey then
+  pause 0.2
+endif
+if mousex>b_Freehand_locx and mousex<b_Freehand_locx+80 then
+  if mousey > b_Freehand_locy and mousey < b_Freehand_locy+20 then
+    #Freehand button area!
+    if clickb=1 then
+      gosub clickfreehand
+      while mouseb=0
+      endwhile
+      while mousex > (canvas_x-size_x)/2 and mousex < size_x+(canvas_x-size_x)/2 and mousey > topfiller and mousey < canvas_y-10 
+        while mouseb=1
+          k= int((mousex-10)/cell)+1
+          l= int((mousey-topfiller)/cell)+1
+          if k < 1 then k=1
+          if l < 1 then l=1
+          if k > cellsize then k=cellsize
+          if l > cellsize then l=cellsize
+          area[k,l]=1
+          areacol[k,l]=1
+          area2[k,l]=1
+          area2col[k,l]=1
+          if ch_color_mark=1 then
+            color yellow
+          else
+            color black
+          endif
+          rect (k-1)*size_x/cellsize+2+sidefiller, (l-1)*size_y/cellsize+2+topfiller, cell-2, cell-2
+          refresh
+        end while
+        while mouseb=2
+          #clear freehand
+          k= int((mousex-10)/cell)+1
+          l= int((mousey-topfiller)/cell)+1
+          area[k,l]=0
+	      areacol[k,l]=0
+          area2[k,l]=0
+	      area2col[k,l]=0
+          color grey
+          rect (k-1)*size_x/cellsize+2+sidefiller, (l-1)*size_y/cellsize+2+topfiller, cell-2, cell-2
+          refresh
+        endwhile
+      endwhile
+      clickclear
+    endif  
+  else # not Freehand
+    if mousey > 35 and mousey < 55 then
+      #Random buton area!
+      if clickb=1 then
+        gosub clickrandom
+        gosub Random  
+        clickclear
+      endif
+    else # not random 
+      if mousex < b_load_locx+50 and mousey > b_load_locy and mousey < b_load_locy+20 then
+      # Load button area !
+        if sp_variant_list$[sp_variant_array_active]="Conway's Life" then
+          if clickb=1 then
+            gosub clickload
+            if  sp_load_array_active=0 then         
+              gosub drawglider
+              sw_ex=1
+            else
+              if sp_load_array_active=1 then
+ 	            gosub drawlwss
+                sw_ex=1
+              else
+                if sp_load_array_active=2 then
+                  gosub drawmwss
+                  sw_ex=1
+                else 
+                  if sp_load_array_active=3 then
+                    gosub drawglidergun
+                    sw_ex=1
+                  else
+                    if sp_load_array_active=4 then
+                      gosub drawb29
+                      sw_ex=1
+                    else
+                      if sp_load_array_active=5 then
+                        gosub drawsmiley
+                        sw_ex=1
+                      endif # smiley  
+                    endif # b29
+                  endif # glidergun
+                endif # mwss
+              endif # lwss
+            endif # glider 
+            gosub showgrid
+            clickclear
+          endif # end clickevent
+        endif # end sw_load check
+      endif #end Load button area
+    endif # end random button area
+  endif # not on freehandbutton
+endif #not in first button column
+if mousex > b_Go_locx and mousex < b_Go_locx+65 then
+  if mousey > b_Go_locy and mousey < b_Go_locy +20 then
+    #Go button area!
+    if clickb=1 then
+      sw_go=1
+      sw_stepper=0
+      #status
+      color darkred 
+      circle 203,85,6
+      color red
+      circle 203,85,4
+      color black
+      font "Tahoma",10,10
+      color grey
+      rect 215,80,60,15
+      color black
+      text 215,77,"Running"
+      refresh
+      gosub clickgo
+      clickclear
+    endif
+  else # not Go button
+    if mousey > b_step_locy and mousey < b_step_locy+20 then
+      #Step button
+      if clickb=1 then
+           sw_stepper=1
+           sw_go=1
+           #status
+           color orange 
+           circle 203,85,6
+           color rgb(250,200,50)
+           circle 203,85,4
+           color grey
+           rect 215,80,60,15
+           color black
+           font "Tahoma",10,10
+           text 215,77,"Step      "
+           refresh
+           gosub clickstep
+           clickclear
+      endif
+    else #not step button
+      if mousey >b_stop_locy and mousey < b_stop_locy+20 then
+        #Stop button
+        if clickb=1 then 
+           sw_go=0
+           sw_stepper=0
+           #status
+           color darkgreen 
+           circle 203,85,6
+           color rgb(100,220,100)
+           circle 203,85,4
+           color grey
+           rect 215,80,60,15
+           color black
+           font "Tahoma",10,10
+           text 215,77,"Stopped"
+           refresh
+           if ch_clear_mark=1 then
+             gosub drawscreen
+           endif
+           gosub clickstop
+           clickclear
+        endif
+      endif # end Stop button
+    endif # end Step button
+  endif # end Go button
+endif #end right side buttons
+if mousex > ch_color_locx and mousex < ch_color_locx+ 12 then
+  if mousey > ch_color_locy and mousey < ch_color_locy +12 then
+    #color checkbox
+    if clickb=1 then
+      check_locx=ch_color_locx
+      check_locy=ch_color_locy
+      check_label$=ch_color_label$
+      t_check_color_mark=ch_color_mark
+      check_mark=ch_color_mark
+      check_change=1
+      gosub checkbox
+      pause 0.1
+      check_change=0
+      ch_color_mark=check_mark
+      clickclear
+    endif
+  else #not color check 
+    if mousey > ch_grid_locy and mousey < ch_grid_locy +12 then
+      #grid checkbox
+      if clickb=1 then
+        check_locx=ch_grid_locx
+        check_locy=ch_grid_locy
+        check_label$=ch_grid_label$
+        t_check_grid_mark=ch_grid_mark
+        check_mark=ch_grid_mark
+        check_change=1
+        gosub checkbox
+        pause 0.1
+        check_change=0
+        ch_grid_mark=check_mark
+        clickclear
+        gosub showgrid
+        if ch_grid_mark=1 then
+          color black
+          for i = 10 to size_x+10 step size_x/cellsize
+            line i,topfiller,i,size_y-1+topfiller
+          next i
+          for i = topfiller to size_y+topfiller step size_x/cellsize
+            line 10,i,size_x+9,i
+          next i
+        endif
+        refresh
+      endif
+    else# not grid check
+      if mousey > ch_clear_locy and mousey < ch_clear_locy +12 then
+        #clear checkbox
+        if clickb=1 then
+          check_locx=ch_clear_locx
+          check_locy=ch_clear_locy
+          check_label$=ch_clear_label$
+          t_check_clear_mark=ch_clear_mark
+          check_mark=ch_clear_mark
+          check_change=1
+          gosub checkbox
+          pause 0.1
+          check_change=0
+          ch_clear_mark=check_mark
+          clickclear
+          if ch_clear_mark=1 then
+            for i = 0 to cellsize+1
+              for j = 0 to cellsize+1
+                area[i,j]= 0
+                areacol[i,j]= 0
+                area2[i,j]= 0
+                area2col[i,j]= 0
+              next j
+            next i
+            gosub showgrid
+          endif
+        endif
+      else # not clear check
+        if mousey > ch_zoom_locy and mousey < ch_zoom_locy +12 then
+          #Zoom checkbox
+          if clickb=1 then
+            check_locx=ch_zoom_locx
+            check_locy=ch_zoom_locy
+            check_label$=ch_zoom_label$
+            t_check_zoom_mark=ch_zoom_mark
+            check_mark=ch_zoom_mark
+            check_change=1
+            gosub checkbox
+            pause 0.1
+            ch_zoom_mark=check_mark
+            if ch_zoom_mark=1 then
+              cellsize=30 
+              cell=(size_x-1)/cellsize
+	    gosub showgrid
+            else
+              cellsize=90 
+              cell=(size_x-1)/cellsize
+	    gosub showgrid
+            endif
+            clickclear
+          endif
+        endif # end Zoom checkbox
+      endif # end Clear checkbon
+    endif # end Grid checkbox
+  endif# end Color checkbox
+endif #not in checkboxes colum
+if mousex>sp_variant_up_x and mousex < sp_variant_up_x+sp_variant_updown_width then
+  if mousey > sp_variant_up_y and mousey < sp_variant_up_y+sp_variant_updown_heigth then
+    if clickb=1 then
+    #clicked up-button on variant
+      sp_variant_array_active=sp_variant_array_active + 1
+      if sp_variant_array_active>sp_variant_array_max then sp_variant_array_active = sp_variant_array_max
+      spin_array_active=sp_variant_array_active
+      gosub variantspinner
+      color grey
+      rect  252,33,83,25
+      color black
+      font "Tahoma",10,10
+      variant$=lifevariant$[sp_variant_array_active]
+      text 250,37,variant$
+      for searchb= 1 to length(variant$)
+        if mid(variant$,searchb,1)="b" then
+          posb=searchb  
+          searchb=5000
+        endif
+      next searchb 
+      if sp_variant_list$[sp_variant_array_active]="Conway's Life" then
+        sw_load=1
+        b_load_locx=15:b_load_locy=65
+        b_locx=b_load_locx:b_locy=b_load_locy
+        b_width=50:b_height=20
+        b_text$="Load":b_textsize=10
+        b_offsetx=10:b_offsety= 2
+        b_pressed=0
+        gosub button
+        gosub loaderspinner
+      else
+        color grey
+        rect b_load_locx-2, b_load_locy-2, 170,25
+      endif
+      refresh
+      clickclear
+    endif   # end click event
+  endif #end variant up button
+  if mousey > sp_variant_down_y and mousey < sp_variant_down_y+sp_variant_updown_heigth then
+    if clickb=1 then
+    #clicked down-button on variant
+      sp_variant_array_active=sp_variant_array_active - 1
+      if sp_variant_array_active<0 then sp_variant_array_active = 0
+      spin_array_active=sp_variant_array_active
+      gosub variantspinner
+      color grey
+      rect  252,33,83,25
+      color black
+      font "Tahoma",10,10
+      variant$=lifevariant$[sp_variant_array_active]
+      text 250,37,variant$
+      for searchb= 1 to length(variant$)
+        if mid(variant$,searchb,1)="b" then
+          posb=searchb
+          searchb=5000
+        endif
+      next searchb 
+      if sp_variant_list$[sp_variant_array_active]="Conway's Life" then
+        sw_load=1
+        b_load_locx=15:b_load_locy=65
+        b_locx=b_load_locx:b_locy=b_load_locy
+        b_width=50:b_height=20
+        b_text$="Load":b_textsize=10
+        b_offsetx=10:b_offsety= 2
+        b_pressed=0
+        gosub button
+        gosub loaderspinner
+      else
+        color grey
+        rect b_load_locx-2, b_load_locy-2, 170,25
+      endif
+      refresh
+      clickclear
+    endif # end click event
+  endif # end variant down
+endif # end variant up
+if mousex>sp_percent_up_x and mousex < sp_percent_up_x+sp_percent_updown_width then
+  if mousey > sp_percent_up_y and mousey < sp_percent_up_y+sp_percent_updown_heigth then
+    if clickb=1 then
+    #clicked up-button on percent
+      sp_percent_init=sp_percent_init + sp_percent_inc
+      if sp_percent_init > sp_percent_max then sp_percent_init = sp_percent_max
+      gosub percentspinner
+      clickclear
+    endif
+  else
+    if mousey > sp_percent_down_y and mousey < sp_percent_down_y+sp_percent_updown_heigth then
+      if clickb=1 then
+      #clicked up-button on percent
+        sp_percent_init=sp_percent_init - sp_percent_inc
+        if sp_percent_init < sp_percent_min then sp_percent_init = sp_percent_min
+        gosub percentspinner
+        clickclear
+      endif
+    endif
+  endif
+endif
+if sp_variant_list$[sp_variant_array_active]="Conway's Life" then
+  if mousex>sp_load_up_x and mousex < sp_load_up_x+sp_load_updown_width then
+    if mousey > sp_load_up_y and mousey < sp_load_up_y+sp_load_updown_heigth then
+      if clickb=1 then
+      #clicked up-button on load
+        sp_load_array_active=sp_load_array_active + 1
+        if sp_load_array_active>sp_load_array_max then sp_load_array_active = sp_load_array_max
+        spin_array_active=sp_load_array_active
+        gosub loaderspinner
+        refresh
+        clickclear
+      endif   # end click event
+    endif #end load up button
+    if mousey > sp_load_down_y and mousey < sp_load_down_y+sp_load_updown_heigth then
+      if clickb=1 then
+      #clicked down-button on load
+        sp_load_array_active=sp_load_array_active - 1
+        if sp_load_array_active < 0 then sp_load_array_active = 0
+        spin_array_active=sp_load_array_active
+        gosub loaderspinner
+        refresh
+        clickclear
+      endif # end click event
+    endif # end load down
+  endif # end load up
+endif
+if mousey > topfiller then
+   if clickb=1 then
+     clickclear
+   endif
+endif
+if sw_go=0 then goto inputloop
+starttime=msec
+#**************************************************
+# sub routine "Main Life loop"
+#**************************************************
+Lifeloop:
+gosub showgrid
+#speedcheck
+#if iteration = 100 then print msec-starttime
+waitstepclick:
+if sw_stepper=1 then
+  if mousex > b_Go_locx and mousex < b_Go_locx+65 then
+    if mousey > b_step_locy and mousey < b_step_locy+20 then
+      if clickb=1 then
+        sw_step=1
+        sw_stepper=1
+        #status
+        color orange 
+        circle 203,85,6
+        color rgb(250,200,50)
+        circle 203,85,4
+        color grey
+        rect 215,80,60,15
+        color black
+        font "Tahoma",10,10
+        text 215,77,"Step      "
+        refresh
+        gosub clickstep
+        clickclear
+      endif 
+    else
+      if mousey > b_Go_locy and mousey < b_Go_locy +20 then
+        if clickb=1 then
+          # go pressed
+          sw_step=0
+          sw_stepper=0
+          #status
+          color darkred 
+          circle 203,85,6
+          color red
+          circle 203,85,4
+          color black
+          font "Tahoma",10,10
+          color grey
+          rect 215,80,60,15
+          color black
+          text 215,77,"Running"
+          refresh
+          gosub clickgo
+          clickclear
+        endif
+      else
+        if mousey > b_stop_locy and mousey < b_stop_locy+20 then
+          if clickb=1 then
+            color darkgreen 
+            circle 203,85,6
+            color rgb(100,220,100)
+            circle 203,85,4
+            color grey
+            rect 215,80,60,15
+            color black
+            font "Tahoma",10,10
+            text 215,77,"Stopped"
+            refresh
+            iteration=0
+            gosub clickstop
+            if ch_clear_mark=1 then
+              for i = 0 to cellsize +1
+                for j = 10to cellsize +1
+                  area[i,j]= 0
+                  areacol[i,j]= 0
+                  area2[i,j]= 0
+                  area2col[i,j]= 0
+                next j
+              next i
+              gosub showgrid
+            endif
+            sw_go=0
+            sw_stepper=0
+            sw_step=0
+            clickclear
+          endif
+          sw_go=0
+          goto inputloop
+        endif
+      endif 
+    endif
+  endif
+endif  
+if sw_step=0 and sw_stepper=1 then 
+  goto waitstepclick
+endif 
+sw_step=0
+clickclear
+iteration=iteration+1
+for i = 1 to cellsize 
+  for j = 1 to cellsize
+    if areacheck[i,j]=1 then
+     counter=0
+     counter= area[i,j-1] + area[i,j+1] + area[i+1,j] + area[i+1,j+1] + area[i-1,j] + area[i-1,j-1] + area[i-1,j+1]+ area[i+1,j-1]
+     gosub liferule       
+    endif
+  next j
+next i  
+#transfer newly gotten values to the active array
+for i = 1 to cellsize 
+  for j = 1 to cellsize 
+   area[i,j]= area2[i,j]
+   areacol[i,j]= area2col[i,j]
+   areacheck[i,j]=areacheck2[i,j]
+   areacheck2[i,j]=0
+  next j
+next i
+#copy 1st line/column across for optimisation
+for i= 1 to cellsize
+#last line (second to last) to first
+ area[i,0]=area[i,cellsize]
+ areacol[i,0]=areacol[i,cellsize]
+#First(second) line to last
+ area[i,cellsize+1]=area[i,1]
+ areacol[i,cellsize+1]=areacol[i,1]
+next i
+for j=1 to cellsize
+#last column (second to last) to first (buffer) column
+ area[0,j]=area[cellsize,j]
+ areacol[0,j]=areacol[cellsize,j]
+#First(second) column to last (buffer) column
+ area[cellsize+1,j]=area[1,j]
+ areacol[cellsize+1,j]=areacol[1,j]
+next j
+ area[0,0]=area2[cellsize,cellsize]
+ areacol[0,0]=area2col[cellsize,cellsize]
+ area[0,cellsize+1]=area2[cellsize,1]
+ areacol[0,cellsize+1]=area2col[cellsize,1]
+ area[cellsize+1,0]=area2[1,cellsize]
+ areacol[cellsize+1,0]=area2col[1,cellsize]
+ area[cellsize+1,cellsize+1]=area2[1,1]
+ areacol[cellsize+1,cellsize+1]=area2col[1,1]
+while mouseb=1
+ if mousex>sidefiller and mousex < size_x+sidefiller and mousey > topfiller and mousey < topfiller+sidefiller+size_y then
+   k= int((mousex-10)/cell)+1
+   l= int((mousey-topfiller)/cell)+1
+   area[k,l]=1
+   areacol[k,l]=1
+ else 
+   if mousex >b_stop_locx and mousex < b_stop_locx+b_width and mousey > b_stop_locy and mousey < b_stop_locy + 20 then 
+      #Stop button
+      if clickb=1 then 
+        sw_go=0
+        #status
+        color darkgreen 
+        circle 203,85,6
+        color rgb(100,220,100)
+        circle 203,85,4
+        color grey
+        rect 215,80,60,15
+        color black
+        font "Tahoma",10,10
+        text 215,77,"Stopped"
+        refresh
+        iteration=0
+        gosub clickstop
+        if ch_clear_mark=1 then
+          for i = 1 to cellsize
+            for j = 1 to cellsize
+              area[i,j]= 0
+              areacol[i,j]= 0
+              area2[i,j]= 0
+              area2col[i,j]= 0
+              areacheck[i,j]=0
+              areacheck2[i,j]=0
+            next j
+          next i
+          gosub showgrid
+        endif
+        sw_stepper=0
+        sw_step=0
+      endif
+      sw_go=0
+      goto inputloop
+   else
+     if mousex >b_step_locx and mousex < b_step_locx+b_width and mousey > b_step_locy and mousey < b_step_locy + 20 then 
+     sw_stepper=1
+     endif
+   endif
+ endif 
+endwhile
+while mouseb=2
+ if mousex>sidefiller and mousex<sidefiller + size_x and mousey>topfiller and mousey <topfiller+sidefiller+side_y then
+   k= int((mousex-10)/cell)+1
+   l= int((mousey-topfiller)/cell)+1
+   area[k,l]=0
+   areacol[k,l]=0
+ endif 
+endwhile
+goto Lifeloop
+#**************************************************
+# sub routine "show the new state of the Grid"
+#**************************************************
+showgrid:
+color grey
+rect 263,60,70,20
+color black
+font "Tahoma",10,10
+text 265,57,iteration
+if ch_grid_mark=1 then
+  celldim=cell
+  for i = 1 to cellsize
+    for j = 1 to cellsize
+      if area[i,j]=1 then
+        color grey
+        rect (i-1)*size_x/cellsize+2+10, (j-1)*size_y/cellsize+2+topfiller, cell, cell  
+        gosub putcheck
+        if ch_color_mark=0 then
+          color black
+        else
+          if areacol[i,j]=1 then
+            color yellow
+          else
+            if areacol[i,j]=2 then
+              color red
+            else
+              if areacol[i,j]=3 then
+                color orange  
+              endif
+            endif
+          endif
+         endif
+         rect (i-1)*size_x/cellsize+2+10, (j-1)*size_y/cellsize+2+topfiller, cell-2, cell-2
+       else
+         if ch_color_mark=1 then
+           if areacol[i,j]=3 then
+             color rgb(165,165,0)
+           else
+             color grey
+           endif
+         else
+         color grey
+         endif
+         rect (i-1)*(size_x/cellsize)+1+10, (j-1)*(size_y/cellsize)+1+topfiller, cell-1, cell-1
+       endif 
+     next j
+  next i
+  color black
+  for i = 10 to size_x+10 step size_x/cellsize
+    line i,topfiller,i,size_y-1+topfiller
+  next i
+  for i = topfiller to size_y+topfiller step size_x/cellsize
+    line 10,i,size_x+9,i
+  next i
+else
+  for i = 1 to cellsize
+    for j = 1 to cellsize
+     if area[i,j]= 1 then
+       gosub putcheck
+       if ch_color_mark=0 then
+        color black
+       else
+        if areacol[i,j]=1 then
+          color yellow
+        else
+          if areacol[i,j]=2 then
+            color red
+          else
+            if areacol[i,j]=3 then
+              color orange
+            endif
+          endif
+        endif
+       endif
+       rect (i-1)*size_x/cellsize+2+10, (j-1)*size_y/cellsize+2+topfiller, cell, cell
+     else
+       if ch_color_mark=1 then
+         if areacol[i,j]=3 then
+           color rgb(165,165,0)
+         else
+           color grey
+         endif
+       else
+       color grey
+       endif
+       rect (i-1)*(size_x/cellsize)+2+10, (j-1)*(size_y/cellsize)+2+topfiller, cell, cell
+     endif
+    next j
+  next i
+endif
+refresh
+for i=0 to cellsize+1
+  if areacheck[i,0]=1 then areacheck[i,cellsize]=1
+  if areacheck[i,cellsize+1]=1 then areacheck[i,1]=1
+next i
+for j=0 to cellsize+1
+  if areacheck[0,j]=1 then areacheck[cellsize,j]=1
+  if areacheck[cellsize+1,j]=1 then areacheck[1,j]=1
+next j
+return
+#**************************************************
+# sub routine "Initialize screen in random fashion"
+#**************************************************
+Random:
+fac=(10-(sp_percent_init/10))/10
+for i = 1 to cellsize
+  for j = 1 to cellsize
+    if rand> fac then 
+      area[i,j]=1
+      areacol[i,j]=1
+      area2[i,j]=1
+      area2col[i,j]=1
+    else
+      area[i,j]=0
+      areacol[i,j]=0
+      area2[i,j]=0
+      area2col[i,j]=0
+    endif  
+  next j
+next i
+nopaint=0
+sw_go=0
+gosub showgrid
+refresh
+sw_rand=0
+clickclear
+return
+#**************************************************
+# sub routine "put a check on all impacted cells"
+#**************************************************
+putcheck:
+  areacheck[i,j]=1
+  areacheck[i,j-1]=1
+  areacheck[i,j+1]=1
+  areacheck[i-1,j]=1
+  areacheck[i-1,j-1]=1
+  areacheck[i-1,j+1]=1
+  areacheck[i+1,j-1]=1
+  areacheck[i+1,j+1]=1
+  areacheck[i+1,j]=1
+return
+#******************************************
+# sub routine "Draw initial graphical screen"
+#******************************************
+drawscreen:
+#one big element for grid
+  color grey
+  rect 0,0,canvas_x,canvas_y
+if sw_controls=1 then goto skipgrid
+  dim draw(10,10)
+  draw_elements_x=1
+  draw_elements_y=1
+  draw_locx=10:draw_locy=topfiller
+  draw_width=size_x:draw_height=size_y
+  draw_offsetx=0:draw_offsety= 0
+  draw_insetx=0.005:draw_insety=0.005  
+  draw_color = 3
+  draw_text=0
+  gosub drawing
+skipgrid:
+  #status
+  color darkred 
+  circle 203,85,6
+  color red
+  circle 203,85,4
+  color black
+  font "Tahoma",10,10
+  color grey
+  rect 215,80,60,15
+  color black
+  text 215,77,"Running"
+  refresh
+  #control buttons
+   b_Go_locx=335:b_Go_locy=10
+   b_locx=b_Go_locx:b_locy=b_Go_locy
+   b_width=65:b_height=20
+   b_text$="Go!":b_textsize=10
+   b_offsetx=20:b_offsety= 2
+   b_pressed=0
+   gosub button
+   b_step_locx=335:b_step_locy=35
+   b_locx=b_step_locx:b_locy=b_step_locy
+   b_width=65:b_height=20
+   b_text$="Step":b_textsize=10
+   b_offsetx=15 :b_offsety= 2
+   b_pressed=0
+   gosub button
+   b_stop_locx=335:b_stop_locy=60
+   b_locx=b_stop_locx:b_locy=b_stop_locy
+   b_width=65:b_height=20
+   b_text$="Stop":b_textsize=10
+   b_offsetx=15 :b_offsety= 2
+   b_pressed=0
+   gosub button
+   b_Freehand_locx=15:b_Freehand_locy=10
+   b_locx=b_Freehand_locx:b_locy=b_Freehand_locy
+   b_width=80:b_height=20
+   b_text$="Freehand":b_textsize=10
+   b_offsetx=10:b_offsety= 2
+   b_pressed=0
+   gosub button
+   b_random_locx=15:b_random_locy=35
+   b_locx=b_random_locx:b_locy=b_random_locy
+   b_width=80:b_height=20
+   b_text$="Random":b_textsize=10
+   b_offsetx=10:b_offsety= 2
+   b_pressed=0
+   gosub button
+   # here, we define the settings for our ruleset spinner.
+   gosub variantspinner
+   color black
+   font "Tahoma",10,10
+   text 200,37,"Ruleset:"
+   text 250,37,lifevariant$[sp_variant_array_active]
+   text 200,57,"Iterations:"
+   color black
+   font "Tahoma",10,10
+   text 105,37,"%:" 
+   # define spinner for percentages
+   gosub percentspinner
+   # define spinner for Life shapes
+   if sp_variant_list$[sp_variant_array_active]="Conway's Life" then
+     sw_load=1
+     b_load_locx=15:b_load_locy=65
+     b_locx=b_load_locx:b_locy=b_load_locy
+     b_width=50:b_height=20
+     b_text$="Load":b_textsize=10
+     b_offsetx=10:b_offsety= 2
+     b_pressed=0
+     gosub button
+     gosub loaderspinner
+   endif
+   sw_load=0
+ch_color_locx=410
+ch_color_locy=10
+ch_color_label$="Color"
+check_locx=ch_color_locx
+check_locy=ch_color_locy
+check_label$=ch_color_label$
+t_check_color_mark=ch_color_mark
+check_mark=ch_color_mark
+check_change=0
+gosub checkbox
+ch_color_mark=check_mark
+ch_grid_locx=410
+ch_grid_locy=30
+ch_grid_label$="Grid"
+check_locx=ch_grid_locx
+check_locy=ch_grid_locy
+check_label$=ch_grid_label$
+check_mark=ch_grid_mark
+t_check_grid_mark=ch_grid_mark
+check_change=0
+gosub checkbox
+ch_grid_mark=check_mark
+ch_clear_locx=410
+ch_clear_locy=50
+ch_clear_label$="Clear"
+check_locx=ch_clear_locx
+check_locy=ch_clear_locy
+check_label$=ch_clear_label$
+t_check_clear_mark=ch_clear_mark
+check_mark=ch_clear_mark
+check_change=0
+gosub checkbox
+ch_clear_mark=check_mark
+ch_zoom_locx=410
+ch_zoom_locy=70
+ch_zoom_label$="Zoom"
+check_locx=ch_zoom_locx
+check_locy=ch_zoom_locy
+check_label$=ch_zoom_label$
+t_check_zoom_mark=ch_zoom_mark
+check_mark=ch_zoom_mark
+check_change=0
+gosub checkbox
+ch_zoom_mark=check_mark
+if sw_controls=1 then return
+# draw grid if needed
+if ch_grid_mark=1 then
+  color black
+  for i = 10 to size_x+10 step size_x/cellsize
+   line i,topfiller,i,size_y-1+topfiller
+  next i
+  for i = topfiller to size_y+topfiller step size_x/cellsize
+   line 10,i,size_x+9,i
+  next i
+else
+  color grey
+  for i = 10 to size_x+10 step size_x/cellsize
+   line i,topfiller,i,size_y-1+topfiller
+  next i
+  for i = topfiller to size_y+topfiller step size_x/cellsize
+   line 10,i,size_x+9,i
+  next i
+endif
+refresh
+return
+#******************************************
+# sub routine "initialize ruleset spinner"
+#******************************************
+variantspinner:
+   sp_variant_locx=200:sp_variant_locy=10
+   sp_variant_width=100:sp_variant_heigth=20
+   spin_offsetx=0:spin_offsety= 0
+   spin_insetx=0.05:spin_insety=0.1
+   sp_variant_array=1
+   spin_color = 1
+   sp_variant_array_max=10 
+   dim sp_array_list$(11)
+   for i = 0 to 10
+     sp_array_list$[i]=sp_variant_list$[i]
+   next i
+   spin_locx=sp_variant_locx:spin_locy=sp_variant_locy
+   spin_width=sp_variant_width:spin_heigth=sp_variant_heigth
+   spin_array=sp_variant_array
+   spin_array_active=sp_variant_array_active
+   spin_array_max=sp_variant_array_max
+   gosub spinner
+   sp_variant_up_x=spin_up_topleft_x 
+   sp_variant_up_y=spin_up_topleft_y 
+   sp_variant_down_x=spin_up_botright_x 
+   sp_variant_down_y=spin_up_botright_y 
+   sp_variant_updown_width=spin_heigth
+   sp_variant_updown_heigth=spin_heigth/2
+return
+#******************************************
+# sub routine "initialize percentage spinner"
+#******************************************
+percentspinner:
+   sp_percent_locx=129:sp_percent_locy=35
+   sp_percent_width=30:sp_percent_heigth=20
+   spin_offsetx=0:spin_offsety= 0
+   spin_insetx=0.05:spin_insety=0.1
+   sp_percent_array=0
+   spin_color = 1
+   sp_percent_min=25
+   sp_percent_max=75
+   sp_percent_inc=5
+
+   spin_locx=sp_percent_locx:spin_locy=sp_percent_locy
+   spin_width=sp_percent_width:spin_heigth=sp_percent_heigth
+   spin_array=sp_percent_array
+   spin_min=sp_percent_min
+   spin_max=sp_percent_max
+   spin_inc=sp_percent_inc
+   spin_init=sp_percent_init
+   gosub spinner 
+   sp_percent_up_x=spin_up_topleft_x 
+   sp_percent_up_y=spin_up_topleft_y 
+   sp_percent_down_x=spin_up_botright_x 
+   sp_percent_down_y=spin_up_botright_y 
+   sp_percent_updown_width=spin_heigth
+   sp_percent_updown_heigth=spin_heigth/2     
+return
+#******************************************
+# sub routine "initialize loader spinner"
+#******************************************
+loaderspinner:
+     sp_load_locx=75:sp_load_locy=65
+     sp_load_width=80:sp_load_heigth=20
+     spin_offsetx=0:spin_offsety= 0
+     spin_insetx=0.05:spin_insety=0.1
+     sp_load_array=1
+     spin_color = 1
+
+     sp_load_array_max=5
+     dim sp_array_list$(6)
+     for i = 0 to 5
+       sp_array_list$[i]=sp_load_list$[i]
+     next i
+     spin_locx=sp_load_locx:spin_locy=sp_load_locy
+     spin_width=sp_load_width:spin_heigth=sp_load_heigth
+     spin_array=sp_load_array
+     spin_array_active=sp_load_array_active
+     spin_array_max=sp_load_array_max
+     gosub spinner
+     sp_load_up_x=spin_up_topleft_x 
+     sp_load_up_y=spin_up_topleft_y 
+     sp_load_down_x=spin_up_botright_x 
+     sp_load_down_y=spin_up_botright_y 
+     sp_load_updown_width=spin_heigth
+     sp_load_updown_heigth=spin_heigth/2
+return
+#******************************************
+# sub routine "State of cell based on rule"
+#******************************************
+liferule:
+sw_found=0
+area2[i,j]=0
+area2col[i,j]=0
+if area[i,j]=1 then
+ if posb >2 then
+   for val=2 to posb-1
+     if string(counter) = mid(variant$,val,1) then 
+       area2[i,j]=1
+       area2col[i,j]=2
+       sw_found=1
+     else
+       if sw_found=0 and areacol[i,j]=2 then area2col[i,j]=3
+     endif
+   next val
+ else
+    area2[i,j]=3  
+    area2col[i,j]=3
+ endif  
+else
+   for val=posb+1 to length(variant$)
+     if string(counter) = mid(variant$,val,1) then 
+       area2[i,j]=1
+       area2col[i,j]=1
+       sw_found=1
+     else
+       if sw_found=0 then area2col[i,j]=0
+     endif
+   next val
+endif
+if sw_found=1 then
+      areacheck2[i,j]=1
+      areacheck2[i-1,j]=1
+      areacheck2[i+1,j]=1
+      areacheck2[i,j-1]=1
+      areacheck2[i,j+1]=1
+      areacheck2[i-1,j-1]=1
+      areacheck2[i-1,j+1]=1
+      areacheck2[i+1,j-1]=1
+      areacheck2[i+1,j+1]=1
+endif
+return
+#******************************************
+# sub routine "Stop button clicked"
+#******************************************
+clickstop:
+   b_stop_locx=336:b_stop_locy=60
+   b_locx=b_stop_locx:b_locy=b_stop_locy
+   b_width=65:b_height=20
+   b_text$="Stop":b_textsize=10
+   b_offsetx=15 :b_offsety= 2
+   b_pressed=1
+   gosub button
+   pause 0.2
+   b_stop_locx=336:b_stop_locy=60
+   b_locx=b_stop_locx:b_locy=b_stop_locy
+   b_width=65:b_height=20
+   b_text$="Stop":b_textsize=10
+   b_offsetx=15 :b_offsety= 2
+   b_pressed=0
+   gosub button
+return
+#******************************************
+# sub routine "Step button clicked"
+#******************************************
+clickstep:
+   b_step_locx=336:b_step_locy=35
+   b_locx=b_step_locx:b_locy=b_step_locy
+   b_width=65:b_height=20
+   b_text$="Step":b_textsize=10
+   b_offsetx=15 :b_offsety= 2
+   b_pressed=1
+   gosub button
+   pause 0.2
+   b_step_locx=336:b_step_locy=35
+   b_locx=b_step_locx:b_locy=b_step_locy
+   b_width=65:b_height=20
+   b_text$="Step":b_textsize=10
+   b_offsetx=15 :b_offsety= 2
+   b_pressed=0
+   gosub button
+return
+#******************************************
+# sub routine "Freehand button clicked"
+#******************************************
+clickfreehand:
+     b_locx=b_Freehand_locx:b_locy=b_Freehand_locy
+     b_width=80:b_height=20
+     b_text$="Freehand":b_textsize=10
+     b_offsetx= 10:b_offsety= 2 
+     b_pressed=1
+     gosub button
+     pause 0.2
+     b_locx=b_Freehand_locx:b_locy=b_Freehand_locy
+     b_width=80:b_height=20
+     b_text$="Freehand":b_textsize=10
+     b_offsetx= 10:b_offsety= 2 
+     b_pressed=0
+     gosub button
+return
+#******************************************
+# sub routine "Random button clicked"
+#******************************************
+clickrandom:
+     b_locx=b_random_locx:b_locy=b_random_locy
+     b_width=80:b_height=20
+     b_text$="Random":b_textsize=10
+     b_offsetx= 10:b_offsety= 2 
+     b_pressed=1
+     gosub button
+     sw_rand=0
+     pause 0.2
+     b_locx=b_random_locx:b_locy=b_random_locy
+     b_width=80:b_height=20
+     b_text$="Random":b_textsize=10
+     b_offsetx=10:b_offsety= 2 
+     b_pressed=0
+     gosub button
+return
+#******************************************
+# sub routine "Load button clicked"
+#******************************************
+clickload:
+     b_locx=b_load_locx:b_locy=b_load_locy
+     b_width=50:b_height=20
+     b_text$="Load":b_textsize=10
+     b_offsetx= 10:b_offsety= 2 
+     b_pressed=1
+     gosub button
+     sw_rand=0
+     pause 0.2
+     b_locx=b_load_locx:b_locy=b_load_locy
+     b_width=50:b_height=20
+     b_text$="Load":b_textsize=10
+     b_offsetx=10:b_offsety= 2 
+     b_pressed=0
+     gosub button
+return
+#******************************************
+# sub routine "Go button clicked"
+#******************************************
+clickgo:
+   b_Go_locx=335:b_Go_locy=10
+   b_locx=b_Go_locx:b_locy=b_Go_locy
+   b_width=65:b_height=20
+   b_text$="Go!":b_textsize=10
+   b_offsetx=20:b_offsety= 2
+   b_pressed=1
+   gosub button
+   pause 0.2
+   b_Go_locx=335:b_Go_locy=10
+   b_locx=b_Go_locx:b_locy=b_Go_locy
+   b_width=65:b_height=20
+   b_text$="Go!":b_textsize=10
+   b_offsetx=20:b_offsety= 2
+   b_pressed=0
+   gosub button
+return
+
+#**********************************
+# sub routine "glider"
+#**********************************
+drawglider:
+exstring={1,1,1,2,3,2,1,3,2,3,999}
+insert_offsetx=int(cellsize/4*3)-3
+insert_offsety=int(cellsize/4)+2
+gosub insert
+return
+#**********************************
+# sub routine "LWSS"
+#**********************************
+drawlwss:
+exstring={2,1,5,1,1,2,1,3,5,3,1,4,2,4,3,4,4,4,999}
+insert_offsetx=int(cellsize/4)
+insert_offsety=int(cellsize/4)
+gosub insert
+return
+#**********************************
+# sub routine "MWSS"
+#**********************************
+drawmwss:
+exstring={4,1,2,2,6,2,1,3,1,4,6,4,1,5,2,5,3,5,4,5,5,5,999}
+insert_offsetx=int(cellsize/4-2)
+insert_offsety=int(cellsize/2-2)
+gosub insert
+return
+#**********************************
+# sub routine "B29"
+#**********************************
+drawb29:
+exstring={8,1,9,1,10,1,8,2,1,3,2,3,3,3,10,3,1,4,8,4,10,4,2,5,7,5,8,5,10,5,11,5,12,5,13,5,4,6,5,6,6,6,7,6,9,6,10,6,11,6,12,6,13,6,15,6,16,6,5,7,6,7,14,7,15,7,17,7,999}
+insert_offsetx=int(cellsize/2-7)
+insert_offsety=int(cellsize/2-7)
+gosub insert
+return
+#**********************************
+# sub routine "Smiley"
+#**********************************
+drawsmiley:
+exstring={3,1,4,1,5,1,6,1,7,1,2,2,8,2,1,3,4,3,6,3,9,3,1,4,9,4,1,5,3,5,7,5,9,5,1,6,4,6,5,6,6,6,9,6,2,7,8,7,3,8,4,8,5,8,6,8,7,8,999}
+insert_offsetx=int(cellsize/2-5)
+insert_offsety=int(cellsize/2-5)
+gosub insert
+return
+#**********************************
+# sub routine "GliderGun"
+#**********************************
+drawglidergun:
+exstring={25,1,23,2,25,2,13,3,14,3,21,3,22,3,35,3,36,3,12,4,16,4,21,4,22,4,35,4,36,4,1,5,2,5,11,5,17,5,21,5,22,5,1,6,2,6,11,6,15,6,17,6,18,6,23,6,25,6,11,7,17,7,25,7,12,8,16,8,13,9,14,9,999}
+insert_offsetx=0
+insert_offsety=2
+gosub insert
+return
+#**********************************
+# sub routine "insert"
+#**********************************
+insert:
+i=insert_offsetx
+j=insert_offsety
+k=0
+while exstring[k] <>999
+  rw=i+exstring[k]
+  kl=j+exstring[k+1] 
+  area[rw,kl]=1
+  areacol[rw,kl]=1
+  k=k+2
+endwhile
+return
+#**********************************
+# sub routine "AboutInfo"
+#**********************************
+AboutInfo:
+sw_controls=0
+canvas_x=471
+canvas_y=561
+graphsize canvas_x,canvas_y
+color grey
+rect 0,0,canvas_x,canvas_y
+dim draw(10,10)
+draw_elements_x=1
+draw_elements_y=1
+draw_locx=10:draw_locy=90
+draw_width=size_x:draw_height=390
+draw_offsetx=0:draw_offsety= 0
+draw_insetx=0.005:draw_insety=0.005  
+draw_color = 2
+draw_text=0
+gosub drawing
+color black
+font "Tahoma",14,100
+text 100,40,"'Life'-type Cellular Automata"
+font "Tahoma",10,100
+text 20,105,"The Game of Life is a cellular automaton devised by the British "
+text 20,119,"mathematician John Horton Conway in 1970 and it appeared in " 
+text 20,133,"Scientific American's 'Mathematical Games' column in October '70"
+text 20,147,"  "
+text 20,163,"It is is a zero-player simulation game, meaning that its evolution is "
+text 20,177,"determined by its initial state. Life is 'played' by creating an initial "
+text 20,191,"configuration and observing how it evolves. This program DOES"
+text 20,205,"allow you to paint on the canvas while the simulation is running."
+text 20,233,"The cellular automata of the 'Life' family shown here are limited"
+text 20,247,"to examining the current state of a cell's direct neighbours. Even"
+text 20,262,"within this set of constraints, Conway's Game of life is just one of"
+text 20,276,"many variants possible, some of which are included here as well."
+text 20,304,"Wikipedia link: "
+text 20,318,"         https://en.wikipedia.org/wiki/Life-like_cellular_automaton"
+text 20,346,"Best Online Cellular Automaton:  "
+text 20,364,"        https://mcell.ca/app/ and https://conwaylife.com/"
+text 20,400,"This program was written in Basic-256, a simple yet useable Basic"  
+text 20,415,"interpreter. It uses a primitive GUI toolkit called BTK2 which I"
+text 20,430,"wrote, together with a set of other small demo programs"
+#control buttons
+b_start_locx=35:b_start_locy=520
+b_locx=b_start_locx:b_locy=b_start_locy
+b_width=65:b_height=20
+b_text$="Start":b_textsize=10
+b_offsetx=15:b_offsety= 2
+b_pressed=0
+gosub button
+b_control_locx=125:b_control_locy=520
+b_locx=b_control_locx:b_locy=b_control_locy
+b_width=65:b_height=20
+b_text$="Controls":b_textsize=10
+b_offsetx=5:b_offsety= 2
+b_pressed=0
+gosub button
+refresh
+loopabout:
+if mousey > b_start_locy and mousey<b_start_locy+b_height then
+  if mousex>b_start_locx and mousex<b_start_locx+b_width then
+    if clickb=1 then
+      b_locx=b_start_locx:b_locy=b_start_locy
+      b_width=65:b_height=20
+      b_text$="Start":b_textsize=10
+      b_offsetx=15:b_offsety= 2
+      b_pressed=1
+      gosub button
+      pause 0.2
+      b_locx=b_start_locx:b_locy=b_start_locy
+      b_width=65:b_height=20
+      b_text$="Start":b_textsize=10
+      b_offsetx=15:b_offsety= 2
+      b_pressed=0
+      gosub button
+      clickclear
+      sw_realstart=1
+      sw_controls = 0
+    endif
+  else
+    if mousex>b_control_locx and mousex<b_control_locx+b_width then
+      if clickb=1 then
+        b_locx=b_control_locx:b_locy=b_control_locy
+        b_width=65:b_height=20
+        b_text$="Control":b_textsize=10
+        b_offsetx=5:b_offsety= 2
+        b_pressed=1
+        gosub button
+        pause 0.2
+        b_locx=b_control_locx:b_locy=b_control_locy
+        b_width=65:b_height=20  
+        b_text$="Control":b_textsize=10
+        b_offsetx=5:b_offsety= 2
+        b_pressed=0
+        gosub button
+        clickclear
+      sw_realstart=1
+      sw_controls = 1        
+      endif
+    endif
+  endif
+endif
+if sw_realstart=1 then return
+goto loopabout
+return
+#**********************************
+# sub routine "LifeControls"
+#**********************************
+LifeControls:
+sw_realstart=0
+sw_About=0
+color red
+line 5,5, 190,5
+line 190,5, 190,95
+line 190,95, 5,95
+line 5,95, 5,5
+font "Tahoma",10,100
+text 10,100,"Initialization"
+color black
+font "Tahoma",8,100
+text 10,118,"Click the 'Freehand'-button to draw on the canvas. "
+text 10,131,"       Left-mouse:turn-on, right-mouse:turn-off"
+text 10,147,"Click the 'Random'-button to 'populate' the canvas in a random fashion. "
+text 10,160,"       The spinner-button determines the chance a cell has of becoming live"
+text 10,176,"Click the 'Load'-button to draw a limited number of predefined forms "
+text 10,189,"       This is only for Conway and the spinner contains the name of the 'creature'"
+color green
+line 195,5, 330,5
+line 330,5, 330,95
+line 330,95, 195,95
+line 195,95, 195,5
+font "Tahoma",10,100
+text 10,205,"Variant and feedback"
+color black
+font "Tahoma",8,100
+text 10,223,"Use the spinner to select the life 'variant' you want. Life is ruled by different"
+text 10,236,"'Rulesets' For Conway, a cell survives (the 's') with 2 or 3 neighbours, while"
+text 10,249,"cells are born (the 'b') with exactly 3 neighbours. In other cases the cell is dead"
+text 10,265,"Some variants are better with populated fields, others are better with a seed"
+text 10,281,"Gnarl, Serviettes and Replicator are the second kind. For Replicater, try a very "
+text 10,294,"small drawing in the center. It will be repeated after every 8 iterations"
+color blue
+line 332,5, 403,5
+line 403,5, 403,95
+line 403,95, 332,95
+line 332,95,332,5
+font "Tahoma",10,100
+text 10,310,"Action buttons"
+color black
+font "Tahoma",8,100
+text 10,328,"'Go' will simply start the simulation. All buttons except the Acion buttons will be "
+text 10,342,"    disabled. To indicate this, the indicator light will be turned red"
+text 10,355,"'Step' allows you to halt after every iteration, allowing you to see the dynamics"
+text 10,368,"    While Steps is active, the indicator light will be turned orange"
+text 10,381,"'Stop' will stop the simulation (not the program). The indicator light will turn"
+text 10,394,"    green, indicating that all buttons are clickable"
+color yellow
+line 406,5, 466,5
+line 466,5, 466,95
+line 466,95, 406,95
+line 406,95, 406,5
+font "Tahoma",10,100
+text 10,405,"Appearance"
+color black
+font "Tahoma",8,100
+text 10,423,"Color will turn newly born cells yellow, surviving cells red and dead cells green"
+text 10,436,"Grid will draw the cells in a 3D-ish grid. When disabled, the simulation goes a lot"
+text 10,449,"faster but looks a bit 'pixilated'"
+text 10,462,"Clear clears ALL cells. The result is immediate so can also be used as a clear button"
+text 10,475,"Zoom will make the cells bigger but the environment smaller. The environment"
+text 10,488,"is in fact a torus where sides are connected as are top and bottom"
+#control buttons
+b_start_locx=35:b_start_locy=520
+b_locx=b_start_locx:b_locy=b_start_locy
+b_width=65:b_height=20
+b_text$="Start":b_textsize=10
+b_offsetx=15:b_offsety= 2
+b_pressed=0
+gosub button
+b_about_locx=125:b_about_locy=520
+b_locx=b_about_locx:b_locy=b_about_locy
+b_width=65:b_height=20
+b_text$="About":b_textsize=10
+b_offsetx=12:b_offsety= 2
+b_pressed=0
+gosub button
+refresh
+loopcontrol:
+if mousey > b_start_locy and mousey<b_start_locy+b_height then
+  if mousex>b_start_locx and mousex<b_start_locx+b_width then
+    if clickb=1 then
+      b_locx=b_start_locx:b_locy=b_start_locy
+      b_width=65:b_height=20
+      b_text$="Start":b_textsize=10
+      b_offsetx=15:b_offsety= 2
+      b_pressed=1
+      gosub button
+      pause 0.2
+      b_locx=b_start_locx:b_locy=b_start_locy
+      b_width=65:b_height=20
+      b_text$="Start":b_textsize=10
+      b_offsetx=15:b_offsety= 2
+      b_pressed=0
+      gosub button
+      clickclear
+      sw_realstart=1
+      sw_controls = 0
+    endif
+  else
+    if mousex>b_about_locx and mousex<b_about_locx+b_width then
+      if clickb=1 then
+        b_locx=b_about_locx:b_locy=b_about_locy
+        b_width=65:b_height=20
+        b_text$="About":b_textsize=10
+        b_offsetx=12:b_offsety= 2
+        b_pressed=1
+        gosub button
+        pause 0.2
+        b_locx=b_about_locx:b_locy=b_about_locy
+        b_width=65:b_height=20  
+        b_text$="About":b_textsize=10
+        b_offsetx=12:b_offsety= 2
+        b_pressed=0
+        gosub button
+        clickclear
+        sw_About=1
+      endif
+    endif
+  endif
+endif
+if sw_About=1 then gosub AboutInfo
+if sw_realstart=1 then return
+goto loopcontrol
+return
+#*********************************
+# sub routine "Draw splash screen"
+#*********************************
+drawsplash:
+#sky
+color rgb(130,130,240)
+rect 0,0,canvas_x,canvas_y
+color rgb(100,100,255)
+rect 0,0,canvas_x,5
+rect 0,0,5,canvas_y-120
+rect canvas_x-5,0,canvas_x,canvas_y-120
+#grass
+color rgb(80,250,80)
+rect 0,120,canvas_x,canvas_y-120
+color rgb(0,200,0)
+rect 0,120,5,canvas_y-120
+rect canvas_x-5,120,canvas_x,canvas_y-120
+rect 0,canvas_y-5,canvas_x, 5
+#shadow
+color rgb(60,200,60)
+poly {60,160,40,200,209,200,229,160}
+circle 43,200,3
+circle 206,200,3
+poly {43,200,42,203,204,203,206,200} 
+#3D 
+color rgb(200,200,200) 
+rect 80,50,150,100
+rect 70,60,170,90
+circle 80,60,10
+circle 229,60,10
+poly {230,160,230,150,239,150}
+tr=sin(3*pi/4)*10
+bl=cos(3*pi/4)*10
+poly {80-tr,60+bl,90,90,70-tr,70+bl}
+#front
+color rgb(200,200,200 )
+color rgb(160,160,160 )
+rect 70,60,150,100
+rect 60,70,170,90
+circle 70,70,10
+circle 219,70,10
+#nick
+color rgb(130,130,240)
+poly {60,100,65,100,60,90}
+color rgb(160,160,160)
+color rgb(200,200,200) 
+poly {60,100,65,100,63,97}
+#nick2
+color rgb(80,250,80)
+poly {60,130,67,130,60,125} 
+color rgb(200,200,200) 
+poly {60,130,67,130,64,128}
+color rgb(140,140,140)
+line 67,130,73,132
+line 73,132,80,129
+line 80,129,84,132
+#nick3
+color rgb(215,215,215)
+poly {180,60,186,60,183,65} 
+color rgb(215,215,215) 
+poly {180,60,186,60,196,50,190,50}
+color rgb(180,180,180)
+line 180,60,190,50
+line 186,60,196,50
+color rgb( 140,140,140)
+line 183,65,186,70
+line 186,70, 184,72
+line 184,72,192,78
+line 192,78,189,85
+#cracks
+line 103,60,106,65
+line 106,65, 104,68
+line 104,68,112,73
+line 112,73,109,80
+#shadowed nick
+color rgb(80,250,80)
+poly {150,203,157,198, 158,203}
+color rgb(90,90,90)
+font "Baskerville Old Face",40,100
+color rgb(210,210,210)
+text 97,68,"Life"
+color  rgb(80, 80, 80)
+text 95,70,"Life"
+font "Baskerville Old Face",10,100
+text 70,135,"....but not as we know it"
+font "Arial",12,100
+#text 15,220,"A Conway 'Game of Life' automaton"
+text 15,210,"A cellular automaton for Conway's "
+text 15,230,"'Game of Life' and others... "
+#control buttons
+b_start_locx=35:b_start_locy=260
+b_locx=b_start_locx:b_locy=b_start_locy
+b_width=65:b_height=20
+b_text$="Start":b_textsize=10
+b_offsetx=15:b_offsety= 2
+b_pressed=0
+gosub button
+b_control_locx=115:b_control_locy=260
+b_locx=b_control_locx:b_locy=b_control_locy
+b_width=65:b_height=20
+b_text$="Controls":b_textsize=10
+b_offsetx=7:b_offsety= 2
+b_pressed=0
+gosub button
+b_about_locx=195:b_about_locy=260
+b_locx=b_about_locx:b_locy=b_about_locy
+b_width=65:b_height=20
+b_text$="About":b_textsize=10
+b_offsetx=12:b_offsety= 2
+b_pressed=0
+gosub button
+refresh
+return
+#**********************************
+# sub routine "Draw a checkbox"
+#**********************************
+checkbox:
+color white
+rect check_locx,check_locy,12,12
+color darkgrey
+line check_locx,check_locy,check_locx+11, check_locy
+line check_locx,check_locy,check_locx,check_locy+11 
+color black
+line check_locx+1,check_locy+1,check_locx+10, check_locy+1
+line check_locx+1,check_locy+1,check_locx+1, check_locy+10
+color grey
+line check_locx+1,check_locy+11,check_locx+11, check_locy+11
+line check_locx+11, check_locy+1,check_locx+11, check_locy+11
+color black
+font "Tahoma",10,100
+text check_locx+20, check_locy - 3,check_label$
+if check_change=1 then 
+  if check_mark=1 then 
+    check_mark=0
+  else
+    check_mark=1 
+  endif
+endif
+if check_mark=1 then
+  color black
+  line check_locx+3, check_locy+6, check_locx+6, check_locy+9
+  line check_locx+3, check_locy+5, check_locx+6, check_locy+8
+  line check_locx+3, check_locy+4, check_locx+6, check_locy+8
+  line check_locx+6, check_locy+9,check_locx+12,check_locy
+  line check_locx+6, check_locy+8,check_locx+12,check_locy
+  line check_locx+6, check_locy+7,check_locx+12,check_locy
+else
+  color white
+  rect check_locx+2,check_locy+2,6,6
+endif
+check_change=0
+refresh
+return
+#**********************************
+# sub routine "Draw a grouping area"
+#**********************************
+grouper:
+backgr=pixel(g_locx+g_width/2,g_locy+g_height/2)
+color darkgrey
+line g_locx,g_locy,g_locx+g_width,g_locy
+line g_locx+g_width,g_locy,g_locx+g_width,g_locy+g_height
+line g_locx+g_width,g_locy+g_height,g_locx,g_locy+g_height
+line g_locx,g_locy+g_height,g_locx,g_locy
+color rgb(200,200,200)
+line g_locx+1,g_locy+1,g_locx+g_width-1, g_locy+1
+line g_locx+g_width+1, g_locy,g_locx+g_width+1,g_locy+g_height+1
+line g_locx+g_width+1,g_locy+g_height+1,g_locx,g_locy+g_height+1
+line g_locx+1,g_locy+1,g_locx+1,g_locy+g_height-1
+color backgr
+rect g_locx+10,g_locy-10,g_width/5*2,20
+color black
+font "Tahoma",10,100
+text g_locx+g_width/7,g_locy-7,g_label$
+refresh
+return
+#******************************************
+# sub routine "Draw a drawing element grid"
+#******************************************
+drawing:
+for i=1 to draw_elements_x
+for j =1 to draw_elements_y
+widthfiller=draw_width+draw_offsetx
+heightfiller= draw_height+draw_offsety
+color darkgrey
+poly {draw_locx+((i-1)*widthfiller)-(draw_width*draw_insetx), draw_locy+((j-1)*heightfiller)-(draw_height*draw_insety), draw_locx+((i-1)*widthfiller)-(draw_width*draw_insetx), draw_locy+((j-1)*heightfiller)+draw_height+(draw_height*draw_insety), draw_locx+((i-1)*widthfiller)+draw_height/2,draw_locy+((j-1)*heightfiller)+draw_height/2}
+poly {draw_locx+((i-1)*widthfiller)-(draw_width*draw_insetx), draw_locy+((j-1)*heightfiller)-(draw_height*draw_insety), draw_locx+((i-1)*widthfiller)+draw_height/2, draw_locy+((j-1)*heightfiller)+draw_height/2, draw_locx+((i-1)*widthfiller)+draw_width-draw_height/2, draw_locy+((j-1)*heightfiller)+draw_height/2, draw_locx+((i-1)*widthfiller)+draw_width+(draw_height*draw_insetx), draw_locy+((j-1)*heightfiller)-(draw_height*draw_insety)}
+color rgb(200,200,200)
+poly {draw_locx+((i-1)*widthfiller)-(draw_width*draw_insetx), draw_locy+((j-1)*heightfiller)+draw_height+(draw_height*draw_insety), draw_locx+((i-1)*widthfiller)+draw_height/2, draw_locy+((j-1)*heightfiller)+draw_height/2, draw_locx+((i-1)*widthfiller)+draw_width-draw_height/2, draw_locy+((j-1)*heightfiller)+ draw_height/2, draw_locx+((i-1)*widthfiller)+draw_width+(draw_height*draw_insety), draw_locy+((j-1)*heightfiller)+draw_height+(draw_height*draw_insety)}
+poly {draw_locx+((i-1)*widthfiller)+draw_width-draw_height/2, draw_locy+((j-1)*heightfiller)+draw_height/2, draw_locx+((i-1)*widthfiller)+draw_width+(draw_width*draw_insetx), draw_locy+((j-1)*heightfiller)+draw_height+(draw_height*draw_insety), draw_locx+((i-1)*widthfiller)+draw_width+(draw_width*draw_insetx), draw_locy+((j-1)*heightfiller)-(draw_height*draw_insety)}
+if draw_color = 1 then
+color black
+else
+if draw_color = 2 then
+color white
+else
+color grey
+endif
+endif
+rect draw_locx+ (i-1)*widthfiller+(draw_width*draw_insetx), draw_locy +(j-1)*heightfiller+(draw_height*draw_insety), draw_width-draw_width* 2*draw_insetx+2, draw_height-draw_height* 1.5*draw_insety
+if draw_color > 1 then
+if draw_text=1 then
+color black
+font "Tahoma",draw_textsize,100
+text draw_locx+ (i-1)*widthfiller+(draw_offsetx+2), draw_locy +(j-1)*heightfiller+(draw_offsety),draw_content$[i-1,j-1]
+endif
+endif
+next j
+refresh
+next i
+refresh
+return
+#*********************************
+# sub routine "Draw a button"
+#*********************************
+button:
+if b_pressed=0 then
+color rgb(200,200,200)
+poly {b_locx, b_locy, b_locx+b_width, b_locy, b_locx, b_locy+b_height}
+color darkgrey
+poly {b_locx+b_width, b_locy, b_locx+b_width, b_locy+b_height, b_locx, b_locy+b_height}
+color grey
+rect b_locx+b_width*0.05,b_locy+b_height*0.07, b_width-b_width*0.1, b_height-b_height*0.1
+color black
+font "Tahoma",b_textsize,100
+text b_locx+b_offsetx,b_locy+b_offsety,b_text$
+refresh
+else
+color darkgrey
+poly {b_locx, b_locy, b_locx+b_width, b_locy, b_locx, b_locy+b_height}
+color rgb(200,200,200)
+poly {b_locx+b_width, b_locy, b_locx+b_width, b_locy+b_height, b_locx, b_locy+b_height}
+color grey
+rect b_locx+b_width*0.05,b_locy+b_height*0.07, b_width-b_width*0.1, b_height-b_height*0.1
+color black
+font "Tahoma",b_textsize,100
+text b_locx+(b_offsetx+2),b_locy+(b_offsety+2),b_text$
+end if
+refresh
+return
+#***************************************
+# sub routine "Draw a radio button list"
+#***************************************
+drawradio:
+color black
+font "Tahoma",10,100
+radio_spacing = (radio_locy_bot-radio_locy_top)/(radio_elements-1)
+for i = 0 to (radio_elements -1)
+  color black
+  circle radio_locx, radio_locy_top+(radio_spacing*i), 5
+  color white
+  circle radio_locx+1, radio_locy_top+(radio_spacing*i)+1,4
+next i
+#radio text captions
+color black
+for i = 0 to radio_elements-1
+ text radio_locx + 15,radio_locy_top + (radio_spacing*i)-8, radio1$[i]
+next i
+# paint active radio button
+circle radio_locx+1, radio_locy_top+(radio_spacing*(radio_active-1))+1,2
+refresh
+return
+#******************************************
+# sub routine "Draw a spin entry button"
+#******************************************
+spinner:
+ widthfiller=spin_offsetx
+ heigthfiller= spin_offsety
+  color darkgrey
+  poly {spin_locx, spin_locy, spin_locx, spin_locy+spin_heigth, spin_locx+spin_heigth/2, spin_locy+spin_heigth/2}
+  poly {spin_locx, spin_locy, spin_locx+spin_heigth/2, spin_locy+spin_heigth/2, spin_locx+spin_width-spin_heigth/2, spin_locy+spin_heigth/2, spin_locx+spin_width, spin_locy}
+
+  color rgb(200,200,200)
+  poly {spin_locx, spin_locy+spin_heigth, spin_locx+spin_heigth/2, spin_locy+spin_heigth/2, spin_locx+spin_width-spin_heigth/2, spin_locy+spin_heigth/2, spin_locx+spin_width, spin_locy+spin_heigth}
+  poly {spin_locx+spin_width-spin_heigth/2, spin_locy+spin_heigth/2, spin_locx+spin_width, spin_locy+spin_heigth, spin_locx+spin_width, spin_locy}
+  if spin_color = 1 then
+   color white
+  else 
+   color black
+  endif
+ rect spin_locx+(spin_width*spin_insetx), spin_locy+(spin_heigth*spin_insety), spin_width-spin_width*2*spin_insetx+2, spin_heigth-spin_heigth* 1.5*spin_insety
+
+color rgb(200,200,200)
+#Spin-up mini button
+  spin_up_topleft_x = spin_locx+widthfiller+spin_width+spin_width/15
+  spin_up_topleft_y = spin_locy+heigthfiller-2
+  rect spin_up_topleft_x, spin_up_topleft_y ,spin_heigth ,spin_heigth/2
+#Spin-down mini button
+  spin_up_botright_x = spin_locx+widthfiller+spin_width+spin_width/15
+  spin_up_botright_y = spin_locy+heigthfiller+spin_heigth/2
+  rect spin_up_botright_x, spin_up_botright_y, spin_heigth ,spin_heigth/2
+color darkgrey
+# upper mini button lower shadow line
+  line spin_locx+widthfiller+spin_width+spin_width/15,spin_locy+heigthfiller-2+spin_heigth/2,spin_locx+widthfiller+spin_width+spin_width/15+spin_heigth,spin_locy+heigthfiller-2+spin_heigth/2
+  line spin_locx+widthfiller+spin_width+spin_width/15,spin_locy+heigthfiller-3+spin_heigth/2,spin_locx+widthfiller+spin_width+spin_width/15+spin_heigth,spin_locy+heigthfiller-3+spin_heigth/2
+
+# lower mini button lower lower shadow line
+line spin_locx+widthfiller+spin_width+spin_width/15,spin_locy+heigthfiller+spin_heigth/2+2+spin_heigth/2,spin_locx+widthfiller+spin_width+spin_width/15+spin_heigth,spin_locy+heigthfiller+spin_heigth/2+2+spin_heigth/2
+line spin_locx+widthfiller+spin_width+spin_width/15,spin_locy+heigthfiller+spin_heigth/2+1+spin_heigth/2,spin_locx+widthfiller+spin_width+spin_width/15+spin_heigth,spin_locy+heigthfiller+spin_heigth/2+1+spin_heigth/2
+
+# upper mini button right shadow line
+  line spin_locx+widthfiller+spin_width+spin_heigth+spin_width/15,spin_locy+heigthfiller-2,spin_locx+widthfiller+spin_width+spin_heigth+spin_width/15,spin_locy+heigthfiller-2+spin_heigth/2
+  line spin_locx+widthfiller+spin_width+spin_heigth+spin_width/15+1,spin_locy+heigthfiller-1,spin_locx+widthfiller+spin_width+spin_heigth+spin_width/15+1,spin_locy+heigthfiller-2+spin_heigth/2
+
+#lower mini button right shadow line
+  line spin_locx+widthfiller+spin_width+spin_heigth+spin_width/15,spin_locy+heigthfiller+spin_heigth/2+2,spin_locx+widthfiller+spin_width+spin_heigth+spin_width/15,spin_locy+heigthfiller+spin_heigth
+  line spin_locx+widthfiller+spin_width+spin_heigth+spin_width/15+1,spin_locy+heigthfiller+spin_heigth/2+3,spin_locx+widthfiller+spin_width+spin_heigth+spin_width/15+1,spin_locy+heigthfiller+spin_heigth-1
+
+#Up arrow
+color rgb(100,100,100)
+poly { spin_locx+widthfiller+spin_width+spin_width/15+spin_heigth/4, spin_locy+heigthfiller+(spin_heigth/8*3)-2, spin_locx+widthfiller+spin_width+spin_width/15+spin_heigth/4*3, spin_locy+heigthfiller+(spin_heigth/8*3)-2, spin_locx+widthfiller+spin_width+spin_width/15+spin_heigth/4*2, spin_locy+heigthfiller+(spin_heigth/8)-2}
+#down Arrow
+poly { spin_locx+widthfiller+spin_width+spin_width/15+spin_heigth/4, spin_locy+heigthfiller+spin_heigth/2+(spin_heigth/8), spin_locx+widthfiller+spin_width+spin_width/15+spin_heigth/4*3, spin_locy+heigthfiller+spin_heigth/2+(spin_heigth/8), spin_locx+widthfiller+spin_width+spin_width/15+spin_heigth/4*2, spin_locy+heigthfiller+spin_heigth/2+(spin_heigth/8*3)}
+
+#initialize
+if spin_array=0 then  
+      color black
+      font "Tahoma",spin_heigth/2,10
+      text spin_locx+spin_width/5,spin_locy+3,spin_init
+else
+      color black
+      font "Tahoma",spin_heigth/2,10
+      text spin_locx+10,spin_locy+3,sp_array_list$[spin_array_active]
+endif
+refresh
+return

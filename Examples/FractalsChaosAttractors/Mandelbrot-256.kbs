@@ -1,0 +1,1995 @@
+#********************************
+# Basic-256 program with a GUI:
+#            Mandelbrot-256
+#
+# 31/05/2013: 
+# Whoopsie! Apparently the program on the (long gone) website had been broken for quite some time....
+# I have now updated it to work with the new color mechanism implemented as of 0.9.9.28
+#
+#21/10/2024:
+#...and slightly more than a decade later, I have updated it to 2.0.0.11!!
+# Made it quite a bit larger (beefy PC is required) and improved the Full Julia set creation
+#Colorhandling internally is a mess, but still, nice results can be had
+#********************************
+#  Setup
+#********************************
+#basic initialisation
+graphsize 1200,625
+#graphvisible(1)
+editvisible(0)
+outputvisible(0)
+fastgraphics
+swabout=0
+swreturn=0
+sw_cb=0
+gosub splash
+graphsize 1200,625
+clg
+#Variable Initialization
+sw_print=0
+swzm=0
+swzoom=0
+swcpy=0
+sw_bigger=0
+sw_FullJulia=0
+sw_custseg=0
+sw_trail=0
+rood=0:blauw=0:groen=0
+real=0:oldreal=0
+imag=0:oldimag=0
+tel=0
+oldxdot=-4
+oldydot=-4
+dim colorbandnew(3,256) fill 0
+# slider creation
+# draw the slider
+spritedim 4
+color black
+circle 150,140,7
+color darkgrey
+circle 150,140,6
+color rgb(200,200,200)
+circle 150,140,5
+color white
+circle 152,138,2
+spriteslice 0,143,133,15,15
+spriteslice 1,143,133,15,15
+spriteslice 2,143,133,15,15
+spriteslice 3,143,133,15,15
+#initialize color bars
+gosub CreateColor
+# Set up Main Drawing Area
+color grey
+rect 0,0,1199,599
+draw_locx = 10:draw_locy = 10
+draw_width = 566:draw_height = 578
+draw_offsetx = 0: draw_offsety=0
+draw_insetx = 0.02: draw_insety=0.02
+draw_elements_x=1:draw_elements_y=1
+draw_color=2
+gosub drawing
+start_drawx=10
+width_drawx=568
+start_drawy=10
+height_drawy=580
+# set up Vertical separator
+color darkgrey
+rect 596,8,2,578
+color rgb(200,200,200)
+rect 600,8,2,578
+#set up tabs
+tab_locx=620:tab_locy=10
+tab_width=560:tab_height=30
+dim tab1$(5)
+tab1$={"Mandel","Julia","Orbits","Zoom","Colors"}
+tab_elements=5
+tab_active=1
+gosub drawtabs
+# Initial screen draw with Mandelbrot
+sw_sel$="Mand"
+mand_radio_active=1
+color_radio_active=1
+#init of the main complex map settings
+gosub InitComplexMap
+#paint the Mandel-tab
+gosub Screen_Mandel
+#force initial creation of the Mandelbrot set
+gosub MandelDraw
+#after initial draw, increase iterations to 100
+k=100
+#*******************************************
+# Main Loop:
+#      actions are triggered by mouse events
+#*******************************************
+loop:
+# is the mouse active on the Tab-area?
+if mousey > tab_locy and mousey < tab_locy+tab_height then
+   while mouseb=1
+      if mousex > tab_locx and mousex < tab_locx+tab_width_single then
+         gosub Screen_Mandel
+         sw_sel$="Mand"
+      else
+         if mousex > tab_locx+tab_width_single and mousex < tab_locx+tab_width_single *2 then
+            gosub Screen_Julia
+            sw_sel$="Julia"
+         else
+            if mousex > tab_locx+tab_width_single*2 and mousex < tab_locx+tab_width_single *3 then
+               gosub Screen_Orbits
+               sw_sel$="Orbits"
+            else
+               if mousex > tab_locx+tab_width_single*3 and mousex < tab_locx+tab_width_single *4 then
+                  sw_sel$="Zoom"
+                  gosub Screen_Zoom
+               else
+                  if mousex > tab_locx+tab_width_single*4 and mousex < tab_locx+tab_width_single *5 then
+                     sw_sel$="Colors"
+                     gosub Screen_Colour
+                  end if
+               end if
+            end if
+         end if
+      end if
+      clickclear
+      pause 0.01
+   end while
+end if
+#*****************************
+#  Activity on Mandel Tab !!
+#*****************************
+if sw_sel$="Mand" then
+   # check for Radio button activity
+   if mousex > radio_locx-5 and mousex < radio_locx+5 then
+      while mouseb = 1
+         for i = 0 to radio_elements-1
+            if mousey > radio_locy_top-5 + i*radio_spacing-5 and mousey < radio_locy_top + i*radio_spacing+5 then
+               color white
+               circle radio_locx+1, radio_locy_top+1*(radio_spacing*(mand_radio_active-1)),2
+               color black
+               circle radio_locx+1, radio_locy_top+1*(radio_spacing*i),2
+               mand_radio_active=i+1
+               mand_algo=i+1
+               refresh
+            end if
+         next i
+      end while
+   else
+      # Check if the Calculate button has been pressed
+      if mousex > b_update_locx and mousex < b_update_locx + b_update_width then
+         while mouseb=1
+            if mousey > b_update_locy and mousey < b_update_locy + b_update_height then
+               # Press Calculate button
+               b_text$= "Calculate":b_textsize=10
+				b_offsetx=10:b_offsety=7
+               b_pressed=1
+			   b_locx=b_update_locx:b_locy=b_update_locy
+			   b_height=b_update_height:b_width=b_update_width
+               gosub drawbutton
+               refresh
+               pause 0.1
+			   b_offsetx=12:b_offsety=3
+               b_pressed=0
+               gosub drawbutton
+               refresh
+               gosub MandelDraw
+               Mandelbrot$=getslice (10,10,580,580)
+            endif
+         end while
+      end if
+      # Check if the Reset button has been pressed
+      if mousex > b_reset_locx and mousex < b_reset_locx + b_reset_width then
+         while mouseb=1
+            if mousey > b_reset_locy and mousey < b_reset_locy + b_reset_height then
+               # Press Reset button
+               b_text$= "Reset":b_textsize=10
+               b_offsetx=20:b_offsety=3
+               b_pressed=1
+               b_locx= b_reset_locx:b_locy=b_reset_locy
+               b_height=b_reset_height:b_width=b_reset_width
+               gosub drawbutton
+               refresh
+               pause 0.2
+               b_pressed=0
+               gosub drawbutton
+               color_radio_active=1
+               mand_radio_active=1
+               gosub InitComplexMap
+               gosub MandelDraw
+            endif
+         end while
+      end if
+   end if
+end if
+#*****************************
+#  Activity on Julia Tab !!
+#*****************************
+if sw_sel$="Julia" then
+   clickclear
+   while mousex > 10 and mousex < 590 and mousey > 10 and mousey < 590
+      real=(mousex-11)/580*(xmax-xmin)+xmin
+      imag=(mousey-11)/580*(ymax-ymin)+ymin
+      if (real  = oldreal) and (imag  = oldimag) then
+         sw_FastJulia=1
+         goto contin
+      else
+         sw_FastJulia=0
+      end if
+	  draw_locx = 750:draw_locy = 560
+	  draw_width = 100:draw_height = 15
+	  draw_offsetx = 100: draw_offsety=0
+	  draw_insetx = 0.01: draw_insety=0.01
+	  draw_elements_x=2:draw_elements_y=1
+	  draw_color=1
+	  gosub drawing
+      color black
+      font "Tahoma",10,10
+      text 755,560,real
+      text 955,560,imag
+contin:
+      refresh
+      pause 0.01
+      oldreal=real
+      oldimag=imag
+      gosub FastJulia
+      if clickb=1 then
+         gosub FullJulia
+         sw_FullJulia=1
+         clickclear
+      endif
+   end while
+endif
+#*****************************
+#  Activity on Orbits Tab !!
+#*****************************
+if sw_sel$="Orbits" then
+   while mousex > 10 and mousex < 590 and mousey > 10 and mousey < 590
+      oldmousex=mousex:oldmousey=mousey
+      real=(mousex-11)/580*(xmax-xmin)+xmin
+      imag=(mousey-11)/580*(ymax-ymin)+ymin
+      oldreal=real
+      oldimag=imag
+      draw_locx = 750:draw_locy = 560
+      draw_width = 100:draw_height = 15
+      draw_offsetx = 100: draw_offsety=0
+      draw_insetx = 0.01: draw_insety=0.01
+      draw_elements_x=2:draw_elements_y=1
+      draw_color=1
+      gosub drawing
+      color black
+      font "Tahoma",10,10
+      text 755,560,real
+      text 955,560,imag
+      gosub OrbitView
+      color black
+      #      if not sw_trail then
+      rect 680,120,430,430
+      #      endif
+      refresh
+   end while
+endif
+#*****************************
+#  Activity on Zoom Tab !!
+#*****************************
+if sw_sel$="Zoom" then
+   if mousex > 670 and mousex < 955 and mousey > 100 and mousey < 385 then
+      if swzoom=0 then
+         gosub MandelZoom
+      endif
+   endif
+   if mousex > slider_locx_top-8 and mousex < slider_locx_top+8 then
+      while mouseb=1
+         clickclear
+         if mousey < slider_locy_top then
+            kt=30
+            spriteplace 0,slider_locx_top+5,90
+         else
+            if mousey > slider_locy_bot then
+               kt=430
+               spriteplace 0,slider_locx_top+5,400
+            else
+               kt=mousey-60
+               spriteplace 0,slider_locx_top+5,mousey
+            end if
+         end if
+         refresh
+         pause 0.01
+      end while
+   endif
+   if mousex > b_update_locx and mousex < b_update_locx+b_update_width then
+      if mousey > b_update_locy and mousey < b_update_locy+b_update_height then
+         swzoom=0
+         while mouseb=1
+            clickclear
+            # Press Update button
+            b_text$= "Update":b_textsize=12
+            b_offsetx=20:b_offsety=3
+            b_pressed=1
+            b_locx= b_update_locx:b_locy=b_update_locy
+            b_height=b_update_height:b_width=b_update_width
+            gosub drawbutton
+            refresh
+            pause 0.2
+            b_pressed=0
+            gosub drawbutton
+            gosub MandelDraw
+            Mandelbrot$=getslice (10,10,580,580)
+			for i = 10 to 580 step 2
+			   for j = 10 to 578 step 2
+			      colr=pixel(i,j)
+			      color colr
+			      plot 665+i/2,95+j/2
+			   next j
+			next i
+			refresh
+         end while
+      endif
+   endif
+   if mousex > b_reset_locx and mousex < b_reset_locx+b_reset_width then
+      if mousey > b_reset_locy and mousey < b_reset_locy+b_reset_height then
+         swzoom=0
+         while mouseb=1
+            clickclear
+            # Press Reset button
+            b_text$= "Reset":b_textsize=12
+            b_offsetx=20:b_offsety=3
+            b_pressed=1
+            b_locx= b_reset_locx:b_locy=b_reset_locy
+            b_height=b_reset_height:b_width=b_reset_width
+            gosub drawbutton
+            refresh
+            pause 0.2
+            b_pressed=0
+            gosub drawbutton
+            color_radio_active=1
+            mand_radio_active=1
+            gosub InitComplexMap
+            gosub MandelDraw
+            gosub drawslider
+            Mandelbrot$=getslice (10,10,580,580)
+            for i = 10 to 580 step 2
+              for j = 10 to 584 step 2
+              colr=pixel(i,j)
+              color colr
+              plot 665+i/2,94+j/2
+              next j
+              refresh
+            next i
+            refresh
+         end while
+      endif
+   endif
+endif
+#*****************************
+#  Activity on Color Tab !!
+#*****************************
+if sw_sel$="Colors" then
+   # check for Radio button activity
+   if mousex > radio_locx-5 and mousex < radio_locx+5 then
+      while mouseb = 1
+         for i = 0 to color_radio_elements-1
+            if mousey > color_radio_locy_top-5 + i*radio_spacing-5 and mousey < color_radio_locy_top + i*radio_spacing+5 then
+               color white
+               circle color_radio_locx+1, color_radio_locy_top+1*(radio_spacing*(color_radio_active-1)),2
+               color black
+               circle color_radio_locx+1, color_radio_locy_top+1*(radio_spacing*i),2
+               color_radio_active=i+1
+               refresh
+            end if
+         next i
+      end while
+   end if
+   # check for Color customization button press
+   if mousex > 865 and mousex < 895 then
+      while mouseb = 1
+         for i = 0 to 2
+            if mousex > 865 and mousex < 895 and mousey > 350 and mousey < 365 + i*72 then
+               UserCol=i
+               b_pressed=0
+               b_set_locy=350 +i*72:b_locy=b_set_locy
+               b_set_height=15:b_height=b_set_height
+               b_set_width=30:b_width=b_set_width
+               b_pressed=1
+               gosub drawsetbutton
+               pause 0.1
+               b_pressed=0
+               gosub drawsetbutton
+               refresh
+               pause 0.1
+               # initialize custom bar
+               for j = 0 to 255 step 1
+                  c=pixel(640+i,223+i*72)
+                  colorbandnew[0,j]=(c & 0xff0000) \ 0x10000
+                  colorbandnew[1,j]=(c & 0xff00) \ 0x100
+                  colorbandnew[2,j]=(c & 0xff)
+               next j
+               rood=0:groen=0:blauw=0
+               gosub Screen_Color_Chooser
+               clickclear
+            endif
+         next i
+      end while
+   end if
+end if
+#*****************************
+#  Activity on Color Customization !!
+#*****************************
+if sw_sel$="Colors_set" then
+   # is the mouse on the red slider
+   if mousey>475 and mousey <490 then
+      while mouseb=1
+         place=mousex
+         if place < 926 then place = 926
+         if place > 1182 then place=1182
+         rood=place-926
+         spriteplace 1,place,485
+         pause 0.01
+         gosub drwcolor
+         refresh
+      end while
+      clickclear
+   else
+      # is the mouse on the green slider?
+      if mousey>495 and mousey <510 then
+         while mouseb=1
+            place=mousex
+            if place < 926 then place = 926
+            if place > 1182 then place=1182
+            groen=place-926
+            spriteplace 2,place,505
+            #           spriteshow 2
+            pause 0.01
+            gosub drwcolor
+            refresh
+         end while
+         clickclear
+      else
+         # is the mouse on the blue slider?
+         if mousey>515 and mousey <525 then
+            while mouseb=1
+               place=mousex
+               if place < 926 then place = 926
+               if place > 1182 then place=1182
+               blauw=place-926
+               spriteplace 3,place,525
+               pause 0.01
+               gosub drwcolor
+               refresh
+            end while
+            clickclear
+         endif
+      endif
+   endif
+   # is the mouse on the colorbar?
+   if mousex > 930 and mousex < 1182 then
+      if mousey >345 and mousey < 355 then
+         if sw_cb=0 then
+            sw_cb=1
+         endif
+         place2=mousex-930
+         if clickb=1 then
+            # insert the selected color in the custom colorbar
+            colorbandcustom[0,place2]=rood
+            colorbandcustom[1,place2]=groen
+            colorbandcustom[2,place2]=blauw
+            gosub ColorbandCustom
+            # color initial position            
+		    b_text$= "":b_textsize=1
+		    b_offsetx=0:b_offsety=-0
+		    b_pressed=0
+		    b_set_locx=930:b_locx=b_set_locx
+		    b_set_locy=365:b_locy=b_set_locy
+		    b_set_height=8:b_height=b_set_height
+		    b_set_width=10:b_width=b_set_width
+		    b_colr=colorbandnew[0,0]
+		    b_colg=colorbandnew[1,0]
+		    b_colb=colorbandnew[2,0]            
+            gosub drawcolbutton
+            # color final position
+            b_text$= "":b_textsize=1
+		    b_offsetx=0:b_offsety=-0
+		    b_pressed=0
+		    b_set_locx=1172:b_locx=b_set_locx
+		    b_set_locy=365:b_locy=b_set_locy
+		    b_set_height=10:b_height=b_set_height
+		    b_set_width=10:b_width=b_set_width
+		    b_colr=colorbandnew[0,0]
+		    b_colg=colorbandnew[1,0]
+		    b_colb=colorbandnew[2,0]    
+		    gosub drawcolbutton
+            refresh
+            clickclear
+            sw_cb=0
+         end if
+      end if
+   end if
+   # is the mouse on the slot 1 button?
+   if mousex > 930 and mousex < 940 then
+      while mouseb = 1
+         if mousey > 365 and mousey < 375 then
+            place2=0
+            # insert the selected color in the custom colorbar
+            colorbandcustom[0,place2]=rood
+            colorbandcustom[1,place2]=groen
+            colorbandcustom[2,place2]=blauw
+            gosub ColorbandCustom
+            # color initial position
+            b_text$= "":b_textsize=1
+            b_offsetx=0:b_offsety=-0
+            b_pressed=0
+            b_set_locx=930:b_locx=b_set_locx
+            b_set_locy=365:b_locy=b_set_locy
+            b_set_height=10:b_height=b_set_height
+            b_set_width=10:b_width=b_set_width
+		    b_colr=colorbandnew[0,0]
+		    b_colg=colorbandnew[1,0]
+		    b_colb=colorbandnew[2,0] 
+            gosub drawcolbutton
+            refresh
+            #     end if
+         end if
+         clickclear
+      end while
+   end if
+   # is the mouse on the slot 2 button?
+   if mousex > 1172 and mousex < 1182 then
+      while mouseb = 1
+         if mousey > 365 and mousey < 375 then
+            place2=255
+            # insert the selected color in the custom colorbar
+            colorbandcustom[0,place2]=rood
+            colorbandcustom[1,place2]=groen
+            colorbandcustom[2,place2]=blauw
+            gosub ColorbandCustom
+            # color final position
+            b_text$= "":b_textsize=1
+            b_offsetx=0:b_offsety=-0
+            b_pressed=0
+            b_set_locx=1172:b_locx=b_set_locx
+            b_set_locy=365:b_locy=b_set_locy
+            b_set_height=10:b_height=b_set_height
+            b_set_width=10:b_width=b_set_width
+		    b_colr=colorbandnew[0,255]
+		    b_colg=colorbandnew[1,255]
+		    b_colb=colorbandnew[2,255] 
+            gosub drawcolbutton
+            refresh
+         end if
+         clickclear
+      end while
+   end if
+   # is the mouse on the OK button.
+   if mousex > 980 and mousex < 1040 then
+      while mouseb = 1
+         if mousey > 320 and mousey < 340 then
+            clickclear
+            b_pressed=1
+            b_update_locx=980:b_locx=b_update_locx
+            b_update_locy=320:b_locy=b_update_locy
+            b_update_height=20:b_height=b_update_height
+            b_update_width=60:b_width=b_update_width
+            gosub drawbutton
+            refresh
+            pause 0.2
+            b_pressed=0
+            b_text$="OK"
+            gosub drawbutton
+            sw_custseg=0
+            # draw white to black
+            for i2 = 0 to 255
+               colorband[3+UserCol,i2]=rgb(colorbandnew[0,i2], colorbandnew[1,i2],colorbandnew[2,i2])
+            next i2
+         end if
+         #reset to normal color screen
+         sw_sel$="Colors"
+         gosub Screen_Colour
+         # reset bar
+         for i = 0 to 255 step 1
+    		colorbandnew[0,i] = 256-i     # red component reset
+    		colorbandnew[1,i] = 256-i     # green component reset
+    		colorbandnew[2,i] = 256-i     # blue component reset            			colorbandcustom[0,i]=-1
+            colorbandcustom[1,i]=0
+            colorbandcustom[2,i]=0
+         next i
+      end while
+   end if
+   # is the mouse on the Cancel button.
+   if mousex > 1060 and mousex < 1120 then
+      while mouseb = 1
+         if mousey > 320 and mousey < 340 then
+            clickclear
+            b_pressed=1
+            b_cancel_locx=1060:b_locx=b_cancel_locx
+            b_cancel_locy=320:b_locy=b_cancel_locy
+            b_cancel_height=20:b_height=b_cancel_height
+            b_cancel_width=60:b_width=b_cancel_width
+            gosub drawbutton
+            refresh
+            pause 0.2
+            b_pressed=0
+            gosub drawbutton
+            # reset bar
+            for i = 0 to 255 step 1
+    			colorbandnew[0,i] = 256-i     # red component reset
+    			colorbandnew[1,i] = 256-i     # green component reset
+    			colorbandnew[2,i] = 256-i     # blue component reset
+               	colorbandcustom[0,i]=-1
+               	colorbandcustom[1,i]=0
+               	colorbandcustom[2,i]=0
+            next i
+            #reset to normal color screen
+            sw_sel$="Colors"
+            gosub Screen_Colour
+         end if
+      end while
+   end if
+end if
+goto loop
+#**********************************
+# Screen Painting: Mandel Option
+#**********************************
+Screen_Mandel:
+color grey
+spritehide 0
+spritehide 1
+spritehide 2
+spritehide 3
+rect 608,40,592,560
+refresh
+tab_active=1
+gosub drawtabs
+dim radio1$(4)
+radio1$={"Escape Time. Based on number of iterations. (8 color bands)","Escape Time. Smooth, needs another color set selected from the 'Colors' tab)","Exit Quadrant (pretty dumb coloring scheme as I was out of ideas)"}
+radio_elements=3
+radio_locx=650:radio_locy_top=110:radio_locy_bot=400
+radio_active=mand_radio_active
+gosub drawradio
+# Show Calculate button
+b_text$= "Calculate":b_textsize=10
+b_offsetx=12:b_offsety=3
+b_pressed=0
+b_update_locx=680:b_locx=b_update_locx
+b_update_locy=550:b_locy=b_update_locy
+b_update_height=25:b_height=b_update_height
+b_update_width=80:b_width=b_update_width
+gosub drawbutton
+# Show Reset button
+b_text$= "Reset":b_textsize=10
+b_offsetx=20:b_offsety=3
+b_pressed=0
+b_reset_locx=780:b_locx=b_reset_locx
+b_reset_locy=550:b_locy=b_reset_locy
+b_reset_height=25:b_height=b_reset_height
+b_reset_width=80:b_width=b_reset_width
+gosub drawbutton
+refresh
+return
+#**********************************
+# Screen Painting: Julia Option
+#**********************************
+Screen_Julia:
+spritehide 0
+spritehide 1
+spritehide 2
+spritehide 3
+color grey
+rem rect 304,40,294,258
+rect 608,40,592,558
+refresh
+tab_active=2
+gosub drawtabs
+refresh
+draw_locx = 680:draw_locy = 120
+draw_width = 430:draw_height = 430
+draw_offsetx = 0: draw_offsety=0
+draw_insetx = 0.01: draw_insety=0.01
+draw_elements_x=1:draw_elements_y=1
+draw_color=2
+gosub drawing
+color black
+text 700,560,"x = "
+text 900,560,"yi = "
+draw_locx = 750:draw_locy = 560
+draw_width = 100:draw_height = 15
+draw_offsetx = 100: draw_offsety=0
+draw_insetx = 0.01: draw_insety=0.01
+draw_elements_x=2:draw_elements_y=1
+draw_color=1
+gosub drawing
+color black
+font "Tahoma",12,10
+text 640,55,"Move the mouse over the Mandelbrot set to see a preview "
+text 640,72,"of the Julia set of that particular complex coordinate." 
+text 640,89,"Click to render in full. Click again to contnue"
+color black
+refresh
+return
+#**********************************
+# Screen Painting: Zoom Option
+#**********************************
+Screen_Zoom:
+spritehide 0
+spritehide 1
+spritehide 2
+spritehide 3
+color grey
+rect 608,40,592,558
+color black
+font "Tahoma",12,100
+text 640,60,"Select area to zoom"
+draw_locx = 670:draw_locy = 100
+draw_width = 285:draw_height = 285
+draw_offsetx = 0: draw_offsety=0
+draw_insetx = 0.01: draw_insety=0.01
+draw_elements_x=1:draw_elements_y=1
+draw_color=1
+gosub drawing
+refresh
+for i = 10 to 580 step 2
+   for j = 10 to 578 step 2
+      colr=pixel(i,j)
+      color colr
+      plot 665+i/2,95+j/2
+   next j
+next i
+refresh
+color black
+font "Tahoma",12,100
+text 950,60,"Iterations"
+font "Tahoma",10,100
+text 1030,90,"- 30"
+text 1030,140,"-80"
+text 1030,190,"-130"
+text 1030,240,"-185"
+text 1030,290,"-240"
+text 1030,340,"-290"
+text 1030,390,"-340"
+slider_locx_top=1000:slider_locy_top=90:slider_locx_bot=1000:slider_locy_bot=400
+slider_orient=0
+gosub drawslider
+refresh
+# Show Update button
+b_text$= "Update":b_textsize=12
+b_offsetx=20:b_offsety=3
+b_pressed=0
+b_update_locx=700:b_locx=b_update_locx
+b_update_locy=450:b_locy=b_update_locy
+b_update_height=25:b_height=b_update_height
+b_update_width=100:b_width=b_update_width
+gosub drawbutton
+# Show Reset button
+b_text$= "Reset":b_textsize=12
+b_offsetx=20:b_offsety=3
+b_pressed=0
+b_reset_locx=850:b_locx=b_reset_locx
+b_reset_locy=450:b_locy=b_reset_locy
+b_reset_height=25:b_height=b_reset_height
+b_reset_width=100:b_width=b_reset_width
+gosub drawbutton
+refresh
+tab_active=4
+gosub drawtabs
+swzoom=0
+return
+#**********************************
+# Screen Painting: Color Option
+#**********************************
+Screen_Colour:
+spritehide 0
+spritehide 1
+spritehide 2
+spritehide 3
+color grey
+rem rect 304,40,294,258
+rect 608,40,592,560
+refresh
+tab_active=5
+gosub drawtabs
+dim radio1$(4)
+radio1$={"Bands","Smooth Colors","Random Colors (shows the 'smooth' bands)","Pastel (User adaptable 1)","Black-to-White (User adaptable 2)","Banded Grey (User adaptable 3)"}
+color_radio_elements=6:radio_elements=color_radio_elements
+color_radio_locx=620:color_radio_locy_top=140:color_radio_locy_bot=500
+radio_locx=color_radio_locx:radio_locy_top=color_radio_locy_top:radio_locy_bot=color_radio_locy_bot
+radio_active=color_radio_active
+gosub drawradio
+draw_locx = 640:draw_locy = 150
+draw_width = 255:draw_height = 20
+draw_offsetx = 0: draw_offsety=53
+draw_insetx = 0.01: draw_insety=0.001
+draw_elements_x=1:draw_elements_y=6
+draw_color=1
+gosub drawing
+#draw banded area
+for i=0 to 255
+   color colorband[0,i]
+   line 639+i,151,640+i, 169
+next i
+# draw smooth area
+for j=1 to 5
+for i = 0 to 255
+   color colorband[1,i]
+   line 640+i,223,640+i,241
+next i
+next j
+#draw greyscale
+for i = 0 to 255
+   color colorband[2,i]
+   line 640+i,296,640+i, 314
+next i
+#draw pastels...
+for i = 0 to 255
+   color colorband[3,i]
+   line 640+i,369,640+i, 387
+next i
+#draw B&W
+refresh
+for j=1 to 5
+for i = 0 to 255
+   color colorband[4,i]
+   line 640+i,442,640+i, 460
+next i
+next j
+#draw random colors
+for i = 0 to 255
+   color colorband[5,i]
+   line 640+i,515,640+i, 533
+next i
+
+for i = 0 to 2
+   b_text$= "set":b_textsize=8
+   b_offsetx=4:b_offsety=0
+   b_pressed=0
+   b_set_locx=865  :b_locx=b_set_locx
+   b_set_locy=350 +i*72:b_locy=b_set_locy
+   b_set_height=15:b_height=b_set_height
+   b_set_width=30:b_width=b_set_width
+#   b_col=cyan
+	b_colr=0
+	b_colg=255
+	b_colb=255
+   gosub drawsetbutton
+next i
+refresh
+return
+#**************************************
+# Screen Painting: Color Chooser Option
+#**************************************
+Screen_Color_Chooser:
+
+sw_sel$="Colors_set"
+color black, clear
+rect 900,300,294,258
+
+refresh
+tab_active=5
+gosub drawtabs
+
+b_text$= "OK":b_textsize=10
+b_offsetx=20:b_offsety=1
+b_pressed=0
+b_update_locx=980:b_locx=b_update_locx
+b_update_locy=320:b_locy=b_update_locy
+b_update_height=20:b_height=b_update_height
+b_update_width=60:b_width=b_update_width
+gosub drawbutton
+
+b_text$= "Cancel":b_textsize=10
+b_offsetx=10:b_offsety=1
+b_pressed=0
+b_cancel_locx=1060:b_locx=b_cancel_locx
+b_cancel_locy=320:b_locy=b_cancel_locy
+b_cancel_height=20:b_height=b_cancel_height
+b_cancel_width=60:b_width=b_cancel_width
+gosub drawbutton
+
+# create colorbar
+draw_locx = 930:draw_locy = 345
+draw_width = 257:draw_height = 10
+draw_offsetx = 0: draw_offsety=28
+draw_insetx = 0.01: draw_insety=0.001
+draw_elements_x=1:draw_elements_y=1
+draw_color=1
+gosub drawing
+refresh 
+
+#draw newcolors
+for i=0 to 255
+   colorbandnew[0,i]=255
+   colorbandnew[1,i]=255
+   colorbandnew[2,i]=255
+   color RGB(colorbandnew[0,i],colorbandnew[1,i],colorbandnew[2,i])
+   line 930+i,345,931+i, 353
+next i
+refresh
+
+#draw first and last color indicators
+b_text$= "":b_textsize=1
+b_offsetx=0:b_offsety=-0
+b_pressed=0
+b_set_locx=930:b_locx=b_set_locx
+b_set_locy=365:b_locy=b_set_locy
+b_set_height=10:b_height=b_set_height
+b_set_width=10:b_width=b_set_width
+b_colr=colorbandnew[0,0]
+b_colg=colorbandnew[1,0]
+b_colb=colorbandnew[2,0] 
+gosub drawcolbutton
+b_text$= "":b_textsize=1
+b_offsetx=0:b_offsety=-0
+b_pressed=0
+b_set_locx=1172:b_locx=b_set_locx
+b_set_locy=365:b_locy=b_set_locy
+b_set_height=10:b_height=b_set_height
+b_set_width=10:b_width=b_set_width
+b_colr=colorbandnew[0,255]
+b_colg=colorbandnew[1,255]
+b_colb=colorbandnew[2,255] 
+gosub drawcolbutton
+color black
+font "Tahoma",8,100
+text 906,475,"R"
+text 906,495,"G"
+text 906,515,"B"
+for rgbslide=0 to 2
+slider_locx_top=921:slider_locy_top=480+rgbslide*20
+slider_locx_bot=1180:slider_locy_bot=480+rgbslide*20
+   slider_orient=1
+   gosub drawslider
+next rgbslide
+draw_locx = 1010:draw_locy = 380
+draw_width = 80:draw_height = 70
+draw_offsetx = 0: draw_offsety=0
+draw_insetx = 0.03: draw_insety=0.03
+draw_elements_x=1:draw_elements_y=1
+draw_color=2
+gosub drawing
+refresh
+return
+#**********************************
+# Screen Painting: Orbits Option
+#**********************************
+Screen_Orbits:
+spritehide 0
+spritehide 1
+spritehide 2
+spritehide 3
+color grey
+rem rect 304,40,294,258
+rect 608,40,592,558
+refresh
+tab_active=3
+gosub drawtabs
+refresh
+draw_locx = 680:draw_locy = 120
+draw_width = 430:draw_height = 430
+draw_offsetx = 0: draw_offsety=0
+draw_insetx = 0.01: draw_insety=0.01
+draw_elements_x=1:draw_elements_y=1
+draw_color=2
+gosub drawing
+color black
+text 700,560,"x = "
+text 900,560,"yi = "
+draw_locx = 750:draw_locy = 560
+draw_width = 100:draw_height = 15
+draw_offsetx = 100: draw_offsety=0
+draw_insetx = 0.01: draw_insety=0.01
+draw_elements_x=2:draw_elements_y=1
+draw_color=1
+gosub drawing
+color black
+font "Tahoma",12,10
+text 640,55,"Move the mouse over the Mandelbrot set to see the iteration results aka the"
+text 640,75,"'orbit' of that particular complex coordinate"
+text 640,95,"Hold down the mouse for a colored rendering of the orbits"
+color black
+refresh
+return
+#***************
+# GUI routines *
+#***************
+#*********************************
+# sub routine "Draw a button"
+#*********************************
+drawbutton:
+font "Tahoma",b_textsize,100
+if b_pressed=0 then
+   color rgb(200,200,200)
+   poly {b_locx, b_locy, b_locx+b_width, b_locy, b_locx, b_locy+b_height}
+   color darkgrey
+   poly {b_locx+b_width, b_locy, b_locx+b_width, b_locy+b_height, b_locx, b_locy+b_height}
+   color grey
+   rect b_locx+b_width*0.05,b_locy+b_height*0.07, b_width-b_width*0.1, b_height-b_height*0.1
+   color black
+   text b_locx+b_offsetx,b_locy+b_offsety,b_text$
+   refresh
+else
+   color darkgrey
+   poly {b_locx, b_locy, b_locx+b_width, b_locy, b_locx, b_locy+b_height}
+   color rgb(200,200,200)
+   poly {b_locx+b_width, b_locy, b_locx+b_width, b_locy+b_height, b_locx, b_locy+b_height}
+   color grey
+   rect b_locx+b_width*0.05,b_locy+b_height*0.07, b_width-b_width*0.1, b_height-b_height*0.1
+   color black
+   text b_locx+(b_offsetx+2),b_locy+(b_offsety+2),b_text$
+end if
+refresh
+return
+#*********************************
+# sub routine "Draw a colored button"
+#*********************************
+drawcolbutton:
+font "Tahoma",b_textsize,100
+if b_pressed=0 then
+   color rgb(b_colr,b_colg,b_colb)
+   poly {b_locx, b_locy, b_locx+b_width, b_locy, b_locx, b_locy+b_height}
+#   color rgb(colorbandnew[0,0],colorbandnew[1,0],colorbandnew[2,0]) 
+   poly {b_locx+b_width, b_locy, b_locx+b_width, b_locy+b_height, b_locx, b_locy+b_height}
+   rect b_locx+b_width*0.05,b_locy+b_height*0.07, b_width-b_width*0.1, b_height-b_height*0.1
+   color black
+   text b_locx+b_offsetx,b_locy+b_offsety,b_text$
+   refresh
+else   
+   color rgb(b_colr,b_colg,b_colb)
+   poly {b_locx, b_locy, b_locx+b_width, b_locy, b_locx, b_locy+b_height}
+   color rgb(200,200,255)
+   poly {b_locx+b_width, b_locy, b_locx+b_width, b_locy+b_height, b_locx, b_locy+b_height}
+   color rgb(colorbandnew[0,0],colorbandnew[1,0],colorbandnew[2,0]) 
+   rect b_locx+b_width*0.05,b_locy+b_height*0.07, b_width-b_width*0.1, b_height-b_height*0.1
+   color black
+   text b_locx+(b_offsetx+2),b_locy+(b_offsety+2),b_text$
+end if
+refresh
+return#*********************************
+# sub routine "Draw the 'Set' button"
+#*********************************
+drawsetbutton:
+font "Tahoma",b_textsize,100
+if b_pressed=0 then
+   color cyan
+   poly {b_locx, b_locy, b_locx+b_width, b_locy, b_locx, b_locy+b_height} 
+   poly {b_locx+b_width, b_locy, b_locx+b_width, b_locy+b_height, b_locx, b_locy+b_height}
+   rect b_locx+b_width*0.05,b_locy+b_height*0.07, b_width-b_width*0.1, b_height-b_height*0.1
+   color black
+   text b_locx+b_offsetx,b_locy+b_offsety,b_text$
+   refresh
+else   
+   color cyan 
+   poly {b_locx, b_locy, b_locx+b_width, b_locy, b_locx, b_locy+b_height}
+   poly {b_locx+b_width, b_locy, b_locx+b_width, b_locy+b_height, b_locx, b_locy+b_height}
+   rect b_locx+b_width*0.05,b_locy+b_height*0.07, b_width-b_width*0.1, b_height-b_height*0.1
+   color black
+   text b_locx+(b_offsetx+2),b_locy+(b_offsety+2),b_text$
+end if
+refresh
+return
+#***************************************
+# sub routine "Draw a radio button list"
+#***************************************
+drawradio:
+color black
+font "Tahoma",10,100
+radio_spacing = (radio_locy_bot-radio_locy_top)/(radio_elements-1)
+for i = 0 to (radio_elements -1)
+   color black
+   circle radio_locx, radio_locy_top+(radio_spacing*i), 5
+   color white
+   circle radio_locx+1, radio_locy_top+(radio_spacing*i)+1,4
+next i
+#radio text captions
+color black
+for i = 0 to radio_elements-1
+   text radio_locx + 15,radio_locy_top + (radio_spacing*i)-8, radio1$[i]
+next i
+# paint active radio button
+circle radio_locx+1, radio_locy_top+(radio_spacing*(radio_active-1))+1,2
+refresh
+return
+#*********************************
+# sub routine "Draw a tab-bar"
+#*********************************
+drawtabs:
+if sw_FullJulia=1 then
+   putslice 10,10,Mandelbrot$
+   sw_FullJulia=0
+endif
+font "Tahoma",10,100
+tab_width_single= tab_width/tab_elements
+#erase tab-bar area
+color rgb(140,140,140)
+rect tab_locx,tab_locy,tab_width,tab_height
+#tab separator horizontal
+color darkgrey
+line tab_locx,tab_locy+tab_height,tab_locx+tab_width, tab_locy+ tab_height
+line tab_locx,tab_locy,tab_locx+tab_width, tab_locy
+color rgb(200,200,200)
+line tab_locx,tab_locy+tab_height+1,tab_locx+tab_width, tab_locy+ tab_height+1
+line tab_locx,tab_locy+1,tab_locx+tab_width, tab_locy+1
+#tab seperator vertical
+color darkgrey
+for i = 0 to tab_elements
+   color darkgrey
+   line tab_locx+1+i*tab_width_single,tab_locy+1,tab_locx+1+i*tab_width_single, tab_locy+tab_height
+   color rgb(200,200,200)
+   line tab_locx+i*tab_width_single,tab_locy+1,tab_locx+i*tab_width_single, tab_locy+tab_height
+next i
+#tab text - all inactive
+for i = 0 to tab_elements-1
+   text tab_locx+(i*tab_width_single)+7,tab_locy+tab_height/5, tab1$[i]
+next i
+# paint active tab
+color grey
+rect tab_locx+(tab_active-1)*tab_width_single+1, tab_locy, tab_width_single-2, tab_height+2
+color darkgrey
+line tab_locx+(tab_active-1)*tab_width_single+2, tab_locy,tab_locx+(tab_active)*tab_width_single-3,tab_locy
+color rgb(200,200,200)
+line tab_locx+(tab_active-1)*tab_width_single+2, tab_locy,tab_locx+(tab_active)*tab_width_single-1,tab_locy
+color black
+text tab_locx+((tab_active-1)*tab_width_single)+7,tab_locy +tab_height/5+2, tab1$[tab_active-1]
+refresh
+return
+#***************************************
+# sub routine "Draw a slider"
+#***************************************
+drawslider:
+if slider_orient=1 then
+   slider_lenght = (slider_locx_bot-slider_locx_top)
+   color darkgrey
+   line slider_locx_top,slider_locy_top, slider_locx_bot,slider_locy_bot
+   line slider_locx_top,slider_locy_top+1, slider_locx_bot,slider_locy_bot+1
+   line slider_locx_top,slider_locy_top+2, slider_locx_bot,slider_locy_bot+2
+   color black
+   line slider_locx_top,slider_locy_top+3, slider_locx_bot,slider_locy_bot+3
+   line slider_locx_top,slider_locy_top+4, slider_locx_bot,slider_locy_bot+4
+   color rgb(200,200,200)
+   line slider_locx_top,slider_locy_top+5, slider_locx_bot,slider_locy_bot+5
+   line slider_locx_top,slider_locy_top+6, slider_locx_bot,slider_locy_bot+6
+   line slider_locx_top,slider_locy_top+7, slider_locx_bot,slider_locy_bot+7
+   slider_posx = slider_locx_top+4
+   slider_posy = slider_locy_top+4
+else
+rem slider_locx_top=1000:slider_locy_top=90:slider_locx_bot=1000:slider_locy_bot=400
+   slider_lenght = (slider_locy_bot-slider_locx_top)
+   color darkgrey
+   line slider_locx_top,slider_locy_top, slider_locx_bot,slider_locy_bot
+   line slider_locx_top+1,slider_locy_top, slider_locx_bot+1,slider_locy_bot
+   line slider_locx_top+2,slider_locy_top, slider_locx_bot+2,slider_locy_bot
+   color black
+   line slider_locx_top+3,slider_locy_top, slider_locx_bot+3,slider_locy_bot
+   line slider_locx_top+4,slider_locy_top, slider_locx_bot+4,slider_locy_bot
+   color rgb(200,200,200)
+   line slider_locx_top+5,slider_locy_top, slider_locx_bot+5,slider_locy_bot
+   line slider_locx_top+6,slider_locy_top, slider_locx_bot+6,slider_locy_bot
+   line slider_locx_top+7,slider_locy_top, slider_locx_bot+7,slider_locy_bot
+   slider_posx = slider_locx_top+4
+   slider_posy = slider_locy_top+4
+end if
+if sw_sel$="Zoom" then
+   if kt=30 then
+      spriteplace 0,slider_posx,slider_posy
+   else
+      spriteplace 0,slider_posx,(kt-30)/2+71
+   endif
+   spriteshow 0
+   spritehide 1
+   spritehide 2
+   spritehide 3
+endif
+if sw_sel$="Colors_set" then
+   spriteplace  rgbslide+1,slider_posx,slider_posy
+   spriteshow rgbslide+1
+endif
+refresh
+return
+#******************************************
+# sub routine "Draw the desired color"
+#******************************************
+drwcolor:
+if rood > 255 then rood = 255
+if groen > 255 then groen = 255
+if blauw > 255 then blauw = 255
+if rood < 0 then rood = 0
+if groen < 0 then groen = 0
+if blauw < 0 then blauw = 0
+# individual color elements
+color rgb(rood,groen,blauw)
+# color rood,blauw,groen
+rect 1010,380, 80,70
+#numeric representation
+color grey
+rect 1120,390, 50,70
+color black
+font "Tahoma",10,100
+text 1103,390,"R:"
+text 1120,390,rood
+font "Tahoma",10,100
+text 1103,405,"G:"
+text 1120,405,groen
+font "Tahoma",10,100
+text 1103,420,"B:"
+text 1120,420,blauw
+return
+#******************************************
+# sub routine "Draw a drawing element grid"
+#******************************************
+drawing:
+for i=1 to draw_elements_x
+   for j =1 to draw_elements_y
+      widthfiller=draw_width+draw_offsetx
+      heightfiller= draw_height+draw_offsety
+      color darkgrey
+      poly {draw_locx+((i-1)*widthfiller)-(draw_width*draw_insetx),draw_locy+((j-1)*heightfiller)-(draw_height*draw_insety),draw_locx+((i-1)*widthfiller)-(draw_width*draw_insetx),draw_locy+((j-1)*heightfiller)+draw_height+(draw_height*draw_insety) ,draw_locx+((i-1)*widthfiller)+draw_height/2,draw_locy+((j-1)*heightfiller)+draw_height/2}
+      poly {draw_locx+((i-1)*widthfiller)-(draw_width*draw_insetx), draw_locy+((j-1)*heightfiller)-(draw_height*draw_insety), draw_locx+((i-1)*widthfiller)+draw_height/2, draw_locy+((j-1)*heightfiller)+draw_height/2,draw_locx+((i-1)*widthfiller)+draw_width-draw_height/2,draw_locy+((j-1)*heightfiller)+draw_height/2, draw_locx+((i-1)*widthfiller)+draw_width+(draw_height*draw_insetx),draw_locy+((j-1)*heightfiller)-(draw_width*draw_insety)}
+      color rgb(200,200,200)
+      poly {draw_locx+((i-1)*widthfiller)-(draw_width*draw_insetx),draw_locy+((j-1)*heightfiller)+draw_height+(draw_height*draw_insety),draw_locx+((i-1)*widthfiller)+draw_height/2,draw_locy+((j-1)*heightfiller)+draw_height/2,draw_locx+((i-1)*widthfiller)+draw_width-draw_height/2, draw_locy+((j-1)*heightfiller)+ draw_height/2,draw_locx+((i-1)*widthfiller)+draw_width+(draw_height*draw_insety),draw_locy+((j-1)*heightfiller)+draw_height+(draw_width*draw_insety)}
+      poly {draw_locx+((i-1)*widthfiller)+draw_width-draw_height/2,draw_locy+((j-1)*heightfiller)+draw_height/2,draw_locx+((i-1)*widthfiller)+draw_width+(draw_height*draw_insetx),draw_locy+((j-1)*heightfiller)+draw_height+(draw_width*draw_insety),draw_locx+((i-1)*widthfiller)+draw_width+(draw_height*draw_insetx),draw_locy+((j-1)*heightfiller)-(draw_width*draw_insety)}
+      if draw_color = 1 then
+         color white
+      else
+         if draw_color = 2 then
+            color black
+         else
+            if draw_color = 3 then
+                  color cyan   
+            else
+                  color grey
+            endif
+         endif
+      endif
+      rect draw_locx+(i-1)*widthfiller,draw_locy+(j-1)*heightfiller, draw_width,draw_height
+   next j
+next i
+refresh
+return
+# *****************************
+#      Initialize Complex Map
+# *****************************
+InitComplexMap:
+rem put in the scale of the complex plane-drawing area
+xmin = 2.093548:jxmin=-2
+xmax = -0.809678:jxmax=2
+ymin = 1.494624:jymin=-2
+ymax = -1.505376: jymax=2
+dx=(xmax-xmin)/width_drawx:dy=(ymax-ymin)/height_drawy
+jdx=(jxmax-jxmin)/width_drawx:jdy=(jymax-jymin)/height_drawy
+kt=30
+kz=30
+return
+#************************************
+# Draw full Julia set in Julia window
+#************************************
+FullJulia:
+draw_locx = 680:draw_locy = 120
+draw_width = 430:draw_height = 430
+draw_offsetx = 0: draw_offsety=0
+draw_insetx = 0.01: draw_insety=0.01
+draw_elements_x=1:draw_elements_y=1
+draw_color=2
+gosub drawing
+start_drawx=680
+width_drawx=430
+start_drawy=120
+height_drawy=430
+jdx=0.0093023255813953
+jdy=0.0093023255813953
+for scrn_x=start_drawx-670 to start_drawx+width_drawx-670
+   jx=jxmin+scrn_x*jdx
+   for scrn_y=start_drawy-110 to start_drawy+height_drawy-110
+      jy=jymin+scrn_y*jdy
+      k=0:wx=jx:wy=jy
+      MainCalc2:
+      tx=wx*wx-wy*wy-real
+      ty=2.0*wx*wy-imag
+      wx=tx
+      wy=ty
+      r=wx*wx+wy*wy
+      k=k+1
+      if r<=4 and k<kt then goto MainCalc2
+      if mand_radio_active=1 then
+         modu=k mod 11
+         color colorband[color_radio_active-1,modu*23]
+      else
+         if color_radio_active=0 then
+            color black
+            text 330,55,"Please choose another color band"
+            return
+         else
+            if mand_radio_active=2 then
+               mu = (k  - log (log(kt))/log(2))/kt
+               if mu > 1 then mu=1
+               if mu < 0 then mu=0
+               mu=mu*255
+               color colorband[color_radio_active-1,mu]
+            endif
+         endif
+      endif
+      if k=kt then color black
+      plot scrn_x+670,scrn_y+110
+   next scrn_y
+   refresh
+next scrn_x
+clickclear
+while clickb=0 
+  wait=1
+end while
+color black
+rect 680,120,430,430
+refresh
+start_drawx=10
+width_drawx=568
+start_drawy=10
+height_drawy=580
+jxmin=-2
+jdx=4/568
+jdy=4/568
+return
+
+#****************************************
+# Fast Julia with inverse iteration (IIM)
+#****************************************
+FastJulia:
+small=0
+x=real
+yi= imag
+cx=x
+cyi=yi
+if sw_FastJulia=0 then
+   color black
+rem   rect 346,56,206,206
+   rect 680,120,430,430
+   sw_FastJulia=1
+end if
+for ij =  1 to 1500
+   cx=cx+x
+   cyi=cyi-yi
+   if cx > 0 then
+      ncx=((cx+(cx*cx+cyi*cyi)^0.5)/2)^0.5
+      ncyi=cyi/(2*ncx)
+   else
+      if cx < 0 then
+         ncyi=((-cx+(cx*cx+cyi*cyi)^0.5)/2)^0.5
+         ncx=cyi/(2*ncyi)
+      else
+         ncx=(abs(cyi)/2)^0.5
+         if ncx>0 then
+            ncyi= cyi/(2*ncx)
+         else
+            ncyi=0
+         endif
+      endif
+   endif
+   if rand > 0.5 then
+      cx=ncx
+      cyi=ncyi
+   else
+      cx=-ncx
+      cyi=-ncyi
+   endif
+   color white
+#   plot 770+ (cx+1)*(430/4),540-(cyi+2)*(430/4)
+   plot 790+ (cx+1)*(400/4),540-(cyi+2)*(400/4)
+next ij
+refresh
+break:
+return
+#****************************************
+# Show the iteration 'orbits' at each iteration
+#****************************************
+OrbitView:
+wx=oldreal
+wy=oldimag
+k=0
+MainOrbit:
+tx=wx*wx-wy*wy-oldreal
+ty=2.0*wx*wy-oldimag
+wx=tx
+wy=ty
+r=wx*wx+wy*wy
+k=k+1
+if r<=4  then
+   if abs(wx)<1.9 and abs (wy) < 1.9 then
+      xdot=(tx+2)*100+670
+      ydot=(ty+2)*100+100
+      if mouseb=1 then
+         tel=tel+3
+         color colorband[color_radio_active-1,tel mod 255]
+         circle int(xdot),int(ydot),1
+         clickclear
+         sw_trail=1
+      else
+         color darkgrey
+         circle int(oldxdot),int(oldydot),1
+         color white
+         circle int(xdot),int(ydot),1
+         sw_trail=0
+      endif
+      oldxdot=xdot
+      oldydot=ydot
+      refresh
+   endif
+   while oldmousex=mousex and oldmousey=mousey
+      goto MainOrbit
+   end while
+endif
+return
+#*********************************************
+# Draw full Mandelbrot according to parameters
+#*********************************************
+MandelDraw:
+color black
+rect 10,10,568,580
+refresh
+swcpy=0
+for scrn_x=start_drawx to start_drawx+width_drawx
+   jx=xmin+(scrn_x-start_drawx)*dx
+   for scrn_y=start_drawy to start_drawy+height_drawy
+      jy=ymin+(scrn_y-start_drawy)*dy
+      k=0:wx=0.0:wy=0.0
+      zx=-jx
+      cardio=((zx-0.25)^2+jy^2)^0.5
+      if zx < cardio - (2*cardio^2)+0.25 then k=kt-1
+      if ((zx+1)^2+jy^2) < 0.0625 then k=kt-1
+      MainCalculation:
+      tx=wx*wx-wy*wy-jx
+      ty=2.0*wx*wy-jy
+      wx=tx
+      wy=ty
+      k=k+1
+      r=wx*wx+wy*wy
+      if r<4 and k<kt then goto MainCalculation
+      if mand_radio_active=1 then
+          modu=k mod 11
+          color colorband[color_radio_active-1,modu*23]  
+      else
+         if mand_radio_active=2 then
+            if color_radio_active=1 then  
+               text 700,300,"Please choose another color band from the 'Color'-tab"
+               text 700,320,"The screen will remain black until you do."
+               text 700,340,"Once done, return to this tab and pres 'Calculate' again "
+               refresh
+               return
+            endif
+            if k=kt then
+              color black
+              goto skippy
+            endif
+            modul=r^0.5
+            if modul < 1 then modul= 1
+            mu = k+1  - (log(log(modul))/log(2))
+            if mu < 0 then mu=0
+            if mu > kt then mu = kt
+            grad=mu/kt*255
+            color colorband[color_radio_active-1,grad]   
+            skip:
+         else
+            if mand_radio_active=3 then
+               if wx > 0 then
+                  if wy > 0 then
+                     color colorband[color_radio_active-1,0]
+                  else
+                     color colorband[color_radio_active-1,85]
+                  endif
+               else
+                  if wy > 0 then
+                     color colorband[color_radio_active-1,170]
+                  else
+                     color colorband[color_radio_active-1,255]
+                  endif
+               endif
+            endif
+         endif
+      endif
+  #      endif
+skippy:
+      if k=kt then color black  
+      plot scrn_x,scrn_y
+      if color_radio_active-1=1 then
+       for j=1 to 3
+         plot scrn_x,scrn_y
+       next j
+      endif   
+   next scrn_y
+   refresh
+next scrn_x
+Mandelbrot$=getslice (10,10,570,580)
+return
+#*********************************************
+# Draw small Mandelbrot in Zoom window
+#*********************************************
+MandelZoom:
+if swcpy=0 then
+   #make a scaled copy of the main into the zoom window
+   for i = 10 to 580 step 2
+      for j = 10 to 578 step 2
+         colr=pixel(i,j)
+         color colr
+         plot 665+i/2,95+j/2
+      next j
+      refresh
+   next i
+   refresh
+   swcpy=1
+endif
+#while we click in the zoom-area
+while mouseb=1
+   if swzoom=0 then
+      firstx=mousex:firsty=mousey
+      swzoom=1
+   endif
+   if firstx <> mousex or firsty <> mousey then
+      swzm=1
+      if mousex > 670 and mousex < 955 then
+         if mousey > 100 and mousey < 384 then
+            color white
+            sizea=mousex-firstx
+            sizeb=mousey-firsty
+            if sizea>sizeb then
+               sizemax=sizea
+               diff=sizea-sizeb
+               rect firstx, firsty, sizemax,sizemax
+               torealzoom = (mousex-670)/284*(xmax-xmin)+xmin
+               toimagzoom = (mousey-100+diff)/284*(ymax-ymin)+ymin
+            else
+               sizemax=sizeb
+               diff=sizeb-sizea
+               rect firstx, firsty, sizemax,sizemax
+               torealzoom = (mousex-670+diff)/284*(xmax-xmin)+xmin
+               toimagzoom = (mousey-100)/284*(ymax-ymin)+ymin
+            endif
+            refresh
+         endif
+      endif
+   endif
+end while
+if swzoom=1 then
+   fromrealzoom = (firstx-670)/284*(xmax-xmin)+xmin
+   fromimagzoom = (firsty-100)/284*(ymax-ymin)+ymin
+endif
+if swzm=1 then
+   swzm=0
+xmax=torealzoom:xmin=fromrealzoom
+ymax=toimagzoom:ymin=fromimagzoom
+dx=(xmax-xmin)/580:dy=(ymax-ymin)/580
+endif
+return
+#*********************************************
+# Initialize all color bars
+#*********************************************
+CreateColor:
+dim colorband(6,256) fill 0
+dim colorbandnew(3,256) fill 0
+dim colorbandcustom(3,256) fill 0
+#draw banded area
+dim col(20)
+rem col={-65536,-16776961,-16711936, -16711681,-16744320,-65281, -256,-8355840,-39424, -5623040, -5987164,-8355712}
+#create first colorband - blocks of color
+col={-65536,-16776961,-16711936, -16711681,-16744320,-65281, -256,-8355840,-39424, -5623040, -5987164,-8355712}
+l=0
+for i=0 to 9
+  for m = 0 to 22
+    colorband[0,l+m]=col[i]
+  next m
+    l = l+m
+next i
+# draw smooth area
+#create second colorband - red to yellow 
+for i = 0 to 255
+   bl=0
+   gr=100+(i-100)
+   rd=255
+   if rd < 0 then rd =0
+   colorband[1,i]= ( (127 * 256 + rd) * 256 + gr) * 256 + bl
+next i
+
+# draw third colorband with random colors
+for i = 0 to 255 step 1
+   colorband[2,i]=( (127 * 256 + (rand*255)) * 256 + (rand*255)) * 256 + (rand*255)
+next i
+
+# draw fourth colorband - smooth area with more gradients -customizable
+for i = 0 to 127
+   rd=i*2
+   gr=255-i
+   bl=255-i
+   colorband[3,i]=( (127 * 256 + rd) * 256 + gr) * 256 + bl
+next i
+for i = 128 to 255
+   rd=255-(i-128)*2
+   gr=i
+   bl=127-(i-128)
+   colorband[3,i]=( (127 * 256 + rd) * 256 + gr) * 256 + bl
+next i
+
+# draw fifth colorband - black to white
+for i = 0 to 255 step 1
+   rd=i
+   gr=i
+   bl=i
+   colorband[4,i]=( (127 * 256 + rd%255) * 256 + gr%255) * 256 + bl%255
+next i
+
+
+# draw sixth colorband with multiple black to white areas
+for i = 0 to 255 step 4
+   rd=i
+   gr=i
+   bl=i
+   colorband[5,i/4]=( (127 * 256 + rd%256) * 256 + gr%256) * 256 + bl%256
+next i
+
+for i = 0 to 255 step 4
+   rd=255-i
+   gr=255-i
+   bl=255-i
+   colorband[5,64+i/4]=( (127 * 256 + rd%256) * 256 + gr%256) * 256 + bl%256
+next i
+for i = 0 to 255 step 4
+   rd=i
+   gr=i
+   bl=i
+   colorband[5,128+i/4]=( (127 * 256 + rd%256) * 256 + gr%256) * 256 + bl%256
+next i
+for i = 0 to 255 step 4
+   rd=255-i
+   gr=255-i
+   bl=255-i
+   colorband[5,192+i/4]=( (127 * 256 + rd%256) * 256 + gr%256) * 256 + bl%256
+next i
+
+# draw white bars
+#for i = 0 to 255 step 1
+#   colorbandnew[0,i]=255
+#   colorbandnew[1,i]=255
+#   colorbandnew[2,i]=255
+#next i
+# initialize custom bar
+for i = 0 to 255 step 1
+   colorbandcustom[0,i]=-1
+next i
+return
+#*********************************************
+# Create customized colorbar at every click
+#*********************************************
+ColorbandCustom:
+col1r=colorbandcustom[0,0]
+col1g=colorbandcustom[1,0]
+col1b=colorbandcustom[2,0]
+col1=0
+col2=255
+for icust = 0 to 255
+   if colorbandcustom[0,icust] >-1 and icust > 0 then
+      sw_custseg=1
+      col2=icust
+      col2r=colorbandcustom[0,col2]
+      col2g=colorbandcustom[1,col2]
+      col2b=colorbandcustom[2,col2]
+      dist=abs(col2-col1)
+      sega=col1:segb=col2
+      for segment = sega to segb
+         if col2r> col1r then
+            newr=col1r+int((col2r-col1r)/dist*(segment-sega) )
+         else
+            if col2r< col1r then
+               newr=col1r-int((col1r-col2r)/dist*(segment-sega) )
+            else
+               newr=col1r
+            endif
+         endif
+         if col2g> col1g then
+            newg=col1g+int((col2g-col1g)/dist*(segment-sega) )
+         else
+            if col2g< col1g then
+               newg=col1g-int((col1g-col2g)/dist*(segment-sega) )
+            else
+               newg=col1g
+            endif
+         endif
+         if col2b> col1b then
+            newb=col1b+int((col2b-col1b)/dist*(segment-sega) )
+         else
+            if col2b< col1b then
+               newb=col1b-int((col1b-col2b)/dist*(segment-sega) )
+            else
+               newb=col1b
+            endif
+         endif
+         colorbandnew[0,segment]=newr
+         colorbandnew[1,segment]=newg
+         colorbandnew[2,segment]=newb
+      next segment
+      if col2 < 255 then
+         dist=255-col2
+         for segment = col2 to 255
+            newr=int(col2r+(255-col2r)/dist*(segment-col2))
+            newg=int(col2g+(255-col2g)/dist*(segment-col2))
+            newb=int(col2b+(255-col2b)/dist*(segment-col2))
+            colorbandnew[0,segment]=newr
+            colorbandnew[1,segment]=newg
+            colorbandnew[2,segment]=newb
+            
+         next segment
+      endif
+   endif
+   if sw_custseg=1 then
+      col1=col2
+      col1r=colorbandnew[0,col2]
+      col1g=colorbandnew[1,col2]
+      col1b=colorbandnew[2,col2]
+   endif
+next icust
+if sw_custseg=0 then
+   col2r=255
+   col2g=255
+   col2b=255
+   old1r=col1r
+   old1g=col1g
+   old1b=col1b
+   dist=abs(col2-col1)
+   sega=col1:segb=col2
+   for segment = sega to segb
+      if col2r> col1r then
+         newr=col1r+int((col2r-col1r)/dist*(segment-sega) )
+      else
+         if col2r< col1r then
+            newr=col1r-int((col1r-col2r)/dist*(segment-sega) )
+         else
+            newr=col1r
+         endif
+      endif
+      if col2g> col1g then
+         newg=col1g+int((col2g-col1g)/dist*(segment-sega) )
+      else
+         if col2g< col1g then
+            newg=col1g-int((col1g-col2g)/dist*(segment-sega) )
+         else
+            newg=col1g
+         endif
+      endif
+      if col2b> col1b then
+         newb=col1b+int((col2b-col1b)/dist*(segment-sega) )
+      else
+         if col2b< col1b then
+            newb=col1b-int((col1b-col2b)/dist*(segment-sega) )
+         else
+            newb=col1b
+         endif
+      endif
+      colorbandnew[0,segment]=newr
+      colorbandnew[1,segment]=newg
+      colorbandnew[2,segment]=newb
+   next segment
+endif
+sw_custseg=0
+#draw newcolors
+for i=0 to 255
+   if colorbandnew[0,i] > 255 then colorbandnew[0,i]=255
+   if colorbandnew[0,i] < 0 then colorbandnew[0,i]=0
+   if colorbandnew[1,i] > 255 then colorbandnew[1,i]=255
+   if colorbandnew[1,i] < 0 then colorbandnew[1,i]=0
+   if colorbandnew[2,i] > 255 then colorbandnew[2,i]=255
+   if colorbandnew[2,i] < 0 then colorbandnew[2,i]=0
+   color rgb(colorbandnew[0,i],colorbandnew[1,i],colorbandnew[2,i])
+   line 930+i,345,930+i, 353
+next i
+refresh
+return
+#*********************************************
+# Create Splashscreen
+#*********************************************
+splash:
+color darkgrey
+rect 0,0,1200,600
+draw_locx = 10:draw_locy = 10
+draw_width = 1170:draw_height = 580
+draw_offsetx = 0: draw_offsety=0
+draw_insetx = 0: draw_insety=0
+draw_elements_x=1:draw_elements_y=1
+draw_color=4
+gosub drawing
+for i = 1 to 24
+   refresh
+   pause 0.008
+   font "Times", i, 100
+   color grey
+   rect 110,70,900,100
+   color black
+   t1$="M A N D E L B R O T - 256"
+   text 540-6*i,70,t1$
+next i
+font "Times", 18, 75
+t3$="Explorations in the Mandelbrot set"
+text 400, 140,t3$
+# Show About button
+b_text$= "About":b_textsize=14
+b_offsetx=30:b_offsety=18
+b_pressed=0
+b_about_locx=420:b_locx=b_about_locx
+b_about_locy=250:b_locy=b_about_locy
+b_about_height=60:b_height=b_about_height
+b_about_width=120:b_width=b_about_width
+gosub drawbutton
+# Show Go! button
+b_text$= "Go!":b_textsize=14
+b_offsetx=40:b_offsety=18
+b_pressed=0
+b_go_locx=620:b_locx=b_go_locx
+b_go_locy=250:b_locy=b_go_locy
+b_go_height=60:b_height=b_go_height
+b_go_width=120:b_width=b_go_width
+gosub drawbutton
+refresh
+while swabout=0
+   if mousex > b_about_locx and mousex < b_about_locx+b_about_width then
+      if mousey > b_about_locy and mousey <           b_about_locy+b_about_height then
+         while mouseb=1
+            clickclear
+            # Press About button
+            b_text$= "About":b_textsize=14
+            b_offsetx=30:b_offsety=18
+            b_pressed=1
+            b_locx= b_about_locx:b_locy=b_about_locy
+            b_height=b_about_height:b_width=b_about_width
+            gosub drawbutton
+            refresh
+            pause 0.2
+            b_pressed=0
+            gosub drawbutton
+            Mandellogo$=getslice (320,180,600,320)
+            color rgb(200,200,200)
+            rect 320,180, 600,320
+            about_txt1$="Mandelbrot-256 aims to be a fun little program which shows that Basic-256"
+            about_txt2$="is already able to create full-featured programs if you so want...  "
+            about_txt3$="It is not intended to be a 'real' fractal program, of which there are plenty, but"
+            about_txt4$="just uses the Mandelbrot set as a foundation for a 'visual' Basic-256 experience"
+            about_txt5$="I do hope you have fun with it!!"
+            about_txt6$="UglyMike"
+            about_txt7$="*Basic-256 is being maintained by myself (UglyMike)"
+            about_txt8$="*The GUI Toolkit is based on BTK-256, a set of sub-routines I am working on"
+            about_txt9$="*Lots of Mandelbrot data and most code for the fractal-specific parts of this program"
+            about_txt10$="can be found in the Wikipedia entry "
+            about_txt11$="http://en.wikipedia.org/wiki/Mandelbrot_set"
+            
+            font "Times New Roman", 14, 60
+            color black
+            text 330,190,about_txt1$
+            text 330,215,about_txt2$
+            text 330,240,about_txt3$
+            text 330,265,about_txt4$
+            text 330,290,about_txt5$
+            text 360,315,about_txt6$
+            font "Times New Roman", 12, 50
+            text 330,345,about_txt7$
+            text 330,365,about_txt8$
+            text 330,385,about_txt9$
+            text 330,405,about_txt10$
+            color blue
+            text 330,425,about_txt11$
+            # Show Return button
+            b_text$= "Return":b_textsize=8
+            b_offsetx=8:b_offsety=3
+            b_pressed=0
+            b_return_locx=340:b_locx=b_return_locx
+            b_return_locy=465:b_locy=b_return_locy
+            b_return_height=20:b_height=b_return_height
+            b_return_width=55:b_width=b_return_width
+            gosub drawbutton
+            refresh
+            while swreturn=0
+               if mousex > b_return_locx and mousex < b_return_locx+b_return_width then
+                  if mousey > b_return_locy and mousey < b_return_locy+b_return_height   then
+                     while mouseb=1
+                        clickclear
+                        putslice 320,180,Mandellogo$
+                        refresh
+                        swreturn=1
+                     end while
+                  endif
+               endif
+            end while
+            swreturn=0
+         end while
+      endif
+   endif
+   if mousex > b_go_locx and mousex < b_go_locx+b_go_width then
+      if mousey > b_go_locy and mousey < b_go_locy+b_go_height then
+         while mouseb=1
+            clickclear
+            # Press Reset button
+            b_text$= "Go!":b_textsize=14
+            b_offsetx=40:b_offsety=18
+            b_pressed=1
+            b_locx= b_go_locx:b_locy=b_go_locy
+            b_height=b_go_height:b_width=b_go_width
+            gosub drawbutton
+            refresh
+            pause 0.2
+            b_pressed=0
+            gosub drawbutton
+            refresh
+            # Particle system array
+            max =90000
+            dim particle(max,6) fill 0
+            dim degree(360,2) fill 0
+            k=0
+            for i = 0 to 2*pi step (2*pi/359)
+               degree[k,0]=sin(i)
+               degree[k,1]=cos(i)
+               k=k+1
+            next i
+            for i = 0 to max - 1
+               particle[i,4] = 0
+            next i
+            #************************************
+            # create new particles where text is
+            # ***********************************
+            # text is in rect 110,70,900,100
+            t_col = 5*256*256+5*256+5
+            i=-1
+            for j = 0 to  99
+               for k = 0 to  889
+                  i=i+1
+                 # if pixel(k+126,j+71)=black then
+                  if pixel(k+100,j+70)=black then
+                     # horizontal location
+                     particle[i,0] = k
+                     # vertical location
+                     particle[i,1] = j
+                     direction=int(rand *359)
+                     # horizontal speed vector
+                     particle[i,2] = degree[direction,0]
+                     # falling speed vector
+                     particle[i,3] = degree[direction,1]
+                     # particle age
+                     particle[i,4] = 100+int(rand*150)
+                     # activation trigger(0.01 to 96)
+                     particle [i,5] = 96-i/100
+                  end if
+               next k
+            next j
+            #********************
+            # Main Particle Loop
+            #********************
+            starttime=msec
+partloop:
+            if msec-starttime>2000 then goto partend
+            # update position on ALL live particles
+            # *************************************
+            for i = 0 to max-1
+               # for all live particles
+               if particle[i,4] > 0 then
+                  particle[i,5] = particle[i,5]-2
+                  if particle[i,5] < 0 then
+                     # calculate the new location
+                     particle[i,0]= particle[i,0]+ particle[i,2]
+                     particle[i,1]= particle[i,1]+ particle[i,3]
+                     # increase the speed of falling
+                     particle[i,3] = particle[i,3] + 1
+                     # make the particle older
+                     particle[i,4]= particle[i,4]-1
+                     # bounce if it hits the bottom
+                     # 0=no bounce, 1= full bounce,no damping
+                     if particle[i,1] >165 then
+                        particle[i,4] = 0
+                     end if # bounce
+                  end if # trigger
+               end if # live particle
+            next i
+            # Plot of the particle
+            for i = 0 to max-1
+               # for all live particles
+               if particle[i,4] > 0 then
+                  color black
+                  # plot all the live particles
+                  #plot particle[i,0]+126, particle[i,1]+70
+                  rect particle[i,0]+100, particle[i,1]+70,2,2
+               end if
+            next i
+            refresh
+            color grey
+            rect 350,70,500,175
+            goto partloop
+partend:
+            return
+         end while
+      endif
+   endif
+   refresh
+end while

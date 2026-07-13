@@ -1,0 +1,89 @@
+#**************************************************************************
+# Strange Attractors aka  Trigonometric Clifford or Peter de Jong Attractors
+# Based on the work of Simone Conradi here: https://fb.watch/Hqr6gkxun5/
+# Thanks go to Kurt Moermann for the link
+# This program lets you explore the entire [0,2*pi]² area with the mouse
+# Move the mouse slowly over the canvas to hunt for good looking attractors
+# This update does two major things
+# 1.  Attractors have point that attract more than others.
+#     Draw the circles transparent, so causing additive blending.
+#     Points that are visited more will start to glow more
+# 2.  Have the color influenced by the jump from one point to the next
+#	  Not really the effect I wanted. Must tune this more  
+# 
+# If you think you found a nice looking attactor, left-click the mouse
+# This will remove all the trails from the previous attractors.
+#
+# Some variations of xn and yn are commented out. 
+# Just activate them by removing the pair you want
+#
+#**************************************************************************
+# 1. Screen Setup
+fastgraphics
+outputvisible 0
+editvisible 0
+width = 1200
+height = 1200 
+graphsize width, height 
+rect 0, 0, width, height
+refresh
+
+# 2. As long as the mouse is not on the canvas, do nothing
+while mousex = 0
+end while
+
+# 3. Main Loop
+while 1 
+    a = (mousex / width) * 2 * pi
+    b = (mousey / height) * 2 * pi
+    a_old = mousex
+    b_old = mousey
+    x = 0.1
+    y = 0.1
+    
+    # Draw Loop
+    while a_old = mousex and b_old = mousey
+        for chunk = 1 to 2000
+            xn = sin(x*x - y*y + a)
+            yn = cos(2*x*y + b)
+#            xn = sin(x*x*x - 3*x*y*y + a)
+#			yn = cos(3*x*x*y - y*y*y + b)
+#			xn = sin(a * y) - cos(b * x)
+#			yn = sin(b * x) - cos(a * y)            
+#			xn = sin(x*x + y + a)
+#			yn = cos(x - y*y + b)
+#			xn = sin(x*x - y*y + a)
+#			yn = tan(cos(2*x*y) + b)
+#			xn = sin(abs(x)*x - y*y + a)
+#			yn = cos(2 * x * abs(y) + b)
+			xplot = (xn * 0.45 * width) + (width / 2)
+            yplot = (yn * 0.45 * height) + (height / 2)
+
+            dist = sqrt((xn - x)^2 + (yn - y)^2)
+        	# Base the color on the distance from (x,y) to (xn, yn)
+            r = 255 - (dist * 70)
+            g = 120 - (dist * 50)
+            bl = 150 + (dist * 40)     
+            # Keep values clamped between 0 and 255 safely
+            if r < 0 then r = 0
+            if g < 0 then g = 0
+            if bl > 255 then bl = 255
+        	# Change the transarancy to your liking
+            color rgb(r, g, bl, 5)             
+            circle xplot, yplot, 1
+            # If you see an attractor you like, left-click to clear the trails
+            if mouseb=1 then
+              color black
+              rect 0, 0, width, height
+              refresh
+            endif 
+            x = xn
+            y = yn
+         next chunk
+        refresh
+    end while      
+    # When mouse has moved, clear the screen with a slight fade
+    color rgb(0,0,0,15)
+    rect 0, 0, width, height
+    refresh
+end while

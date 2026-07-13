@@ -37,6 +37,8 @@
 #include <QtGui/QShortcut>
 #ifdef Q_OS_WASM
 #include <QDir>
+#include <QDirIterator>
+#include <QFileInfo>
 #include <QtWidgets/QInputDialog>
 #endif
 
@@ -1566,9 +1568,21 @@ void MainWindow::openExample() {
     // only for the picker dialog (RULE 2: QInputDialog::getItem()'s exec()
     // has the same never-returns problem on the WASM main thread as
     // QDialog::exec()/QMessageBox's static functions).
-    QDir dir(":/examples");
-    QStringList files = dir.entryList(QStringList() << "*.kbs", QDir::Files, QDir::Name);
+    // Recursive: the examples are grouped into subdirectories (Games/, Demos/...),
+    // and QDir::entryList() does not descend -- with a nested tree it would return
+    // nothing at all and the picker would silently do nothing. Entries carry their
+    // category ("Games/hangman.kbs"), and sorting them groups the list by category
+    // for free. Works just as well if the tree is flattened again.
+    QStringList files;
+    const QString prefix = QStringLiteral(":/examples/");
+    QDirIterator it(":/examples", QStringList() << "*.kbs", QDir::Files,
+                    QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        it.next();
+        files << it.filePath().mid(prefix.size());
+    }
     if (files.isEmpty()) return;
+    files.sort(Qt::CaseInsensitive);
 
     QInputDialog *dialog = new QInputDialog(this);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
@@ -1577,10 +1591,12 @@ void MainWindow::openExample() {
     dialog->setComboBoxItems(files);
     dialog->setComboBoxEditable(false);
     dialog->setOption(QInputDialog::UseListViewForComboBoxItems);
-    QObject::connect(dialog, &QInputDialog::textValueSelected, this, [this](const QString &fileName){
-        QFile f(":/examples/" + fileName);
+    QObject::connect(dialog, &QInputDialog::textValueSelected, this, [this](const QString &relPath){
+        QFile f(":/examples/" + relPath);
         if (f.open(QIODevice::ReadOnly)) {
-            loadFileContent(fileName, f.readAll());
+            // Tab title is the bare file name -- the category is how you *found*
+            // the program, not part of what it is called.
+            loadFileContent(QFileInfo(relPath).fileName(), f.readAll());
             f.close();
         }
     });

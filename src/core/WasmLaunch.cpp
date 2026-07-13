@@ -22,6 +22,7 @@
 #include "Constants.h"
 
 #include <QDir>
+#include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
 #include <QRegularExpression>
@@ -106,12 +107,19 @@ QByteArray queryString() {
 }
 
 // Bundled example names are pasted straight into a ":/examples/..." path, so
-// keep them to a shape that cannot walk out of the resource prefix. The
-// extension match is case-insensitive to match resolveExampleName() below --
-// otherwise ".KBS" would be rejected here before the forgiving lookup ever ran.
+// keep them to a shape that cannot walk out of the resource prefix.
+//
+// The examples are grouped into subdirectories, so a name may carry a category
+// ("Games/hangman"). Segments are still restricted to [A-Za-z0-9_-], which is
+// what keeps this safe: '.' appears nowhere except the optional ".kbs" suffix,
+// so ".." cannot be spelled at all, and a leading '/' or any backslash fails to
+// match. The extension is matched case-insensitively to agree with
+// resolveExampleName() -- otherwise ".KBS" would be rejected here before the
+// forgiving lookup ever ran.
 bool isSafeExampleName(const QString &name) {
-    static const QRegularExpression rx("^[A-Za-z0-9_\\-]+(\\.kbs)?$",
-                                       QRegularExpression::CaseInsensitiveOption);
+    static const QRegularExpression rx(
+        "^[A-Za-z0-9_\\-]+(/[A-Za-z0-9_\\-]+)*(\\.kbs)?$",
+        QRegularExpression::CaseInsensitiveOption);
     return rx.match(name).hasMatch();
 }
 
@@ -148,14 +156,23 @@ void applyMode(const QString &mode, WasmLaunch::Request &req) {
     }
 }
 
-// Map a ?run= name onto the actual file in :/examples, case-insensitively.
+// Map a ?run= name onto the actual file in :/examples. Returns the real path
+// relative to the prefix ("Games/hangman.kbs"), or empty if there is no match.
 //
-// Qt resource paths are case-sensitive and every bundled example is lowercase,
-// so ":/examples/Mandelbrot.kbs" simply does not exist -- ?run=Mandelbrot failed
-// with "unable to load" while ?run=mandelbrot worked. These links get typed and
-// shared by hand, so an exact-case requirement is a papercut with no upside.
-// Try the name as given first, then fall back to a case-insensitive sweep of the
-// directory. Returns the real, correctly-cased file name, or empty if no match.
+// Forgiving on two axes, both because these links get typed and shared by hand:
+//
+// * Case. Qt resource paths are case-sensitive and the bundled examples are
+//   lowercase, so ":/examples/Mandelbrot.kbs" simply does not exist --
+//   ?run=Mandelbrot failed with "unable to load" while ?run=mandelbrot worked.
+//
+// * Category. The examples now live in subdirectories, but ?run=mandelbrot (no
+//   category) is the form in the README and in every link already shared, and it
+//   must keep working now that the file sits in Demos/. So after trying the full
+//   relative path, fall back to matching on the bare file name anywhere in the
+//   tree. ?run=Demos/mandelbrot works too.
+//
+// If two categories ever hold the same file name, the bare-name form resolves to
+// whichever the iterator reaches first -- give the category to disambiguate.
 QString resolveExampleName(const QString &requested) {
     const QString wanted = requested.endsWith(".kbs", Qt::CaseInsensitive)
                                ? requested
@@ -163,10 +180,23 @@ QString resolveExampleName(const QString &requested) {
 
     if (QFile::exists(":/examples/" + wanted)) return wanted;
 
-    QDir dir(":/examples");
-    const QStringList files = dir.entryList(QStringList() << "*.kbs", QDir::Files, QDir::Name);
-    for (const QString &f : files) {
-        if (f.compare(wanted, Qt::CaseInsensitive) == 0) return f;
+    const QString prefix = QStringLiteral(":/examples/");
+    QStringList all;
+    QDirIterator it(":/examples", QStringList() << "*.kbs", QDir::Files,
+                    QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        it.next();
+        all << it.filePath().mid(prefix.size());
+    }
+
+    // Full relative path first ("Games/hangman.kbs"), so an explicit category
+    // always wins over a same-named file in some other category.
+    for (const QString &rel : all) {
+        if (rel.compare(wanted, Qt::CaseInsensitive) == 0) return rel;
+    }
+    // Then the bare file name, anywhere in the tree.
+    for (const QString &rel : all) {
+        if (QFileInfo(rel).fileName().compare(wanted, Qt::CaseInsensitive) == 0) return rel;
     }
     return QString();
 }
@@ -261,7 +291,9 @@ Request parseQuery() {
     if (!name.isEmpty()) {
         req.source = Source::Example;
         req.value = name;
-        req.title = name.endsWith(".kbs") ? name : name + ".kbs";
+        // A name may carry a category ("Games/hangman"); the tab title should not.
+        const QString base = QFileInfo(name).fileName();
+        req.title = base.endsWith(".kbs", Qt::CaseInsensitive) ? base : base + ".kbs";
         return req;
     }
 

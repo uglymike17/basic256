@@ -1,0 +1,103 @@
+# Julia fractal   K Moerman 2026
+# shamelessly adapted by UglyMike the day after
+global N,r,g,b
+w=800: h=800: N=120: hw=w/2: hh=h/2
+dim r(N): dim g(N): dim b(N)
+editvisible 1
+outputvisible 1
+call calccolors()
+graphsize w,h:clg black:fastgraphics
+old_mousex=0
+old_mousey=0
+#Draw Julia set using fast iteration method
+while 1=1
+    While mousex<1
+    # Wait until mouse hits canvas
+    end while
+	if old_mousex <> mousex or old_mousey <> mousey then
+	  color black
+	  rect 0,0,w,h
+	  old_mousex=mousex
+	  old_mousey=mousey
+	endif
+	Cre = (mousex / w) * -2 + 1.5 
+	Cim = (mousey / h) * -2.5 + 1.25
+	x=Cre
+	yi= Cim	
+	color white
+    font "Tahoma",14,40
+	text 10,10, "Click for full Julia"	
+	cx=x
+	cyi=yi
+   for ij =  1 to 1500
+      cx=cx+x
+      cyi=cyi-yi
+      if cx > 0 then
+         ncx=((cx+(cx*cx+cyi*cyi)^0.5)/2)^0.5
+         ncyi=cyi/(2*ncx)
+      else
+         if cx < 0 then
+            ncyi=((-cx+(cx*cx+cyi*cyi)^0.5)/2)^0.5
+            ncx=cyi/(2*ncyi)
+         else
+            ncx=(abs(cyi)/2)^0.5
+            if ncx>0 then
+               ncyi= cyi/(2*ncx)
+            else
+               ncyi=0
+            endif
+         endif
+      endif
+      if rand > 0.5 then
+         cx=ncx
+         cyi=ncyi
+      else
+         cx=-ncx
+         cyi=-ncyi
+      endif         
+      color white: plot cx*200+hw,cyi*200+hh
+   next ij	  
+   refresh
+  #Draw full Julia set when clicked
+  if clickb = 1 then
+    for x = 0 to w 
+        for y = 0 to h 
+            zx = (hw-x ) / 200
+            zy = (hh - y) / 200  
+            c = 0           
+            do 
+                zre_sq = zx * zx
+                zim_sq = zy * zy               
+                next_zy = 2 * zx * zy + Cim 
+                zx = zre_sq - zim_sq - Cre 
+                zy = next_zy               
+                c++
+            until c > N - 2 or (zre_sq + zim_sq) > 4                    
+            color rgb(r[c], g[c], b[c])
+            if c =119 then
+              color black
+            endif
+             plot x, y
+        next y
+        if x % 10 = 0 then refresh
+    next x
+    color black
+    font "Tahoma",14,40
+    text 10,10, "Click for fast Julia"
+    text 220,10, "Real = ";Cre
+    text 400,10, "Imag = ";Cim
+    refresh	
+    clickclear
+    while clickb = 0
+    end while
+    clickclear
+  endif
+end while
+
+
+subroutine calccolors()# pre- calc rgb values
+for k=0 to N-1#          for faster execution
+	c=255 * sqr(k) / sqr(N)
+	r[k]=(c % 32)*8: g[k]=(c % 128)*2: b[k]=(c % 64)*4
+next k
+end subroutine

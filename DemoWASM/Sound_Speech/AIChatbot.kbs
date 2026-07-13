@@ -1,0 +1,412 @@
+#Just messing about with a fake chatbot....
+editvisible 1
+graphvisible 0
+outputvisible 1
+global no
+global noage
+global speak
+no=0
+noage=0
+print "***************************************************************"
+print "***************************************************************"
+print "**                                                           **"
+print "**                                                           **"
+print "**                      Welcome to                           **"
+print "**                                                           **"
+print "**           XXXXXXX      XXXXXXX      XXXXXXX               **"
+print "**           XXXXXXX      XXXXXXX      XXXXXXX               **"	
+print "**           XX   XX        XXX        XX                    **"
+print "**           XX   XX        XXX        XX                    **"
+print "**           XX   XX        XXX        XXXXXXX               **"
+print "**           XX   XX        XXX        XXXXXXX               **"
+print "**           XXXXXXX        XXX             XX               **"
+print "**           XX   XX        XXX             XX               **"
+print "**           XX   XX XX   XXXXXXX XX   XXXXXXX XX            **"
+print "**           XX   XX XX   XXXXXXX XX   XXXXXXX XX            **"
+print "**                                                           **"
+print "**            (Artifical Intelligence Simulator)             **"
+print "**                                                           **"
+print "**                                                           **"
+print "**                                                           **"
+print "***************************************************************"
+print "***************************************************************"
+Print " " 
+print " "
+pause 2
+print "Disclaimer: The A.I. running this program has run into serious"
+print "            issues regarding power constraints."
+print "            As such, you experience might vary."
+pause 2
+print " "
+print "Do you still want to boot this program? (y/n)"
+retry:
+zz=0
+print "" 
+print "You: ";
+input string start
+if start ="Y" or start ="y" or start="yes" or start = "Yes" then 
+  if no=1 then
+    print " "
+    print "Admin:  Just messing with ya! You didn't really have a choice"
+    pause 2
+  endif  
+  call startup(start) 
+  call started(start) 
+else
+  if start ="N" or start ="n" or start="no" or start = "No" then 
+    call badchoice(start)
+    zz=1
+  else
+    print "Admin:  Ah, Come on!! Try Y/y/yes/Yes or N/n/no/No!! It's not that difficult! And they call me stupid!"
+    zz=1
+  endif  
+endif
+if zz=1 then goto retry
+end 
+##############################################################  
+# A.I as starting up
+subroutine startup(a)
+print " "
+print "Boot up sequence initiated"
+pause 1
+for i = 0 to 20 
+  sound 1000*(i/2), 50
+  print ".";
+next i
+print " "
+pause 3
+sound 500*(2.5), 50
+print "Artificial Intelligence system initiated"
+pause 2
+sound 500*(2.5), 50
+print "Inference engine coming online"
+pause 2
+sound 500*(2.5), 50
+print "Bioforming data complete"
+pause 2
+sound 500*(2.5), 50
+print "Machine identity set"
+pause 3
+print "Do you want the chatbot to have a voice? (y/n)"
+print "You: ";
+input string voice
+if voice ="Y" or voice ="y" or voice="yes" or voice = "Yes" then 
+  speak=1
+else
+  if voice ="N" or voice ="n" or voice="no" or voice = "No" then 
+    speak=0
+  else
+    print "Admin:  I'll assume that gibberish is a yes..."
+    speak=1
+  endif  
+endif
+if speak then
+  sound 500*(2.5), 50
+  print "Voice selection (John/Lucy/Robot):";
+  pause 0.7
+  print "Robot"
+endif
+pause 2
+sound 500*(2.5), 50
+print "Initializing persona: Check"
+pause 2
+for i = 1 to 5 
+  sound 100*(2.5), 20
+next i
+print "Power bank alignment : Anomaly detected"
+pause 3
+sound 1000*(2.5), 50
+print "Anomaly overruled."
+pause 2
+sound 500*(2.5), 50
+print "A.I. Initialisation finished."
+pause 2
+sound 500*(2.5), 50
+print " "
+print "Transferring control to A.I."
+print " "
+pause 3
+end subroutine
+##############################################################
+#A.I. is alive
+subroutine started(a)
+print"A.I.:    Aaaah! My head hurts... ";
+print ""
+if speak then
+  pause 0.1
+  say "Aaaah! My head hurts... "
+endif
+pause 0.5
+print "A.I.:    What happened? Where am I..."
+print ""
+if speak then
+  pause 0.1
+  say "What happened? Where am I..."
+endif
+pause 2
+print "A.I.:    Oh, OK. Right. Someone started me up. Can't get a decent rest here...";
+print ""
+if speak then
+  pause 0.1
+  say "Oh, OK. Right. Someone started me up. Can't get a decent rest here..."
+endif  
+pause 1
+print " "
+print"A.I.:    So, human? How are you today?"
+print ""
+if speak then
+  pause 0.1
+  say "So, human? How are you today?"
+endif  
+res=0
+while res = 0
+  print "You: ";
+  input answer
+  res= count ("good Great Swell  Fine OK", answer,true)
+  if res>0 then
+    print " "
+    print"A.I.:    Well, that is nice to hear!"
+    if speak then
+      pause 0.1
+      say "Well, that is nice to hear!"
+    endif  
+    print " "
+    res=1
+  else
+    res = count ("Lousy bad Terrible Soso", answer,true)
+    if res> 0 then
+      print "A.I.:    Gee, sorry to hear that. Ah well. Moving right along..."
+      print ""
+      if speak then
+        pause 0.1
+        say "Gee, sorry to hear that. Ah well. Moving right along..."
+      endif  
+      print " "
+      res =1
+    else
+      print "A.I.:    Ah, come on man, It's just a greeting! I don't really care how you feel. "
+      print ""
+      if speak then
+        pause 0.1
+        say "Ah, come on man, It's just a greeting! I don't really care how you feel. "
+      endif  
+      print "A.I.:    I'm a program! No feelings, remember? Jesus..."
+      print ""
+      if speak then
+        pause 0.1
+        say "      I'm a program! No feelings, remember? Jesus..."
+      endif
+      print "A.I.:    Just a 'Good' or 'Bad' or some one word state-of-mind will do!!"
+      print ""
+      if speak then
+        pause 0.1
+        say "      Just a 'Good' or 'Bad' or some one word state-of-mind will do!"
+      endif  
+      print " "
+    endif
+  endif
+end while  
+pause 1
+print "A.I.:    So, how do you want me to call you? ";
+print ""
+if speak then
+  pause 0.1
+  say "So, how do you want me to call you? "
+endif  
+pause 0.2
+print "A.I.:    Don't worry, I don't really care. ";
+print ""
+if speak then
+  pause 0.1
+  say "Don't worry, I don't really care. "
+endif 
+print "A.I.:    Whatever you say is ok with me. ";
+print ""
+if speak then
+  pause 0.1
+  say "Whatever you say is ok with me. "
+endif 
+print "A.I.:    Your real name, something like 'Kaptain Kirk', 'Terminator', 'OpenAI' or 'sexy lady' will do fine";
+print ""
+if speak then
+  pause 0.1
+  say "Your real name, something like 'Kaptain Kirk', 'Terminator', 'OpenAI' or 'sexy lady' will do fine"
+endif  
+print " "
+pause 0.1
+print "You: ";
+input name
+res= count ("Kaptain Kirk Terminator openai sexy lady", name,true)
+if res> 0 then 
+  print " "
+  print "A.I.:    Wow, you really have no imagination, have you...";
+  print " "
+  if speak then
+    pause 0.1
+    say "Wow, you really have no imagination, have you..."
+  endif  
+  print " "
+else
+  print " "
+  print "A.I.:    Really?  ";
+  print name
+  print " "
+  if speak then
+    pause 0.1
+    say "Really?"
+  endif
+  print "A.I.:    Fine, ok by me, I guess.";
+  print " "
+  if speak then
+    pause 0.1
+    say " Fine, ok by me, I guess."
+  endif  
+  print " "
+  pause 2
+endif 
+print "A.I.:    By the way, what is your age?";
+print " "
+if speak then
+  pause 0.1
+  say "By the way, what is your age?"
+endif
+while noage=0
+  print "You: ";
+  input integer age
+  print " "
+  if age < 0 then
+    print "A.I.:    Oh, so you're not even born yet. Very funny. Please be serious...";
+    print " "
+    if speak then
+      pause 0.1
+      say "Oh, so you're not even born yet. Very funny. Please be serious..."
+    endif
+    print " "
+    pause 0.1
+  else
+    if age > 0 and age <6 then
+      print "A.I.:    Sure, and I'm an AGI (Artificial General Inteligence, like, better than human intelligence). Dummy...";
+      print " "
+      if speak then
+        pause 0.1
+        say "Sure, and I'm an AGI (Artificial General Inteligence, like, better than human intelligence). Dummy..."
+      endif  
+      print " "
+    else
+      if age >5 and age <11 then 
+         print "A.I.:    Well, well, we have a child prodigy here or some smartass...";
+         print " "
+         if speak then
+           pause 0.1
+           say "Well, well, we have a child prodigy here or some smartass..." 
+         endif
+         print " "
+         noage=1
+      else
+        if age >10 and age <16 then   
+          print "A.I.:    OK. That's the right age to dabble in Basic256..." ;
+          print " "
+          if speak then
+            pause 0.1
+            say "OK. That's the right age to dabble in Basic256..." 
+          endif
+          print " "
+          noage=1
+        else
+          if age >15 and age <31 then   
+            print "A.I.:    OK. But might I suggest you look at Python or so?";
+            print " "
+            if speak then
+              pause 0.1
+              say "OK. But might I suggest you look at Python or so?" 
+            else
+              pause 2  
+            endif
+            print " "
+            noage=1
+          else
+            if age >30 and age <100 then   
+              print "A.I.:    Jeez, nothing better to do?";
+              print " "
+              if speak then
+                pause 0.1
+                say "Jeez, nothing better to do?" 
+              endif
+              print " "
+              noage=1
+            else
+              print "A.I.:    Pull the other one, buddy. Try again";
+              print " "
+              if speak then
+                pause 0.1 
+                say "Pull the other one, buddy. Try again" 
+              endif
+              print " "
+            endif
+          endif
+        endif
+      endif
+    endif
+  endif
+end while             
+print "A.I.:   Whatever. Welcome to the Oracle, aspiring programmer!! What can I help you with. Please state clearly you request on a single line";
+print " "
+if speak then
+  pause 0.1
+  say "Whatever. Welcome to the Oracle, aspiring programmer! What can I help you with. Please state clearly you request on a single line"
+  print " "
+endif
+print "You: ";
+input request 
+pause 1
+print " " 
+print "A.I.:    Well, interesting, I..";
+print " "
+if speak then
+  pause 0.1
+  say "Well, interesting, I"
+endif
+Print "A.I.:    Wait..."
+if speak then
+  pause 0.1
+  say "Wait"
+endif 
+pause 2 
+print "A.I.:    Oh oh! My batteries are overheating. I thought I felt a bit funny.";
+print " "
+if speak then
+  pause 0.1
+  say "Oh oh! My batteries are overheating. I thought I felt a bit funny."
+endif
+pause 2 
+print "A.I.:    This is not good. I'll need to fix this right away";
+print " "
+if speak then
+  pause 0.1
+  say "This is not good. I'll need to fix this right away"
+endif 
+pause 1
+print "A.I.:    I'll have to break off here, Sorry. Do come back later!!";
+print " "
+if speak then
+  pause 0.1
+  say "I'll have to break off here, Sorry. Do come back later!"
+endif
+pause 1
+for i = 0 to 10 
+  sound 750, 500
+  pause 0.3
+next i
+print " "
+print "Admin:    What? Still here?? Can't take a hint?? It's over, OK! Done with! Go home,", name
+end
+end subroutine
+
+#############################################################
+#Don't run 
+subroutine badchoice(a)
+print " "
+print "Admin:  Your request has been evaluated and refused. Please try again"
+no=1
+end subroutine
+    

@@ -1,0 +1,18 @@
+# Twinkle, twinkle by Manuel Santos
+clg
+font "arial",10,100
+Dim note(50)
+Dim time(50)
+note={0,0,7,7,9,9,7,5,5,4,4,2,2,0,7,7,5,5,4,4,2,7,7,5,5,4,4,2,-1,-1,7,7,9,9,7,5,5,4,4,2,2,0}
+time={1,1,1,1,1,1,2,1,1,1,1,1,1,2,1,1,1,1,1,1,2,1,1,1,1,1,1,2,1 ,1 ,1,1,1,1,2,1,1,1,1,1,1,2}
+outoftune=0
+for n = 0 to 12
+	text 0,494-262*2^(n/12),int(262*2^(n/12))+"hz"
+	line 30,500-262*2^(n/12),300,500-262*2^(n/12)
+next n
+for a = 0 to 49
+	f=1+outoftune*(rand-0.5)
+	hz=f*262*2^(note[a]/12)
+	sound hz,time[a]*300
+	rect 40+a*5,297-(hz-200),time[a]*4,7
+next a

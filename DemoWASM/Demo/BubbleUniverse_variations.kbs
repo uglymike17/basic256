@@ -1,0 +1,110 @@
+#******************************************************************************
+# Bubble Universe - Paul Dunn's SpecBAS demo
+# https://github.com/ZXDunny/SpecBAS-Demos/blob/master/Graphics/bubble_universe
+# ported to Processing by Toby Nelson and then ported to Basic256 by UglyMike
+# Too make in run fast and nice, I use step 2 in the loop and add some transparence
+#Now with variations of the original Bubble Univers
+#******************************************************************************
+#
+gosub ScreenSetup
+gosub Initialization
+
+while true
+	gosub Draw
+end while
+
+ScreenSetup:
+Fastgraphics 	# write to video buffer.
+#  outputvisible 0
+#  editvisible 0
+#  graphtoolbarvisible 0
+#  maintoolbarvisible 0
+width = 1000
+height = 1000
+graphsize width,height
+color rgb(0,0,0)
+rect (0,0,width-1,height-1)
+color white
+font "Tahoma",15,40
+text 250,400,"Press left mouse button to cycle through some BubbleUniverses"
+text 400,450,"(press space to start)"
+refresh
+x=0
+while x=0
+  if key=32 then x = 1
+end while  
+color rgb(0,0,0)
+rect (0,0,width-1,height-1)
+return
+
+Initialization:
+t = 0.0
+n = 255
+dimen = width
+cx = width / 2
+cy = height / 2
+s = 2 * dimen / 9
+dt = PI / 400
+r = PI * 2 / 235
+fps =0
+time =0
+counter = 0
+return
+
+Draw:
+color rgb(0,0,0,20)
+rect (0,0,width-1,height-1)
+x = 0
+v = 0
+u = 0
+for  i = 0 to n-1 step 2
+	for j = 0 to n-1 step 1
+		if clickb=1 then
+			counter = counter +1
+			color rgb(0,0,0)
+			rect (0,0,width-1,height-1)
+			clickclear
+		endif
+		begin case
+			case counter = 0
+				u = sin(i + v) + sin(r * i + x)
+				v = cos(i + v) + cos(r * i + x)
+				x = u + t
+			case counter = 1
+				u = sin(i - v) + sin(r * i - x)
+				v = cos(i + v) + cos(r * i + x)
+				x = u + t
+			case counter = 2
+				u = sin(i + v) + sin(r * i + x)
+				v = cos(i - v) + cos(r * i - x)
+				x = u + t
+			case counter = 3
+				u = sin(i - v) + sin(r * i + x)
+				v = cos(i + v) + cos(r * i - x)
+				x = u + t
+			case counter = 4
+				u = sin(i + v) + sin(r * i - x)
+				v = cos(i - v) + cos(r * i + x)
+				x = u + t
+			case counter = 5
+				u = sin(i + v) - sin(r * i - x)
+				v = cos(i + v) - cos(r * i + x)
+				x = u + t
+			case counter = 6
+				u = sin(i - v) - sin(r * i - x)
+				v = cos(i + v) - cos(r * i + x)
+				x = u + t
+			case counter = 7
+				u = sin(i + v) - sin(r * i + x)
+				v = cos(i - v) - cos(r * i - x)
+				x = -u - t
+			else
+				counter = 0
+		end case
+		color rgb(i, j, n - (i + j) / 2)
+		plot(s * u + cx, s * v + cy)
+	next j
+next i
+refresh
+t = t + dt
+return

@@ -1,0 +1,72 @@
+# Field Lines
+#********************************
+# Lacking inspiration, I shamelessly pulled this code from a Facebook post by John Penner with QB64 code and ported it to Basic256
+# Apparently inspired by cool demos done by Kurt Moerman and Eric Schraf (FB group 'BASIC Programming Language')
+# Moved color cycling outside the points loop, sped up the rotation a bit and added some alpha... Pretty happy with the result
+# Play with nbr_lines and nbr_points for changing the look
+#Setup
+  gosub ScreenSetup
+  gosub ParameterSetting
+#Draw
+  while 1
+    gosub Draw  
+  end while
+  
+# Subroutines
+#****************************
+ScreenSetup:
+  Fastgraphics
+  width=900
+  height=600 
+  graphsize width,height 
+  color black
+  rect(0,0,width-1,height-1)
+  refresh
+return
+
+
+ParameterSetting:  
+  aspect_ratio = width/height
+  nbr_lines = 250
+  nbr_points = 20 # increase this if you want it 'hairy'
+  StepSize= 0.02 
+  RotationStep = 0.030
+  heading = 4 * pi / 3
+return
+
+Draw:  
+    seed 1
+    color rgb(0,0,0,30)
+    rect(0,0,width,height)
+    refresh
+    For lines = 0 To nbr_lines
+        x = 1.5 * Rand - 0.75
+        y = 1.5 * Rand - 0.75
+        old_x = x
+        old_y = y
+		col_green = 127 + 127 * sin(nbr_points / 4 + heading)   
+		color rgb(255, col_green, 0)               
+        For points = 0 To nbr_points
+            angle = atan2(y, x) + heading + Sin(6 * pi * sqr(x*x+y*y)) / 4
+            x = x + StepSize* Cos(angle)
+            y = y + StepSize* Sin(angle)              
+            Line (width/2 + old_x * (width/3),height/2 - old_y * (height/2),width/2  + x * (width/3),height/2 - y * (height/2))
+			old_x=x
+			old_y=y
+        Next points
+    Next lines
+    heading = heading + RotationStep
+    If heading > 10 * pi / 3 Then heading = 4 * pi / 3
+    refresh
+return
+
+#Functions
+#****************************
+function atan2(y, x)
+    if x > 0 then return atan(y / x)
+    if x < 0 and y >= 0 then return atan(y / x) + pi
+    if x < 0 and y < 0 then return atan(y / x) - pi
+    if x = 0 and y > 0 then return pi / 2
+    if x = 0 and y < 0 then return -pi / 2
+    return 0
+end function

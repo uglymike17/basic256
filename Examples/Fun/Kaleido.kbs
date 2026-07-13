@@ -1,0 +1,51 @@
+REM Kaleidoscope Simulator
+REM BASIC256
+Fastgraphics 	# write to video buffer.
+width = 1000
+height = 1000
+graphsize width,height
+color rgb(0,0,0)
+rect (0,0,width-1,height-1)
+refresh
+centreX = width/2
+centreY = height/2
+radius = 400
+particles = 100
+arraycol={white,red,darkred,green,darkgreen,blue,darkblue, cyan,darkcyan,purple, darkpurple,yellow,darkyellow,orange, darkorange}
+DIM px(particles)
+DIM py(particles)
+DIM vx(particles)
+DIM vy(particles)
+DIM col(particles)
+FOR i = 0 TO particles-1
+  px[i] = rand*radius - radius/2
+  py[i] = rand*radius - radius/2
+  vx[i] = rand*7-4
+  vy[i] = rand*7-4
+  col[i] = arraycol[int(rand*15)]
+NEXT i
+while 1=1
+  color rgb(0,0,0,10)
+  rect (0,0,width-1,height-1)
+  FOR i = 0 TO particles-1
+    px[i] = px[i] + vx[i]
+    py[i] = py[i] + vy[i]
+    IF px[i] > radius OR px[i] < -radius THEN vx[i] = -vx[i]
+    IF py[i] > radius OR py[i] < -radius THEN vy[i] = -vy[i]
+    x = px[i]
+    y = py[i]
+    FOR s = 0 TO 20
+      angle = s * PI / 3
+      xr = x * COS(angle) - y * SIN(angle)
+      yr = x * SIN(angle) + y * COS(angle)
+ #     color rgb(rand*255,rand*255,rand*255)
+      color col[i]
+      CIRCLE centreX + xr, centreY + yr, 2
+      xr = x * COS(angle) + y * SIN(angle)
+      yr = x * SIN(angle) - y * COS(angle)
+      CIRCLE centreX + xr, centreY + yr, 2
+    NEXT s
+  NEXT i
+  refresh
+  pause 0.01
+END while

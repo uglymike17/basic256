@@ -1,0 +1,1085 @@
+# **************************************************
+# BTK2_GUI element demo program                    *
+# The program is intended to give a quick          * 
+# overview of the available Win32 GUI subroutines  *
+# It only has minimal functionality of course      *
+#***************************************************
+#Basic nitialisation
+#*******************
+graphsize 500,300
+fastgraphics
+clg
+color grey
+rect 0,0,499,299
+Editvisible(0)
+Outputvisible(0)
+# BTK2 required initializations in main module
+#*********************************************
+# Checkbox arrays 
+global check_label$,check_state
+dim check_label$(5)
+dim check_state(5)
+# Radiobutton array 
+global radio$
+dim radio$(4)
+# Slider element
+# draw the slider control and capture it as a sprite
+color black
+circle 150,140,7
+color darkgrey
+circle 150,140,6
+color rgb(200,200,200)
+circle 150,140,5
+color white
+circle 152,138,2
+spritedim 1
+spriteslice 0,143,133,15,15
+color grey
+rect 140,130,20,20
+# Spinner up/down coordinates - don't forget to store these in 'local' variabless 
+# + spinner array- don't forget to copy local array into this one before call
+global sp_up_topleft_x, sp_up_topleft_y, sp_up_botright_x, sp_up_botright_y, sp_heigth, sp_array_list$
+# Tab array - don't forget to copy local array into this one before call if using more than one tab ribbon
+global tabs$, tab_width_single
+dim tabs$(7)
+tabs$={"  Intro","  Button", "  Check", "  Radio", "  Slide", "  Draw", "  Spin"}
+#initial setup
+mytab_locx=10: mytab_locy=10: mytab_width=480: mytab_height=20: mytab_elements=7: mytab_active=1
+call drawtabs(mytab_locx, mytab_locy, mytab_width, mytab_height, mytab_elements, mytab_active)
+gosub Textblock
+#main event loop
+while 1=1
+if clickb=1 then
+ if mousey >10 and mousey <30 then
+   if mousex >10 and mousex <480 then
+     mytab_active= int((mousex-10) / tab_width_single)+1
+     call drawtabs(mytab_locx, mytab_locy, mytab_width, mytab_height, mytab_elements, mytab_active)
+     clickclear
+     refresh
+   endif
+ endif
+spritehide 0
+if mytab_active=1 then
+ gosub Textblock
+else
+ if mytab_active=2 then
+   gosub Buttons
+ else
+   if mytab_active=3 then
+     gosub Check
+   else
+     if mytab_active=4 then
+       gosub Radio
+     else
+       if mytab_active=5 then
+         gosub Slide
+       else
+         if mytab_active=6 then
+           gosub Draw
+         else
+           if mytab_active=7 then
+             gosub Spin
+           endif
+         endif
+       endif
+     endif
+   endif
+ endif
+endif
+#clickclear
+endif
+pause 0.2
+end while
+Textblock:
+   color grey
+   rect 10,35,490,260
+   color black
+   font "Arial",14,100
+   text 150,50,"BTK2 GUI Toolkit"
+   call grouper(40, 80, 420, 200, "")
+   font "Tahoma",10,100
+   xtext=60: ytext =70
+   text xtext,ytext+20,"This demo program aims to demonstrate the BTK2 GUI "
+   text xtext,ytext+40,"elements that are now available. The grouper element "
+   text xtext,ytext+60,"(the frame around this text) does not have its own tab"
+   text xtext,ytext+80," as its concept is fairly straightforward. "
+   text xtext,ytext+100,"Functionality is of course limited seeing the aim of this"
+   text xtext,ytext+120,"program is to demo the GUI look and feel and nothing else."
+   text xtext,ytext+140,"I hope to add additional GUI elements as time allows."
+   text xtext,ytext+160,"Feedback and idea's for improvement are very welcome."
+   refresh
+return
+Buttons:
+   color grey
+   dim bandit(3)
+   rect 10,35,490,260
+   call button(160, 55, 180, 30, "Change background color", 8, 20, 7, 0)
+   for i =0 to 2
+     color white
+     rect 115+i*120, 130, 50, 50
+     call button(100+i*120, 200, 80, 30, "Spin!", 12, 20, 5, 0)
+   next i
+   colr=255:colg=255:colb=255
+while 1=1
+      if clickb=1 then 
+       if mousey >10 and mousey <30 then
+         if mousex >10 and mousex <480 then
+           mytab_active= int((mousex-10) / tab_width_single)+1
+           call drawtabs(mytab_locx, mytab_locy, mytab_width, mytab_height, mytab_elements, mytab_active)
+           refresh
+           return
+         endif
+       else
+         for i = 0 to 2  
+         if mousey > 200 and mousey < 230 then
+           if mousex > 100+i*120 and mousex <180+i*120 then 
+             color grey
+             rect 190,250,200,45
+             call button(100+i*120, 200, 80, 30, "Spin!", 12, 20, 5, 1)
+             wait = 0
+             clicks = int(rand*10+10)
+             start = int(rand*10)
+             for j = 1 to clicks
+               shown = (start+j)%3 
+               color rgb(colr,colg,colb)
+               rect 115+i*120, 130, 50, 50 
+               k=i
+               while k<2
+                 k=k+1  
+	       rect 115+k*120, 130, 50, 50
+                 bandit[k]=4*k
+               end while
+               color black
+               font "Tahoma",24,100
+               text 130+i*120,135,shown
+               refresh
+               bandit[i]=shown
+               wait=wait + (j/200)
+               pause wait
+             next j
+             i=3
+           end if
+           if bandit[0]=bandit[1] and bandit[1]=bandit[2] then
+              font "Tahoma",24,100
+              text 200,250,"You won!!"
+              refresh
+           endif
+         else
+           if mousey > 55 and mousey < 85 then
+             if mousex > 130 and mousex <370 then 
+               call button(160, 55, 180, 30, "Change background color", 8, 20, 7, 1)
+               colr= int(rand*255)
+               colg= int(rand*255)
+               colb= int(rand*255)
+               for i =0 to 2
+                 color rgb(colr, colg, colb)
+                 rect 115+i*120, 130, 50, 50
+               next i
+               refresh
+             end if
+           endif
+         end if
+         next i
+       endif
+      endif
+clickclear
+pause 0.01
+end while
+return
+Check:
+   color grey
+   rect 10,35,490,260
+  ch_locx=70: ch_locy_top=100: ch_locy_bot=200
+  check_change=0: elements=5
+  check_label$={"fat", "hairy", "smelly", "lazy", "old"}
+  check_state={0,0,0,0,0}
+  call checkbox(elements, ch_locx,  ch_locy_top, ch_locy_bot)
+  call grouper(40, 80, 150, 150, "Traits")
+  call button (250,50,100,25,"What am I?", 10, 12, 4, 0)
+  clickclear
+  refresh
+while 1=1
+  if clickb=1 then
+    if mousey >10 and mousey <30 then
+      if mousex >10 and mousex <480 then
+         mytab_active= int((mousex-10) / tab_width_single)+1
+         call drawtabs(mytab_locx, mytab_locy, mytab_width, mytab_height, mytab_elements, mytab_active)
+         refresh
+         return
+      endif
+    endif
+    if mousex > 70 and mousex < 82 then 
+       if mousey > ch_locy_top and mousey < ch_locy_bot+10 then
+         for i=0 to elements -1
+            if mousey > ch_locy_top+ (i*(ch_locy_bot-ch_locy_top) /(elements-1)) and mousey < ch_locy_top+ (i*(ch_locy_bot-ch_locy_top) /(elements-1))+11 then
+               if check_state[i]= 0 then
+                  check_state[i]=1
+               else
+                  check_state[i]=0
+               endif
+               call checkbox(elements, ch_locx, ch_locy_top, ch_locy_bot)
+            end if
+         next i
+       end if
+     else
+       if mousex > 246 and mousex < 358 then        
+        if mousey > 46 and mousey < 83 then
+            call button (250,50,100,25,"What am I?", 10, 12, 4, 1)
+            color grey
+            rect 205,135,295,45
+            whatami$ = "You're a "
+            quality=0
+            for i = 0 to elements-1
+              if check_state[i]=1 then
+                if quality > 0 then whatami$ = whatami$ + ", "
+                whatami$ = whatami$ + check_label$[i]
+                quality=quality + 1
+              endif
+            next i
+            if quality=0 then
+              whatami$ = whatami$ + "gentleman!"
+            else
+              if quality=1 then whatami$ = whatami$ + " person!"
+              if quality=2 then whatami$ = whatami$ + " slob!!"
+              if quality=3 then whatami$ = whatami$ + " bum!!"
+              if quality=4 then whatami$ = whatami$ + " bastard!!"
+              if quality=5 then whatami$ = "Hey! You're just like me!!!" 
+            endif
+          endif
+             color black
+             font "Tahoma",10,200
+             text 210,150,whatami$
+             refresh
+        endif
+       endif
+     clickclear
+  else
+    pause 0.02
+  endif  
+
+end while
+return
+Radio:
+   color grey
+   rect 10,35,490,260
+   feeling_elements=5: feeling_locx=70: feeling_locy_top=100 :feeling_locy_bot=200: feeling_active=0
+   radio$={"Normal", "Happy!", "Angry!", "Sad...", "Actually, not all that good"}
+   call grouper(50, 70, 220, 150, "How are you today?")
+   call drawradio(feeling_elements, feeling_locx, feeling_locy_top, feeling_locy_bot, feeling_active)
+   refresh
+while 1=1
+      if clickb=1 then
+        if mousey >10 and mousey <30 then
+          if mousex >10 and mousex <480 then
+            mytab_active= int((mousex-10) / tab_width_single)+1
+            call drawtabs(mytab_locx, mytab_locy, mytab_width, mytab_height, mytab_elements, mytab_active)
+            refresh
+            return
+          endif
+        else  
+          if mousex>feeling_locx-5 and mousex< feeling_locx+5 then
+  	  if mousey > feeling_locy_top-5 and mousey < feeling_locy_bot+5 then
+              for i=0 to feeling_elements -1
+                if mousey > feeling_locy_top+ (i*(feeling_locy_bot-feeling_locy_top) /(feeling_elements-1))-5 and mousey < feeling_locy_top+ (i*(feeling_locy_bot-feeling_locy_top) /(feeling_elements-1))+5 then
+                  feeling_active = i+1
+                  call drawradio(feeling_elements, feeling_locx, feeling_locy_top, feeling_locy_bot, feeling_active)
+                  color grey
+                  rect 305,75,445,175
+                  color yellow
+                  if i = 2 or i = 4 then color black
+                  font "Wingdings",75,100
+                  text 325,90,mid("KJMLN",i+1,1)
+                  refresh
+                end if
+              next i
+            endif
+          endif
+        clickclear
+        endif
+      endif
+  pause 0.01
+end while				
+return
+Slide:
+   color grey
+   rect 10,35,490,260
+   call drawslider(100, 60, 400, 60, 1)
+   color black
+   font "Snap ITC",1,100
+   text 240,180,"Wheeee !"
+   refresh
+while 1=1
+      if clickb=1 then
+       if mousey >10 and mousey <30 then
+         if mousex >10 and mousex <480 then
+           mytab_active= int((mousex-10) / tab_width_single)+1
+           call drawtabs(mytab_locx, mytab_locy, mytab_width, mytab_height, mytab_elements, mytab_active)
+           refresh
+           return
+         endif
+       else   
+         if mousey > 60-8 and mousey < 60+8 then
+           while mouseb=1
+           if mousex < 100 then 
+             place=6
+           else
+             if mousex > 400 then 
+               place=300
+             else
+               place=mousex-100
+             end if
+           end if
+           color grey
+           rect 10,70,490,230
+           textsize=place/5
+           if textsize < 1 then textsize=1
+           textplace=240-place/1.5
+           texthigh=180-place/6
+           color black
+           font "Snap ITC",textsize,100
+           text textplace,texthigh,"Wheeee !"
+           spriteplace 0,place+100,60+5
+           refresh
+           pause 0.01
+           end while
+         end if
+       endif
+       clickclear
+      endif
+pause 0.01
+end while
+return
+Draw:
+   color grey
+   rect 10,35,490,260
+   call drawing(1, 1, 50, 60, 200, 200, 0, 0, 0)
+   call drawing(1, 4, 350, 100, 60, 20, 0, 20, 1) 
+   color black
+   font "Arial",12,100
+   text 320 , 50, "Lissajou figure"
+   font "Tahoma",12,10
+   text 290 , 100, "X-pos:"
+   text 290 , 100 + 40 +8, "Y-pos:"
+   text 280 , 100 + 80 + 16, "A value:"
+   text 280 , 100 + 120 +24, "B value:"
+   x=0: y=0
+   a =27
+   b =29
+   iter=300
+   text 350 +15 , 100 + 80 + 16, a
+   text 350 +15 , 100 + 120 +24, b
+   ratio = a/b
+   while 1=1
+   counter=0
+   for ii = 0 to iter step (2*pi)/300
+      counter=counter+1
+      r=ii
+      s=ii/ratio
+      x_old=x
+      y_old=y
+      x=(sin(r)+1)*100+50
+      y=(cos(s)+1)*100+60
+      color yellow
+      if ii >0 then line x_old,y_old,x,y
+      color grey
+      rect 200,270,50,25
+      color black
+      font "Tahoma",12,10
+       valx=x: valy=y
+       text 350 +15 , 100, int(valx)-55
+       text 350 +15 , 100 + 40 +8, int(valy)-65
+      refresh
+      color white
+      rect 350,100,60,20
+      rect 350, 100+40+8,60,20
+      if clickb=1 then
+       if mousey >10 and mousey <30 then
+         if mousex >10 and mousex <480 then
+           mytab_active= int((mousex-10) / tab_width_single)+1
+           call drawtabs(mytab_locx, mytab_locy, mytab_width, mytab_height, mytab_elements, mytab_active)
+           refresh
+           return
+         endif
+       endif
+      endif
+   next ii
+   a = int(rand*20)+1
+   b = int(rand*20)+1
+   if (a/b-int(a/b)) = 0 or (b/a-int(b/a)) = 0 then
+     iter=60
+     cls
+   else
+     if a%2=0 and b%2=0 then 
+       iter=80
+       cls
+     else
+      if a+b<10 then
+        iter=100
+         cls
+      else 
+        if a+b<20 and abs(a-b)<7 then
+          iter=140
+          cls
+        else
+          iter=200
+          cls
+        endif
+      endif
+     endif
+   endif
+   rect 350,100+80+16, 60, 20
+   rect 350,100+120+24,60, 20  
+   color black
+   font "Tahoma",12,10
+   call drawing(1, 1, 50, 60, 200, 200, 0, 0, 0)
+   text 350 +15 , 100 + 80 + 16, a
+   text 350 +15 , 100 + 120 +24, b
+   ratio = a/b
+   end while
+return
+Spin:
+  color grey
+  rect 10,35,480,260
+  sw_done=0
+  color black
+  font "Tahoma",10,100
+  text 50 , 60 , "Please enter your birthdday and press 'Done'"
+  sp_day_color = 1
+  sp_day_locx=120: sp_day_locy=100
+  sp_day_width=30: sp_day_heigth=20
+  sp_day_offsetx=4: sp_day_offsety= 0
+  sp_day_insetx=0.1: sp_day_insety=0.1
+  # type specific (array or incremental)
+  sp_day_array=0
+  sp_day_min=1
+  sp_day_shown=1
+  sp_day_max=31
+  sp_day_inc=1
+  call spinner(sp_day_color, sp_day_locx, sp_day_locy, sp_day_width, sp_day_heigth, sp_day_offsetx, sp_day_offsety, sp_day_insetx, sp_day_insety, sp_day_array, sp_day_shown, sp_day_max, sp_day_min, sp_day_inc)
+  sp_day_up_x=sp_up_topleft_x
+  sp_day_up_y=sp_up_topleft_y
+  sp_day_down_x=sp_up_botright_x
+  sp_day_down_y=sp_up_botright_y
+  sp_day_updown_width=sp_heigth
+  sp_day_updown_heigth=sp_heigth/2
+  # define spinner for Months
+  # standard values
+  sp_month_color = 1
+  sp_month_locx=200:sp_month_locy=100
+  sp_month_width=80:sp_month_heigth=20
+  sp_offsetx=0:sp_offsety= 0
+  sp_insetx=0.05:sp_insety=0.1
+  # type specific (array or incremental)
+  sp_month_array=1
+  sp_month_array_shown=0
+  sp_month_array_max=11
+  sp_month_filler1=0
+  sp_month_filler2=0
+  dim sp_month_list$(12)
+  sp_month_list$={"January","February","March","April","May","June","July","August","September","October","November","December"}
+  month_list={31,28,31,30,31,30,31,31,30,31,30,31}
+  dim sp_array_list$(12)
+  for i = 0 to sp_month_array_max
+    sp_array_list$[i]=sp_month_list$[i]
+  next i
+  call spinner(sp_month_color, sp_month_locx, sp_month_locy, sp_month_width, sp_month_heigth, sp_offsetx, sp_offsety, sp_insetx, sp_insety, sp_month_array, sp_month_array_shown, sp_month_array_max, sp_month_filler1, sp_month_filler2)
+  sp_month_up_x=sp_up_topleft_x
+  sp_month_up_y=sp_up_topleft_y
+  sp_month_down_x=sp_up_botright_x
+  sp_month_down_y=sp_up_botright_y
+  sp_month_updown_width=sp_heigth
+  sp_month_updown_heigth=sp_heigth/2 
+  call button(340, 96, 52, 25, "Done!", 10, 8, 4, 0)
+refresh
+while 1=1
+    if sw_done=1 then
+      color grey 
+      rect 48,130,450,100
+      color black
+      cls
+      nowmonth=0 
+      birthmonth=0
+      if month> 0 then
+        for i=0 to month-1
+          nowmonth=nowmonth+month_list[i]
+        next i
+      endif
+      if sp_month_array_shown > 0 then
+        for i=0 to sp_month_array_shown-1
+          birthmonth=birthmonth+month_list[i]
+        next i
+      endif
+      nowday=day+nowmonth
+      birth=sp_day_shown+birthmonth
+      if birth-nowday <0 then
+        diff=(365-nowday)+birth
+        font "Tahoma",16,100
+        text 50,170," Still "+diff+" days to go till your birthday!"
+      else
+        if birth-nowday >0 then
+          diff=birth-nowday
+          font "Tahoma",16,100
+          text 50,170," Still "+diff+" days to go till your birthday!"
+        else
+          font "Tahoma",16,100
+          text 150,170,"  Happy birthday !! "
+          refresh
+        endif
+      endif
+      refresh
+      sw_done=0
+    endif
+    if clickb=1 then
+     if mousey >10 and mousey <30 then
+       if mousex >10 and mousex <480 then
+         mytab_active= int((mousex-10) / tab_width_single)+1
+         call drawtabs(mytab_locx, mytab_locy, mytab_width, mytab_height, mytab_elements, mytab_active)
+         refresh
+         return
+       endif
+     endif
+    endif
+   if mousex>sp_day_up_x and mousex < sp_day_up_x+sp_day_updown_width then
+      if mousey >sp_day_up_y and mousey < sp_day_up_y+sp_day_updown_heigth then
+         if clickb=1 then
+            #clicked up-button on Day
+            sp_day_shown=sp_day_shown +sp_day_inc
+            if sp_day_shown>sp_day_max then sp_day_shown=sp_day_max
+            call spinner(sp_day_color, sp_day_locx, sp_day_locy, sp_day_width, sp_day_heigth, sp_day_offsetx, sp_day_offsety, sp_day_insetx, sp_day_insety, sp_day_array, sp_day_shown, sp_day_max, sp_day_min, sp_day_inc)
+            refresh
+            clickclear
+         endif
+      else
+         if mousey >sp_day_down_y and mousey < sp_day_down_y+sp_day_updown_heigth then
+            if clickb=1 then
+               #clicked down-button on Day
+               sp_day_shown=sp_day_shown - sp_day_inc
+               if sp_day_shown<sp_day_min then sp_day_shown=sp_day_min
+               call spinner(sp_day_color, sp_day_locx, sp_day_locy, sp_day_width, sp_day_heigth, sp_day_offsetx, sp_day_offsety, sp_day_insetx, sp_day_insety, sp_day_array, sp_day_shown, sp_day_max, sp_day_min, sp_day_inc)
+               refresh
+               clickclear
+            endif
+         endif
+      endif
+   else
+      if mousex>sp_month_up_x and mousex < sp_month_up_x+sp_month_updown_width then
+         if mousey >sp_day_up_y and mousey < sp_month_up_y+sp_month_updown_heigth then
+            if clickb=1 then
+               #clicked up-button on month
+               sp_month_array_shown=sp_month_array_shown + 1
+               if sp_month_array_shown>sp_month_array_max then sp_month_array_shown = sp_month_array_max
+               call spinner(sp_month_color, sp_month_locx, sp_month_locy, sp_month_width, sp_month_heigth, sp_offsetx, sp_offsety, sp_insetx, sp_insety, sp_month_array, sp_month_array_shown, sp_month_array_max, sp_month_filler1, sp_month_filler2)
+               refresh
+               clickclear
+            endif
+         else
+            if mousey >sp_day_down_y and mousey < sp_day_down_y+sp_day_updown_heigth then
+               if clickb=1 then
+                  #clicked down-button on month
+                  sp_month_array_shown=sp_month_array_shown - 1
+                  if sp_month_array_shown<0 then sp_month_array_shown = 0
+                  call spinner(sp_month_color, sp_month_locx, sp_month_locy, sp_month_width, sp_month_heigth, sp_offsetx, sp_offsety, sp_insetx, sp_insety, sp_month_array, sp_month_array_shown, sp_month_array_max, sp_month_filler1, sp_month_filler2)
+                  refresh
+                  clickclear
+               endif
+            endif
+         endif
+      else
+       if mousey > 96 and mousey < 124 then
+         if mousex > 340 and mousex < 392 then
+           if clickb=1 then
+             call button(340, 96, 52, 25, "Done!", 10, 8, 4, 1)
+             sw_done=1
+             clickclear
+           endif
+         endif
+       endif
+      endif
+   endif
+pause 0.01
+end while
+return
+#****************************************
+# Basic-256 Toolkit Subroutine Collection
+#****************************************
+#*********************************
+# sub routine "Draw a button"
+#*********************************
+subroutine button(b_locx, b_locy, b_width, b_height, b_text$, b_textsize, b_offsetx, b_offsety, b_init)
+if b_init>0 then #draw pressed, wait, draw unpressed
+         color darkgrey
+         if b_width>b_height then 
+           half=(b_height)/2
+         else
+           half=(b_width)/2
+         endif
+         poly {b_locx, b_locy, b_locx, b_locy+b_height, b_locx +half, b_locy +half}
+         poly {b_locx , b_locy , b_locx +half, b_locy +half, b_locx +b_width-half, b_locy +half, b_locx +b_width,b_locy }
+         color rgb(200,200,200)
+         poly {b_locx , b_locy +b_height, b_locx +half, b_locy +half, b_locx +b_width-half, b_locy +half, b_locx +b_width,b_locy +b_height}
+         poly {b_locx +b_width-half, b_locy +half, b_locx +b_width, b_locy +b_height, b_locx +b_width, b_locy }
+         color grey
+         if b_height < 17 or b_width < 17 then
+           rect b_locx  + 1, b_locy  + 1, b_width-2, b_height-2
+         else
+           if b_height < 25 or b_width < 25 then
+             rect b_locx  + 2, b_locy  + 2, b_width-4, b_height-4
+           else
+             rect b_locx  + 4, b_locy  + 4, b_width-8, b_height-8
+           endif
+         endif
+         color black
+         font "Tahoma",b_textsize,100
+         text b_locx+b_offsetx+2,b_locy+b_offsety+2,b_text$
+         refresh
+         pause 0.25
+         color rgb(200,200,200)
+         poly {b_locx, b_locy, b_locx, b_locy+b_height, b_locx +half, b_locy +half}
+         poly {b_locx , b_locy , b_locx +half, b_locy +half, b_locx +b_width-half, b_locy +half, b_locx +b_width,b_locy }
+         color darkgrey
+         poly {b_locx , b_locy +b_height, b_locx +half, b_locy +half, b_locx +b_width-half, b_locy +half, b_locx +b_width,b_locy +b_height}
+         poly {b_locx +b_width-half, b_locy +half, b_locx +b_width, b_locy +b_height, b_locx +b_width, b_locy }
+         color grey
+         if b_height < 17 or b_width < 17 then
+           rect b_locx  + 1, b_locy  + 1, b_width-2, b_height-2
+         else
+           if b_height < 25 or b_width < 25 then
+             rect b_locx  + 2, b_locy  + 2, b_width-4, b_height-4
+           else
+             rect b_locx  + 4, b_locy  + 4, b_width-8, b_height-8
+           endif
+         endif
+         color black
+         font "Tahoma",b_textsize,100
+         text b_locx+b_offsetx,b_locy+b_offsety,b_text$
+refresh
+else #draw unpressed 
+         color rgb(200,200,200)
+         if b_width>b_height then 
+           half=(b_height)/2
+         else
+           half=(b_width)/2
+         endif
+         poly {b_locx, b_locy, b_locx, b_locy+b_height, b_locx +half, b_locy +half}
+         poly {b_locx , b_locy , b_locx +half, b_locy +half, b_locx +b_width-half, b_locy +half, b_locx +b_width,b_locy }
+         color darkgrey
+         poly {b_locx , b_locy +b_height, b_locx +half, b_locy +half, b_locx +b_width-half, b_locy +half, b_locx +b_width,b_locy +b_height}
+         poly {b_locx +b_width-half, b_locy +half, b_locx +b_width, b_locy +b_height, b_locx +b_width, b_locy }
+         color grey
+         if b_height < 17 or b_width < 17 then
+           rect b_locx  + 1, b_locy  + 1, b_width-2, b_height-2
+         else
+           if b_height < 25 or b_width < 25 then
+             rect b_locx  + 2, b_locy  + 2, b_width-4, b_height-4
+           else
+             rect b_locx  + 4, b_locy  + 4, b_width-8, b_height-8
+           endif
+         endif
+         color black
+         font "Tahoma",b_textsize,100
+         text b_locx+b_offsetx,b_locy+b_offsety,b_text$ 
+         refresh
+         pause 0.2
+end if
+refresh
+end subroutine
+#**********************************
+# sub routine "Draw a grouping area"
+#**********************************
+# You are responsible for the size of the grouper element versus the size of the content
+# Inputs are
+#   x,y location of the upper left corner
+#	g_locx  -  g_locy
+#   height and width of the drawing element
+#	g_width  -  g_height
+#      Remark: Putting one of these to 0 or 1 gives you a nice horizontal/vertical separator
+#   grouper label (a value of "" will remove the label)
+#	g_label$
+subroutine grouper(g_locx, g_locy, g_width, g_height, g_label$)
+#get background color
+backgr=pixel(g_locx+g_width-1,g_locy+g_height-1)
+color darkgrey
+line g_locx,g_locy,g_locx+g_width,g_locy
+line g_locx+g_width,g_locy,g_locx+g_width,g_locy+g_height
+line g_locx+g_width,g_locy+g_height,g_locx,g_locy+g_height
+line g_locx,g_locy+g_height,g_locx,g_locy
+color rgb(200,200,200)
+line g_locx+1,g_locy+1,g_locx+g_width-1, g_locy+1
+line g_locx+g_width+1, g_locy,g_locx+g_width+1,g_locy+g_height+1
+line g_locx+g_width+1,g_locy+g_height+1,g_locx,g_locy+g_height+1
+line g_locx+1,g_locy+1,g_locx+1,g_locy+g_height-1
+color backgr
+# if g_label$ has content, write it on the top left side of the grouper element
+if length(g_label$)>0 then 
+  cut=(length(g_label$))*8
+  rect g_locx+10,g_locy-10,cut,20
+  color black
+  font "Tahoma",10,100
+  text g_locx+15,g_locy-7,g_label$
+endif
+color black
+refresh
+end subroutine
+#**********************************
+# sub routine "Draw a checkbox"
+#**********************************
+# You are responsible for the placing of the checkbox element
+# Inputs are
+#   elements
+#         number of checkboxes
+#   x,y location of the upper left corner (checkboxes here are 12x12)
+#	check_locx  -  check_locy
+#   checkbox label 
+#	check_label$
+#   checkbox state (whether it is on or off)
+#         check_mark
+#   Whether the checkbox needs to be just painted or changed as well
+#         check_change 
+#
+# Additionally you will need two global arrays for checkbox labels and states :
+#	check_label$
+#	check_state$
+# You need to copy your local array in this global array.
+subroutine checkbox(elements, ch_locx,  ch_locy_top, ch_locy_bot)
+if elements=1 then
+   ch_spacing = 0
+else
+   ch_spacing = (ch_locy_bot-ch_locy_top)/(elements-1)
+endif
+for i = 0 to (elements -1)
+ color white
+ rect ch_locx,ch_locy_top + (ch_spacing*i),12,12
+ color darkgrey
+ line ch_locx,ch_locy_top + (ch_spacing*i),ch_locx+11, ch_locy_top + (ch_spacing*i)
+ line ch_locx,ch_locy_top + (ch_spacing*i),ch_locx,ch_locy_top + (ch_spacing*i)+11 
+ color black
+ line ch_locx+1,ch_locy_top + (ch_spacing*i)+1,ch_locx+10, ch_locy_top + (ch_spacing*i)+1
+ line ch_locx+1,ch_locy_top + (ch_spacing*i)+1,ch_locx+1, ch_locy_top + (ch_spacing*i)+10
+ color grey
+ line ch_locx+1,ch_locy_top + (ch_spacing*i)+11,ch_locx+11, ch_locy_top + (ch_spacing*i)+11
+ line ch_locx+11, ch_locy_top + (ch_spacing*i)+1,ch_locx+11, ch_locy_top + (ch_spacing*i)+11
+ color black
+ font "Tahoma",10,100
+ text ch_locx+20, ch_locy_top  + (ch_spacing*i)-4, check_label$[i]
+next i
+for i = 0 to (elements -1)
+if check_state[i]=1 then
+  color black
+  line ch_locx+3, ch_locy_top  + (ch_spacing*i)+6, ch_locx+6, ch_locy_top  + (ch_spacing*i)+9
+  line ch_locx+3, ch_locy_top  + (ch_spacing*i)+5, ch_locx+6, ch_locy_top  + (ch_spacing*i)+8
+  line ch_locx+3, ch_locy_top  + (ch_spacing*i)+4, ch_locx+6, ch_locy_top  + (ch_spacing*i)+8
+  line ch_locx+6, ch_locy_top  + (ch_spacing*i)+9, ch_locx+12, ch_locy_top  + (ch_spacing*i)
+  line ch_locx+6, ch_locy_top  + (ch_spacing*i)+8, ch_locx+12, ch_locy_top  + (ch_spacing*i)
+  line ch_locx+6, ch_locy_top  + (ch_spacing*i)+7, ch_locx+12, ch_locy_top  + (ch_spacing*i)
+else
+  color white
+  rect ch_locx+2, ch_locy_top  + (ch_spacing*i)+2,6,6
+endif
+refresh
+next i
+refresh
+end subroutine
+#******************************************
+# sub routine "Draw a drawing element grid"
+#******************************************
+# You are responsible for the size of the drawing element versus the size of the canvas
+# Inputs are
+#   number of elements in the grid in x and in y direction
+#	draw_elements_x  -  draw_elements_x
+#   x,y location of the upper left corner
+#	draw_locx  -  draw_locy
+#   height and width of the drawing element. A 4 pixel border will be added outside to give a 3D look
+#	draw_width  -  draw_height
+#   spacing (offset) between the elements (=0 if only 1 element)
+#	draw_offsetx  -  draw_offsety
+#   black or white background (can easily be changed to give an exact color)
+#	draw_color
+subroutine drawing(draw_elements_x, draw_elements_y, draw_locx, draw_locy, draw_width,draw_height, draw_offsetx, draw_offsety, draw_color)
+draw_locx=draw_locx-4
+draw_locy=draw_locy-4
+   for i=1 to draw_elements_x
+      for j =1 to draw_elements_y
+         widthfiller=draw_width+draw_offsetx+8
+         heightfiller= draw_height+draw_offsety+8
+         color darkgrey
+         if draw_width>draw_height then 
+           half=(draw_height+8)/2
+         else
+           half=(draw_width+8)/2
+         endif
+         poly {draw_locx+((i-1)*widthfiller), draw_locy+((j-1)*heightfiller), draw_locx+((i-1)*widthfiller), draw_locy+((j-1)*heightfiller)+draw_height+8, draw_locx+((i-1)*widthfiller)+half, draw_locy+((j-1)*heightfiller)+half}
+         poly {draw_locx+((i-1)*widthfiller), draw_locy+((j-1)*heightfiller), draw_locx+((i-1)*widthfiller)+half, draw_locy+((j-1)*heightfiller)+half, draw_locx+((i-1)*widthfiller)+draw_width+8-half, draw_locy+((j-1)*heightfiller)+half, draw_locx+((i-1)*widthfiller)+draw_width+8,draw_locy+((j-1)*heightfiller)}
+         color rgb(200,200,200)
+         poly {draw_locx+((i-1)*widthfiller), draw_locy+((j-1)*heightfiller)+draw_height+8, draw_locx+((i-1)*widthfiller)+half, draw_locy+((j-1)*heightfiller)+half, draw_locx+((i-1)*widthfiller)+draw_width+8-half, draw_locy+((j-1)*heightfiller)+half, draw_locx+((i-1)*widthfiller)+draw_width+8,draw_locy+((j-1)*heightfiller)+draw_height+8}
+         poly {draw_locx+((i-1)*widthfiller)+draw_width+8-half, draw_locy+((j-1)*heightfiller)+half, draw_locx+((i-1)*widthfiller)+draw_width+8, draw_locy+((j-1)*heightfiller)+draw_height+8, draw_locx+((i-1)*widthfiller)+draw_width+8, draw_locy+((j-1)*heightfiller)}
+refresh
+         if draw_color = 1 then
+            color white
+         else
+            color black
+         endif
+         rect draw_locx+(i-1)*widthfiller + 4, draw_locy+(j-1)*heightfiller + 4, draw_width,draw_height
+# rect draw_locx+(i-1)*widthfiller,draw_locy+(j-1)*heightfiller, draw_width-draw_width* 2+2,draw_height-draw_height* 1.5
+      next j
+   next i
+   refresh
+end subroutine
+#***************************************
+# sub routine "Draw a radio button list"
+#***************************************
+# You are responsible for the number of radio buttons versus available vertical space
+# Inputs are
+#   elements : The number of elements in the radio group
+#   locx     : horizontal location of the radio-button group
+#   locy_top : vertical location of the topmost radio button
+#   locy_bot : vertical location of the bottom radio button
+#   active   : the position of the active radio button (0 for no button active)
+#
+# Additionally you will need a global arrays to store radio button labels:
+#	radio$
+# You need to copy your local array in this global array.
+subroutine drawradio(elements, locx, locy_top, locy_bot, active)
+# Do not forget to declare and initialize a global array 'radio$' before calling the subroutine
+   color black
+   font "Tahoma",10,100
+   radio_spacing = (locy_bot-locy_top)/(elements-1)
+   for i = 0 to (elements -1)
+      color black
+      circle locx, locy_top+(radio_spacing*i), 5
+      color white
+      circle locx+1, locy_top+(radio_spacing*i)+1,4
+   next i
+   #radio text captions
+   color black
+   for i = 0 to elements-1
+      text locx + 15,locy_top + (radio_spacing*i)-8, radio$[i]
+   next i
+   # paint active radio button
+   if active > 0 then circle locx+1, locy_top+(radio_spacing*(active-1))+1,2
+   refresh
+end subroutine
+#***************************************
+# sub routine "Draw a slider"
+#***************************************
+# You are responsible for the 
+#	lenght of the slider (in pixels) to be adequate for amount of different values
+#
+# Inputs are
+#   x,y location of the beginning of the slider
+#       sl_locx_top
+#       sl_locy_top
+#   x,y location of the end of the slider
+#       sl_locx_bot
+#       sl_locy_bot
+#   orientation of the sliders (horizontal=0 / vertical<>0) 
+#       sl_orient
+subroutine drawslider(sl_locx_top, sl_locy_top, sl_locx_bot, sl_locy_bot, sl_orient)
+if sl_orient=1 then
+  sl_lenght = (sl_locx_bot-sl_locx_top)
+  color darkgrey
+  line sl_locx_top,sl_locy_top, sl_locx_bot,sl_locy_bot
+  line sl_locx_top,sl_locy_top+1, sl_locx_bot,sl_locy_bot+1
+  line sl_locx_top,sl_locy_top+2, sl_locx_bot,sl_locy_bot+2
+  poly {sl_locx_top-1, sl_locy_top,sl_locx_top-1, sl_locy_top+3,sl_locx_top-6, sl_locy_top+3}
+  poly {sl_locx_bot+1, sl_locy_bot,sl_locx_bot+1, sl_locy_bot+3,sl_locx_bot+6, sl_locy_bot+3}
+#  poly
+  color black
+  line sl_locx_top,sl_locy_top+3, sl_locx_bot,sl_locy_bot+3
+  line sl_locx_top,sl_locy_top+4, sl_locx_bot,sl_locy_bot+4
+  color rgb(200,200,200)
+  line sl_locx_top,sl_locy_top+5, sl_locx_bot,sl_locy_bot+5
+  line sl_locx_top,sl_locy_top+6, sl_locx_bot,sl_locy_bot+6
+  line sl_locx_top,sl_locy_top+7, sl_locx_bot,sl_locy_bot+7
+  poly {sl_locx_top-1, sl_locy_top+4,sl_locx_top-1, sl_locy_top+7,sl_locx_top-6, sl_locy_top+4}
+  poly {sl_locx_bot+1, sl_locy_bot+4,sl_locx_bot+1, sl_locy_bot+7,sl_locx_bot+6, sl_locy_bot+4}
+  sl_posx = sl_locx_top
+  sl_posy = sl_locy_top+5
+else
+  sl_lenght = (sl_locy_bot-sl_locx_top)
+  color darkgrey
+  line sl_locx_top,sl_locy_top, sl_locx_bot,sl_locy_bot
+  line sl_locx_top+1,sl_locy_top, sl_locx_bot+1,sl_locy_bot
+  line sl_locx_top+2,sl_locy_top, sl_locx_bot+2,sl_locy_bot
+  poly {sl_locx_top, sl_locy_top-1, sl_locx_top+3,sl_locy_top-1,sl_locx_top+3,sl_locy_top-6}
+  poly {sl_locx_bot, sl_locy_bot+1, sl_locx_bot+3,sl_locy_bot+1,sl_locx_bot+3,sl_locy_bot+6}
+  color black
+  line sl_locx_top+3,sl_locy_top, sl_locx_bot+3,sl_locy_bot
+  line sl_locx_top+4,sl_locy_top, sl_locx_bot+4,sl_locy_bot
+  color rgb(200,200,200)
+  line sl_locx_top+5,sl_locy_top, sl_locx_bot+5,sl_locy_bot
+  line sl_locx_top+6,sl_locy_top, sl_locx_bot+6,sl_locy_bot
+  line sl_locx_top+7,sl_locy_top, sl_locx_bot+7,sl_locy_bot
+  poly {sl_locx_top+4, sl_locy_top-1, sl_locx_top+7,sl_locy_top-1,sl_locx_top+4,sl_locy_top-6}
+  poly {sl_locx_bot+4, sl_locy_bot+1, sl_locx_bot+7,sl_locy_bot+1,sl_locx_bot+4,sl_locy_bot+6}
+  sl_posx = sl_locx_top+5 
+  sl_posy = sl_locy_top
+end if
+spriteplace 0,sl_posx,sl_posy
+spriteshow 0
+refresh
+end subroutine
+#******************************************
+# sub routine "Draw a spin entry button"
+#******************************************
+# You are responsible for the size of the spinner element versus the size of the content
+# To be defines as Global variables :
+#  Upper x-y coord of the "up" spin button
+#   sp_up_topleft_x
+#   sp_up_topleft_y
+#  Upper x-y coord of the "down" spin button
+#   sp_up_botright_x
+#   sp_up_botright_y
+#  Height of the up/down spin buttons
+#   sp_heigth
+#  If array is used, the name of the array
+#   sp_array_list$
+# General Inputs are
+#   x,y location of the upper left corner of the data area
+#	sp_locx  -  sp_locy
+#   height and width of the drawing element of the data area
+#	sp_width  -  sp_height
+#   inset (3D inset border of the spinner field as percentage of total size)
+#	sp_insetx   -   sp_insety
+#   offset (additional distance between the data field and the up/down buttons)
+#	sp_offsetx   -   sp_offsety
+#   black or white background
+#	spin_color
+#   spinner content is numeric (0) or array (1)
+#         sp_array
+# Specific inputs are determined by sp_array: 
+# for numeric values (sp_array=0)
+#   actual value in the spinner
+#	sp_shown
+#   min & max values 
+#	sp_min   -   sp_max
+#   value increment
+#	sp_inc
+# for arrays (sp_array=1)
+#   the actual array used
+#         sp_array_list$ (don't forget to initialize with your values prior to the CALL)
+#   array-index of value in the spinner
+#         sp_shown 
+#   number of indexes in the array
+#         sp_array_max 
+# in order to have the correct number of arguments, CALLs with arrays need to pass two dummy values
+#         sp_filler1
+#         sp_filler2
+# Don't forget to copy the Globa variables in local ones (if more than one spinner is used)
+subroutine spinner(sp_color, sp_locx, sp_locy, sp_width, sp_heigth, sp_offsetx, sp_offsety, sp_insetx, sp_insety, sp_array, sp_shown, sp_max, sp_min, sp_inc)
+widthfiller=sp_offsetx
+heigthfiller= sp_offsety
+color darkgrey
+poly {sp_locx, sp_locy, sp_locx, sp_locy+sp_heigth, sp_locx+sp_heigth/2, sp_locy+sp_heigth/2}
+poly {sp_locx, sp_locy, sp_locx+sp_heigth/2, sp_locy+sp_heigth/2, sp_locx+sp_width-sp_heigth/2, sp_locy+sp_heigth/2, sp_locx+sp_width, sp_locy}
+      
+color rgb(200,200,200)
+poly {sp_locx, sp_locy+sp_heigth, sp_locx+sp_heigth/2, sp_locy+sp_heigth/2, sp_locx+sp_width-sp_heigth/2, sp_locy+sp_heigth/2, sp_locx+sp_width, sp_locy+sp_heigth}
+poly {sp_locx+sp_width-sp_heigth/2, sp_locy+sp_heigth/2, sp_locx+sp_width, sp_locy+sp_heigth, sp_locx+sp_width, sp_locy}
+if sp_color = 1 then
+   color white
+else
+   color grey
+endif
+rect sp_locx+(sp_width*sp_insetx), sp_locy+(sp_heigth*sp_insety), sp_width-sp_width*2*sp_insetx+2, sp_heigth-sp_heigth* 1.5*sp_insety
+      
+color rgb(200,200,200)
+#Spin-up mini button
+sp_up_topleft_x = sp_locx+widthfiller+sp_width+sp_width/15
+sp_up_topleft_y = sp_locy+heigthfiller-2
+rect sp_up_topleft_x, sp_up_topleft_y ,sp_heigth ,sp_heigth/2
+#Spin-down mini button
+sp_up_botright_x = sp_locx+widthfiller+sp_width+sp_width/15
+sp_up_botright_y = sp_locy+heigthfiller+sp_heigth/2
+rect sp_up_botright_x, sp_up_botright_y, sp_heigth ,sp_heigth/2
+color darkgrey
+# upper mini button lower shadow line
+line sp_locx+widthfiller+sp_width+sp_width/15, sp_locy+heigthfiller-2+sp_heigth/2, sp_locx+widthfiller+sp_width+sp_width/15+sp_heigth, sp_locy+heigthfiller-2+sp_heigth/2
+line sp_locx+widthfiller+sp_width+sp_width/15, sp_locy+heigthfiller-3+sp_heigth/2, sp_locx+widthfiller+sp_width+sp_width/15+sp_heigth, sp_locy+heigthfiller-3+sp_heigth/2
+      
+# lower mini button lower lower shadow line
+line sp_locx+widthfiller+sp_width+sp_width/15,sp_locy+heigthfiller+sp_heigth/2+2+sp_heigth/2,sp_locx+widthfiller+sp_width+sp_width/15+sp_heigth,sp_locy+heigthfiller+sp_heigth/2+2+sp_heigth/2
+line sp_locx+widthfiller+sp_width+sp_width/15,sp_locy+heigthfiller+sp_heigth/2+1+sp_heigth/2,sp_locx+widthfiller+sp_width+sp_width/15+sp_heigth,sp_locy+heigthfiller+sp_heigth/2+1+sp_heigth/2
+      
+# upper mini button right shadow line
+line sp_locx+widthfiller+sp_width+sp_heigth+sp_width/15, sp_locy+heigthfiller-2, sp_locx+widthfiller+sp_width+sp_heigth+sp_width/15, sp_locy+heigthfiller-2+sp_heigth/2
+line sp_locx+widthfiller+sp_width+sp_heigth+sp_width/15+1, sp_locy+heigthfiller-1, sp_locx+widthfiller+sp_width+sp_heigth+sp_width/15+1, sp_locy+heigthfiller-2+sp_heigth/2
+      
+#lower mini button right shadow line
+line sp_locx+widthfiller+sp_width+sp_heigth+sp_width/15, sp_locy+heigthfiller+sp_heigth/2+2, sp_locx+widthfiller+sp_width+sp_heigth+sp_width/15, sp_locy+heigthfiller+sp_heigth
+line sp_locx+widthfiller+sp_width+sp_heigth+sp_width/15+1, sp_locy+heigthfiller+sp_heigth/2+3, sp_locx+widthfiller+sp_width+sp_heigth+sp_width/15+1, sp_locy+heigthfiller+sp_heigth-1
+      
+#Up arrow
+color rgb(100,100,100)
+poly { sp_locx+widthfiller+sp_width+sp_width/15+sp_heigth/4, sp_locy+heigthfiller+(sp_heigth/8*3)-2, sp_locx+widthfiller+sp_width+sp_width/15+sp_heigth/4*3, sp_locy+heigthfiller+(sp_heigth/8*3)-2, sp_locx+widthfiller+sp_width+sp_width/15+sp_heigth/4*2, sp_locy+heigthfiller+(sp_heigth/8)-2}
+#down Arrow
+poly { sp_locx+widthfiller+sp_width+sp_width/15+sp_heigth/4, sp_locy+heigthfiller+sp_heigth/2+(sp_heigth/8), sp_locx+widthfiller+sp_width+sp_width/15+sp_heigth/4*3, sp_locy+heigthfiller+sp_heigth/2+(sp_heigth/8), sp_locx+widthfiller+sp_width+sp_width/15+sp_heigth/4*2, sp_locy+heigthfiller+sp_heigth/2+(sp_heigth/8*3)}
+      
+#initialize
+if sp_array=0 then
+  color black
+  font "Tahoma",sp_heigth/2,10
+  text sp_locx+sp_width/5,sp_locy+3,sp_shown
+else
+  color black
+  font "Tahoma",sp_heigth/2,10
+  text sp_locx+10,sp_locy+3,sp_array_list$[sp_shown]
+endif
+refresh
+end subroutine
+#*********************************
+# sub routine "Draw a tab-bar"
+#*********************************
+# You are responsible for the lenght of the caption versus width of the tabs
+# Inputs are
+# x,y location of the upper left corner
+# height and width of the bar
+# Array with tab captions
+# Active tab
+subroutine drawtabs(tab_locx, tab_locy, tab_width, tab_height, tab_elements, tab_active)
+   color black
+   font "Tahoma",10,50
+   tab_width_single= tab_width/tab_elements
+   #erase tab-bar area
+   color grey
+   rect tab_locx,tab_locy-3,tab_width+2,tab_height
+   color rgb(140,140,140)
+   rect tab_locx,tab_locy,tab_width,tab_height
+   #tab separator horizontal
+   color darkgrey
+   line tab_locx,tab_locy+tab_height,tab_locx+tab_width, tab_locy+ tab_height
+   line tab_locx,tab_locy,tab_locx+tab_width, tab_locy
+   color rgb(200,200,200)
+   line tab_locx,tab_locy+tab_height+1,tab_locx+tab_width, tab_locy+ tab_height+1
+   line tab_locx,tab_locy+1,tab_locx+tab_width, tab_locy+1
+   #tab seperator vertical
+   color darkgrey
+   for i = 0 to tab_elements
+      color darkgrey
+      line tab_locx+1+i*tab_width_single,tab_locy+1,tab_locx+1+i*tab_width_single, tab_locy+tab_height
+      color rgb(200,200,200)
+      line tab_locx+i*tab_width_single,tab_locy+1,tab_locx+i*tab_width_single, tab_locy+tab_height
+   next i
+   #tab text - all inactive
+   for i = 0 to tab_elements-1
+      text tab_locx+(i*tab_width_single)+7,tab_locy+tab_height/5, tabs$[i]
+   next i
+   # paint active tab
+   color grey
+   if tab_active=1 then
+      rect tab_locx+(tab_active-1)*tab_width_single-1, tab_locy-2, tab_width_single+1, tab_height+4
+   else
+      rect tab_locx+(tab_active-1)*tab_width_single+1, tab_locy-2, tab_width_single-1, tab_height+4
+   endif
+   color darkgrey
+   line tab_locx+(tab_active-1)*tab_width_single+1, tab_locy-3,tab_locx+(tab_active-1)*tab_width_single+1, tab_locy+tab_height
+   line tab_locx+(tab_active-1)*tab_width_single+2, tab_locy-3,tab_locx+(tab_active)*tab_width_single+1,tab_locy-3
+   line tab_locx+(tab_active)*tab_width_single+1, tab_locy-3,tab_locx+(tab_active)*tab_width_single+1, tab_locy+tab_height
+   color rgb(200,200,200)
+   line tab_locx+(tab_active-1)*tab_width_single+2, tab_locy-2,tab_locx+(tab_active-1)*tab_width_single+2, tab_locy+tab_height+1
+   line tab_locx+(tab_active)*tab_width_single, tab_locy-2,tab_locx+(tab_active)*tab_width_single, tab_locy+tab_height
+   line tab_locx+(tab_active-1)*tab_width_single+2, tab_locy-2,tab_locx+(tab_active)*tab_width_single,tab_locy-2
+   color black
+   font "Tahoma",10,100
+   text tab_locx+((tab_active-1)*tab_width_single)+7,tab_locy +tab_height/5+2, tabs$[tab_active-1]
+   refresh
+end subroutine

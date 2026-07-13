@@ -1,0 +1,36 @@
+# CellularAutomaton by Manuel Santos
+# This is a version where the chaotic rule and the fractal rule are used different alternating patterns.
+#http://mathworld.wolfram.com/ElementaryCellularAutomaton.html
+
+fastgraphics
+graphsize 1200,600
+clg
+For n = 1 to 300
+	plot (600,1)
+	For y = 1 to 600
+		For x = 1 to 1200
+			a=0
+			if pixel(x-1,y)=black then a=a+1
+			if pixel(x,y)=black then a=a+10
+			if pixel(x+1,y)=black then a=a+100
+
+			if y/n = int (y/n) then
+				gosub fractal
+			else
+				gosub chaotic
+			end if
+
+		next x
+		refresh
+	next y
+	refresh
+	pause 2
+	clg
+next n
+
+chaotic:
+if a=001 or a=110 or a =010 or a=100 then plot (x,y+1)
+return
+fractal:
+if a=001 or a=010 or a=100 then plot (x,y+1)
+return

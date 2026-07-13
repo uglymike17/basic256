@@ -1,0 +1,652 @@
+#setup screen boilerplate
+#************************
+Fastgraphics
+graphsize 600,460
+graphvisible(1)
+editvisible(1)
+outputvisible(0)
+continue$="yes"
+#Splash screen handeling
+#***********************
+gosub paintsplash
+#splash screen button handling
+while 1=1
+   if clickb=1 then
+      if mousey > b_locy_how and mousey < b_locy_how+b_height then
+         if mousex > b_locx_how and mousex < b_locx_how+ b_width then
+            #We clicked How to Play
+            if b_pressed=0 then
+               b_pressed=1
+               b_sw_pressed=1
+            end if
+            b_locx=150:b_locy=250
+            b_width=120:b_height=30
+            b_text$="How To Play":b_textsize=12
+            b_offsetx=10:b_offsety= 6
+            gosub button
+            refresh
+            pause 0.1
+            if b_sw_pressed=1 then
+               b_sw_pressed=0
+               b_pressed=0
+               gosub button
+            else
+            end if
+            gosub Howto
+         else
+            if mousex > b_locx_go and mousex < b_locx_go+ b_width then
+               #We clicked Let's go Play
+               if b_pressed=0 then
+                  b_pressed=1
+                  b_sw_pressed=1
+               end if
+b_locx=330:b_locy=250
+b_width=120:b_height=30
+               b_text$="Let's Go Play":b_textsize=12
+b_offsetx=10:b_offsety= 6
+               gosub button
+               refresh
+               pause 0.1
+               if b_sw_pressed=1 then
+                  b_sw_pressed=0
+                  b_pressed=0
+                  gosub button
+               else
+               end if
+               gosub Letsgo
+            endif
+         end if
+      end if
+      clickclear
+   end if
+end while
+
+# "Let's Go Play" was pressed...
+#*******************************
+Letsgo:
+#color table with the state of the color grid
+dim coltab(15,15) fill 0
+#array for similarly colored blocks
+dim colblock(15,15) fill 0
+#first block has target color by default
+colblock[1,1]=1
+#map colors used mapped to simple values
+colormap={{1 ,blue}, {2, green}, {3, cyan}, {4, red}, {5, purple}, {6, yellow}, {7 ,black}}
+#count the number of times the color was changed
+colorchanges =-1
+# draw initial screen and set base color
+gosub drawinitial
+#switch to indicate we selected a new color
+sw_selected=1
+newcol= pixel(160,40)
+for i = 0 to 5
+    if colormap[i,1]=newcol then changeto=colormap[i,0]
+next i
+#check for click in colorchange and recolor where needed
+while continue$="yes"
+   # does the mouse click anywhere in the "color-selector" area?
+   if mousey > 20 and mousey < 80 and mousex > 20 and mousex<110 then
+      while mouseb=1
+         newcol= pixel(mousex,mousey)
+         for i = 0 to 5
+            if colormap[i,1]=newcol then changeto=colormap[i,0]
+         next i
+         sw_selected=1
+      end while
+   endif
+   #if we clicked on a color....
+   if sw_selected=1 then
+      colorchanges=colorchanges+1
+      # store the old color
+      oldcol=pixel(offsetx+5,offsety+5)
+      for i = 0 to 5
+         if colormap[i,1]=oldcol then changefrom=colormap[i,0]
+      next i
+      refresh
+      sw_change=1
+      #look for single block of color "changeto"
+      while sw_change=1
+         gosub checkcolor
+      end while
+      #recolor found blocks
+      for i = 1 to 14
+         for j = 1 to 14
+            if colblock[i,j]=1 then
+               coltab[i,j]=changeto-1
+            endif
+         next j
+      next i
+      gosub redraw
+   endif
+   sw_selected=0
+   refresh
+end while
+if colorchanges <=25 then
+color black
+font "Baskerville Old Face",30,100
+text 170,150,"We have a winner!!"
+font "Baskerville Old Face",20,100
+   text 230,240,"..and you only needed"
+else
+color black
+font "Baskerville Old Face",30,100
+text 170,150,"     You lose...."
+font "Baskerville Old Face",20,100
+   text 230,240,"Not good! You needed"
+endif
+text 340,280,colorchanges
+text 320,320," tries!!"
+refresh
+end
+pause 3
+gosub paintsplash
+return
+
+checkcolor:
+sw_change=0
+#for all cell
+for i = 1 to 14
+   for j = 1 to 14
+      #look at colblock for that cell and if >0 then
+      if colblock[i,j]=1 then
+         #**********************
+         # look at cell to the right (if not outside)
+         if i+1<15 then
+            # if that cell has colblock = 1 continue next cell
+            if colblock[i+1,j] =0 then
+               # if cell has changeto color then colblock for cell to the right becomes 1
+               if coltab[i+1,j]+1=changeto then
+                  colblock[i+1,j]=1
+                  sw_change=1
+               endif
+            endif
+         endif
+         #**********************
+         # look at cell below (if not outside)
+         if j+1<15 then
+            # if that cell has colblock = 1 continue next cell
+            if colblock[i,j+1] = 0 then
+               # if cell has changeto color then colblock for cell to the right becomes 1
+               if coltab[i,j+1]+1=changeto then
+                  colblock[i,j+1]=1
+                  sw_change=1
+               endif
+            endif
+         endif
+         #**********************
+         # look at cell to the left (if not outside)
+         if i-1>0 then
+            # if that cell has colblock = 1 continue next cell
+            if colblock[i-1,j] =0 then
+               # if cell has changeto color then colblock for cell to the right becomes 1
+               if coltab[i-1,j]+1=changeto then
+                  colblock[i-1,j]=1
+                  sw_change=1
+               endif
+            endif
+         endif
+         #**********************
+         # look at cell above (if not outside)
+         if j-1>0 then
+            # if that cell has colblock = 1 continue next cell
+            if colblock[i,j-1] = 0 then
+               # if cell has changeto color then colblock for cell to the right becomes 1
+               if coltab[i,j-1]+1=changeto then
+                  colblock[i,j-1]=1
+                  sw_change=1
+               endif
+            endif
+         endif
+         #**********************
+      endif
+   next j
+next i
+return
+
+paintsplash:
+color gray
+rect 0,0,600,460
+g_locx=130
+g_locy=100
+g_width=350
+g_height=240
+g_label$=""
+gosub grouper
+gosub liquid
+gosub liquid_b1
+gosub liquid_b2
+color rgb(90,90,90)
+font "Baskerville Old Face",40,100
+color red
+text 193,123,"Flood-it"
+color rgb(80,80,80)
+text 190,120,"Flood-it"
+font "Baskerville Old Face",20,100
+color red
+text 251,181,"for Basic-256"
+color rgb(80,80,80)
+text 250,180,"for Basic-256"
+refresh
+b_locx=150:b_locy=250
+b_locx_how=150:b_locy_how=250
+b_width=120:b_height=30
+b_text$="How To Play":b_textsize=12
+b_offsetx=10:b_offsety= 6
+b_pressed=0
+gosub button
+b_locx=330:b_locy=250
+b_locx_go=330:b_locy_go=250
+b_width=120:b_height=30
+b_text$="Let's Go Play":b_textsize=12
+b_offsetx=9:b_offsety= 6
+b_pressed=0
+gosub button
+return
+
+#Draw the Playing Field
+#**********************
+drawinitial:
+#one colorgrid
+color grey
+rect 0,0,600,460
+dim draw(10,10) fill 0
+draw_elements_x=1
+draw_elements_y=1
+draw_locx=12:draw_locy=12
+draw_width=104:draw_height=74
+draw_offsetx=0:draw_offsety= 0
+draw_insetx=0.1:draw_insety=0.12
+draw_color = 2
+gosub drawing
+#draw selector box
+color red
+rect 20,20,30,30
+color green
+rect 50,20,30,30
+color yellow
+rect 80,20,30,30
+color cyan
+rect 20,50,30,30
+color blue
+rect 50,50,30,30
+color purple
+rect 80,50,30,30
+refresh
+#Number of tries
+#***************
+color black
+font "Baskerville Old Face",20,100
+text 30,100,"Tries:"
+#draw grid area with random colors
+#one colorgrid
+color grey
+draw_elements_x=1
+draw_elements_y=1
+draw_locx=142:draw_locy=12
+draw_width=436:draw_height=436
+draw_offsetx=0:draw_offsety= 0
+draw_insetx=0.02:draw_insety=0.02
+draw_color = 2
+gosub drawing
+offsetx=150
+offsety=20
+for i = 1 to 14
+   for j = 1 to 14
+      sx=(i-1)*30+offsetx
+      sy=(j-1)*30+offsety
+      ex=sx+30
+      ey=sy+30
+      coltab[i,j]=int(RAND*6)
+      if coltab[i,j]=3 then
+         color rgb(255, 60, 60)
+         poly {sx,sy,sx,ey,ex,sy}
+         color darkred
+         poly {sx,ey,ex,sy,ex,ey}
+      else
+         if coltab[i,j]=1 then
+            color rgb(140, 255, 140)
+            poly {sx,sy,sx,ey,ex,sy}
+            color darkgreen
+            poly {sx,ey,ex,sy,ex,ey}
+            
+         else
+            if coltab[i,j]=5 then
+               color rgb(230, 255, 230)
+               poly {sx,sy,sx,ey,ex,sy}
+               color darkyellow
+               poly {sx,ey,ex,sy,ex,ey}
+            else
+               if coltab[i,j]=0 then
+                  color rgb(80, 80, 255)
+                  poly {sx,sy,sx,ey,ex,sy}
+                  color darkblue
+                  poly {sx,ey,ex,sy,ex,ey}
+               else
+                  if coltab[i,j]=4 then
+                     color rgb(255, 80, 255)
+                     poly {sx,sy,sx,ey,ex,sy}
+                     color darkpurple
+                     poly {sx,ey,ex,sy,ex,ey}
+                  else
+                     if coltab[i,j]=2 then
+                        color rgb(180, 255, 255)
+                        poly {sx,sy,sx,ey,ex,sy}
+                        color darkcyan
+                        poly {sx,ey,ex,sy,ex,ey}
+                     endif
+                  endif
+               endif
+            endif
+         endif
+      endif
+      color colormap[coltab[i,j],1]
+      rect sx+5,sy+5,20,20
+      color white
+      poly {sx+5,sy+11,sx+5,sy+13,sx+13,sy+5,sx+11,sy+5}
+      refresh
+   next j
+next i
+#Repaint the 'flooded' area
+#**************************
+redraw:
+sw_other=0
+offsetx=150
+offsety=20
+for i = 1 to 14
+   for j = 1 to 14
+      if colblock[i,j]=1 then
+         color colormap[coltab[i,j],1]
+         rect (i-1)*30+offsetx,(j-1)*30+offsety,30,30
+      else
+         sw_other=1
+      endif
+   next j
+next i
+color gray
+rect 30,140,80,80
+if colorchanges > 24 then
+   color red
+else
+   color black
+endif
+font "Baskerville Old Face",30,100
+text 50,140,colorchanges
+if sw_other=0 then continue$="no"
+refresh
+return
+
+#Top liguid
+liquid:
+dim range(700)  fill 0
+sw=1
+k=0
+fastgraphics
+k=0
+seedy=rand
+sizx=600
+x1=0
+y1=0
+amplitude=128
+frequency=6
+
+oldx=0
+offset=0
+gosub perlin
+sw=0
+refresh
+return
+
+#Howto button liquid
+#*******************
+liquid_b1:
+dim rangeb1(300) fill 0
+sw=1
+k=0
+seedy=rand
+sizx=120
+x1=150
+y1=280
+amplitude=48
+frequency=10
+oldx=0
+offset=0
+gosub perlin
+sw=0
+refresh
+return
+
+#Let's Play button liquid
+#*******************
+liquid_b2:
+dim rangeb2(300) fill 0
+sw=1
+k=0
+seedy=rand
+sizx=120
+x1=330
+y1=280
+amplitude=48
+frequency=10
+oldx=0
+offset=0
+gosub perlin
+sw=0
+refresh
+return
+
+#Return button liquid
+#*******************
+liquid_b3:
+dim rangeb2(300) fill 0
+sw=1
+k=0
+seedy=rand
+sizx=100
+x1=250
+y1=410
+amplitude=48
+frequency=10
+oldx=0
+offset=0
+gosub perlin
+sw=0
+refresh
+return
+
+#create Perlin noise for liquid
+#******************************
+perlin:
+gosub myRnd
+pointb=a
+for zz= 1 to frequency
+   if zz=1 then
+      pointa=0
+   else
+      pointa=pointb
+   endif
+   gosub myRnd
+   if zz=frequency then
+      pointb=0
+   else
+      pointb=a
+   endif
+   for x=0 to 1 step (1/(sizx/frequency))
+      if sw=1 then
+         ft = x * 3.1415927
+         f = (1 - cos(ft)) * .5
+         interp= pointa*(1-f) + pointb*f
+      else
+         interp= pointa*(1-x) + pointb*x
+      endif
+      color rgb(100,100,220)
+      line (x*(sizx/frequency)+oldx)+x1,y1,(x*(sizx/frequency)+oldx+x1), y1+interp*amplitude+offset
+      color blue
+      line (x*(sizx/frequency)+oldx)+x1,y1,(x*(sizx/frequency)+oldx)+x1, y1+interp*amplitude+offset-5
+      range[k]=range[k]+(interp*amplitude)
+      k=k+1
+   next x
+   oldx=oldx+(sizx/frequency)
+next zz
+return
+
+#Seeded Random Number Generator for Perlin
+myRnd:
+seedy=(221*seedy)+2113
+seedy=seedy-(INT(seedy/10000)*10000)
+a=seedy/10000
+return
+
+# Print the Game rules
+#*********************
+Howto:
+draw_elements_x=1
+draw_elements_y=1
+draw_locx=130:draw_locy=220
+draw_width=351:draw_height=150
+draw_offsetx=20:draw_offsety= 20
+draw_insetx=0.02:draw_insety=0.02
+draw_color = 1
+gosub drawing
+color black
+font "Tahoma",10,100
+text draw_locx+draw_offsetx, draw_locy+draw_offsety, "Your initial position starts from the top left."
+text draw_locx+draw_offsetx, draw_locy+draw_offsety+20, "Select one of the colors from the selector"
+text draw_locx+draw_offsetx, draw_locy+draw_offsety+40, "to change your initial color and to add all "
+text draw_locx+draw_offsetx, draw_locy+draw_offsety+60,"adjacent blocks of that color to the flooded "
+text draw_locx+draw_offsetx, draw_locy+draw_offsety+80, "area. The aim is to flood the entire area in "
+text draw_locx+draw_offsetx, draw_locy+draw_offsety+100, "smallest number of steps..."
+gosub liquid_b3
+b_locx=250:b_locy=380
+b_locx_return=250:b_locy_return=380
+b_width=100:b_height=30
+b_text$="Return":b_textsize=12
+b_offsetx=22:b_offsety= 6
+b_pressed=0
+gosub button
+clickclear
+while 1=1
+   b_sw_pressed=0
+   if clickb=1 then
+      if mousey > b_locy_return and mousey < b_locy_return+b_height then
+         if mousex > b_locx_return and mousex < b_locx_return + b_width then
+            if b_pressed=0 then
+               b_pressed=1
+               b_sw_pressed=1
+            end if
+b_locx=250:b_locy=380
+b_width=100:b_height=30
+b_text$="Return":b_textsize=12
+b_offsetx=22:b_offsety= 6
+            gosub button
+            refresh
+            pause 0.1
+            if b_sw_pressed=1 then
+               b_sw_pressed=0
+               b_pressed=0
+               gosub button
+            end if
+            gosub paintsplash
+            refresh
+            return
+         endif
+      endif
+   endif
+end while
+
+#*********************************
+# sub routine "Draw a button"
+#*********************************
+button:
+if b_pressed=0 then
+   color rgb(200,200,200)
+   poly {b_locx, b_locy, b_locx+b_width, b_locy, b_locx, b_locy+b_height}
+   color darkgrey
+   poly {b_locx+b_width, b_locy, b_locx+b_width, b_locy+b_height, b_locx, b_locy+b_height}
+   color grey
+   rect b_locx+b_width*0.05, b_locy+b_height*0.07, b_width-b_width*0.1, b_height-b_height*0.1
+   color black
+   font "Tahoma",b_textsize,100
+   text b_locx+b_offsetx,b_locy+b_offsety,b_text$
+   refresh
+else
+   color darkgrey
+   poly {b_locx, b_locy, b_locx+b_width, b_locy, b_locx, b_locy+b_height}
+   color rgb(200,200,200)
+   poly {b_locx+b_width, b_locy, b_locx+b_width, b_locy+b_height, b_locx, b_locy+b_height}
+   color grey
+   rect b_locx+b_width*0.05 ,b_locy+b_height*0.07, b_width-b_width*0.1, b_height-b_height*0.1
+   color black
+   font "Tahoma",b_textsize,100
+   text b_locx+(b_offsetx+2), b_locy+(b_offsety+2),b_text$
+end if
+refresh
+return
+
+
+#******************************************
+# sub routine "Draw a drawing element grid"
+#******************************************
+drawing:
+for i=1 to draw_elements_x
+   for j =1 to draw_elements_y
+      widthfiller=draw_width+draw_offsetx
+      heightfiller= draw_height+draw_offsety
+      color darkgrey
+      poly {draw_locx+((i-1)*widthfiller), draw_locy+((j-1)*heightfiller), draw_locx+((i-1)*widthfiller), draw_locy+((j-1)*heightfiller)+draw_height, draw_locx+((i-1)*widthfiller)+draw_height/2, draw_locy+((j-1)*heightfiller)+draw_height/2}
+      poly {draw_locx+((i-1)*widthfiller), draw_locy+((j-1)*heightfiller), draw_locx+((i-1)*widthfiller)+draw_height/2, draw_locy+((j-1)*heightfiller)+draw_height/2, draw_locx+((i-1)*widthfiller)+draw_width-draw_height/2, draw_locy+((j-1)*heightfiller)+draw_height/2, draw_locx+((i-1)*widthfiller)+draw_width,draw_locy+((j-1)*heightfiller)}
+      color rgb(200,200,200)
+      poly {draw_locx+((i-1)*widthfiller), draw_locy+((j-1)*heightfiller)+draw_height, draw_locx+((i-1)*widthfiller)+draw_height/2, draw_locy+((j-1)*heightfiller)+draw_height/2, draw_locx+((i-1)*widthfiller)+draw_width-draw_height/2, draw_locy+((j-1)*heightfiller)+draw_height/2, draw_locx+((i-1)*widthfiller)+draw_width, draw_locy+((j-1)*heightfiller)+draw_height}
+      poly {draw_locx+((i-1)*widthfiller)+draw_width-draw_height/2, draw_locy+((j-1)*heightfiller)+draw_height/2, draw_locx+((i-1)*widthfiller)+draw_width, draw_locy+((j-1)*heightfiller)+draw_height, draw_locx+((i-1)*widthfiller)+draw_width,draw_locy+((j-1)*heightfiller)}
+      if draw_color = 1 then
+         color white
+      else
+         color black
+      endif
+      rect draw_locx+(i-1)*widthfiller+(draw_width*draw_insetx), draw_locy+(j-1)*heightfiller+(draw_height*draw_insety), draw_width-draw_width* 2*draw_insetx+2, draw_height-draw_height* 1.5*draw_insety
+   next j
+next i
+refresh
+return
+
+#**********************************
+# sub routine "Draw a grouping area"
+#**********************************
+grouper:
+#get background color
+backgr=pixel(g_locx+g_width-1,g_locy+g_height-1)
+color darkgrey
+line g_locx, g_locy, g_locx+g_width, g_locy
+line g_locx+g_width, g_locy,g_locx+g_width, g_locy+g_height
+line g_locx+g_width, g_locy+g_height,g_locx, g_locy+g_height
+line g_locx, g_locy+g_height, g_locx,g_locy
+color rgb(200,200,200)
+line g_locx+1, g_locy+1, g_locx+g_width-1, g_locy+1
+line g_locx+g_width+1, g_locy,g_locx+g_width+1, g_locy+g_height+1
+line g_locx+g_width+1, g_locy+g_height+1,g_locx, g_locy+g_height+1
+line g_locx+1, g_locy+1, g_locx+1, g_locy+g_height-1
+color backgr
+# if g_label$ has content, write it on the top left side of the grouper element
+if length(g_label$)>0 then
+   rect g_locx+10,g_locy-10,g_width/5*2,20
+   color black
+   font "Tahoma",10,100
+   text g_locx+g_width/7,g_locy-7,g_label$
+endif
+refresh
+return
+
+function alpha(hexcol)
+alpha = hexcol/256/256/256%256
+end function
+
+function rood(hexcol)
+rood = hexcol/256/256%256
+end function
+
+function groen(hexcol)
+groen = hexcol/256%256
+end function
+
+function blauw(hexco)
+blauw = hexco%256
+end function

@@ -1,0 +1,202 @@
+# *******************************************
+# ***Cubic Bezier Curve Tentacle Animation*** 
+# *******************************************
+# ************ Initialization ***************
+# *******************************************
+dim row(4,2) # for holding the 4 control points of our Cubic Bezier curve
+dim bez(151,2) # for holding 150 ponts on the calculated Bezier curve
+WIDTH = 1000
+HEIGHT = 1000
+graphsize WIDTH,HEIGHT
+graphvisible(1)
+editvisible(1)
+outputvisible(0)
+Fastgraphics
+#*************************************************
+# Play with the following variables
+#*************************************************************************
+# Size of the circle at the foot (trippy visuals if you go to a couple of hundred)
+CIRCLE_SIZE = 100
+# Distance from centre of upper left tentacle (between 0 (corner) and 250 (center))
+TENT_POS = 175
+# control the speed of the animation (lower=faster)
+ANIMATION_DELAY = 0.005
+# Jiggle factor: best between 0.1 and  0.05. Higher means less movement. Lower and it explodes
+JIGGLE_FACTOR=0.08
+#Coloring the Tenatcles (set to 0 for random colors, 1 for fading red color
+sw_color=0
+#**************************************************************************
+# variables to control the movement of the tentacle
+p1=4
+p2=6
+p3=5
+jp1=0
+jp2=0
+jp3=0
+incp1=0.3
+incp2=0.3
+incp3=0.3
+q1=3
+q2=7
+q3=4
+jq1=0
+jq2=0
+jq3=0
+incq1=0.3
+incq2=0.3
+incq3=0.3
+# colors for the tentacles
+dim r(256)
+dim g(256)
+dim b(256)
+if sw_color=0 then
+  for i = 0 to 255
+   r[i]=rand*255
+   g[i]=rand*255
+   b[i]=rand*255
+  next i
+else
+  for i = 0 to 255
+   r[i]=255-i
+   g[i]=255-i
+   b[i]=255-i
+  next i 
+endif    
+# Here we create the initial 4 points of the curve
+ gosub CreateInitpoint
+# ******************************************
+# ********* Start the tentacle loop ********
+# ******************************************
+loop:
+# here we interpolate the bezier curve
+ gosub CreateInterpolated
+# here we clear the screen and place circles along the Bezier path
+ clg
+ if sw_color=1 then
+   color white
+   rect 0,0,WIDTH,HEIGHT
+ endif
+ gosub DrawCircleonPath
+# now we show it all
+refresh
+# here we slightly change the initial 4 point between qx and rx
+ gosub JigglePoints
+# here we loop the creation
+goto loop
+end
+# ******************************************
+# ******* Here the Subroutines start *******
+# ******************************************
+# ******************************************
+# ********* Create Initial Points **********
+# ******************************************
+# first we create 4 control points
+# the four points are spaced evenly apart with a random offset
+# we try to put them in more or less the same horizontal plane with a random offset from the initial point
+CreateInitpoint:
+ row[0,0] = WIDTH/2 - TENT_POS 
+ row[0,1] = WIDTH/2 - TENT_POS
+ row[1,0] = WIDTH/2 - TENT_POS +(rand*100-50)
+ row[1,1] = WIDTH/2 - TENT_POS +(rand*100-50)
+ row[2,0] = WIDTH/2 - TENT_POS +(rand*200-100)
+ row[2,1] = WIDTH/2 - TENT_POS +(rand*200-100)
+ row[3,0] = WIDTH/2 - TENT_POS +(rand*300-150)
+ row[3,1] = WIDTH/2 - TENT_POS +(rand*300-150)
+return
+
+# ******************************************
+# ********* Interpolate the curve **********
+# ******************************************
+# here we create a 100-element set of interpolated points. These are on the Bezier spline
+CreateInterpolated:
+for i = 0 to 150 step 1
+  ix=i/150
+  x1=(1-ix)*(1-ix)*(1-ix)*row[0,0]
+  y1=(1-ix)*(1-ix)*(1-ix)*row[0,1]
+  x2=3*(1-ix)*(1-ix)*ix*row[1,0]
+  y2=3*(1-ix)*(1-ix)*ix*row[1,1]
+  x3=3*(1-ix)*ix*ix*row[2,0]
+  y3=3*(1-ix)*ix*ix*row[2,1]
+  x4= ix*ix*ix*row[3,0]
+  y4= ix*ix*ix*row[3,1]
+  bez[i,0]=x1+x2+x3+x4
+  bez[i,1]=y1+y2+y3+y4
+next i
+return
+#return
+# ******************************************
+# ****** Create circles of decreasing ******
+# ******     size and mirror them    *******
+# ******************************************
+# for all the points on the Bezier curve defined by Bez[], we draw circles with pre-defined random colors
+DrawCircleonPath:
+ outer = CIRCLE_SIZE
+for i = 0 to 150
+ color rgb(r[i],g[i],b[i])
+ outer =outer - (CIRCLE_SIZE/150)
+ circle WIDTH/2 - TENT_POS +bez[i,0],HEIGHT/2 + TENT_POS - bez[i,1],outer
+ circle WIDTH/2 - TENT_POS +bez[i,0], HEIGHT/2 - TENT_POS + bez[i,1],outer
+ circle WIDTH/2 + TENT_POS - bez[i,0],HEIGHT/2 - TENT_POS + bez[i,1],outer
+ circle WIDTH/2 + TENT_POS - bez[i,0],HEIGHT/2 + TENT_POS - bez[i,1],outer
+next i
+pause ANIMATION_DELAY
+return
+# ******************************************
+# ****** Offset the control points to ******
+# ****** give a feeling of movement   *****
+# ******************************************
+# here we take the original control points stored in row[](except for the first one) and move them around between parameters px and qx where px=left to right, qx= up and down The parameters are being changed by incpx and incqx
+JigglePoints:
+ row[0,0]= WIDTH/2 - TENT_POS 
+ row[0,1] = HEIGHT/2 - TENT_POS
+ if jp1 > p1 then
+   incp1 =  -JIGGLE_FACTOR
+ end if
+ if jp1 < -p1 then
+   incp1 = JIGGLE_FACTOR
+ end if
+ if jp2 > p2 then
+   incp2 = -JIGGLE_FACTOR
+ end if
+ if jp2 < -p2 then
+   incp2 =  JIGGLE_FACTOR
+ end if
+ if jp3 > p3 then
+   incp3 = -JIGGLE_FACTOR
+ end if
+ if jp3 < -p3 then
+   incp3 = JIGGLE_FACTOR
+ end if
+jp1=jp1+incp1
+jp2=jp2+incp2
+jp3=jp3+incp3/2
+ if jq1 > q1 then
+   incq1 =  - JIGGLE_FACTOR
+ end if
+ if jq1 < -q1 then
+   incq1 = JIGGLE_FACTOR
+ end if
+ if jq2 > q2 then
+   incq2 = -JIGGLE_FACTOR
+ end if
+ if jq2 < -q2 then
+   incq2 =  JIGGLE_FACTOR
+ end if
+ if jq3 > q3 then
+   incq3 = -JIGGLE_FACTOR
+ end if
+ if jq3 < -q3 then
+   incq3 = JIGGLE_FACTOR
+ end if
+jq1=jq1+incq1
+jq2=jq2+incq2
+jq3=jq3+incq3/2
+  row[0,0] = row[0,0] - jp3
+  row[0,1] = row[0,1] - jq3
+  row[1,0] = row[1,0] - jp1
+  row[1,1] = row[1,1] - jq1
+  row[2,0] = row[2,0] - jp2
+  row[2,1] = row[2,1] - jq2
+  row[3,0] = row[3,0] - jp3
+  row[3,1] = row[3,1] - jq3
+return

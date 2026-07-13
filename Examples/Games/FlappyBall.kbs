@@ -1,0 +1,106 @@
+# Manuel Nogueira Santos - Dec 2012
+# Minimalist version of flappy bird, Fixed & Updated
+# Click to jump once on the canvas area
+graphsize 600,400
+fastgraphics
+Dim obstaclehight(10)
+birdy=200: dy=-1: lifes=5
+for level = 1 to 5
+   # Generate obstacles safely within screen bounds
+   for n = 0 to 9
+      obstaclehight[n] = 50 + int(rand * 150)
+   next n 
+   # restart point after losing a life
+   start:
+   # End game code
+   if lifes <= 0 then
+       color red
+       rect 0,0,600,400
+       color black
+       font "arial",50,50
+       text 130,145,"Game Over"
+       refresh
+       end
+   end if   
+   # Reset bird position on death/start
+   birdy = 200:    dy = -1   
+   # Running code
+   for x = 1 to 2200 step 2
+       clg # Clear screen each frame to prevent smearing       
+       # Background
+       color yellow
+       rect 0,0,600,400       
+       # Text displays
+       color black
+       font "arial",30,50
+       text 50-x,50,"Level:"+(level)
+       if level < 5 then text 2200-x,50,"Level:"+(level+1)
+       if level = 5 then text 2200-x,50,"End"       
+       # Drawing columns & Collision
+       for n = 0 to 9
+          pipe_x = 400 + n * 250 - x
+          pipe_w = 50
+          gap_y = obstaclehight[n]
+          gap_h = 110 - (level * 5) # Gaps get smaller as levels progress         
+          # Only draw if visible on screen
+          if pipe_x > -50 and pipe_x < 600 then
+              color darkgreen
+              # Top pipe
+              rect pipe_x, 0, pipe_w, gap_y
+              # Bottom pipe
+              rect pipe_x, gap_y + gap_h, pipe_w, 400 - (gap_y + gap_h)            
+              # Hitbox Collision Detection (Bird is at X=50, Radius=10)
+              if (pipe_x < 60) and (pipe_x + pipe_w > 40) then
+                  if (birdy - 10 < gap_y) or (birdy + 10 > gap_y + gap_h) then
+                      lifes = lifes - 1
+                      # Quick delay so the player realizes they hit a pipe
+                      pause 0.5 
+                      goto start
+                  end if
+              end if
+          end if
+       next n       
+       # Ball (Bird) draw
+       color red
+       circle 50,birdy,10
+       color white
+       circle 52,birdy-2,3
+       color black
+       circle 53,birdy-2,2
+       rect 56,birdy+2,5,3       
+       # UI Text
+       color black
+       font "arial",14,100
+       text 10,10,"Lives: " + lifes
+       text 500,10,"Level: " + level       
+       # Movement & Physics
+       birdy = birdy + dy
+       dy = dy + 0.25 # Increased gravity slightly for better feel
+       refresh
+       while mousex=0
+           # do Nothing
+        end while   
+       # Floor/Ceiling death conditions
+       if birdy > 400 or birdy < 0 then
+          lifes = lifes - 1
+          pause 0.5
+          goto start
+       end if       
+       # Input Handling (Click to Jump)
+       if clickb > 0 then 
+          dy = -4.5 # Flap impulse
+       end if
+       clickclear # Clear click buffer       
+       refresh
+       pause 0.01
+  next x
+next level
+# Win condition
+clg
+color red
+rect 0,0,600,400
+color black
+font "arial",50,50
+text 50,150,"You Win!"
+refresh
+end

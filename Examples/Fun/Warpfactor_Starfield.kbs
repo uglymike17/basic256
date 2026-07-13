@@ -1,0 +1,81 @@
+# *************************************************
+#    WarpFactor Starfield
+# *************************************************
+# initialisation
+# *************************************************
+# maximum number of stars
+# lower this to get more fluent effect
+max =300
+#size of the window
+side=1200
+graphsize side,side
+graphvisible(1)
+editvisible(1)
+outputvisible(0)
+clg
+fastgraphics
+color black
+rect 0,0,side,side
+# ************************************************
+# stars array
+# ************************************************
+# Each particle has 4 parameters
+# 0 : location on the x-axis from -size/2 to size2
+# 1 : location on the y-axis from -size/2 to size2
+# 2 : random value within size
+# 3 : static copy of 2
+dim stars(max,5)
+for i = 0 to max-1
+ stars[i,0] = rand*graphwidth-(graphwidth/2)	# x position between -200 and +200
+ stars[i,1] = rand*graphheight-(graphheight/2)	# y position between -200 and +200 
+ stars[i,2] = graphwidth						# start of with screen size and decrease it in the loop
+ stars[i,3] = stars[i,2]						# same as [i,2] but to keep previous [i,2 ] value
+ stars[i,4] = floor(rand*5)+1					# size of star
+next i
+
+#**************************************************
+# main loop
+#**************************************************
+while (1=1)
+
+for i = 0 to max-1
+  stars[i,2]=stars[i,2]-10
+  if (stars[i,2] <1) then
+   stars[i,0] = rand*graphwidth-(graphwidth/2)
+   stars[i,1] = rand*graphheight-(graphheight/2)
+   stars[i,2] = graphwidth
+   stars[i,3]=stars[i,2]
+    stars[i,4] = floor(rand*5)+1
+  endif 
+next i  
+color white
+for i = 0 to max-1
+  x= stars[i,0]/stars[i,2] * graphwidth + (graphwidth/2)
+  y= stars[i,1]/stars[i,2] * graphwidth + (graphwidth/2)
+  vec_length =sqr((stars[i,0]/stars[i,2] * graphwidth)*(stars[i,0]/stars[i,2] * graphwidth) +(stars[i,1]/stars[i,2] * graphwidth)*(stars[i,1]/stars[i,2] * graphwidth))
+  if vec_length> sqr(2*(side*side)) then
+    stars[i,2]=0
+  else  
+    diag = sqr(2*200*200)
+    xsize = ( (vec_length/diag )*stars[i,4])+1
+    old_x= stars[i,0]/stars[i,3] * graphwidth + (graphwidth/2)
+    old_y= stars[i,1]/stars[i,3] * graphwidth  + (graphwidth/2)
+    stars[i,3]=stars[i,2]
+    penwidth xsize
+    line (old_x,old_y,x,y)
+
+  endif
+next i  
+refresh
+color rgb(0,0,0,10) # uses some alpha to get the streaks
+rect 0,0,side,side
+
+end while
+
+
+
+
+
+
+
+

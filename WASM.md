@@ -1276,13 +1276,13 @@ automatic reload on first visit).
       `resolve()` turns that into program bytes. Three sources, in precedence
       order:
       - `?run=<name>` (`?program=` is a synonym) — a program bundled in
-        `DemoWASM/examples.qrc` (`:/examples`, the same 42 files the Open Example
-        picker uses). `.kbs` optional. The name is restricted to `[A-Za-z0-9_-]`
-        so it cannot `../` its way out of the resource prefix. **Matched
-        case-insensitively** (`resolveExampleName()`, added 2026-07-12 after
-        `?run=Mandelbrot` failed in the browser): Qt resource paths are
-        case-sensitive and every bundled example is lowercase, so an exact-case
-        requirement is a papercut on a link people type and share by hand.
+        `DemoWASM/examples.qrc` (`:/examples`, the same files the Open Example
+        picker uses). `.kbs` optional. **Matched case-insensitively** and
+        **without needing the category** (`resolveExampleName()`) — see the
+        subdirectories follow-up below. Safety: each path segment is restricted to
+        `[A-Za-z0-9_-]`, so `.` occurs nowhere but the optional `.kbs` suffix,
+        `..` cannot be spelled at all, and a leading `/` or any backslash fails to
+        match — the name cannot walk out of the resource prefix.
       - `?src=<base64>` — the source itself, in the link. Decoded strictly
         (`AbortOnBase64DecodingErrors`), URL-safe alphabet first then standard:
         the *lenient* `fromBase64()` silently drops out-of-alphabet characters,
@@ -1322,6 +1322,42 @@ automatic reload on first visit).
       Fetch completion reaches C++ via an `EMSCRIPTEN_KEEPALIVE`
       `wasmLaunchOnFetched()` export called **directly**, same as
       `wasmAudioSinkOnDecoded`/`basic256SayFinished`.
+      **Examples in subdirectories (follow-up, 2026-07-13).** `DemoWASM/` was flat;
+      the maintainer regrouped it (and `Examples/`) into `Demo/
+      FractalsChaosAttractors/ Fun/ Games/ Original_Examples/ Simulations/
+      Sound_Speech/`. `DemoWASM/` stays a *subset*: it drops the four database
+      programs (no `DBOPEN` in the browser), and its `Original_Examples/` omits
+      `Examples/`'s `dice/ imgload/ networking/ sound/ sprites/ testing/`
+      subfolders — those need image/sound assets a program cannot reach in the
+      browser anyway (an `IMGLOAD("test.bmp")` looks in the empty MEMFS and then
+      the network; nothing maps a program's relative path onto `:/examples/…`, so
+      bundling the assets would cost download weight and still not work). Net:
+      **68 self-contained `.kbs`**, one category level deep, no assets.
+      `rcc` handles nesting natively — `<file>Games/PacMan.kbs</file>` becomes
+      `:/examples/Games/PacMan.kbs` — and CMake needed no change, since it only
+      names the `.qrc`. The packaging scripts all `cp -r Examples`, so the desktop
+      side is unaffected too.
+      The trap was that **both** lookups into `:/examples` used
+      `QDir::entryList()`, which does **not** descend: left alone they would have
+      returned nothing, and `openExample()`'s `if (files.isEmpty()) return;` would
+      have made the picker silently do nothing at all. Both now use `QDirIterator`
+      with `Subdirectories` — which also means a deeper tree would work if the
+      curation ever changes.
+      - `MainWindow::openExample()` lists entries as `Games/hangman.kbs` and sorts
+        them, so the flat `QInputDialog` list groups by category for free (the
+        cheap picker — a `QTreeWidget` dialog remains an option later). The tab
+        title is the bare file name: the category is how you *found* the program,
+        not part of what it is called.
+      - `resolveExampleName()` tries the full relative path first, then falls back
+        to matching the bare file name **anywhere in the tree** — because
+        `?run=mandelbrot` is the form in the README and in every link already
+        shared, and it has to keep working now that the file lives in `Demos/`.
+        `?run=Demos/mandelbrot` works too. If two categories ever hold the same
+        file name, the bare form resolves to whichever the iterator reaches first;
+        give the category to disambiguate.
+      - `isSafeExampleName()` now permits `/`-separated segments. The safety
+        property is unchanged and rests on the same fact as before: `.` is not in
+        the segment character class, so `..` cannot be written.
       **`?mode=` (follow-up, 2026-07-12).** The first cut hardcoded graphics-only
       for every launch. `?mode=` now picks the GUI, as a **separate** parameter
       from the three above — they say *what* to run, it says *how* — so it

@@ -1,0 +1,46 @@
+# Barnsley Fern   K Moerman 2026
+# using info from:
+# https://en.wikipedia.org/wiki/Barnsley_fern
+seed 1
+w = 1200: h = 1500: hw = w \ 2
+xscale = w \ 6: yscale = h \ 11
+graphsize w,h: clg black: fastgraphics
+x = 0.0: y = 0.0
+for t = 1 to w*h
+	r = rand() # value between 0 and 1
+	begin case # choose 1 out of 4 possible transforms
+	case r < 0.01 # probability 1%
+		xn = 0.0
+		y = 0.16 * y
+	case r < 0.86 # probability 85%
+		xn = 0.85 * x + 0.04 * y
+		y = -0.04 * x + 0.85 * y + 1.6
+	case r < 0.93 # probability 7%
+		xn = 0.2 * x - 0.26 * y
+    	y = 0.23 * x + 0.22 * y + 1.6
+	else # probability 7%
+		xn = -0.15 * x + 0.28 * y
+    	y = 0.26 * x + 0.24 * y + 0.44
+	end case
+	x = xn
+	call plotpoint(x,y,xscale,yscale,hw,h)
+	if t % 1E3 = 0 then refresh
+next t
+font "Tahoma",20: color darkgreen
+text 80,50,"Barnsley Fern":refresh
+imgsave "barnsley_fern2.png"
+
+# scale point x,y to screen
+# sample existing color at that point
+# plot new color increased by smaller 
+# amounts as it gets closer to 255 
+# g = g + (255 - g) / 8 + 1 = 7 / 8 * g + 33
+subroutine plotpoint(x,y,xscale,yscale,hw,h)
+xscr = hw + x * xscale # scale to screen
+yscr = h - y * yscale
+cgreen = (pixel(xscr, yscr) & 0xff00) \ 0x100 # sample point color and mask out green component
+if cgreen < 255 then
+	cgreen = 7 * cgreen \ 8 + 33 
+	color rgb(0,cgreen,0): plot xscr,yscr
+end if
+end subroutine

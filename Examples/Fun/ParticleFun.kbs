@@ -1,0 +1,659 @@
+# *************************************************
+#    Particle Pointer
+#           A simple Particle fontain program 
+# *************************************************
+# initialisation
+# *************************************************
+# maximum number of particles slots
+# lower this to get more fluent effect
+max =5000
+ps=25
+sizec=0
+speed=1
+fall=0.05
+# Each particle has 6 parameters
+# 0 : location on the x-axis
+# 1 : location on the y-axis1
+# 2 : movement on the x-axis
+# 3 : movement on the y-axis
+# 4 : how old the particle can get
+# 5 : period of same color
+dim particle(max,6)
+graphsize 900, 800
+graphvisible(1)
+editvisible(0)
+outputvisible(0)
+clg
+# Base canvas
+color grey
+rect 0,0,900,800
+fastgraphics
+# Base canvas
+color grey
+rect 0,0,900,800
+# Slider element
+# draw the slider control and capture it as a sprite
+color black
+circle 160,160,7
+color darkgrey
+circle 160,160,6
+color rgb(200,200,200)
+circle 160,160,5
+color white
+circle 162,158,2
+spritedim 5
+spriteslice 0,153,153,15,15
+spriteslice 1,153,153,15,15
+spriteslice 2,153,153,15,15
+spriteslice 3,153,153,15,15
+spriteslice 4,153,153,15,15
+spritehide 0
+spritehide 1
+spritehide 2
+spritehide 3
+spritehide 4
+color grey
+rect 0,0,900,800
+#Labels
+color black
+font "Tahoma",14,100
+text 350,20,"Fun with particles"
+font "Tahoma",10,100
+text 35,60,"Number of new particles"
+text 35,90,"Size of the particles"
+text 35,120,"Initial speed"
+text 35,150,"Gravity factor"
+#settings for the entry field where you select number of ârticles to spawns with slider
+d_ps_cell_r=1
+d_ps_cell_d=1
+d_ps_startx=200
+d_ps_starty=60
+d_ps_width=50
+d_ps_height=15
+d_ps_offsetx=0
+d_ps_offsety=12
+d_ps_color=1 # white
+call drawing(d_ps_cell_r,d_ps_cell_d,d_ps_startx,d_ps_starty,d_ps_width,d_ps_height,d_ps_offsetx,d_ps_offsety,d_ps_color)
+#settings for the entry field where you select size of the particle with slider
+d_size_cell_r=1
+d_size_cell_d=1
+d_size_startx=200
+d_size_starty=90
+d_size_width=50
+d_size_height=15
+d_size_offsetx=0
+d_size_offsety=12
+d_size_color=1 # white
+call drawing(d_size_cell_r,d_size_cell_d,d_size_startx,d_size_starty,d_size_width,d_size_height,d_size_offsetx,d_size_offsety,d_size_color)
+#settings for the entry field where you select speed of the particle values with slider
+d_speed_cell_r=1
+d_speed_cell_d=1
+d_speed_startx=200
+d_speed_starty=120
+d_speed_width=50
+d_speed_height=15
+d_speed_offsetx=0
+d_speed_offsety=12
+d_speed_color=1 # white
+call drawing(d_speed_cell_r,d_speed_cell_d,d_speed_startx,d_speed_starty,d_speed_width,d_speed_height,d_speed_offsetx,d_speed_offsety,d_speed_color)
+#settings for the entry field where you select how fast a particle falls
+d_fall_cell_r=1
+d_fall_cell_d=1
+d_fall_startx=200
+d_fall_starty=150
+d_fall_width=50
+d_fall_height=15
+d_fall_offsetx=0
+d_fall_offsety=12
+d_fall_color=1 # white
+call drawing(d_fall_cell_r,d_fall_cell_d,d_fall_startx,d_fall_starty,d_fall_width,d_fall_height,d_fall_offsetx,d_fall_offsety,d_fall_color)
+#put in default values in the fields
+color black
+font "Tahoma",12,100
+text d_ps_startx+5,d_ps_starty-2,ps # ps=25 (1-50)
+text d_size_startx+5,d_size_starty-2,int(sizec) # size = 0 (0-8)
+text d_speed_startx+5,d_speed_starty-2,round(speed,2) # speed = 1 (0-3)
+text d_fall_startx+5,d_fall_starty-2,round(fall,2) # fall = 0.05 (0-0.25)
+# Slider creation
+sl_ps_locx_start=300
+sl_ps_locy_start=65
+sl_ps_locx_end=400
+sl_ps_locy_end=65
+sl_ps_orient=1
+call drawslider(sl_ps_locx_start, sl_ps_locy_start, sl_ps_locx_end, sl_ps_locy_end, sl_ps_orient,0)
+spriteplace 0,350,sl_ps_locy_start+5 
+sl_size_locx_start=300
+sl_size_locy_start=95
+sl_size_locx_end=400
+sl_size_locy_end=95
+sl_size_orient=1
+call drawslider(sl_size_locx_start, sl_size_locy_start, sl_size_locx_end, sl_size_locy_end, sl_size_orient,3)
+spriteplace 2,313,sl_size_locy_start+5
+sl_speed_locx_start=300
+sl_speed_locy_start=125
+sl_speed_locx_end=400
+sl_speed_locy_end=125
+sl_speed_orient=1
+call drawslider(sl_speed_locx_start, sl_speed_locy_start, sl_speed_locx_end, sl_speed_locy_end, sl_speed_orient,1)
+spriteplace 1,333,sl_speed_locy_start+5 
+sl_fall_locx_start=300
+sl_fall_locy_start=155
+sl_fall_locx_end=400
+sl_fall_locy_end=155
+sl_fall_orient=1
+call drawslider(sl_fall_locx_start, sl_fall_locy_start, sl_fall_locx_end, sl_fall_locy_end, sl_fall_orient,2)
+spriteplace 2,320,sl_fall_locy_start+5 
+color black
+rect 20,200,860,580
+refresh
+#end
+# ************************************************
+# pre-cache sin/cos calculations
+# ************************************************
+dim degree(360,2)
+for i = 0 to 359
+ degree[i,0]=sin(i)
+ degree[i,1]=cos(i)
+next i
+# *************************************************
+# initial particle definition: all particles 'dead'
+# *************************************************
+for i = 0 to max - 1
+ particle[i,4] = 0 
+next i
+#**************************************************
+# main loop
+#**************************************************
+loop:
+while 1=1
+#On the "Create" slider or "Size" slider
+  if mousey> sl_ps_locy_start - 8 and mousey < sl_ps_locy_start + 8 then
+    while mouseb=1
+     if mousex < sl_ps_locx_start then 
+       ps=1
+     else
+       if mousex > sl_ps_locx_end then 
+         ps=50        
+       else
+         call drawing(d_ps_cell_r,d_ps_cell_d,d_ps_startx,d_ps_starty,d_ps_width,d_ps_height,d_ps_offsetx,d_ps_offsety,d_ps_color)
+         color black
+         ps=(mousex-sl_ps_locx_start)/(sl_ps_locx_end-sl_ps_locx_start)*50
+         if ps < 1 then ps=1
+         if ps > 50 then ps=50
+         font "Tahoma",12,100
+         text d_ps_startx+5,d_ps_starty-2,int(ps)
+         spriteplace 0,mousex,sl_ps_locy_start+5
+         refresh
+       end if
+     endif
+     
+    end while
+  endif  
+#On the "Size" slider
+  if mousey> sl_size_locy_start - 8 and mousey < sl_size_locy_start + 8 then 
+    while mouseb=1
+      if mousex < sl_size_locx_start then 
+        sizec=0
+      else
+        if mousex > sl_size_locx_end then 
+          sizec=8
+        else
+          #now in size slider
+          call drawing(d_size_cell_r,d_size_cell_d,d_size_startx,d_size_starty,d_size_width,d_size_height,d_size_offsetx,d_size_offsety,d_size_color)
+          color black
+          sizec=(mousex-sl_size_locx_start)/(sl_size_locx_end-sl_size_locx_start)*8
+          if sizec < 0 then sizec=0
+          if sizec > 8 then sizec=8
+          font "Tahoma",12,100
+          text d_size_startx+5,d_size_starty-2,int(sizec)
+          spriteplace 3,mousex,sl_size_locy_start+5
+          refresh
+        end if
+      end if
+    end while
+  endif 
+#On the "Speed" slider
+  if mousey> sl_speed_locy_start - 8 and mousey < sl_speed_locy_start + 8 then 
+    while mouseb=1
+     if mousex < sl_speed_locx_start then 
+       speed=0
+     else
+       if mousex > sl_speed_locx_end then 
+         speed=3
+       else
+         call drawing(d_speed_cell_r,d_speed_cell_d,d_speed_startx,d_speed_starty,d_speed_width,d_speed_height,d_speed_offsetx,d_speed_offsety,d_speed_color)
+         color black
+         speed=((mousex-sl_speed_locx_start)/(sl_speed_locx_end-sl_speed_locx_start)*3)
+         if speed < 0 then speed=0
+         if speed > 3 then speed=3
+         font "Tahoma",12,100
+         text d_speed_startx+5,d_speed_starty-2,round(speed,2)
+         spriteplace 1,mousex,sl_speed_locy_start+5
+         refresh
+       end if
+      end if
+    end while
+  endif  
+#On the "Fall" slider
+  if mousey> sl_fall_locy_start - 8 and mousey < sl_fall_locy_start + 8 then 
+    while mouseb=1
+     if mousex < sl_fall_locx_start then 
+       fall=0
+     else
+       if mousex > sl_fall_locx_end then 
+         fall=0.25
+       else
+         call drawing(d_fall_cell_r,d_fall_cell_d,d_fall_startx,d_fall_starty,d_fall_width,d_fall_height,d_fall_offsetx,d_fall_offsety,d_fall_color)
+         color black
+         fall=((mousex-sl_fall_locx_start)/(sl_fall_locx_end-sl_fall_locx_start)/4)
+         if fall < 0 then fall=0
+         if fall > 0.25 then fall=0.25
+         font "Tahoma",12,100
+         text d_fall_startx+5,d_fall_starty-2,round(fall,2)
+         spriteplace 2,mousex,sl_fall_locy_start+5
+         refresh
+       end if
+      end if
+    end while
+  endif
+#in Drawing area    
+  if mousex>20 and mousex< 880 then
+    if mousey> 200 and mousey < 785 then 
+# create new particles
+# ********************
+# select 'ps' random particles at each cycle
+# play with this value to get the best result on your computer
+for k = 1 to ps 
+spawni=int(rand *max)
+# if age of the random particle = 0 
+ if particle[spawni,4] = 0 then
+   #    horizontal location
+    particle[spawni,0] = mousex 
+   #    vertical location
+    particle[spawni,1] =  mousey 
+   #    horizontal speed vector
+    particle[spawni,2] = degree[int(rand*360),0]*speed
+   #    falling speed vector
+    particle[spawni,3] = degree[int(rand*360),1]*speed
+   #    particle age
+    particle[spawni,4] = 100+int(rand*150) 
+   #    color aging
+   particle [spawni,5] =particle[spawni,4] /5
+ end if
+next k 
+endif
+endif
+# update position on ALL live particles
+# *************************************
+for i = 0 to max-1
+# for all live particles
+if particle[i,4] > 0 then
+# calculate the new location
+ particle[i,0]=  particle[i,0]+ particle[i,2]
+ particle[i,1]= particle[i,1]+ particle[i,3]
+# increase the speed of falling
+ particle[i,3] = particle[i,3] + fall
+# make the particle older
+ particle[i,4]= particle[i,4]-1
+# if it hits the sides, kill the particle
+ if particle[i,0] >880 or particle[i,0] <20 then
+  particle[i,4] = 0
+ endif    
+ if particle[i,1] >780 or particle[i,1] <201 then
+  particle[i,4] = 0
+ endif    
+end if
+next i
+# Color determination of the particle
+#************************************
+for i = 0 to max-1
+# for all live particles
+if  particle[i,4] > 0 then
+# color it darkred if less than 20% life left
+ if particle[i,4]< particle[i,5] then  
+    color darkred
+ endif
+# color it red if more than 20% life left
+ if particle[i,4]> (particle[i,5]) then  
+    color red
+ endif
+# color it orange if more than 40% life left
+ if particle[i,4]> (particle[i,5]*2) then  
+    color orange
+ endif
+# color it yellow if more than 60% life left
+ if particle[i,4]> (particle[i,5]*3) then  
+    color yellow
+ endif
+# color it white if more than 80% life left
+ if particle[i,4]> (particle[i,5]*4) then  
+    color white
+ endif
+ # plot all the live particles 
+ if int(sizec)=0 then
+   plot  particle[i,0], particle[i,1]
+ else
+   circle  (particle[i,0], particle[i,1],sizec)
+ endif    
+end if
+next i
+# show the new screen
+refresh
+# clear the screen again
+color grey
+rect 0,190,900,800
+color black
+rect 20-(sizec),200-(sizec),860+2*sizec,580+2*sizec
+end while
+goto loop
+#****************************************
+# Basic-256 Toolkit Subroutine Collection
+#****************************************
+#*********************************
+# sub routine "Draw a button"
+#*********************************
+subroutine button(b_locx, b_locy, b_width, b_height, b_text$, b_textsize, b_offsetx, b_offsety, b_init)
+if b_init>0 then #draw pressed, wait, draw unpressed
+         color darkgrey
+         if b_width>b_height then 
+           half=(b_height)/2
+         else
+           half=(b_width)/2
+         endif
+         poly {b_locx, b_locy, b_locx, b_locy+b_height, b_locx +half, b_locy +half}
+         poly {b_locx , b_locy , b_locx +half, b_locy +half, b_locx +b_width-half, b_locy +half, b_locx +b_width,b_locy }
+         color rgb(200,200,200)
+         poly {b_locx , b_locy +b_height, b_locx +half, b_locy +half, b_locx +b_width-half, b_locy +half, b_locx +b_width,b_locy +b_height}
+         poly {b_locx +b_width-half, b_locy +half, b_locx +b_width, b_locy +b_height, b_locx +b_width, b_locy }
+         color grey
+         if b_height < 17 or b_width < 17 then
+           rect b_locx  + 1, b_locy  + 1, b_width-2, b_height-2
+         else
+           if b_height < 25 or b_width < 25 then
+             rect b_locx  + 2, b_locy  + 2, b_width-4, b_height-4
+           else
+             rect b_locx  + 4, b_locy  + 4, b_width-8, b_height-8
+           endif
+         endif
+         color black
+         font "Tahoma",b_textsize,100
+         text b_locx+b_offsetx+2,b_locy+b_offsety+2,b_text$
+         refresh
+         pause 0.25
+         color rgb(200,200,200)
+         poly {b_locx, b_locy, b_locx, b_locy+b_height, b_locx +half, b_locy +half}
+         poly {b_locx , b_locy , b_locx +half, b_locy +half, b_locx +b_width-half, b_locy +half, b_locx +b_width,b_locy }
+         color darkgrey
+         poly {b_locx , b_locy +b_height, b_locx +half, b_locy +half, b_locx +b_width-half, b_locy +half, b_locx +b_width,b_locy +b_height}
+         poly {b_locx +b_width-half, b_locy +half, b_locx +b_width, b_locy +b_height, b_locx +b_width, b_locy }
+         color grey
+         if b_height < 17 or b_width < 17 then
+           rect b_locx  + 1, b_locy  + 1, b_width-2, b_height-2
+         else
+           if b_height < 25 or b_width < 25 then
+             rect b_locx  + 2, b_locy  + 2, b_width-4, b_height-4
+           else
+             rect b_locx  + 4, b_locy  + 4, b_width-8, b_height-8
+           endif
+         endif
+         color black
+         font "Tahoma",b_textsize,100
+         text b_locx+b_offsetx,b_locy+b_offsety,b_text$
+refresh
+else #draw unpressed 
+         color rgb(200,200,200)
+         if b_width>b_height then 
+           half=(b_height)/2
+         else
+           half=(b_width)/2
+         endif
+         poly {b_locx, b_locy, b_locx, b_locy+b_height, b_locx +half, b_locy +half}
+         poly {b_locx , b_locy , b_locx +half, b_locy +half, b_locx +b_width-half, b_locy +half, b_locx +b_width,b_locy }
+         color darkgrey
+         poly {b_locx , b_locy +b_height, b_locx +half, b_locy +half, b_locx +b_width-half, b_locy +half, b_locx +b_width,b_locy +b_height}
+         poly {b_locx +b_width-half, b_locy +half, b_locx +b_width, b_locy +b_height, b_locx +b_width, b_locy }
+         color grey
+         if b_height < 17 or b_width < 17 then
+           rect b_locx  + 1, b_locy  + 1, b_width-2, b_height-2
+         else
+           if b_height < 25 or b_width < 25 then
+             rect b_locx  + 2, b_locy  + 2, b_width-4, b_height-4
+           else
+             rect b_locx  + 4, b_locy  + 4, b_width-8, b_height-8
+           endif
+         endif
+         color black
+         font "Tahoma",b_textsize,100
+         text b_locx+b_offsetx,b_locy+b_offsety,b_text$ 
+         refresh
+         pause 0.2
+end if
+refresh
+end subroutine
+#**********************************
+# sub routine "Draw a grouping area"
+#**********************************
+# You are responsible for the size of the grouper element versus the size of the content
+# Inputs are
+#   x,y location of the upper left corner
+#	g_locx  -  g_locy
+#   height and width of the drawing element
+#	g_width  -  g_height
+#      Remark: Putting one of these to 0 or 1 gives you a nice horizontal/vertical separator
+#   grouper label (a value of "" will remove the label)
+#	g_label$
+subroutine grouper(g_locx, g_locy, g_width, g_height, g_label$)
+#get background color
+backgr=pixel(g_locx+g_width-1,g_locy+g_height-1)
+color darkgrey
+line g_locx,g_locy,g_locx+g_width,g_locy
+line g_locx+g_width,g_locy,g_locx+g_width,g_locy+g_height
+line g_locx+g_width,g_locy+g_height,g_locx,g_locy+g_height
+line g_locx,g_locy+g_height,g_locx,g_locy
+color rgb(200,200,200)
+line g_locx+1,g_locy+1,g_locx+g_width-1, g_locy+1
+line g_locx+g_width+1, g_locy,g_locx+g_width+1,g_locy+g_height+1
+line g_locx+g_width+1,g_locy+g_height+1,g_locx,g_locy+g_height+1
+line g_locx+1,g_locy+1,g_locx+1,g_locy+g_height-1
+color backgr
+# if g_label$ has content, write it on the top left side of the grouper element
+if length(g_label$)>0 then 
+  cut=(length(g_label$))*8
+  rect g_locx+10,g_locy-10,cut,20
+  color black
+  font "Tahoma",10,100
+  text g_locx+15,g_locy-7,g_label$
+endif
+color black
+refresh
+end subroutine
+#******************************************
+# sub routine "Draw a drawing element grid"
+#******************************************
+# You are responsible for the size of the drawing element versus the size of the canvas
+# Inputs are
+#   number of elements in the grid in x and in y direction
+#	draw_elements_x  -  draw_elements_x
+#   x,y location of the upper left corner
+#	draw_locx  -  draw_locy
+#   height and width of the drawing element. A 4 pixel border will be added outside to give a 3D look
+#	draw_width  -  draw_height
+#   spacing (offset) between the elements (=0 if only 1 element)
+#	draw_offsetx  -  draw_offsety
+#   black or white background (can easily be changed to give an exact color)
+#	draw_color
+subroutine drawing(draw_elements_x, draw_elements_y, draw_locx, draw_locy, draw_width,draw_height, draw_offsetx, draw_offsety, draw_color)
+draw_locx=draw_locx-4
+draw_locy=draw_locy-4
+   for i=1 to draw_elements_x
+      for j =1 to draw_elements_y
+         widthfiller=draw_width+draw_offsetx+8
+         heightfiller= draw_height+draw_offsety+8
+         color darkgrey
+         if draw_width>draw_height then 
+           half=(draw_height+8)/2
+         else
+           half=(draw_width+8)/2
+         endif
+         poly {draw_locx+((i-1)*widthfiller), draw_locy+((j-1)*heightfiller), draw_locx+((i-1)*widthfiller), draw_locy+((j-1)*heightfiller)+draw_height+8, draw_locx+((i-1)*widthfiller)+half, draw_locy+((j-1)*heightfiller)+half}
+         poly {draw_locx+((i-1)*widthfiller), draw_locy+((j-1)*heightfiller), draw_locx+((i-1)*widthfiller)+half, draw_locy+((j-1)*heightfiller)+half, draw_locx+((i-1)*widthfiller)+draw_width+8-half, draw_locy+((j-1)*heightfiller)+half, draw_locx+((i-1)*widthfiller)+draw_width+8,draw_locy+((j-1)*heightfiller)}
+         color rgb(200,200,200)
+         poly {draw_locx+((i-1)*widthfiller), draw_locy+((j-1)*heightfiller)+draw_height+8, draw_locx+((i-1)*widthfiller)+half, draw_locy+((j-1)*heightfiller)+half, draw_locx+((i-1)*widthfiller)+draw_width+8-half, draw_locy+((j-1)*heightfiller)+half, draw_locx+((i-1)*widthfiller)+draw_width+8,draw_locy+((j-1)*heightfiller)+draw_height+8}
+         poly {draw_locx+((i-1)*widthfiller)+draw_width+8-half, draw_locy+((j-1)*heightfiller)+half, draw_locx+((i-1)*widthfiller)+draw_width+8, draw_locy+((j-1)*heightfiller)+draw_height+8, draw_locx+((i-1)*widthfiller)+draw_width+8, draw_locy+((j-1)*heightfiller)}
+refresh
+         if draw_color = 1 then
+            color white
+         else
+            color black
+         endif
+         rect draw_locx+(i-1)*widthfiller + 4, draw_locy+(j-1)*heightfiller + 4, draw_width,draw_height
+# rect draw_locx+(i-1)*widthfiller,draw_locy+(j-1)*heightfiller, draw_width-draw_width* 2+2,draw_height-draw_height* 1.5
+      next j
+   next i
+   refresh
+end subroutine
+#***************************************
+# sub routine "Draw a slider"
+#***************************************
+# You are responsible for the 
+#	lenght of the slider (in pixels) to be adequate for amount of different values
+#
+# Inputs are
+#   x,y location of the beginning of the slider
+#       sl_locx_top
+#       sl_locy_top
+#   x,y location of the end of the slider
+#       sl_locx_bot
+#       sl_locy_bot
+#   orientation of the sliders (horizontal=0 / vertical<>0) 
+#       sl_orient
+#   index of slider knob
+#       sprite
+# don't forget to create and capture the slider knobs first like this:
+#       color black
+#       circle 160,160,7
+#       color darkgrey
+#       circle 160,160,6
+#       color rgb(200,200,200)
+#       circle 160,160,5
+#       color white
+#       circle 162,158,2
+#       spritedim 3
+#       spriteslice 0,153,153,15,15
+#       spriteslice 1,153,153,15,15
+#       spriteslice 2,153,153,15,15
+subroutine drawslider(sl_locx_top, sl_locy_top, sl_locx_bot, sl_locy_bot, sl_orient, sprite)
+if sl_orient=1 then
+  sl_lenght = (sl_locx_bot-sl_locx_top)
+  color darkgrey
+  line sl_locx_top,sl_locy_top, sl_locx_bot,sl_locy_bot
+  line sl_locx_top,sl_locy_top+1, sl_locx_bot,sl_locy_bot+1
+  line sl_locx_top,sl_locy_top+2, sl_locx_bot,sl_locy_bot+2
+  poly {sl_locx_top-1, sl_locy_top,sl_locx_top-1, sl_locy_top+3,sl_locx_top-6, sl_locy_top+3}
+  poly {sl_locx_bot+1, sl_locy_bot,sl_locx_bot+1, sl_locy_bot+3,sl_locx_bot+6, sl_locy_bot+3}
+#  poly
+  color black
+  line sl_locx_top,sl_locy_top+3, sl_locx_bot,sl_locy_bot+3
+  line sl_locx_top,sl_locy_top+4, sl_locx_bot,sl_locy_bot+4
+  color rgb(200,200,200)
+  line sl_locx_top,sl_locy_top+5, sl_locx_bot,sl_locy_bot+5
+  line sl_locx_top,sl_locy_top+6, sl_locx_bot,sl_locy_bot+6
+  line sl_locx_top,sl_locy_top+7, sl_locx_bot,sl_locy_bot+7
+  poly {sl_locx_top-1, sl_locy_top+4,sl_locx_top-1, sl_locy_top+7,sl_locx_top-6, sl_locy_top+4}
+  poly {sl_locx_bot+1, sl_locy_bot+4,sl_locx_bot+1, sl_locy_bot+7,sl_locx_bot+6, sl_locy_bot+4}
+  sl_posx = sl_locx_top
+  sl_posy = sl_locy_top+5
+else
+  sl_lenght = (sl_locy_bot-sl_locx_top)
+  color darkgrey
+  line sl_locx_top,sl_locy_top, sl_locx_bot,sl_locy_bot
+  line sl_locx_top+1,sl_locy_top, sl_locx_bot+1,sl_locy_bot
+  line sl_locx_top+2,sl_locy_top, sl_locx_bot+2,sl_locy_bot
+  poly {sl_locx_top, sl_locy_top-1, sl_locx_top+3,sl_locy_top-1,sl_locx_top+3,sl_locy_top-6}
+  poly {sl_locx_bot, sl_locy_bot+1, sl_locx_bot+3,sl_locy_bot+1,sl_locx_bot+3,sl_locy_bot+6}
+  refresh
+  color black
+  line sl_locx_top+3,sl_locy_top, sl_locx_bot+3,sl_locy_bot
+  line sl_locx_top+4,sl_locy_top, sl_locx_bot+4,sl_locy_bot
+  refresh
+  input mm 
+  color rgb(200,200,200)
+  line sl_locx_top+5,sl_locy_top, sl_locx_bot+5,sl_locy_bot
+  line sl_locx_top+6,sl_locy_top, sl_locx_bot+6,sl_locy_bot
+  line sl_locx_top+7,sl_locy_top, sl_locx_bot+7,sl_locy_bot
+  poly {sl_locx_top+4, sl_locy_top-1, sl_locx_top+7,sl_locy_top-1,sl_locx_top+4,sl_locy_top-6}
+  poly {sl_locx_bot+4, sl_locy_bot+1, sl_locx_bot+7,sl_locy_bot+1,sl_locx_bot+4,sl_locy_bot+6}
+  sl_posx = sl_locx_top+5 
+  sl_posy = sl_locy_top
+  refresh
+end if
+spriteplace sprite,sl_posx,sl_posy
+spriteshow sprite
+refresh
+end subroutine
+#**********************************
+# sub routine "Draw a checkbox"
+#**********************************
+# You are responsible for the placing of the checkbox element
+# Inputs are
+#   elements
+#         number of checkboxes
+#   x,y location of the upper left corner (checkboxes here are 12x12)
+#	check_locx  -  check_locy
+#   checkbox label 
+#	check_label$
+#   checkbox state (whether it is on or off)
+#         check_mark
+#   Whether the checkbox needs to be just painted or changed as well
+#         check_change 
+#
+# Additionally you will need two global arrays for checkbox labels and states :
+#	check_label$
+#	check_state$
+# You need to copy your local array in this global array.
+subroutine checkbox(elements, ch_locx,  ch_locy_top, ch_locy_bot)
+if elements=1 then
+   ch_spacing = 0
+else
+   ch_spacing = (ch_locy_bot-ch_locy_top)/(elements-1)
+endif
+for i = 0 to (elements -1)
+ color white
+ rect ch_locx,ch_locy_top + (ch_spacing*i),12,12
+ color darkgrey
+ line ch_locx,ch_locy_top + (ch_spacing*i),ch_locx+11, ch_locy_top + (ch_spacing*i)
+ line ch_locx,ch_locy_top + (ch_spacing*i),ch_locx,ch_locy_top + (ch_spacing*i)+11 
+ color black
+ line ch_locx+1,ch_locy_top + (ch_spacing*i)+1,ch_locx+10, ch_locy_top + (ch_spacing*i)+1
+ line ch_locx+1,ch_locy_top + (ch_spacing*i)+1,ch_locx+1, ch_locy_top + (ch_spacing*i)+10
+ color grey
+ line ch_locx+1,ch_locy_top + (ch_spacing*i)+11,ch_locx+11, ch_locy_top + (ch_spacing*i)+11
+ line ch_locx+11, ch_locy_top + (ch_spacing*i)+1,ch_locx+11, ch_locy_top + (ch_spacing*i)+11
+ color black
+ font "Tahoma",10,100
+ text ch_locx+20, ch_locy_top  + (ch_spacing*i)-4, check_label$[i]
+next i
+for i = 0 to (elements -1)
+if check_state[i]=1 then
+  color black
+  line ch_locx+3, ch_locy_top  + (ch_spacing*i)+6, ch_locx+6, ch_locy_top  + (ch_spacing*i)+9
+  line ch_locx+3, ch_locy_top  + (ch_spacing*i)+5, ch_locx+6, ch_locy_top  + (ch_spacing*i)+8
+  line ch_locx+3, ch_locy_top  + (ch_spacing*i)+4, ch_locx+6, ch_locy_top  + (ch_spacing*i)+8
+  line ch_locx+6, ch_locy_top  + (ch_spacing*i)+9, ch_locx+12, ch_locy_top  + (ch_spacing*i)
+  line ch_locx+6, ch_locy_top  + (ch_spacing*i)+8, ch_locx+12, ch_locy_top  + (ch_spacing*i)
+  line ch_locx+6, ch_locy_top  + (ch_spacing*i)+7, ch_locx+12, ch_locy_top  + (ch_spacing*i)
+else
+  color white
+  rect ch_locx+2, ch_locy_top  + (ch_spacing*i)+2,6,6
+endif
+refresh
+next i
+refresh
+end subroutine
+
+
+
+
+
+
+

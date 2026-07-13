@@ -1,0 +1,34 @@
+# GOSUB goes to a label: and returns with RETURN
+# CALL can go to a subroutine and pass it variables
+# set up initial position for ball, and its speed
+x = 10
+y = 10
+r = 10
+xinc = 5
+yinc = 4
+# limit FPS
+frameTime=7
+while true
+   framestart = msec
+   x = x + xinc
+   y = y + yinc
+   rem This is where we check for collisions with the wall
+   if y > 480 then yinc = -yinc : sound(440, 50)
+   if x > 480 then xinc = -xinc : sound(440, 50)
+   if x < 14 then xinc = -xinc : sound(440, 50)
+   if y < 14 then yinc = -yinc : sound(440, 50)
+   rem clear the screen, then draw the ball
+   clg
+   call drawBall(x,y,r)
+   timeElapsed = msec-frameStart
+   while (msec - frameStart) < frameTime
+        #  Do nothing here
+   end while
+end while
+
+#GOSUB goes to a label: and returns with RETURN
+#CALL can go to a subroutine and pass it variables
+subroutine drawBall(x,y,r)
+   color black
+   circle x, y, r
+end subroutine

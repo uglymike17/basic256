@@ -1,0 +1,135 @@
+# Double Pendulum    K Moerman 2026
+# attempting to simulate double pendulum behaviour using BASIC-256
+# using equations found at:
+# https://www.physics.usyd.edu.au/~wheat/dpend_html/
+
+global R1,R2,x0,y0,xp,yp,hw,h
+
+# System parameters
+g=9.81 #N/kg
+m1=1 #kg mass upper weight
+m2=1 #kg mass lower weight
+L1=1.0 #m length upper pendulum
+L2=0.5 #m length lower pendulum
+d=0.05 #damping or drag prop. to rot. speed
+
+# Initial conditions
+a1=radians(60) #radians  angle upper pendulum to vertical
+a2=radians(129) #radians  angle upper pendulum to vertical
+w1=0  #radians/s rotat. speed upper pendulum
+w2=0  #radians/s rotat. speed lower pendulum
+
+# Calculation parameters
+dt=10e-6 #s Euler timestep
+
+# Plotting parameters
+w=1100: h=800: hw=w/2: hh=h/2 # dimensions image
+R=350 # length pendulum in pixels if L=1
+x0=hw:y0=h/5 # pos. fixed pivot of pendulums
+R1=R*L1/2: R2=R*L2/2 #half length of pendulums in pixels
+plotsteps=1500 # number of calc. steps in between 2 plot updates
+
+# setup graphical output
+graphsize w,h: fastgraphics
+graphvisible true:outputvisible false
+
+# create sprites
+spritedim 2
+call createsprite(0,R1*2)
+call createsprite(1,R2*2)
+
+# set colors and draw fixed graphics
+call drawfixedgraphics()
+
+# loop
+k=1: t=0: tnext=0
+while not keypressed()
+
+# calc new values of derivatives
+# 2 very simple ODEs, derivatives of the angles
+da1_dt=w1
+da2_dt=w2
+
+# pre calc. some values used more then once
+mt=m1+m2: sina1=sin(a1): sina2=sin(a2)
+w1sq=w1*w1: w2sq=w2*w2
+Da = a2-a1: sinDa=sin(Da): cosDa=cos(Da)
+B = mt-m2*cosDa*cosDa
+
+# 2 not so simple ODEs, derivatives of angular velocities
+dw1_dt = m2*L1*w1sq*sinDa*cosDa + m2*g*sina2*cosDa + m2*L2*w2sq*sinDa - mt*g*sina1
+dw1_dt /= L1*B
+dw2_dt = -m2*L2*w2sq*sinDa*cosDa + mt*(g*sina1*cosDa - L1*w1sq*sinDa - g*sina2)
+dw2_dt /= L2*B
+
+# add some drag proportional to rot. speed
+dw1_dt-=d*w1
+dw2_dt-=d*w2
+
+# update variables using Euler method
+a1 += da1_dt*dt
+a2 += da2_dt*dt
+w1 += dw1_dt*dt
+w2 += dw2_dt*dt
+
+# calc coord and plot every (plotsteps) cycles
+if ++k=plotsteps then 
+call plots(a1,a2)
+refresh
+k=1
+end if
+
+# update time indication if (tnext) is reached
+if t>=tnext then
+call puttime(round(t,3)): tnext=t+0.2
+refresh
+end if
+
+t+=dt
+end while
+
+
+
+# calc coordinates, move pendulum sprites 
+# and plot end position
+subroutine plots(a1,a2)
+r1x=R1*sin(a1): r1y=R1*cos(a1)
+r2x=R2*sin(a2): r2y=R2*cos(a2)
+x1=x0+r1x
+y1=y0+r1y
+spriteplace 0,x1,y1,1,-a1
+x2=x0+2*r1x+r2x
+y2=y0+2*r1y+r2y
+spriteplace 1,x2,y2,1,-a2
+x3=x0+2*r1x+2*r2x
+y3=y0+2*r1y+2*r2y
+if not assigned(xp) then
+xp=x3: yp=y3
+end if
+line xp,yp,x3,y3
+xp=x3: yp=y3
+end subroutine
+
+subroutine puttime(t)
+color black:rect 10,10,105,35
+color yellow:text 15,15,"t=";t;"s"
+end subroutine
+
+# create sprites depicting the two pendulums 
+# twith heir lengths
+subroutine createsprite(spriten,lpend)
+clg: color white: cr=9
+line cr,0,cr,lpend: circle cr,lpend,cr
+spriteslice spriten,0,0,2*cr,lpend+cr
+spriteshow spriten
+end subroutine
+
+subroutine drawfixedgraphics()
+# set colors and draw fixed graphics
+txt1="Double Pendulum": txt2="Hit any key to stop"
+clg black:color white: rect x0-15,y0-8,30,8
+color yellow: font "Arial",18
+text hw-textwidth(txt2)/2,3,txt1
+font "Arial",12
+text hw-textwidth(txt2)/2,h-textheight(),txt2
+end subroutine

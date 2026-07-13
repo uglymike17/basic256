@@ -1,0 +1,357 @@
+# Manuel Nogueira Santos - Dec 2013
+# Marbles Game  (revised: Yes now replays the current level)
+fastgraphics
+# graphics window size
+graphsize 800,600
+clg
+rem initial variables
+nball=20
+Dim x(nball) fill 0
+Dim y(nball) fill 0
+Dim vx(nball) fill 0
+Dim vy(nball) fill 0
+Dim mass(nball) fill 0
+Dim colisionflag(nball,nball) fill 0
+Dim bounceflag(nball) fill 0
+ed=1
+out=0
+turn=1
+level=1
+
+# ---- main level loop -------------------------------------------------
+# Play each level in turn. If the player fails and picks "Yes" on the
+# Oops screen, restart is set to 1, so we replay the SAME level instead
+# of advancing.
+do
+  restart=0
+  out=0
+  gosub new          # clear the board
+  gosub setuplevel   # rebuild the current level (sets balls & tries)
+  gosub waitfordirection
+  if restart = 0 then
+    level=level+1
+  endif
+until level > 5
+
+color white
+font "arial",50,100
+Text 170,200,"Hurray"
+refresh
+end
+
+# Dispatch to the right level setup based on `level`
+setuplevel:
+if level = 1 then gosub first
+if level = 2 then gosub two
+if level = 3 then gosub three
+if level = 4 then gosub four
+if level = 5 then gosub five
+return
+
+
+# These are the 5 levels it is easy to make more
+first:
+balls=2
+tries=2
+mass[0]=10: x[0]=250: y[0]=250
+mass[1]=10: x[1]=100: y[1]=100
+mass[2]=10: x[2]=400: y[2]=400
+return
+
+two:
+balls=4
+tries=4
+mass[0]=10: x[0]=100: y[0]=100
+mass[1]=10: x[1]=150: y[1]=150
+mass[2]=10: x[2]=200: y[2]=200
+mass[3]=10: x[3]=250: y[3]=250
+mass[10]=20: x[10]=300: y[10]=300
+return
+
+three:
+balls=5
+tries=4
+mass[0]=10: x[0]=100: y[0]=100
+mass[1]=10: x[1]=200: y[1]=200
+
+mass[3]=10: x[3]=400: y[3]=400
+mass[10]=20: x[10]=400: y[10]=300
+mass[11]=20: x[11]=350: y[11]=350
+mass[12]=20: x[12]=250: y[12]=250
+return
+
+four:
+balls=8
+tries=6
+mass[0]=10: x[0]=250: y[0]=250
+mass[1]=10: x[1]=150: y[1]=150
+mass[2]=10: x[2]=350: y[2]=350
+mass[3]=10: x[3]=400: y[3]=100
+mass[4]=10: x[4]=100: y[4]=400
+
+mass[10]=20: x[10]=100: y[10]=100
+mass[11]=20: x[11]=400: y[11]=400
+mass[12]=20: x[12]=150: y[12]=350
+mass[13]=20: x[13]=350: y[13]=150
+return
+
+
+five:
+balls=8
+tries=7
+mass[0]=10: x[0]=250: y[0]=250
+mass[1]=10: x[1]=100: y[1]=100
+mass[2]=10: x[2]=400: y[2]=400
+mass[3]=10: x[3]=400: y[3]=100
+mass[4]=10: x[4]=100: y[4]=400
+
+mass[10]=20: x[10]=150: y[10]=150
+mass[11]=20: x[11]=350: y[11]=350
+mass[12]=20: x[12]=150: y[12]=350
+mass[13]=20: x[13]=350: y[13]=150
+return
+
+
+# Initializes the scenaries
+new:
+for u = 0 to 19
+mass[u]=0: x[u]=0: y[u]=0
+next u
+return
+
+waitfordirection:
+do
+	clickclear
+	refresh
+	do
+		gosub drawtable
+		for u = 0 to 19
+			dx=mousex-x[0]
+			dy=mousey-y[0]
+			gosub drawball
+		next u
+
+		#cue
+		color white
+		line mousex+100*dx,mousey+100*dy,x[0],y[0]
+		color red
+		line mousex,mousey,x[0],y[0]
+		circle mousex,mousey,3
+		refresh
+		dist=(dx^2+dy^2)^.5
+		vx[0]=(clickx-x[0])*dist/10000
+		vy[0]=(clicky-y[0])*dist/10000
+	until clicky >0
+	gosub rond
+# leave on win, on running out of tries, or on a restart request
+until out = balls or tries = 0 or restart = 1
+if restart = 0 then
+	turn=turn+1
+	out=0
+endif
+return
+
+
+rond:
+tries=tries-1
+do
+	gosub drawtable
+	for u = 0 to 19
+		# once a restart is requested, stop touching the marbles
+		if restart = 0 then
+			# balls out
+			goingout=false
+			if mass[u]>0 and (x[u]>450 or x[u]<50 or y[u]>450 or y[u]<50) then
+				goingout=true
+				mass[u]=mass[u]-1
+				if mass[u]=0 then
+					out = out + 1
+					vx[u]=0
+					vy[u]=0
+					y[u]=0
+					x[u]=0
+					# White ball fully out -> you lose
+					if u = 0 then gosub finish
+				end if
+			end if
+
+			# drag
+			vx[u]=vx[u]*0.993
+			vy[u]=vy[u]*0.993
+			x[u]=x[u]+vx[u]
+			y[u]=y[u]+vy[u]
+			# draw
+			gosub drawball
+		end if
+	next u
+	refresh
+	if restart = 0 then gosub colision
+	total_speed=0
+
+	for marble = 0 to 19
+		total_speed=total_speed+abs(vx[marble])+abs(vy[marble])
+	next marble
+until (total_speed<1 and goingout=false) or restart = 1
+
+# bail straight back to the main loop so it can replay this level
+if restart = 1 then return
+
+if tries = 0 and out < balls then gosub finish
+if restart = 1 then return
+
+gosub drawtable
+refresh
+#  reset the marble velocities for the next round
+for marble = 0 to 19
+	vx[marble]=0
+	vy[marble]=0
+next marble
+return
+
+finish:
+color blue
+rect 0,0,800,600
+for grad=1 to 10
+	color rgb (83+4*grad,0,0)
+	rect 50+grad,50+grad,400-grad*2,400-grad*2
+next grad
+for grad=1 to 10
+	color rgb (0,83+4*grad,0)
+	rect 500+grad,50+grad, 250-grad*2,400-grad*2
+next grad
+color rgb (0,83,0)
+font "arial",22,100
+Text 530,70, "Round nº :"+turn
+Text 530,120,"Shots left :"+tries
+Text 530,170,"____________"
+Text 530,220,"No shots left"
+Text 600,270,"or"
+Text 530,320,"out of the mat"
+font "arial",50,100
+Text 170,200,"Oops"
+font "arial",20,80
+Text 170,280,"Restart Level"
+color yellow
+rect 170, 330,50,20
+font "arial",10,80
+color black
+Text 180,333,"Yes"
+color yellow
+rect 280, 330,50,20
+font "arial",10,80
+color black
+Text 295,333,"No"
+refresh
+chosen = true
+clickclear
+while chosen
+  if mousex>170 and mousex < 220 and mousey >330 and mousey< 350 then
+    color rgb(100,100,250)
+    rect 170, 330,50,20
+    font "arial",10,80
+    color black
+    Text 180,333,"Yes"
+    refresh
+    if clickb=1 then 
+       restart = 1
+       chosen = false
+    endif
+  endif
+  if mousex<170 or mousex > 220 or mousey <330 or mousey> 350 then
+    color yellow
+    rect 170, 330,50,20
+    font "arial",10,80
+    color black
+    Text 180,333,"Yes"  
+    refresh
+    endif
+  if mousex>280 and mousex < 330 and mousey >330 and mousey< 350 then
+    color rgb(100,100,250)
+    rect 280, 330,50,20
+    font "arial",10,80
+    color black
+    Text 295,333,"No"
+    refresh
+    if clickb=1 then
+       restart = 0 
+       chosen = false
+    endif
+ endif  
+  if mousex<280 or mousex > 330 or mousey <330 or mousey> 350 then
+    color yellow
+    rect 280, 330,50,20
+    font "arial",10,80
+    color black
+    Text 295,333,"No"
+    refresh
+  endif
+end while    
+# Yes -> restart = 1 : fall through and let the main loop replay the level
+# No  -> restart = 0 : quit the game
+if restart = 0 then end
+return
+
+drawtable:
+color blue
+rect 0,0,800,600
+for grad=1 to 10
+	color rgb (0,83+4*grad,0)
+	rect 50+grad,50+grad,400-grad*2,400-grad*2
+	rect 500+grad,50+grad, 250-grad*2,400-grad*2
+next grad
+
+
+color rgb (0,83,0)
+font "arial",22,100
+Text 530,70, "Round nº :"+turn
+Text 530,120,"Shots left :"+tries
+Text 530,170,"____________"
+Text 530,220,"Shoot the"
+Text 530,270,"yellow balls"
+Text 530,320,"out of the mat"
+return
+
+
+drawball:
+font "arial",8,100
+if mass[u]>0 then
+	for k = 1 to mass[u]
+		color rgb (200*(1.2-1/k),200*(1.2-1/k),0)
+		if u = 0 then color rgb ( 200*(1.2-1/k), 200*(1.2-1/k), 200*(1.2-1/k))
+		circle x[u],y[u],mass[u]-k
+	next k
+end if
+
+return
+
+colision:
+rem collision detection
+for u1 = 0 to 18
+	for u2 = u1+1 to 19
+		dx = x[u2]-x[u1]
+		dy = y[u2]-y[u1]
+		distance = (dx*dx+dy*dy)^.5
+		if distance < (mass[u1]+mass[u2])and x[u2]<450 and x[u2]>50 and y[u2]<450 and y[u2]>50 then
+			if colisionflag[u1,u2]=0 then
+				rem vx and vy calc
+				sound 1000,7
+				ax=dx/distance
+				ay=dy/distance
+				va1=vx[u1]*ax+vy[u1]*ay
+				vb1=-vx[u1]*ay+vy[u1]*ax
+				va2=vx[u2]*ax+vy[u2]*ay
+				vb2=-vx[u2]*ay+vy[u2]*ax
+				vaP1=va1 + (1+ed)*(va2-va1)/(1+mass[u1]/mass[u2])
+				vaP2=va2 + (1+ed)*(va1-va2)/(1+mass[u2]/mass[u1])
+				vx[u1]=vaP1*ax-vb1*ay
+				vy[u1]=vaP1*ay+vb1*ax
+				vx[u2]=vaP2*ax-vb2*ay
+				vy[u2]=vaP2*ay+vb2*ax
+				colisionflag[u1,u2]=1
+			end if
+		else
+			colisionflag[u1,u2]=0
+		end if
+	next u2
+next u1
+return

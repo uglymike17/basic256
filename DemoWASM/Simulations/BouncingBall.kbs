@@ -1,0 +1,45 @@
+# Manuel Santos
+# updated 2012-10-06 j.m.reneau using loops and subroutines for 0.9.9.x
+# limit FPS
+frameTime=3
+rem set up initial ball position and speed
+x = 20
+y = 100
+r = 10
+yvel = -1.0
+xvel = 1.10
+yacc = .0098
+fastgraphics
+ t=msec
+do
+  framestart = msec
+  clg 
+  rem change the downward velocity according to the acceleration
+  yvel = yvel + yacc
+
+  rem calculate new position
+  y = y + yvel
+  x = x + xvel
+  
+  rem check for collisions
+  if y > 489 then yvel = -0.8 * yvel : y = 489 : xvel = xvel * 0.9
+  if x > 485 then xvel = -xvel : x = 485
+  if x < 10 then xvel = -xvel : x = 10
+  rem draw the ball
+  call drawBall(x,y,r)
+  timeElapsed = msec-frameStart
+  while (msec - frameStart) < frameTime
+        #  Do nothing here
+   end while
+until xvel * xvel < 0.0001
+end
+ 
+subroutine drawBall(x,y,r)
+  color darkblue
+  rect 0,0,500,500
+  color darkgray
+  circle x, y, r
+  color gray
+  circle x, y, r - 2
+  refresh
+  end subroutine

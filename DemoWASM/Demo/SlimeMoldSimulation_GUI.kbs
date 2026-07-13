@@ -1,0 +1,999 @@
+#***********************************************************************************************
+# Slime Mold Simulation (Physarum style) with a GUI for interactivity  
+#
+# Now you can set the parameters, choose the initial state and click "Start" to start the simulation
+# As the simulation runs, you can interactively change Sensor distance and Sensor angle, 
+# the Turning angle and the stepsize.
+# You can see the effect of the changes on your example cell
+# You can also change the number of cells, but this will reset the entire field.
+# You can also use "Clear" to clear the field but keep the same cells to start anew
+# Finally, "Reset" will reset the program without ending it.
+# 
+#***********************************************************************************************
+#setup
+#global sp_Location_up_x, sp_Location_up_y, sp_up_botright_x, sp_up_botright_y, sp_heigth, sp_array_list$
+gosub ScreenSetup
+gosub Spritecapture
+gosub InitParms
+#Draw interface
+gosub DrawingArea
+gosub DrawTitle
+gosub DrawSliders
+gosub DrawSpinner
+gosub DrawButtons
+gosub DrawSpore
+refresh
+#Loop
+while 1=1
+	#check button activity
+	#***********************
+	#check start button
+	if mousex > b_locx_a and mousex < b_locx_a+ b_width_a then
+		if mousey > b_locy_a and mousey < b_locy_a+b_height_a then
+			if clickb=1 then
+				b_init_a=2 #indicates to the subroutine that we want to 'click/unclick' the button
+				clickclear
+				call button (b_locx_a, b_locy_a, b_width_a, b_height_a, b_text_a$, b_textsize_a, b_offsetx_a, b_offsety_a, b_init_a)
+				sw_done = 1
+				sw_go =1
+			end if
+		endif
+	endif
+	#check reset button
+	if mousex > b_locx_b and mousex < b_locx_b+ b_width_b then
+		if mousey > b_locy_b and mousey < b_locy_b+b_height_b then
+			if clickb=1 then
+				sw_done = 0
+				sw_go = 0
+				b_init_b=2 #indicates to the subroutine that we want to 'click/unclick' the button
+				clickclear
+				call button (b_locx_b, b_locy_b, b_width_b, b_height_b, b_text_b$, b_textsize_b, b_offsetx_b, b_offsety_b, b_init_b)
+				gosub DrawingArea
+				gosub InitParms
+				color grey
+				rect sl_cells_locx_top-30,sl_cells_locy_top-20,sl_turnAngle_locx_bot+30,sl_turnAngle_locy_bot
+				gosub DrawSliders
+				gosub DrawSpinner
+				gosub DrawSpore
+			end if
+		endif
+	endif
+	#check Clear button
+	if mousex > b_locx_c and mousex < b_locx_c+ b_width_c then
+		if mousey > b_locy_c and mousey < b_locy_c+b_height_c then
+			if clickb=1 then
+				b_init_c=2 #indicates to the subroutine that we want to 'click/unclick' the button
+				clickclear
+				call button (b_locx_c, b_locy_c, b_width_c, b_height_c, b_text_c$, b_textsize_c, b_offsetx_c, b_offsety_c, b_init_c)
+				gosub DrawingArea
+				clickclear
+			end if
+		end if
+	endif
+	#check slider changes input
+	#*******************************
+	#cell slider - from 1000 to 9000
+	if mousey > sl_cells_locy_top-8 and mousey < sl_cells_locy_top+8 then
+		while mouseb=1
+			gosub SelectCells
+		end while
+	endif
+	#sensor distance slider - from 2 to 20
+	if mousey > sl_sensorDist_locy_top-8 and mousey < sl_sensorDist_locy_top+8 then
+		while mouseb=1
+			gosub SelectSensorDistance
+		end while
+	endif
+	#stepSize slider - from 1 to 10
+	if mousey > sl_cellStep_locy_top-8 and mousey < sl_cellStep_locy_top+8 then
+		while mouseb=1
+			gosub SelectStepSize
+		end while
+	endif
+	#sensorAngle slider - from PI/20 to PI/4*3 (from 9 to 135 degrees)
+	if mousey > sl_sensorAngle_locy_top-8 and mousey < sl_sensorAngle_locy_top+8 then
+		while mouseb=1
+			gosub SelectsensorAngle
+		end while
+	endif
+	#turn angle slider - from PI/10 to PI
+	if mousey > sl_turnAngle_locy_top-8 and mousey < sl_turnAngle_locy_top+8 then
+		while mouseb=1
+			gosub SelectTurnAngle
+		end while
+	endif
+	#check spinner for starting position of the mold
+	#***********************************************
+	if mousex>sp_Location_up_x and mousex < sp_Location_up_x+sp_Location_updown_width then
+		if mousey >sp_Location_up_y and mousey < sp_Location_up_y+sp_Location_updown_heigth then
+			if clickb=1 then
+				#clicked up-button on Location
+				sp_Location_array_shown=sp_Location_array_shown + 1
+				if sp_Location_array_shown>sp_Location_array_max then sp_Location_array_shown = 0
+				call spinner(sp_Location_color, sp_Location_locx, sp_Location_locy, sp_Location_width, sp_Location_heigth, sp_offsetx, sp_offsety, sp_insetx, sp_insety, sp_Location_array, sp_Location_array_shown, sp_Location_array_max, sp_Location_filler1, sp_Location_filler2)
+				refresh
+				clickclear
+			endif
+		else
+			if mousey >sp_Location_down_y and mousey < sp_Location_down_y+sp_Location_updown_heigth then
+				if clickb=1 then
+					#clicked down-button on Location
+					sp_Location_array_shown=sp_Location_array_shown - 1
+					if sp_Location_array_shown<0 then sp_Location_array_shown = sp_Location_array_max
+					call spinner(sp_Location_color, sp_Location_locx, sp_Location_locy, sp_Location_width, sp_Location_heigth, sp_offsetx, sp_offsety, sp_insetx, sp_insety, sp_Location_array, sp_Location_array_shown, sp_Location_array_max, sp_Location_filler1, sp_Location_filler2)
+					refresh
+					clickclear
+				endif
+			endif
+		endif
+	endif
+
+	# (re)create array to house pixel locations and movements
+	#**********************************************************
+	# agent arrays
+	if sw_cellchange = 1 then
+		redim ax(cells+1)
+		redim ay(cells+1)
+		redim ang(cells+1)
+		redim old_ax(cells+1)
+		redim old_ay(cells+1)
+		if sp_array_list$[sp_Location_array_shown]="Random" then
+			for i = 0 to cells
+				ax[i] = (305 + rand*800)
+				ay[i] = (10 + rand*800)
+				ang[i] = rand*2*pi
+				old_ax[i]=ax[i]
+				old_ay[i]=ay[i]
+			next i
+		else
+			if sp_array_list$[sp_Location_array_shown]="Bottom" then
+				for i = 0 to cells
+					ax[i] = 305+ rand*800
+					ay[i] = 810
+					old_ax[i] = ax[i]
+					old_ay[i] = ay[i]
+					ang[i] = rand * pi - pi
+				next i
+			else
+				if sp_array_list$[sp_Location_array_shown]="Center Block" then
+					for i = 0 to cells
+						ax[i] = 740 + rand*30
+						ay[i] = 395 + rand*30
+						old_ax[i] = ax[i]
+						old_ay[i] = ay[i]
+						ang[i] = rand * pi *2
+					next i
+				else
+					if sp_array_list$[sp_Location_array_shown]="Left Side" then
+						for i = 0 to cells
+							ax[i] = 305+ rand*10
+							ay[i] = 10 + rand*800
+							old_ax[i] = ax[i]
+							old_ay[i] = ay[i]
+							ang[i] = pi/2+ rand * pi
+						next i
+					else
+						if sp_array_list$[sp_Location_array_shown]="Single Point" then
+							for i = 0 to cells
+								ax[i] = 705
+								ay[i] = draw1_height + draw1_locy-1
+								old_ax[i] = ax[i]
+								old_ay[i] = ay[i]
+								ang[i] = rand * -pi 
+							next i
+						endif		
+					endif
+				endif
+			endif
+		endif
+	endif
+	sw_cellchange=0
+# Put cells in desired startformation
+if sw_done = 1 then
+	if sp_array_list$[sp_Location_array_shown]="Bottom" then
+		gosub DrawingArea
+		gosub StartBottom
+		sw_done = 0
+	else
+		if sp_array_list$[sp_Location_array_shown]="Random" then
+			gosub DrawingArea
+			gosub StartRandom
+			sw_done = 0
+		else
+			if sp_array_list$[sp_Location_array_shown]="Center Block" then
+				gosub DrawingArea
+				gosub StartCenter
+				sw_done = 0
+			else
+				if sp_array_list$[sp_Location_array_shown]="Left Side" then
+					gosub DrawingArea
+					gosub StartLeftSide
+					sw_done = 0
+				else
+					if sp_array_list$[sp_Location_array_shown]="Single Point" then
+						gosub DrawingArea
+						gosub StartSingle
+						sw_done = 0
+					endif
+				endif
+			endif
+		endif
+	endif
+endif
+refresh
+# update each agent
+#**********************************************
+if sw_go = 1 then
+	color rgb(0,0,0,5)
+	rect 304,10,800,800
+	for i=0 to cells
+		# sensor directions fa: angle of direction, la: angle to the left, ra angle to the right
+		fa = ang[i]
+		la = ang[i] - sensorAngle
+		ra = ang[i] + sensorAngle
+		# sensor positions
+		fx = ax[i] + cos(fa)*sensorDist
+		fy = ay[i] + sin(fa)*sensorDist
+		lx = ax[i] + cos(la)*sensorDist
+		ly = ay[i] + sin(la)*sensorDist
+		rx = ax[i] + cos(ra)*sensorDist
+		ry = ay[i] + sin(ra)*sensorDist
+		# keep inside screen
+		if fx<0 then fx=width+fx
+		if fy<0 then fy=height+fy
+		if fx>width-1 then fx=fx-width
+		if fy>height-1 then fy=fy-height
+		if lx<0 then lx=width+lx
+		if ly<0 then ly=height+ly
+		if lx>width-1 then lx=lx-width
+		if ly>height-1 then ly=ly-height
+		if rx<0 then rx=width+rx
+		if ry<0 then ry=height+ry
+		if rx>width-1 then rx=rx-width
+		if ry>height-1 then ry=ry-height
+		# read trail strength
+		f = int(pixel(fx,fy) / 65536) mod 256
+		l = int(pixel(lx,ly) / 65536) mod 256
+		r = int(pixel(rx,ry) / 65536) mod 256
+		# steering logic
+		if f > l and f > r then
+			# Do nothing. keep direction
+		else
+			if l > r then
+				ang[i] = ang[i] - turnAngle
+			else
+				if r > l then
+					ang[i] = ang[i] + turnAngle
+				else
+					ang[i] = ang[i] + rand*turnAngle - turnAngle/2
+				endif
+			endif
+		endif
+		# move forward
+		ax[i] = ax[i] + cos(ang[i])*stepSize
+		ay[i] = ay[i] + sin(ang[i])*stepSize
+		# wrap edges
+		if ax[i]<304 then
+			ax[i]=1104
+			sw_flip = 1
+		endif
+		if ay[i]<10 then
+			ay[i]=height-10
+			sw_flip = 1
+		endif
+		if ax[i]>1104 then
+			ax[i]=304
+			sw_flip = 1
+		endif
+		if ay[i]>height-10 then
+			ay[i]=10
+			sw_flip = 1
+		endif
+		# deposit trail
+		color rgb(255,255,255)
+		if sw_flip = 0 then
+			color orange
+			line old_ax[i],old_ay[i],ax[i], ay[i]
+		endif
+		sw_flip = 0
+		old_ax[i]=ax[i]
+		old_ay[i]=ay[i]
+	next i
+	refresh
+endif
+end while
+
+ScreenSetup:
+fastgraphics
+width = 1120
+height = 820
+graphsize width, height
+graphvisible(1)
+editvisible(1)
+outputvisible(1)
+color grey
+rect 0,0,width,height
+return
+
+Spritecapture:
+color grey
+rect 0,0,width,height
+color black
+circle 160,160,7
+color darkgrey
+circle 160,160,6
+color rgb(200,200,200)
+circle 160,160,5
+color white
+circle 162,158,2
+spritedim 5
+spriteslice 0,153,153,15,15
+spriteslice 1,153,153,15,15
+spriteslice 2,153,153,15,15
+spriteslice 3,153,153,15,15
+spriteslice 4,153,153,15,15
+for i=0 to 3
+	spritehide i
+next i
+color grey
+rect 0,0,width,height
+return
+
+InitParms:
+cells=2000
+stepSize = 3
+turnAngle = 0.314
+sensorDist = 5
+sensorAngle = 0.157
+alpha = 2
+sw_flip = 0
+sw_done=0
+sw_go = 0
+sw_cellchange =0
+dim ax(cells+1)
+dim ay(cells+1)
+dim ang(cells+1)
+dim old_ax(cells+1)
+dim old_ay(cells+1)
+
+return
+
+DrawSliders:
+# horizontal sliders
+sl_cells_locx_top=50:sl_cells_locy_top=175:sl_cells_locx_bot=250:sl_cells_locy_bot=175
+sl_sensorDist_locx_top=50:sl_sensorDist_locy_top=225:sl_sensorDist_locx_bot=250:sl_sensorDist_locy_bot=225
+sl_cellStep_locx_top=50:sl_cellStep_locy_top=275:sl_cellStep_locx_bot=250:sl_cellStep_locy_bot=275
+sl_sensorAngle_locx_top=50:sl_sensorAngle_locy_top=325:sl_sensorAngle_locx_bot=250:sl_sensorAngle_locy_bot=325
+sl_turnAngle_locx_top=50:sl_turnAngle_locy_top=375:sl_turnAngle_locx_bot=250:sl_turnAngle_locy_bot=375
+# orientation: 0 = vertical / NOT 0 = horizontal
+sl_cells_orient=1
+sl_cellStep_orient=1
+sl_sensorDist_orient=1
+sl_sensorAngle_orient=1
+sl_turnAngle_orient=1
+call drawslider(sl_cells_locx_top, sl_cells_locy_top, sl_cells_locx_bot, sl_cells_locy_bot, sl_cells_orient,0)
+call drawslider(sl_sensorDist_locx_top, sl_sensorDist_locy_top, sl_sensorDist_locx_bot, sl_sensorDist_locy_bot, sl_sensorDist_orient,1)
+call drawslider(sl_cellStep_locx_top, sl_cellStep_locy_top, sl_cellStep_locx_bot, sl_cellStep_locy_bot, sl_cellStep_orient,2)
+call drawslider(sl_sensorAngle_locx_top, sl_sensorAngle_locy_top, sl_sensorAngle_locx_bot, sl_sensorAngle_locy_bot, sl_sensorAngle_orient,3)
+call drawslider(sl_turnAngle_locx_top, sl_turnAngle_locy_top, sl_turnAngle_locx_bot, sl_turnAngle_locy_bot, sl_turnAngle_orient,4)
+font "Tahoma",10,80
+color Black
+text 70,155,"Spore cells"
+text 70,205,"Sensor Distance"
+text 70,255,"Stepsize"
+text 70,305,"Sensor Angle"
+color green
+circle 30,328,5
+color black
+text 70,355,"Turning angle"
+color blue
+circle 30,378,5
+color black
+font "Tahoma",10,80
+text 240,155, 1000
+text 240,205, 5
+text 240,255, 1
+text 240,305,round(pi/20, 3)
+text 240,355,round(pi/10, 3)
+return
+
+DrawingArea:
+draw1_elements_x=1
+draw1_elements_y=1
+draw1_locx=305:draw1_locy=10
+draw1_width=800:draw1_height=800
+draw1_offsetx=0:draw1_offsety= 0
+draw1_color = 2
+call drawing(draw1_elements_x, draw1_elements_y, draw1_locx, draw1_locy, draw1_width, draw1_height, draw1_offsetx, draw1_offsety, draw1_color)
+return
+
+DrawTitle:
+title$="Slime Mold"
+font "Tahoma",25,80
+color Black
+text 50,50,title$
+font "Tahoma",10,80
+color Black
+text 150,90,"by UglyMike"
+return
+
+Drawspinner:
+global sp_up_topleft_x, sp_up_topleft_y, sp_up_botright_x, sp_up_botright_y, sp_heigth, sp_array_list$, sp_Location_up_x, sp_Location_up_y 
+font "Tahoma",10,80
+color Black
+text 40,420,"Start Location"
+# define spinner for Start locations
+sp_Location_color = 1
+sp_Location_locx=150:sp_Location_locy=420
+sp_Location_width=100:sp_Location_heigth=20
+sp_offsetx=0:sp_offsety= 0
+sp_insetx=0.05:sp_insety=0.1
+# type specific (array or incremental)
+sp_Location_array=1
+sp_Location_array_shown=2
+sp_Location_array_max=4
+sp_Location_filler1=0
+sp_Location_filler2=0
+dim sp_Location_list$(5)
+sp_Location_list$={"Bottom", "Random", "Center Block", "Single Point", "Left Side"}
+dim sp_array_list$(5)
+global sp_array_list$
+for i = 0 to sp_Location_array_max
+	sp_array_list$[i]=sp_Location_list$[i]
+next i
+call spinner(sp_Location_color, sp_Location_locx, sp_Location_locy, sp_Location_width, sp_Location_heigth, sp_offsetx, sp_offsety, sp_insetx, sp_insety, sp_Location_array, sp_Location_array_shown, sp_Location_array_max, sp_Location_filler1, sp_Location_filler2)
+sp_Location_up_x=sp_up_topleft_x
+sp_Location_up_y=sp_up_topleft_y
+sp_Location_down_x=sp_up_botright_x
+sp_Location_down_y=sp_up_botright_y
+sp_Location_updown_width=sp_heigth
+sp_Location_updown_heigth=sp_heigth/2
+refresh
+return
+
+DrawButtons:
+# Draw the Start button
+color black
+b_locx_a=40:b_locy_a=750
+b_width_a=55:b_height_a=30
+b_text_a$="Start":b_textsize_a=10
+b_offsetx_a=10:b_offsety_a= 7
+b_init_a=0
+call button (b_locx_a, b_locy_a, b_width_a, b_height_a, b_text_a$, b_textsize_a, b_offsetx_a, b_offsety_a, b_init_a)
+# Draw the Reset button
+b_locx_b=120:b_locy_b=750
+b_width_b=55:b_height_b=30
+b_text_b$="Reset":b_textsize_b=10
+b_offsetx_b=10:b_offsety_b= 7
+b_init_b=0
+call button (b_locx_b, b_locy_b, b_width_b, b_height_b, b_text_b$, b_textsize_b, b_offsetx_b, b_offsety_b, b_init_b)
+# Draw the Clear button
+b_locx_c=200:b_locy_c=750
+b_width_c=55:b_height_c=30
+b_text_c$="Clear":b_textsize_c=10
+b_offsetx_c=10:b_offsety_c= 7
+b_init_c=0
+call button (b_locx_c, b_locy_c, b_width_c, b_height_c, b_text_c$, b_textsize_c, b_offsetx_c, b_offsety_c, b_init_c)
+return
+
+DrawSpore:
+color gray
+rect 5,450,280,300
+#draw sensors
+color black
+line 150,650, 150,650-(sensorDist*5+15)
+line 150,650, 150+cos(-pi/2+sensorAngle)*(sensorDist*5+15), 650+sin(-pi/2+sensorAngle)*(sensorDist*5+15)
+line 150,650, 150+cos(-pi/2-sensorAngle)*(sensorDist*5+15), 650+sin(-pi/2-sensorAngle)*(sensorDist*5+15)
+color green
+circle 150,650-(sensorDist*5+15),5
+circle 150+cos(-pi/2+sensorAngle)*(sensorDist*5+15), 650+sin(-pi/2+sensorAngle)*(sensorDist*5+15),5
+circle 150+cos(-pi/2-sensorAngle)*(sensorDist*5+15), 650+sin(-pi/2-sensorAngle)*(sensorDist*5+15),5
+#draw Turning angle
+color black
+line 150,650, 150+cos(turnAngle-pi/2)*30,650+sin(turnAngle-pi/2)*30
+line 150,650, 150+cos(-turnAngle-pi/2)*30,650+sin(-turnAngle-pi/2)*30
+color blue
+circle 150+cos(turnAngle-pi/2)*30,650+sin(turnAngle-pi/2)*30,5
+circle 150+cos(-turnAngle-pi/2)*30,650+sin(-turnAngle-pi/2)*30,5
+color black,red
+circle 150,650,15
+return
+
+SelectCells:
+clickclear
+sw_cellchange = 1
+if mousex < sl_cells_locx_top then
+	cells=1000
+	cell_sprite=50
+else
+	if mousex > sl_cells_locx_bot then
+		cells=9000
+		cell_sprite = 250
+	else
+		cells=(mousex-50)*40+1000
+		if cells < 1000 then cells = 1000
+		cell_sprite = mousex
+	end if
+end if
+redim arr[cells]
+color grey
+rect 235,155,50,14
+color black
+font "Tahoma",10,80
+text 240,155,cells
+spriteplace 0,cell_sprite,sl_cells_locy_top+5
+refresh
+pause 0.01
+return
+
+SelectSensorDistance:
+clickclear
+if mousex < sl_sensorDist_locx_top then
+	sensorDist=5
+	sensorDist_sprite=50
+else
+	if mousex > sl_sensorDist_locx_bot then
+		sensorDist=20
+		sensorDist_sprite = 250
+	else
+		sensorDist=floor((mousex-50)/13.333+5)
+		sensorDist_sprite = mousex
+	end if
+end if
+color grey
+rect 235,205,50,14
+color black
+font "Tahoma",10,80
+text 240,205, int(sensorDist)
+spriteplace 1,sensorDist_sprite,sl_sensorDist_locy_top+5
+gosub DrawSpore
+refresh
+pause 0.01
+return
+
+SelectStepSize:
+clickclear
+if mousex < sl_cellStep_locx_top then
+	stepSize=1
+	stepSize_sprite=50
+else
+	if mousex > sl_cellStep_locx_bot then
+		stepSize=11
+		stepSize_sprite=250
+	else
+		stepSize=(mousex - 50)/20+1
+		stepSize_sprite=mousex
+	end if
+end if
+color grey
+rect 235,255,50,14
+color black
+font "Tahoma",10,80
+text 240,255,int(stepSize)
+spriteplace 2,stepSize_sprite,sl_cellStep_locy_top+5
+gosub DrawSpore
+refresh
+pause 0.01
+return
+
+SelectsensorAngle:
+clickclear
+if mousex < sl_sensorAngle_locx_top then
+	sensorAngle=pi/20
+	sensorAngle_sprite=50
+else
+	if mousex > sl_sensorAngle_locx_bot then
+		sensorAngle=pi/4*3
+		sensorAngle_sprite=250
+	else
+		sensorAngle=((14 * pi/20) /200)*(mousex - 50)+pi/20
+		sensorAngle_sprite=mousex
+	end if
+end if
+color grey
+rect 235,305,50,14
+color black
+font "Tahoma",10,80
+text 240,305,round(sensorAngle ,3)
+spriteplace 3,sensorAngle_sprite,sl_sensorAngle_locy_top+5
+gosub DrawSpore
+refresh
+pause 0.01
+return
+
+SelectTurnAngle:
+clickclear
+if mousex < sl_turnAngle_locx_top then
+	turnAngle= pi/10
+	turnAngle_sprite = 50
+else
+	if mousex > sl_turnAngle_locx_bot then
+		turnAngle=pi/2
+		turnAngle_sprite = 250
+	else
+		turnAngle=(mousex-50)*((4*pi/10)/200) +pi/10
+		turnAngle_sprite = mousex
+	end if
+end if
+color grey
+rect 235,355,50,14
+color black
+font "Tahoma",10,80
+text 240,355,round(turnAngle ,3)
+spriteplace 4,turnAngle_sprite,sl_turnAngle_locy_top+5
+gosub DrawSpore
+refresh
+pause 0.01
+return
+
+StartBottom:
+clickclear
+startx = 304
+newstartx = startx
+starty = draw1_height + draw1_locy-1
+newstarty = starty
+for i = 0 to cells
+	newstartx = newstartx+1
+	ax[i] = newstartx
+	ay[i] = newstarty
+	if ax[i] >1104 then
+		newstartx=startx
+		newstarty = newstarty - 1
+		ax[i] = startx
+		ay[i] = starty
+	endif
+	old_ax[i] = ax[i]
+	old_ay[i] = ay[i]
+	ang[i] = rand * pi - pi
+	color white
+	plot ax[i],ay[i]
+next i
+return
+
+StartRandom:
+clickclear
+for i = 0 to cells
+	startx = 304+ rand*800
+	starty = 10 + rand*800
+	ax[i] = startx
+	ay[i] = starty
+	old_ax[i] = ax[i]
+	old_ay[i] = ay[i]
+	ang[i] = rand* 2 * pi
+	color white
+	plot ax[i],ay[i]
+next i
+return
+
+StartCenter:
+clickclear
+root = sqr(cells)
+startx = 750-(root/2)
+starty = 400-(root/2)
+newstartx = startx
+newstarty = starty
+for i = 0 to cells
+	newstartx = newstartx+1
+	if newstartx > 749 +root/2 then
+		newstartx = startx
+		newstarty = newstarty + 1
+	endif
+	ax[i] = newstartx
+	ay[i] = newstarty
+	old_ax[i] = ax[i]
+	old_ay[i] = ay[i]
+	ang[i] = rand* 2 * pi
+	color white
+	plot ax[i],ay[i]
+next i
+return
+
+StartLeftSide:
+clickclear
+startx = 305
+newstartx = startx
+starty = draw1_locy
+newstarty = starty
+for i = 0 to cells
+	ax[i] = newstartx
+	ay[i] = newstarty
+	newstarty = newstarty+1
+	if ay[i] >809 then
+		newstarty=starty
+		newstartx = newstartx + 1
+		ax[i] = startx
+		ay[i] = starty
+	endif
+	old_ax[i] = ax[i]
+	old_ay[i] = ay[i]
+	ang[i] = rand*pi -pi/2
+	color white
+	plot ax[i],ay[i]
+next i
+return
+
+StartSingle:
+clickclear
+startx = 704
+newstartx = startx
+starty = draw1_height + draw1_locy-1
+newstarty = starty
+for i = 0 to cells
+	newstartx = newstartx +(rand*2-1)
+	ax[i] = newstartx
+	ay[i] = newstarty-0.001
+	old_ax[i] = ax[i]
+	old_ay[i] = ay[i]
+	ang[i] = rand * pi - pi
+	color white
+	plot ax[i],ay[i]
+next i
+
+return
+
+#***************************************
+# sub routine "Draw a slider"
+#***************************************
+subroutine drawslider(sl_locx_top, sl_locy_top, sl_locx_bot, sl_locy_bot, sl_orient, sprite)
+	if sl_orient=1 then
+		sl_lenght = (sl_locx_bot-sl_locx_top)
+		color darkgrey
+		line sl_locx_top,sl_locy_top, sl_locx_bot,sl_locy_bot
+		line sl_locx_top,sl_locy_top+1, sl_locx_bot,sl_locy_bot+1
+		line sl_locx_top,sl_locy_top+2, sl_locx_bot,sl_locy_bot+2
+		poly {sl_locx_top-1, sl_locy_top,sl_locx_top-1, sl_locy_top+3,sl_locx_top-6, sl_locy_top+3}
+		poly {sl_locx_bot+1, sl_locy_bot,sl_locx_bot+1, sl_locy_bot+3,sl_locx_bot+6, sl_locy_bot+3}
+		#  poly
+		color black
+		line sl_locx_top,sl_locy_top+3, sl_locx_bot,sl_locy_bot+3
+		line sl_locx_top,sl_locy_top+4, sl_locx_bot,sl_locy_bot+4
+		color rgb(200,200,200)
+		line sl_locx_top,sl_locy_top+5, sl_locx_bot,sl_locy_bot+5
+		line sl_locx_top,sl_locy_top+6, sl_locx_bot,sl_locy_bot+6
+		line sl_locx_top,sl_locy_top+7, sl_locx_bot,sl_locy_bot+7
+		poly {sl_locx_top-1, sl_locy_top+4,sl_locx_top-1, sl_locy_top+7,sl_locx_top-6, sl_locy_top+4}
+		poly {sl_locx_bot+1, sl_locy_bot+4,sl_locx_bot+1, sl_locy_bot+7,sl_locx_bot+6, sl_locy_bot+4}
+		sl_posx = sl_locx_top
+		sl_posy = sl_locy_top+5
+	else
+		sl_lenght = (sl_locy_bot-sl_locx_top)
+		color darkgrey
+		line sl_locx_top,sl_locy_top, sl_locx_bot,sl_locy_bot
+		line sl_locx_top+1,sl_locy_top, sl_locx_bot+1,sl_locy_bot
+		line sl_locx_top+2,sl_locy_top, sl_locx_bot+2,sl_locy_bot
+		poly {sl_locx_top, sl_locy_top-1, sl_locx_top+3,sl_locy_top-1,sl_locx_top+3,sl_locy_top-6}
+		poly {sl_locx_bot, sl_locy_bot+1, sl_locx_bot+3,sl_locy_bot+1,sl_locx_bot+3,sl_locy_bot+6}
+		color black
+		line sl_locx_top+3,sl_locy_top, sl_locx_bot+3,sl_locy_bot
+		line sl_locx_top+4,sl_locy_top, sl_locx_bot+4,sl_locy_bot
+		color rgb(200,200,200)
+		line sl_locx_top+5,sl_locy_top, sl_locx_bot+5,sl_locy_bot
+		line sl_locx_top+6,sl_locy_top, sl_locx_bot+6,sl_locy_bot
+		line sl_locx_top+7,sl_locy_top, sl_locx_bot+7,sl_locy_bot
+		poly {sl_locx_top+4, sl_locy_top-1, sl_locx_top+7,sl_locy_top-1,sl_locx_top+4,sl_locy_top-6}
+		poly {sl_locx_bot+4, sl_locy_bot+1, sl_locx_bot+7,sl_locy_bot+1,sl_locx_bot+4,sl_locy_bot+6}
+		sl_posx = sl_locx_top+5
+		sl_posy = sl_locy_top
+	end if
+	spriteplace sprite,sl_posx,sl_posy
+	spriteshow sprite
+	sw_done=0
+	refresh
+end subroutine
+
+#******************************************
+# sub routine "Draw a drawing element grid"
+#******************************************
+subroutine drawing(draw_elements_x, draw_elements_y, draw_locx, draw_locy, draw_width,draw_height, draw_offsetx, draw_offsety, draw_color)
+	draw_locx=draw_locx-4
+	draw_locy=draw_locy-4
+	for i=1 to draw_elements_x
+		for j =1 to draw_elements_y
+			widthfiller=draw_width+draw_offsetx+8
+			heightfiller= draw_height+draw_offsety+8
+			color darkgrey
+			if draw_width>draw_height then
+				half=(draw_height+8)/2
+			else
+				half=(draw_width+8)/2
+			endif
+			poly {draw_locx+((i-1)*widthfiller), draw_locy+((j-1)*heightfiller), draw_locx+((i-1)*widthfiller), draw_locy+((j-1)*heightfiller)+draw_height+8, draw_locx+((i-1)*widthfiller)+half, draw_locy+((j-1)*heightfiller)+half}
+			poly {draw_locx+((i-1)*widthfiller), draw_locy+((j-1)*heightfiller), draw_locx+((i-1)*widthfiller)+half, draw_locy+((j-1)*heightfiller)+half, draw_locx+((i-1)*widthfiller)+draw_width+8-half, draw_locy+((j-1)*heightfiller)+half, draw_locx+((i-1)*widthfiller)+draw_width+8,draw_locy+((j-1)*heightfiller)}
+			color rgb(200,200,200)
+			poly {draw_locx+((i-1)*widthfiller), draw_locy+((j-1)*heightfiller)+draw_height+8, draw_locx+((i-1)*widthfiller)+half, draw_locy+((j-1)*heightfiller)+half, draw_locx+((i-1)*widthfiller)+draw_width+8-half, draw_locy+((j-1)*heightfiller)+half, draw_locx+((i-1)*widthfiller)+draw_width+8,draw_locy+((j-1)*heightfiller)+draw_height+8}
+			poly {draw_locx+((i-1)*widthfiller)+draw_width+8-half, draw_locy+((j-1)*heightfiller)+half, draw_locx+((i-1)*widthfiller)+draw_width+8, draw_locy+((j-1)*heightfiller)+draw_height+8, draw_locx+((i-1)*widthfiller)+draw_width+8, draw_locy+((j-1)*heightfiller)}
+			if draw_color = 1 then
+				color white
+			else
+				color black
+			endif
+			rect draw_locx+(i-1)*widthfiller + 4, draw_locy+(j-1)*heightfiller + 4, draw_width,draw_height
+			refresh
+			# rect draw_locx+(i-1)*widthfiller,draw_locy+(j-1)*heightfiller, draw_width-draw_width* 2+2,draw_height-draw_height* 1.5
+		next j
+	next i
+end subroutine
+
+#******************************************
+# sub routine "Draw a spin entry button"
+#******************************************
+subroutine spinner(sp_color, sp_locx, sp_locy, sp_width, sp_heigth, sp_offsetx, sp_offsety, sp_insetx, sp_insety, sp_array, sp_shown, sp_max, sp_min, sp_inc)
+	widthfiller=sp_offsetx
+	heigthfiller= sp_offsety
+	color darkgrey
+	poly {sp_locx, sp_locy, sp_locx, sp_locy+sp_heigth, sp_locx+sp_heigth/2, sp_locy+sp_heigth/2}
+	poly {sp_locx, sp_locy, sp_locx+sp_heigth/2, sp_locy+sp_heigth/2, sp_locx+sp_width-sp_heigth/2, sp_locy+sp_heigth/2, sp_locx+sp_width, sp_locy}
+
+	color rgb(200,200,200)
+	poly {sp_locx, sp_locy+sp_heigth, sp_locx+sp_heigth/2, sp_locy+sp_heigth/2, sp_locx+sp_width-sp_heigth/2, sp_locy+sp_heigth/2, sp_locx+sp_width, sp_locy+sp_heigth}
+	poly {sp_locx+sp_width-sp_heigth/2, sp_locy+sp_heigth/2, sp_locx+sp_width, sp_locy+sp_heigth, sp_locx+sp_width, sp_locy}
+	if sp_color = 1 then
+		color white
+	else
+		color grey
+	endif
+	rect sp_locx+(sp_width*sp_insetx), sp_locy+(sp_heigth*sp_insety), sp_width-sp_width*2*sp_insetx+2, sp_heigth-sp_heigth* 1.5*sp_insety
+
+	color rgb(200,200,200)
+	#Spin-up mini button
+	sp_up_topleft_x = sp_locx+widthfiller+sp_width+sp_width/15
+	sp_up_topleft_y = sp_locy+heigthfiller-2
+	rect sp_up_topleft_x, sp_up_topleft_y ,sp_heigth ,sp_heigth/2
+	#Spin-down mini button
+	sp_up_botright_x = sp_locx+widthfiller+sp_width+sp_width/15
+	sp_up_botright_y = sp_locy+heigthfiller+sp_heigth/2
+	rect sp_up_botright_x, sp_up_botright_y, sp_heigth ,sp_heigth/2
+	color darkgrey
+	# upper mini button lower shadow line
+	line sp_locx+widthfiller+sp_width+sp_width/15, sp_locy+heigthfiller-2+sp_heigth/2, sp_locx+widthfiller+sp_width+sp_width/15+sp_heigth, sp_locy+heigthfiller-2+sp_heigth/2
+	line sp_locx+widthfiller+sp_width+sp_width/15, sp_locy+heigthfiller-3+sp_heigth/2, sp_locx+widthfiller+sp_width+sp_width/15+sp_heigth, sp_locy+heigthfiller-3+sp_heigth/2
+
+	# lower mini button lower lower shadow line
+	line sp_locx+widthfiller+sp_width+sp_width/15,sp_locy+heigthfiller+sp_heigth/2+2+sp_heigth/2,sp_locx+widthfiller+sp_width+sp_width/15+sp_heigth,sp_locy+heigthfiller+sp_heigth/2+2+sp_heigth/2
+	line sp_locx+widthfiller+sp_width+sp_width/15,sp_locy+heigthfiller+sp_heigth/2+1+sp_heigth/2,sp_locx+widthfiller+sp_width+sp_width/15+sp_heigth,sp_locy+heigthfiller+sp_heigth/2+1+sp_heigth/2
+
+	# upper mini button right shadow line
+	line sp_locx+widthfiller+sp_width+sp_heigth+sp_width/15, sp_locy+heigthfiller-2, sp_locx+widthfiller+sp_width+sp_heigth+sp_width/15, sp_locy+heigthfiller-2+sp_heigth/2
+	line sp_locx+widthfiller+sp_width+sp_heigth+sp_width/15+1, sp_locy+heigthfiller-1, sp_locx+widthfiller+sp_width+sp_heigth+sp_width/15+1, sp_locy+heigthfiller-2+sp_heigth/2
+
+	#lower mini button right shadow line
+	line sp_locx+widthfiller+sp_width+sp_heigth+sp_width/15, sp_locy+heigthfiller+sp_heigth/2+2, sp_locx+widthfiller+sp_width+sp_heigth+sp_width/15, sp_locy+heigthfiller+sp_heigth
+	line sp_locx+widthfiller+sp_width+sp_heigth+sp_width/15+1, sp_locy+heigthfiller+sp_heigth/2+3, sp_locx+widthfiller+sp_width+sp_heigth+sp_width/15+1, sp_locy+heigthfiller+sp_heigth-1
+
+	#Up arrow
+	color rgb(100,100,100)
+	poly { sp_locx+widthfiller+sp_width+sp_width/15+sp_heigth/4, sp_locy+heigthfiller+(sp_heigth/8*3)-2, sp_locx+widthfiller+sp_width+sp_width/15+sp_heigth/4*3, sp_locy+heigthfiller+(sp_heigth/8*3)-2, sp_locx+widthfiller+sp_width+sp_width/15+sp_heigth/4*2, sp_locy+heigthfiller+(sp_heigth/8)-2}
+	#down Arrow
+	poly { sp_locx+widthfiller+sp_width+sp_width/15+sp_heigth/4, sp_locy+heigthfiller+sp_heigth/2+(sp_heigth/8), sp_locx+widthfiller+sp_width+sp_width/15+sp_heigth/4*3, sp_locy+heigthfiller+sp_heigth/2+(sp_heigth/8), sp_locx+widthfiller+sp_width+sp_width/15+sp_heigth/4*2, sp_locy+heigthfiller+sp_heigth/2+(sp_heigth/8*3)}
+
+	#initialize
+	if sp_array=0 then
+		color black
+		font "Tahoma",sp_heigth/2,10
+		text sp_locx+sp_width/5,sp_locy+3,sp_shown
+	else
+		color black
+		font "Tahoma",sp_heigth/2,10
+		text sp_locx+10,sp_locy+3,sp_array_list$[sp_shown]
+	endif
+	refresh
+end subroutine
+
+#*********************************
+# sub routine "Draw a button"
+#*********************************
+# Inputs are
+#   x,y location of the upper left corner of the button front
+#   height and width of the button
+#   Size of caption (small:8, medium:10, large:14)
+#   Caption
+#   offset of text from left and top button side
+#   init: 0 (draw unclicked), 1 (draw clicked) or 2 (on/off click)
+# Copy and Paste the subroutine in your program and pass it the correct parameters
+subroutine button(b_locx, b_locy, b_width, b_height, b_text$, b_textsize, b_offsetx, b_offsety, b_init)
+	if b_init=2 then #draw pressed, wait, draw unpressed
+		color darkgrey
+		if b_width>b_height then
+			half=(b_height)/2
+		else
+			half=(b_width)/2
+		endif
+		poly {b_locx, b_locy, b_locx, b_locy+b_height, b_locx +half, b_locy +half}
+		poly {b_locx , b_locy , b_locx +half, b_locy +half, b_locx +b_width-half, b_locy +half, b_locx +b_width,b_locy }
+		color rgb(200,200,200)
+		poly {b_locx , b_locy +b_height, b_locx +half, b_locy +half, b_locx +b_width-half, b_locy +half, b_locx +b_width,b_locy +b_height}
+		poly {b_locx +b_width-half, b_locy +half, b_locx +b_width, b_locy +b_height, b_locx +b_width, b_locy }
+		color rgb(150,150,150)
+		if b_height < 17 or b_width < 17 then
+			rect b_locx  + 1, b_locy  + 1, b_width-2, b_height-2
+		else
+			if b_height < 25 or b_width < 25 then
+				rect b_locx  + 2, b_locy  + 2, b_width-4, b_height-4
+			else
+				rect b_locx  + 4, b_locy  + 4, b_width-8, b_height-8
+			endif
+		endif
+		color black
+		font "Tahoma",b_textsize,100
+		text b_locx+b_offsetx+2,b_locy+b_offsety+2,b_text$
+		refresh
+		pause 0.25
+		color rgb(200,200,200)
+		poly {b_locx, b_locy, b_locx, b_locy+b_height, b_locx +half, b_locy +half}
+		poly {b_locx , b_locy , b_locx +half, b_locy +half, b_locx +b_width-half, b_locy +half, b_locx +b_width,b_locy }
+		color darkgrey
+		poly {b_locx , b_locy +b_height, b_locx +half, b_locy +half, b_locx +b_width-half, b_locy +half, b_locx +b_width,b_locy +b_height}
+		poly {b_locx +b_width-half, b_locy +half, b_locx +b_width, b_locy +b_height, b_locx +b_width, b_locy }
+		color grey
+		if b_height < 17 or b_width < 17 then
+			rect b_locx  + 1, b_locy  + 1, b_width-2, b_height-2
+		else
+			if b_height < 25 or b_width < 25 then
+				rect b_locx  + 2, b_locy  + 2, b_width-4, b_height-4
+			else
+				rect b_locx  + 4, b_locy  + 4, b_width-8, b_height-8
+			endif
+		endif
+		color black
+		font "Tahoma",b_textsize,100
+		text b_locx+b_offsetx,b_locy+b_offsety,b_text$
+		refresh
+	else
+		if b_init=1 then #draw pressed
+			color darkgrey
+			if b_width>b_height then
+				half=(b_height)/2
+			else
+				half=(b_width)/2
+			endif
+			poly {b_locx, b_locy, b_locx, b_locy+b_height, b_locx +half, b_locy +half}
+			poly {b_locx , b_locy , b_locx +half, b_locy +half, b_locx +b_width-half, b_locy +half, b_locx +b_width,b_locy }
+			color rgb(200,200,200)
+			poly {b_locx , b_locy +b_height, b_locx +half, b_locy +half, b_locx +b_width-half, b_locy +half, b_locx +b_width,b_locy +b_height}
+			poly {b_locx +b_width-half, b_locy +half, b_locx +b_width, b_locy +b_height, b_locx +b_width, b_locy }
+			color rgb(150,150,150)
+			if b_height < 17 or b_width < 17 then
+				rect b_locx  + 1, b_locy  + 1, b_width-2, b_height-2
+			else
+				if b_height < 25 or b_width < 25 then
+					rect b_locx  + 2, b_locy  + 2, b_width-4, b_height-4
+				else
+					rect b_locx  + 4, b_locy  + 4, b_width-8, b_height-8
+				endif
+			endif
+			color black
+			font "Tahoma",b_textsize,100
+			text b_locx+b_offsetx+2,b_locy+b_offsety+2,b_text$
+			refresh
+			pause 0.25
+		else #draw unpressed
+			color rgb(200,200,200)
+			if b_width>b_height then
+				half=(b_height)/2
+			else
+				half=(b_width)/2
+			endif
+			poly {b_locx, b_locy, b_locx, b_locy+b_height, b_locx +half, b_locy +half}
+			poly {b_locx , b_locy , b_locx +half, b_locy +half, b_locx +b_width-half, b_locy +half, b_locx +b_width,b_locy }
+			color darkgrey
+			poly {b_locx , b_locy +b_height, b_locx +half, b_locy +half, b_locx +b_width-half, b_locy +half, b_locx +b_width,b_locy +b_height}
+			poly {b_locx +b_width-half, b_locy +half, b_locx +b_width, b_locy +b_height, b_locx +b_width, b_locy }
+			color grey
+			if b_height < 17 or b_width < 17 then
+				rect b_locx  + 1, b_locy  + 1, b_width-2, b_height-2
+			else
+				if b_height < 25 or b_width < 25 then
+					rect b_locx  + 2, b_locy  + 2, b_width-4, b_height-4
+				else
+					rect b_locx  + 4, b_locy  + 4, b_width-8, b_height-8
+				endif
+			endif
+			color black
+			font "Tahoma",b_textsize,100
+			text b_locx+b_offsetx,b_locy+b_offsety,b_text$
+			refresh
+			pause 0.2
+		endif
+	end if
+	refresh
+end subroutine
