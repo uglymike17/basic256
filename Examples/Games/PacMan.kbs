@@ -53,7 +53,7 @@ for life = 3 to 0 step- 1
 
 	if life = 0 then
 		color green
-		font "Aril" ,50,100
+		font "Arial" ,50,100
 		Text 50,50,"GAME OVER"
 		refresh
 		end
@@ -110,7 +110,7 @@ for life = 3 to 0 step- 1
 		# If no dots or energizers remain, trigger immediate green win screen
 		if win = true then
 			color green
-			font "Aril" ,50,100
+			font "Arial" ,50,100
 			Text 50,50,"YOU WON"
 			refresh
 			end
