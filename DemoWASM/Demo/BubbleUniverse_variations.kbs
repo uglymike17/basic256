@@ -3,7 +3,8 @@
 # https://github.com/ZXDunny/SpecBAS-Demos/blob/master/Graphics/bubble_universe
 # ported to Processing by Toby Nelson and then ported to Basic256 by UglyMike
 # Too make in run fast and nice, I use step 2 in the loop and add some transparence
-#Now with variations of the original Bubble Univers
+# Now with variations of the original Bubble Univers
+# Program expects keystrokes, so will not work on tablets
 #******************************************************************************
 #
 gosub ScreenSetup

@@ -14,10 +14,10 @@ graphvisible(1)
 editvisible(1)
 outputvisible(0)
 graphsize canvas_x,canvas_y
-dim step1(7,5)
-dim step2(6,5)
-dim step3(6,5)
-dim step4(6,5)
+dim step1(7,5) fill 0
+dim step2(6,5) fill 0
+dim step3(6,5) fill 0
+dim step4(6,5) fill 0
 step1={0,0,1,0,1,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0}
 step2={0,0,0,0,0,1,0,0,0,0,1,1,0,1,1,0,0,0,0,0}
 step3={0,0,0,0,0,0,1,0,0,0,0,1,0,1,1,1,0,0,0,0}
@@ -56,10 +56,10 @@ cellsize=90
 cell=(size_x-1)/cellsize
 #number of performed iterations
 iteration=0
-dim area(cellsize+2,cellsize+2)
-dim area2(cellsize+2,cellsize+2)
-dim areacol(cellsize+2,cellsize+2)
-dim area2col(cellsize+2,cellsize+2)
+dim area(cellsize+2,cellsize+2) fill 0
+dim area2(cellsize+2,cellsize+2) fill 0
+dim areacol(cellsize+2,cellsize+2) fill 0
+dim area2col(cellsize+2,cellsize+2) fill 0
 dim areacheck(cellsize+2,cellsize+2) fill 0
 dim areacheck2(cellsize+2,cellsize+2) fill 0
 dim exstring(50)
@@ -921,7 +921,7 @@ drawscreen:
   color grey
   rect 0,0,canvas_x,canvas_y
 if sw_controls=1 then goto skipgrid
-  dim draw(10,10)
+  dim draw(10,10)  fill 0
   draw_elements_x=1
   draw_elements_y=1
   draw_locx=10:draw_locy=topfiller
@@ -1397,7 +1397,7 @@ canvas_y=561
 graphsize canvas_x,canvas_y
 color grey
 rect 0,0,canvas_x,canvas_y
-dim draw(10,10)
+dim draw(10,10) fill 0
 draw_elements_x=1
 draw_elements_y=1
 draw_locx=10:draw_locy=90
