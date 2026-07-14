@@ -39,7 +39,12 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QFileInfo>
-#include <QtWidgets/QInputDialog>
+#include <QHash>
+#include <QtWidgets/QDialogButtonBox>
+#include <QtWidgets/QPushButton>
+#include <QtWidgets/QTreeWidget>
+#include <QtWidgets/QVBoxLayout>
+#include <utility>
 #endif
 
 #include <QScreen>
@@ -1561,18 +1566,16 @@ void MainWindow::hidePlayerChrome() {
 }
 
 void MainWindow::openExample() {
-    // DemoWASM/examples.qrc (CMakeLists.txt, EMSCRIPTEN-only) bundles a
-    // curated, self-contained subset of Examples/ under this prefix.
-    // Resource reads are synchronous (compiled into the binary), unlike
-    // getOpenFileContent() -- no async callback needed for the read itself,
-    // only for the picker dialog (RULE 2: QInputDialog::getItem()'s exec()
-    // has the same never-returns problem on the WASM main thread as
-    // QDialog::exec()/QMessageBox's static functions).
-    // Recursive: the examples are grouped into subdirectories (Games/, Demos/...),
-    // and QDir::entryList() does not descend -- with a nested tree it would return
-    // nothing at all and the picker would silently do nothing. Entries carry their
-    // category ("Games/hangman.kbs"), and sorting them groups the list by category
-    // for free. Works just as well if the tree is flattened again.
+    // DemoWASM/examples.qrc (CMakeLists.txt, EMSCRIPTEN-only) bundles a curated,
+    // self-contained subset of Examples/ under this prefix, grouped into category
+    // folders (Games/, Demo/, Simulations/...). Resource reads are synchronous
+    // (compiled into the binary), unlike getOpenFileContent() -- no async callback
+    // is needed for the read itself, only for the picker, which must not block:
+    // RULE 2, exec() never returns on the WASM main thread. Hence open(), not
+    // exec(), and the file is loaded from the accepted() handler.
+    //
+    // Recursive listing: QDir::entryList() does not descend, so with a nested tree
+    // it would return nothing at all and the picker would silently do nothing.
     QStringList files;
     const QString prefix = QStringLiteral(":/examples/");
     QDirIterator it(":/examples", QStringList() << "*.kbs", QDir::Files,
@@ -1584,14 +1587,73 @@ void MainWindow::openExample() {
     if (files.isEmpty()) return;
     files.sort(Qt::CaseInsensitive);
 
-    QInputDialog *dialog = new QInputDialog(this);
+    QDialog *dialog = new QDialog(this);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
     dialog->setWindowTitle(tr("Open Example"));
-    dialog->setLabelText(tr("Choose an example program:"));
-    dialog->setComboBoxItems(files);
-    dialog->setComboBoxEditable(false);
-    dialog->setOption(QInputDialog::UseListViewForComboBoxItems);
-    QObject::connect(dialog, &QInputDialog::textValueSelected, this, [this](const QString &relPath){
+
+    QVBoxLayout *layout = new QVBoxLayout(dialog);
+    layout->addWidget(new QLabel(tr("Choose an example program:"), dialog));
+
+    QTreeWidget *tree = new QTreeWidget(dialog);
+    tree->setHeaderHidden(true);
+    tree->setUniformRowHeights(true);
+    layout->addWidget(tree);
+
+    // Build the tree from the relative paths. Keyed on the full prefix rather
+    // than the last path component, so two categories could hold a subfolder of
+    // the same name without colliding -- and so a deeper tree still works, even
+    // though DemoWASM/ is one level deep today.
+    QHash<QString, QTreeWidgetItem*> nodes;
+    for (const QString &rel : std::as_const(files)) {
+        QStringList parts = rel.split(QLatin1Char('/'));
+        const QString name = parts.takeLast();
+        QTreeWidgetItem *parent = nullptr;
+        QString path;
+        for (const QString &part : std::as_const(parts)) {
+            path = path.isEmpty() ? part : path + QLatin1Char('/') + part;
+            QTreeWidgetItem *node = nodes.value(path, nullptr);
+            if (!node) {
+                node = parent ? new QTreeWidgetItem(parent) : new QTreeWidgetItem(tree);
+                node->setText(0, part);
+                // A category is a heading, not something you can open. Leaving it
+                // selectable would let the Open button act on a folder.
+                node->setFlags(node->flags() & ~Qt::ItemIsSelectable);
+                nodes.insert(path, node);
+            }
+            parent = node;
+        }
+        QTreeWidgetItem *leaf = parent ? new QTreeWidgetItem(parent) : new QTreeWidgetItem(tree);
+        leaf->setText(0, name);
+        leaf->setData(0, Qt::UserRole, rel);   // the full path is what we load
+    }
+    // Start collapsed: the whole point of the tree is that the handful of
+    // categories fit on screen at once. Expanding all 70-odd programs up front
+    // would just be the flat list again, with extra indentation.
+    tree->collapseAll();
+
+    QDialogButtonBox *buttons = new QDialogButtonBox(
+        QDialogButtonBox::Open | QDialogButtonBox::Cancel, dialog);
+    layout->addWidget(buttons);
+
+    // Only a program can be opened, never a category.
+    QPushButton *openButton = buttons->button(QDialogButtonBox::Open);
+    openButton->setEnabled(false);
+    QObject::connect(tree, &QTreeWidget::currentItemChanged, dialog,
+                     [openButton](QTreeWidgetItem *current, QTreeWidgetItem *){
+        openButton->setEnabled(current && !current->data(0, Qt::UserRole).toString().isEmpty());
+    });
+    QObject::connect(tree, &QTreeWidget::itemDoubleClicked, dialog,
+                     [dialog](QTreeWidgetItem *item, int){
+        if (item && !item->data(0, Qt::UserRole).toString().isEmpty()) dialog->accept();
+    });
+    QObject::connect(buttons, &QDialogButtonBox::accepted, dialog, &QDialog::accept);
+    QObject::connect(buttons, &QDialogButtonBox::rejected, dialog, &QDialog::reject);
+
+    QObject::connect(dialog, &QDialog::accepted, this, [this, tree](){
+        QTreeWidgetItem *item = tree->currentItem();
+        if (!item) return;
+        const QString relPath = item->data(0, Qt::UserRole).toString();
+        if (relPath.isEmpty()) return;          // a category, not a program
         QFile f(":/examples/" + relPath);
         if (f.open(QIODevice::ReadOnly)) {
             // Tab title is the bare file name -- the category is how you *found*
@@ -1600,6 +1662,10 @@ void MainWindow::openExample() {
             f.close();
         }
     });
+
+    dialog->resize(420, 480);
+    // Non-modal (RULE 2): exec() never returns on the WASM main thread.
+    dialog->setWindowModality(Qt::ApplicationModal);
     dialog->open();
 }
 #endif
