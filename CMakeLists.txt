@@ -46,9 +46,8 @@ option(BASIC256_ENABLE_TTS     "Enable SAY (QTextToSpeech)" ON)
 # outright at configure time regardless of BASIC256_ENABLE_PRINTER's value.
 # Fixed by extending BASIC256_ENABLE_PRINTER to also gate those GUI menu
 # actions (see src/gui/BasicEdit.cpp, BasicGraph.cpp, BasicOutput.cpp,
-# PreferencesWin.cpp -- each already had an #ifdef ANDROID "printing not
-# supported" precedent for slotPrint(), extended the same way Phase 3
-# extended it for OP_OPENSERIAL/SERIAL).
+# PreferencesWin.cpp), the same way Phase 3 extended it for
+# OP_OPENSERIAL/SERIAL.
 set(BASIC256_QT_COMPONENTS
     Core
     Gui

@@ -101,14 +101,12 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
 
     setWindowIcon(basicIcons->basic256Icon);
 
-#if !defined(ANDROID) && !defined(Q_OS_WASM)
+#ifndef Q_OS_WASM
     // Checks for a newer *desktop* download -- meaningless in a browser
     // (there's nothing to "download and install" over the running page),
     // and confirmed via a real browser test to fail anyway: sourceforge.net
     // doesn't send CORS headers allowing this cross-origin fetch, so it was
     // just a silent, guaranteed-to-fail network call on every WASM startup.
-    // Disabled the same way ANDROID already is, for the same category of
-    // reason (no relevant "check for a desktop update" story there either).
     manager = new QNetworkAccessManager(this);
     QSslConfiguration config = QSslConfiguration::defaultConfiguration();
     config.setProtocol(QSsl::SecureProtocols);
@@ -393,10 +391,8 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     helpthis = new QAction (this);
     helpthis->setShortcuts(QKeySequence::keyBindings(QKeySequence::WhatsThis));
     addAction (helpthis);
-#ifndef ANDROID
     helpmenu->addSeparator();
     checkupdate = helpmenu->addAction(QObject::tr("&Check for update..."));
-#endif
     helpmenu->addSeparator();
     QAction *aboutact = helpmenu->addAction(basicIcons->infoIcon, QObject::tr("&About BASIC-256..."));
 
@@ -505,13 +501,13 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     QObject::connect(onlinehact, SIGNAL(triggered()), rc, SLOT(showOnlineDocumentation()));
     QObject::connect(aboutact, SIGNAL(triggered()), this, SLOT(about()));
 
-#if !defined(ANDROID) && !defined(Q_OS_WASM)
+#ifndef Q_OS_WASM
     QObject::connect(checkupdate, SIGNAL(triggered()), this, SLOT(checkForUpdate()));
 #endif
 QObject::connect(helpthis, SIGNAL(triggered()), rc, SLOT(showOnlineContextDocumentation()));
 
 
-#if !defined(ANDROID) && !defined(Q_OS_WASM)
+#ifndef Q_OS_WASM
     //check for update as soon as the event loop is idle (avoid GUI freezing)
     if(autoCheckForUpdate) QTimer::singleShot(0, this, SLOT(checkForUpdate()));
 #endif
@@ -628,9 +624,7 @@ void MainWindow::loadCustomizations() {
     }
     outwin->setFont(editorFont);
 
-#ifndef ANDROID
     autoCheckForUpdate = (guiState==GUISTATENORMAL&&settings.value(SETTINGSCHECKFORUPDATE, SETTINGSCHECKFORUPDATEDEFAULT).toBool());
-#endif
 }
 
 
@@ -735,18 +729,6 @@ void MainWindow::about() {
     bool usefloatlocale = settings.value(SETTINGSFLOATLOCALE, SETTINGSFLOATLOCALEDEFAULT).toBool();
 
 
-#ifdef ANDROID
-    // android does not have webkit dialogs - make plain text
-    title = QObject::tr("About BASIC-256") +  QObject::tr(" Android");
-    message = QObject::tr("BASIC-256") + QObject::tr(" Android") + "\n" +
-              QObject::tr("version ") +  VERSION + QObject::tr(" - built with QT ") + QT_VERSION_STR + "\n" +
-            QObject::tr("Locale Name: ") + locale->name() + QObject::tr("Decimal Point: ")+  "'" + (usefloatlocale?locale->decimalPoint():QChar('.')) + "'\n" +
-              QObject::tr("Copyright &copy; 2006-2020, The BASIC-256 Team") + "\n" +
-              QObject::tr("Please visit our web site at http://www.basic256.org for tutorials and documentation.") + "\n" +
-              QObject::tr("Please see the CONTRIBUTORS file for a list of developers and translators for this project.") + "\n" +
-              QObject::tr("You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.");
-#else
-    // webkit dialogs for all platforms except android
 #ifdef WIN32PORTABLE
     title = QObject::tr("About BASIC-256") +  QObject::tr(" Portable");
     message = "<h2>" + QObject::tr("BASIC-256") + QObject::tr(" Portable") + "</h2>";
@@ -761,7 +743,6 @@ void MainWindow::about() {
 			"<p>" + QObject::tr("Please visit our web site at <a href=\"https://doc.basic256.org/doku.php\">https://doc.basic256.org/doku.php</a> for documentation.") + "</p>" +
 			"<p>" + QObject::tr("Please see the CONTRIBUTORS file for a list of developers and translators for this project.")  + "</p>" +
 			"<p><i>" + QObject::tr("You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.")  + "</i></p>";
-#endif
 
     // Async (RULE 2): the static QMessageBox::about()'s exec() never
     // returns on the WASM main thread without Asyncify -- build the same
@@ -1064,7 +1045,6 @@ void MainWindow::setRunState(int state) {
 }
 
 //Check for an update
-#ifndef ANDROID
 void MainWindow::checkForUpdate(void){
     manager->get(request);
 }
@@ -1112,7 +1092,6 @@ void MainWindow::sourceforgeReplyFinished(QNetworkReply* reply){
     }
     reply->deleteLater();
 }
-#endif
 
 
 

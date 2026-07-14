@@ -115,8 +115,6 @@ void BasicGraph::setTrasformationMaps() {
 }
 
 void BasicGraph::resizeWindowToFitContent() {
-// NOT android - Android - FULL screen
-#ifndef ANDROID
     int winw = static_cast<int>(std::abs((qreal)gwidth  * gscale * gzoom));
     int winh = static_cast<int>(std::abs((qreal)gheight * gscale * gzoom));
     setFixedSize(winw, winh);
@@ -158,7 +156,6 @@ void BasicGraph::resizeWindowToFitContent() {
             }
         }
     }
-#endif
 }
 
 bool BasicGraph::isVisibleGridLines() {
@@ -299,7 +296,7 @@ void BasicGraph::slotCopy() {
 
 void BasicGraph::slotPrint() {
 
-#if defined(ANDROID) || !defined(BASIC256_ENABLE_PRINTER)
+#if !defined(BASIC256_ENABLE_PRINTER)
     QMessageBox::warning(this, QObject::tr("Print Error"), QObject::tr("Printing is not supported in this platform at this time."));
 #else
 

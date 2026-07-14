@@ -77,8 +77,7 @@ class QTcpSocket;
 class QTcpServer;
 #endif
 
-#if !defined(ANDROID) && defined(BASIC256_ENABLE_SERIAL)
-    // includes for all ports EXCEPT android, when serial is enabled
+#if defined(BASIC256_ENABLE_SERIAL)
     #include <QSerialPort>
 #endif
 

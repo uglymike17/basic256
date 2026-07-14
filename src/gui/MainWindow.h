@@ -179,9 +179,7 @@ public slots:
   void updateWindowTitle(BasicEdit *);
   void newProgram();
   void updateEditorButtons();
-#ifndef ANDROID
   void checkForUpdate(void);
-#endif
 
 private:
 	BasicDock * outwin_dock;
@@ -215,10 +213,8 @@ private:
     bool quitConfirmed;
     QFileSystemWatcher *fileSystemWatcher;
 
-#ifndef ANDROID
     QNetworkRequest request;
     QNetworkAccessManager *manager;
-#endif
 
 	// void pointer to the run controller
 	// can't specify type because of circular reference
@@ -259,9 +255,7 @@ private slots:
     void updateBreakPointsAction();
     void zoomGroupActionEvent(QAction*);
 
-#ifndef ANDROID
     void sourceforgeReplyFinished(QNetworkReply* reply);
-#endif
 };
 
 #endif

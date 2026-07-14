@@ -177,7 +177,7 @@ bool BasicOutput::initActions(QMenu * vMenu, QToolBar * vToolBar) {
 }
 
 void BasicOutput::slotPrint() {
-#if defined(ANDROID) || !defined(BASIC256_ENABLE_PRINTER)
+#if !defined(BASIC256_ENABLE_PRINTER)
     QMessageBox::warning(this, QObject::tr("Print Error"), QObject::tr("Printing is not supported in this platform at this time."));
 #else
     QTextDocument *document = this->document();

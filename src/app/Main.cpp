@@ -395,12 +395,6 @@ int main(int argc, char *argv[]) {
     }
 #endif
 
-#ifdef ANDROID
-    // android - dont load initial file but set default folder to sdcard if exists
-    if (QDir("/storage/sdcard0").exists()) {
-        QDir::setCurrent("/storage/sdcard0");
-    }
-#else
     // load initial file and optionally start
     if (!fileName.isEmpty()) {
             QFileInfo fi(fileName);
@@ -416,7 +410,6 @@ int main(int argc, char *argv[]) {
     }else if(guimode!=0){
         return 0;
     }
-#endif
 
     setlocale(LC_ALL,"C");
 

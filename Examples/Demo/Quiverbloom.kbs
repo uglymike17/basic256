@@ -11,8 +11,14 @@ while true
     for t = 0 to 2 * pi step pi / 400
         color black
         rect (0,0,1000,900)
-        # Step increased to 2 to maintain smooth animation (original step 0.5)
-        for x = 0 to 12000 step 2
+        
+        # Track previous coordinates to draw lines
+        has_prev = false
+        prev_x = 0
+        prev_y = 0
+        
+        # Step increased to 4 to maintain smooth animation (original step 0.5) Drawing lines also helps to cover that
+        for x = 0 to 12000 step 4
             y = x / 235
             k = (4 + sin(x / 11 + 8 * t)) * cos(x / 14)
             e = y / 9 - 19
@@ -25,7 +31,7 @@ while true
             xr = xp * cos(t) - yp * sin(t)
             yr = xp * sin(t) + yp * cos(t)
             
-            # Color logic mapped to variables and limited tp 0-255
+            # Color logic mapped to variables and limited to 0-255
             col = int(100 * sin(3 * k))
             r = 255
             g = col + 155
@@ -35,17 +41,27 @@ while true
             if b < 0 then b = 0
             if b > 255 then b = 255
             
-            color rgb(r, g, b,20)
+            color rgb(r, g, b, 50)
             
-            # Map the clculated coordinates to BASIC-256 screen pixel coordinates
+            # Map the calculated coordinates to BASIC-256 screen pixel coordinates
             # QB64 X range: -190 to 190 -> Width 380
             # QB64 Y range: -200 to 200 -> Height 400
             screen_x = int(((xr + 190) / 380) * 1000)
             screen_y = int(((yr + 200) / 400) * 900)
             
-            # Draw pixel if it falls inside our boundaries
+            # Draw line if both current and previous points fall inside our boundaries
             if screen_x >= 0 and screen_x < 1000 and screen_y >= 0 and screen_y < 900 then
-                circle screen_x, screen_y,3
+                if has_prev then
+                    line prev_x, prev_y, screen_x, screen_y
+                end if
+                
+                # Update previous coordinates for the next iteration
+                prev_x = screen_x
+                prev_y = screen_y
+                has_prev = true
+            else
+                # If the current point is out of bounds, break the line continuity
+                has_prev = false
             end if
         next x
         refresh

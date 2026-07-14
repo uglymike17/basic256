@@ -300,7 +300,7 @@ BasicEdit::saveAsProgram() {
 
 
 void BasicEdit::slotPrint() {
-#if defined(ANDROID) || !defined(BASIC256_ENABLE_PRINTER)
+#if !defined(BASIC256_ENABLE_PRINTER)
     QMessageBox::warning(this, tr("Print"),
         tr("Printing is not supported in this platform at this time."));
 #else

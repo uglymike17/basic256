@@ -2444,16 +2444,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					int baud = stack->popInt();
 					QString name = stack->popQString();
 					int fn = stack->popInt();
-#ifdef ANDROID
-					(void)flow;
-					(void)parity;
-					(void)stop;
-					(void)data;
-					(void)baud;
-					(void)name;
-					(void)fn;
-					error->q(ERROR_NOTIMPLEMENTED);
-#elif !defined(BASIC256_ENABLE_SERIAL)
+#if !defined(BASIC256_ENABLE_SERIAL)
 					(void)flow;
 					(void)parity;
 					(void)stop;
@@ -4820,23 +4811,6 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						waitCond->wait(mymutex);
 						mymutex->unlock();
 					}
-#ifdef ANDROID
-					// input statement on android with popup keyboard
-					// problmatic so use a popup dialog box but display
-					// to output like it was really done there
-
-					mymutex->lock();
-					if (prompt.length()==0) prompt = "?";
-					emit(dialogPrompt(prompt,""));
-					waitCond->wait(mymutex);
-					mymutex->unlock();
-					//
-					mymutex->lock();
-					emit(outputReady(inputString+"\n"));
-					waitCond->wait(mymutex);
-					mymutex->unlock();
-					waitForGraphics();
-#else
 					// 1) Signal the outwin to start input
 					// 2) when return is pressed  outwin signals runcontroller with the string
 					// 3) runcontroller puts it in the variable inputString and releases the wait condition
@@ -4845,7 +4819,6 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					waitCond->wait(mymutex);
 					mymutex->unlock();
 
-#endif
 					// now push value to stack
 					switch (inputType) {
 						case T_INT:
@@ -4911,22 +4884,13 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 				case OP_KEY: {
 					int getUNICODE = stack->popInt();
-#ifdef ANDROID
-					error->q(ERROR_NOTIMPLEMENTED);
-					stack->pushInt(0);
-#else
 					mymutex->lock();
 					stack->pushInt(basicKeyboard->getLastKey(getUNICODE));
 					mymutex->unlock();
-#endif
 				}
 				break;
 
 				case OP_KEYPRESSED: {
-#ifdef ANDROID
-					error->q(ERROR_NOTIMPLEMENTED);
-					stack->pushInt(0);
-#else
 					mymutex->lock();
 					int keyCode = stack->popInt();
 					if (keyCode==0) {
@@ -4939,7 +4903,6 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						}
 					}
 					mymutex->unlock();
-#endif
 				}
 				break;
 
@@ -6323,9 +6286,9 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 #ifdef MACX
 					os = OSTYPE_MACINTOSH;
 #endif
-#ifdef ANDROID
-					os = OSTYPE_ANDROID;
-#endif
+					// No Android target. OSTYPE_ANDROID remains a language constant so
+					// existing programs that compare against it still compile; OS()
+					// simply never returns it.
 					stack->pushInt(os);
 				}
 				break;
