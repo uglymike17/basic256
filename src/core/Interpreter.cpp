@@ -50,6 +50,7 @@
 #include "WordCodes.h"
 #include "CompileErrors.h"
 #include "Interpreter.h"
+#include "MediaPath.h"
 #include "md5.h"
 #include "Settings.h"
 #include "Sound.h"
@@ -3617,7 +3618,6 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						}else{
 							// OP_SOUNDLOAD
 							QString s = e->stringval;
-							QUrl url(s);
 							if(QFileInfo(s).exists()){
 								QFile file(s);
 								file.open(QIODevice::ReadOnly);
@@ -3629,8 +3629,10 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 								waitCond->wait(mymutex);
 								mymutex->unlock();
 								stack->pushQString(id);
-							}else if (url.isValid() && (url.scheme()=="http" || url.scheme()=="https" || url.scheme()=="ftp")){
-								downloader->download(QUrl::fromUserInput(s));
+							}else if (MediaPath::isFetchable(s)){
+								// On wasm a relative path ("./sounds/bounce.mp3") is fetched
+								// from beside the page -- there is no local file to find.
+								downloader->download(MediaPath::downloadUrl(s));
 								QByteArray arr = downloader->data();
 								QString id = QString("sound:") + s;
 								mymutex->lock();
@@ -4505,7 +4507,9 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					if(QFileInfo(file).exists()){
 						i = QImage(file);
 					}else{
-						downloader->download(QUrl::fromUserInput(file));
+						// wasm: no local file exists, so a relative path is fetched from
+						// beside the page (MediaPath). Unchanged on the desktop.
+						downloader->download(MediaPath::downloadUrl(file));
 						i.loadFromData(downloader->data());
 					}
 
@@ -5197,8 +5201,9 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						if(QFileInfo(file).exists()){
 							tmp = new QImage(file);
 						}else{
+							// wasm: relative paths are fetched from beside the page.
 							tmp = new QImage();
-							downloader->download(QUrl::fromUserInput(file));
+							downloader->download(MediaPath::downloadUrl(file));
 							tmp->loadFromData(downloader->data());
 						}
 
@@ -7200,8 +7205,9 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					if(QFileInfo(s).exists()){
 						images[id] = new QImage(QImage(s).convertToFormat(QImage::Format_ARGB32));
 					}else{
+						// wasm: relative paths are fetched from beside the page.
 						QImage *temp = new QImage();
-						downloader->download(QUrl::fromUserInput(s));
+						downloader->download(MediaPath::downloadUrl(s));
 						temp->loadFromData(downloader->data());
 						images[id] = new QImage(temp->convertToFormat(QImage::Format_ARGB32));
 						delete temp;

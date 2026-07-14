@@ -1411,6 +1411,40 @@ automatic reload on first visit).
       `&mode=graph` gives the chrome-free player; a bad name / bad base64 /
       rejected URL raises the "unable to load" box instead of hanging; and no
       parameters still opens the normal IDE.
+- [x] **Relative media paths resolve against the page URL.**
+      **Implemented 2026-07-13 (pending browser verification).**
+      `SOUNDLOAD("./sounds/bounce.mp3")` failed in the browser even with the file
+      sitting next to `basic256.html`. Two ways to find media existed and neither
+      could reach it: `QFileInfo(s).exists()` looks in the (empty) Emscripten
+      MEMFS, and the fetch fallback demanded an explicit `http`/`https`/`ftp`
+      scheme, so a scheme-less path fell straight through to `ERROR_SOUNDFILE`.
+      The images were broken the same way, just less visibly — they handed the
+      bare string to `QUrl::fromUserInput()`, which does not point at the server
+      either. The only working form was an absolute URL, which bakes
+      `localhost:8000` into the source and then breaks on desktop and on Pages.
+      A browser's equivalent of "the working directory" is the page's own URL, so
+      that is what a relative path now resolves against. New
+      `src/core/MediaPath.{h,cpp}` (compiled everywhere; the WASM behaviour is
+      `#ifdef`-ed inside) exposes `downloadUrl()` and `isFetchable()`, and the
+      five media-loading sites route through it:
+      `SOUNDLOAD` (`Interpreter.cpp`), `SOUND`/`SOUNDPLAY`/`SOUNDPLAYER` with a
+      filename (`SoundSystem::playSound`), and `IMGLOAD` / sprite load /
+      `IMAGELOAD`. **Desktop behaviour is unchanged** — `downloadUrl()` is
+      `QUrl::fromUserInput()` and `isFetchable()` is the same http/https/ftp rule
+      as before — so one program now works in both places.
+      **`init()` must run on the main thread** (called from `Main.cpp` beside
+      `WasmSettings::init()`): `location` inside a pthread worker refers to the
+      *worker script*, not the page, and the interpreter — which is what asks —
+      runs on a worker. So the page URL is captured once up front and the worker
+      only ever reads the cached value. The `EM_JS` bridge uses `HEAPU8` only,
+      the same two-step copy as `WasmLaunch` (no `stringToNewUTF8`/`_malloc`).
+      `QUrl::resolved()` is RFC 3986, so the page's own `?run=`/`?mode=` query is
+      correctly *not* inherited by the media URL.
+      Same-origin by construction: a relative path cannot name another host.
+      This is what would let `sprites/`, `imgload/`, `dice/` and `sound/` back
+      into `DemoWASM/` — they were excluded only because their assets were
+      unreachable. Not done here: their assets would have to be deployed beside
+      the page, which the Pages workflow does not currently do.
 - [ ] Revisit binary size: dynamic linking / `qt-cmake` deploy options,
       strip unused Qt features.
 

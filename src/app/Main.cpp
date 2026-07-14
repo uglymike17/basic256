@@ -48,6 +48,7 @@
 #include "BasicEdit.h"
 #include "WasmSettings.h"
 #include "WasmLaunch.h"
+#include "MediaPath.h"
 
 
 //Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
@@ -200,6 +201,12 @@ int main(int argc, char *argv[]) {
     QSettings::setPath(QSettings::NativeFormat, QSettings::UserScope, "/persist");
     WasmSettings::init();
     QObject::connect(&qapp, &QCoreApplication::aboutToQuit, [](){ WasmSettings::persistNow(); });
+
+    // Capture location.href for resolving a program's relative media paths
+    // (SOUNDLOAD "./sounds/x.mp3", IMGLOAD "test.bmp"). Must happen here, on the
+    // main thread: `location` in a worker refers to the worker script, and the
+    // interpreter -- which is what asks -- runs on one.
+    MediaPath::init();
 #endif
 
 #if defined(WIN32) && !defined(WIN32PORTABLE)

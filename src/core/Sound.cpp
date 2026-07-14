@@ -16,6 +16,7 @@
  **/
 
 #include "Sound.h"
+#include "MediaPath.h"
 #include <QDebug>
 
 
@@ -918,7 +919,6 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 		return 0;
 	}
 	if(soundSystemIsStopping) return 0;
-	QUrl url(s);
 	if(s.startsWith("sound:")){
 #ifdef Q_OS_WASM
 		// QMediaPlayer::setSourceDevice() (the desktop in-memory path) is
@@ -1090,7 +1090,9 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 
 		if(!isPlayer) soundsmap[lastIdUsed]->play(); //if it is a regular sound then play it, if it is a player, then do not play it
 		soundID=lastIdUsed;
-	}else if (url.isValid() && (url.scheme()=="http" || url.scheme()=="https" || url.scheme()=="ftp")){
+	}else if (MediaPath::isFetchable(s)){
+		// On wasm there is no local file to have matched above, so a relative path
+		// ("./sounds/bounce.mp3") lands here and is resolved against the page URL.
 		lastIdUsed++;
 		soundsmap[lastIdUsed] = new Sound(this);
 		soundsmap[lastIdUsed]->id = lastIdUsed;
@@ -1105,7 +1107,7 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 		soundsmap[lastIdUsed]->type = SOUNDTYPE_WEB;
 		soundsmap[lastIdUsed]->source = s;
 		soundsmap[lastIdUsed]->prepareConnections();
-		soundsmap[lastIdUsed]->media->setSource(QUrl::fromUserInput(s));
+		soundsmap[lastIdUsed]->media->setSource(MediaPath::downloadUrl(s));
 		soundsmap[lastIdUsed]->updatedMasterVolume(masterVolume);
 		//see above
 		soundsmap[lastIdUsed]->needValidation = true;
