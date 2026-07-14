@@ -100,6 +100,7 @@ class Sound : public QObject
         bool needValidation; //when play a loaded file and we don't know if is a valid file... otherwise player remains in Playing state forever
         bool isValidated;
         bool isDecodedMemory; //WASM only: a "sound:" resource played through WasmAudioSink after async decodeAudioData (vs. the raw-PCM "beep:" audio path)
+        bool pendingPlay; //WASM only: play() was called before decodeAudioData resolved. It must not block (play() runs on the main thread, where a QEventLoop aborts the module), so the start is deferred to handleDecodeFinished().
         int loopCountdown; //used for loop counting
         int loopSaved; //used for players to remember the initial number of loops
         QMediaPlayer* media;

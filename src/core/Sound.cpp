@@ -40,6 +40,7 @@ Sound::Sound(QObject *parent) :
 	needValidation = true;
 	isValidated = false;
 	isDecodedMemory = false;
+	pendingPlay = false;
 	individualVolume = 1.0;
 	media_duration = -1; //used only by mediaplayer because duration may not be available when initial playback begins
 	masterVolume = 10;
@@ -83,19 +84,31 @@ void Sound::play() {
 	if(!isStopping){
 		if(audio){
 #ifdef Q_OS_WASM
+			if(isDecodedMemory && media_duration < 0){
+				// A "sound:" resource whose decodeAudioData has not resolved yet.
+				//
+				// play() runs on the MAIN thread -- it is reached through
+				// RunController's queued slots -- and blocking there is fatal:
+				// QEventLoop::WaitForMoreEvents aborts the module outright without
+				// Asyncify (RULE 2). This used to call waitLoadedMediaValidation(),
+				// which is exactly that block. It only ever seemed to work because
+				// SOUNDLENGTH forces the decode first *on the interpreter thread*,
+				// where blocking is legal; a program that plays without asking for
+				// the length killed the tab ("QEventLoop::WaitForMoreEvents is not
+				// supported on the main thread without asyncify" -> Aborted()).
+				//
+				// So arm the play and return -- handleDecodeFinished() starts it.
+				// soundStateExpected goes to 1 *now*, not when playback actually
+				// begins, or a SOUNDWAIT on the next line would see "not playing"
+				// and return immediately instead of waiting for the sound.
+				pendingPlay = true;
+				soundStateExpected = 1;
+				return;
+			}
 			if(isDecodedMemory){
-				// A "sound:" resource decoded asynchronously by WasmAudioSink.
-				// media_duration<0 means this instance's decodeAudioData has not
-				// resolved yet -- block for it exactly like the desktop media
-				// path validates on first play (handleDecodeFinished sets
-				// media_duration + isValidated and wakes exitWaitingLoop). Once
-				// decoded, loops/replays skip this (media_duration>=0 already).
-				if(media_duration < 0){
-					waitLoadedMediaValidation();
-					if(needValidation){
-						needValidation = false;
-						emit(validateLoadedSound(source, isValidated));
-					}
+				if(needValidation){
+					needValidation = false;
+					emit(validateLoadedSound(source, isValidated));
 				}
 				if(!isValidated){
 					if(*error)(*error)->q(WARNING_SOUNDERROR);
@@ -129,12 +142,31 @@ void Sound::play() {
 				return;
 			}
 		}else if(media){
+#ifdef Q_OS_WASM
+			// Same RULE 2 trap as the decoded-memory path above: play() is on the
+			// MAIN thread, and waitLoadedMediaValidation() spins a QEventLoop, which
+			// aborts the module without Asyncify. This branch became reachable in the
+			// browser once relative media paths started resolving (MediaPath), so
+			// SOUNDPLAY "./sounds/x.mp3" -- with no SOUNDLOAD -- lands here.
+			//
+			// Skip the up-front validation instead of blocking: a file the browser
+			// cannot play is reported asynchronously by QMediaPlayer's own error
+			// signalling rather than synchronously here, which is the price of not
+			// killing the tab. (The SOUNDLOAD route keeps its real validation -- the
+			// decode result above.)
+			if(needValidation){
+				needValidation = false;
+				isValidated = true;
+				emit(validateLoadedSound(source, isValidated));
+			}
+#else
 			if(needValidation){
 				isValidated=waitLoadedMediaValidation();
 				//qDebug() << "isValidated" << isValidated;
 				needValidation=false;
 				emit(validateLoadedSound(source, isValidated));
 			}
+#endif
 			if(!isValidated){
 				if(type == SOUNDTYPE_MEMORY){
 					if(*error)(*error)->q(WARNING_SOUNDERROR);
@@ -345,6 +377,17 @@ bool Sound::seek(double sec) {
 		return (buffer->seek( (qint64)((double)sound_samplerate * sec)  * (qint64) sizeof(int16_t)));
 #endif
 	}else if(media){
+#ifdef Q_OS_WASM
+		// RULE 2 again: seek() reaches us on the MAIN thread (RunController::soundSeek),
+		// and waitMediaStatusChanged()/waitLastMediaSeekTakeAction() below both spin a
+		// QEventLoop, which aborts the module without Asyncify. Issue the seek and let
+		// QMediaPlayer apply it when it is ready, rather than waiting for it to say so.
+		if(isStopping) return true;
+		isPositionChanged = false;
+		media->setPosition(sec * 1000L);
+		play();   // a player that already ended needs nudging back into playback
+		return true;
+#else
 		if(!isReady) waitMediaStatusChanged();
 		waitLastMediaSeekTakeAction();
 		if(!isStopping){
@@ -381,6 +424,7 @@ bool Sound::seek(double sec) {
 				}
 			}
 		}
+#endif
 	}
 	return true;
 }
@@ -644,6 +688,39 @@ void Sound::handleDecodeFinished(bool ok, double durationMs){
 	media_duration = ok ? (qint64)durationMs : 0;
 	isValidated = ok;
 	emit exitWaitingLoop();
+
+	// A play() that arrived before the decode resolved was deferred rather than
+	// blocking the main thread (see play()). This is where it actually starts.
+	if(pendingPlay){
+		pendingPlay = false;
+
+		if(needValidation){
+			needValidation = false;
+			emit(validateLoadedSound(source, isValidated));
+		}
+
+		if(!isValidated){
+			// decodeAudioData rejected it -- not audio, or a codec the browser will
+			// not take. Undo the state the deferred play armed and release anyone
+			// blocked in SOUNDWAIT, or the program hangs waiting for a sound that
+			// is never going to start.
+			soundStateExpected = 0;
+			if(*error)(*error)->q(WARNING_SOUNDERROR);
+			emit exitWaitingLoop();
+			return;
+		}
+
+		// Stopped or paused while the decode was still in flight: honour that
+		// rather than starting a sound the program has already moved on from.
+		if(isStopping || soundStateExpected != 1) return;
+
+		audio->start(buffer);
+		isPausedBySystem = false;
+		if(scheduledFade){
+			scheduledFade = false;
+			fadeTimer.start(SOUNDFADEMS, this);
+		}
+	}
 }
 #endif
 

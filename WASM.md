@@ -1181,6 +1181,33 @@ automatic reload on first visit).
       earlier `SOUND`/`SOUNDPLAY` browser tests passed and never exposed it. Fix:
       `setState()` returns early when the state is unchanged (one line), matching
       `QAudioSink`'s contract.
+      **Browser bug found + fixed 2026-07-14: playing without asking for the
+      length aborted the module.** Console: *"QEventLoop::WaitForMoreEvents is not
+      supported on the main thread without asyncify"* → `Aborted()`. `Sound::play()`
+      is reached through `RunController`'s queued slots and therefore runs on the
+      **main thread**, where it called `waitLoadedMediaValidation()` to block until
+      `decodeAudioData` resolved — a `QEventLoop`, i.e. the exact RULE 2 abort.
+      It had gone unnoticed because every test so far called `SOUNDLENGTH` first,
+      and *that* runs on the interpreter thread, where blocking is legal: the
+      decode was already resolved by the time `SOUNDPLAY` reached the main thread.
+      Drop the `SOUNDLENGTH` line and the wait lands on the main thread and kills
+      the tab. Fix: `play()` no longer blocks — it arms `pendingPlay` and returns,
+      and `handleDecodeFinished()` starts playback when the decode lands.
+      `soundStateExpected` is set to 1 at *arming* time, not at start, or a
+      `SOUNDWAIT` on the next line would see "not playing" and return immediately;
+      a rejected decode clears it and emits `exitWaitingLoop()` so `SOUNDWAIT` is
+      released rather than hanging.
+      **The same trap was live on the `QMediaPlayer` path** and became reachable
+      the moment relative media paths started resolving (`MediaPath`), i.e.
+      `SOUNDPLAY "./sounds/x.mp3"` with no `SOUNDLOAD`: `play()`'s `media` branch
+      and `seek()`'s `media` branch both spin `QEventLoop`s on the main thread.
+      Both are now `#ifdef Q_OS_WASM`-guarded to issue the operation without
+      waiting. The cost is that an unplayable file on *that* path is reported
+      asynchronously by `QMediaPlayer` rather than synchronously as
+      `WARNING_SOUNDERROR` — the `SOUNDLOAD` route keeps real validation (the
+      decode result). **`QMediaPlayer` URL playback on wasm is still unverified**
+      (Phase 5 only ever said "believed to work"); `SOUNDLOAD` + `SOUNDPLAYER` is
+      the path that is actually known to work.
 - [x] `SAY` via the browser's Web Speech API behind `BASIC256_ENABLE_TTS`'s
       WASM variant.
       **Implemented + browser-verified 2026-07-11 by the maintainer**
