@@ -1412,7 +1412,15 @@ automatic reload on first visit).
       rejected URL raises the "unable to load" box instead of hanging; and no
       parameters still opens the normal IDE.
 - [x] **Relative media paths resolve against the page URL.**
-      **Implemented 2026-07-13 (pending browser verification).**
+      **Implemented + browser-verified 2026-07-13 by the maintainer** —
+      `SOUNDLOAD("./sounds/bounce.mp3")` with the file beside `basic256.html` now
+      loads and plays from a local web server, unchanged from the desktop form of
+      the same program. Not separately exercised (same mechanism, expected to
+      work): the image paths (`IMGLOAD` / sprite load / `IMAGELOAD`), and
+      `SOUND`/`SOUNDPLAY` with a bare filename — that one goes through
+      `QMediaPlayer::setSource()`, whose URL-based playback on wasm is still only
+      *believed* to work (see Phase 5), so a failure there would be the media
+      backend, not the path resolution.
       `SOUNDLOAD("./sounds/bounce.mp3")` failed in the browser even with the file
       sitting next to `basic256.html`. Two ways to find media existed and neither
       could reach it: `QFileInfo(s).exists()` looks in the (empty) Emscripten

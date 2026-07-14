@@ -1,0 +1,53 @@
+# Swimming Quiverbloom            K Moerman 2026
+# original code from https://x.com/yuruyurau/status/1942231466446057727
+# some sick pj5 sketches on his site!!
+# Translated from QB64 to BASIC-256
+# interpreted code so you see it swim in slow motion!
+
+graphsize 1000, 900
+fastgraphics
+
+while true
+    for t = 0 to 2 * pi step pi / 400
+        color black
+        rect (0,0,1000,900)
+        # Step increased to 2 to maintain smooth animation (original step 0.5)
+        for x = 0 to 12000 step 2
+            y = x / 235
+            k = (4 + sin(x / 11 + 8 * t)) * cos(x / 14)
+            e = y / 9 - 19
+            d = sqr(k * k + e * e) + sin(y / 9 + 3 * t)
+            q = 2 * sin(2 * k) + sin(y / 17) * k * (9 + 2 * sin(y - 3 * d))
+            c = d * d / 50
+            xp = q - 50 * cos(c) - 85
+            yp = d * 39 - q * sin(c) - 620
+            
+            xr = xp * cos(t) - yp * sin(t)
+            yr = xp * sin(t) + yp * cos(t)
+            
+            # Color logic mapped to variables and limited tp 0-255
+            col = int(100 * sin(3 * k))
+            r = 255
+            g = col + 155
+            b = 255 - col
+            if g < 0 then g = 0
+            if g > 255 then g = 255
+            if b < 0 then b = 0
+            if b > 255 then b = 255
+            
+            color rgb(r, g, b,20)
+            
+            # Map the clculated coordinates to BASIC-256 screen pixel coordinates
+            # QB64 X range: -190 to 190 -> Width 380
+            # QB64 Y range: -200 to 200 -> Height 400
+            screen_x = int(((xr + 190) / 380) * 1000)
+            screen_y = int(((yr + 200) / 400) * 900)
+            
+            # Draw pixel if it falls inside our boundaries
+            if screen_x >= 0 and screen_x < 1000 and screen_y >= 0 and screen_y < 900 then
+                circle screen_x, screen_y,3
+            end if
+        next x
+        refresh
+    next t
+end while

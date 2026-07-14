@@ -5,6 +5,7 @@
         <file>Demo/FieldLines.kbs</file>
         <file>Demo/GoldenWaves.kbs</file>
         <file>Demo/Life_GUI.kbs</file>
+        <file>Demo/Quiverbloom.kbs</file>
         <file>Demo/SlimeMoldSimulation_GUI.kbs</file>
         <file>FractalsChaosAttractors/BarnsleyFern.kbs</file>
         <file>FractalsChaosAttractors/CellularAutomaton.kbs</file>
