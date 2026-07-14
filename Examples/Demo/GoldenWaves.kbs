@@ -1,0 +1,30 @@
+# Golden Waves by Manuel Santos
+graphsize 600,600
+fastgraphics
+for t=10 to 180 step .1
+	color darkred
+	rect 0,0,600,600
+	For y1 = 0 to 24
+		For x1 = 0 to 24
+			x=12*(24-x1)+12*y1
+			y=-6*(24-x1)+6*y1+300
+			d= ((10-x1)^2+(10-y1)^2)^.5
+			h=60*sin(x1/4+t)+65
+			if t>20 and t<40 then h=60*sin(y1/4+t)+65
+			if t>40 and t<60 then h=60*sin((x1-y1)/4+t)+65
+			if t>60 and t<80 then h=30*sin(x1/2+t)+30*sin(y1/2+t)+65
+			if t>80 and t<100 then h=60*sin((x1+y1)/4+t)+65
+			if t>100 and t<120 then h=60*sin(d*.3+t)+65
+			if t>120 and t<140 then h = 60 * (sin(x1 / 3 + t) * cos(y1 / 3 + t)) + 65
+			if t>140 and t<180 then h = 40 * sin(x1 / 6 + t) + 20 * sin(y1 / 1.5 - t * 2) + 65
+			color rgb(100+h,100+h,h)
+			poly{x,y-h,x+10,y+5-h,x+20,y-h,x+10,y-5-h}
+			color rgb(60,60,0)
+			poly{x,y-h,x+10,y+5-h,x+10,y,x,y-5}
+			color rgb(150,150,0)
+			poly{x+10,y+5-h,x+10,y,x+20,y-5,x+20,y-h}
+		next x1
+	next y1
+	refresh
+	clg
+next t

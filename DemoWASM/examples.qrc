@@ -3,6 +3,7 @@
         <file>Demo/BTK2_Toolkit_demo.kbs</file>
         <file>Demo/BubbleUniverse_variations.kbs</file>
         <file>Demo/FieldLines.kbs</file>
+        <file>Demo/GoldenWaves.kbs</file>
         <file>Demo/Life_GUI.kbs</file>
         <file>Demo/SlimeMoldSimulation_GUI.kbs</file>
         <file>FractalsChaosAttractors/BarnsleyFern.kbs</file>
@@ -65,6 +66,7 @@
         <file>Simulations/BouncingBall.kbs</file>
         <file>Simulations/Colliding2Balls.kbs</file>
         <file>Simulations/Colliding3Balls.kbs</file>
+        <file>Simulations/CollidingMultipleBalls.kbs</file>
         <file>Simulations/DoublePendulum.kbs</file>
         <file>Sound_Speech/AIChatbot.kbs</file>
         <file>Sound_Speech/TwinkleTwinkle.kbs</file>

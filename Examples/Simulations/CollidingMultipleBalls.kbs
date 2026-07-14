@@ -1,0 +1,67 @@
+# 2D collisions by Manuel Santos
+fastgraphics
+m=6
+n=m^2
+Dim x(n)
+Dim y(n)
+Dim vx(n)
+Dim vy(n)
+Dim mass(n)
+Dim colisionflag(n,n)
+ed=1
+u=0
+rem initial variables
+for a = 0 to m-1
+	for b = 0 to m-1
+		x[u]=80*a+10
+		y[u]=80*b+10
+		vx[u]=rand-.5
+		vy[u]=rand-.5
+		mass[u]=7
+		u=u+1
+	next b
+next a
+Rem main loop
+While 1=1
+	for u = 0 to n-1
+		If x[u]<mass[u] or x[u]>(500-mass[u]) then vx[u]=-vx[u]
+		If y[u]<mass[u] or y[u]>(500-mass[u]) then vy[u]=-vy[u]
+		x[u]=x[u]+vx[u]
+		y[u]=y[u]+vy[u]
+		color rgb (u*7,0,255-u*7)
+		circle x[u],y[u],mass[u]
+	next u
+	refresh
+	clg
+	gosub colision
+end while
+colision:
+rem collision detection
+for u1 = 0 to n-2
+	for u2 = u1+1 to n-1
+		dx = x[u2]-x[u1]
+		dy = y[u2]-y[u1]
+		distance = (dx*dx+dy*dy)^.5
+		if distance < (mass[u1]+mass[u2]) then
+			if colisionflag[u1,u2]=0 then
+				rem vx and vy calc
+				ax=dx/distance
+				ay=dy/distance
+				va1=vx[u1]*ax+vy[u1]*ay
+				vb1=-vx[u1]*ay+vy[u1]*ax
+				va2=vx[u2]*ax+vy[u2]*ay
+				vb2=-vx[u2]*ay+vy[u2]*ax
+				vaP1=va1 + (1+ed)*(va2-va1)/(1+mass[u1]/mass[u2])
+				vaP2=va2 + (1+ed)*(va1-va2)/(1+mass[u2]/mass[u1])
+				vx[u1]=vaP1*ax-vb1*ay
+				vy[u1]=vaP1*ay+vb1*ax
+				vx[u2]=vaP2*ax-vb2*ay
+				vy[u2]=vaP2*ay+vb2*ax
+				colisionflag[u1,u2]=1
+			end if
+		else
+			colisionflag[u1,u2]=0
+		end if
+	next u2
+next u1
+return
