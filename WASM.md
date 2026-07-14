@@ -847,7 +847,9 @@ unless noted.
       uses `NETLISTEN`/`NETCONNECT`). New "Open &Example..." menu action
       (`Q_OS_WASM`-only) lists the bundled files via a non-modal
       `QInputDialog` (RULE 2: `getItem()`'s `exec()` has the same
-      never-returns problem as `QMessageBox`'s static functions) and feeds
+      never-returns problem as `QMessageBox`'s static functions) — **since
+      superseded by a `QTreeWidget` dialog once the examples were grouped into
+      categories; see the Phase 7 subdirectories follow-up** — and feeds
       the chosen resource's content through the same `loadFileContent()`
       helper the file-open work above added (resource reads are
       synchronous — compiled into the binary — so only the picker itself
@@ -1137,13 +1139,21 @@ automatic reload on first visit).
       instead of via `makeDynCall` (see Session log, 2026-07-10). Re-verified:
       `SOUND 400,2000` loop fully audible, program continues, and
       loop/pause/resume/seek/`SOUNDWAIT` all behave sanely.
-- [ ] `sound:` in-memory-file playback (arbitrary compressed audio bytes
-      loaded via `SOUNDLOAD` and played back with
-      `QMediaPlayer::setSourceDevice()`) still needs its own Web Audio
-      bridge — `decodeAudioData` + a `Promise`-based JS interaction, a
-      different technique from the synchronous raw-PCM approach used for
-      the QAudioSink path above.
-      **Implemented 2026-07-11 (pending CI-green + browser verification).**
+- [x] `sound:` in-memory-file playback (arbitrary compressed audio bytes loaded
+      via `SOUNDLOAD`, which on the desktop uses
+      `QMediaPlayer::setSourceDevice()`) via its own Web Audio bridge —
+      `decodeAudioData` + a `Promise`-based JS interaction, a different technique
+      from the synchronous raw-PCM approach used for the QAudioSink path above.
+      **Implemented 2026-07-11; browser-verified 2026-07-14 by the maintainer**
+      after three browser bugs, each recorded below. Verified end to end: a
+      `SOUNDLOAD`ed `.mp3` plays, `SoundLength` is right, pause/seek/resume and
+      `SOUNDWAIT` all behave (the program runs on past `SOUNDWAIT`), and a file
+      the browser cannot decode raises `WARNING_SOUNDERROR` and keeps running
+      instead of hanging.
+      **`SOUNDLOAD` + `SOUNDPLAYER` is the audio path known to work in the
+      browser.** `QMediaPlayer` URL playback (`SOUNDPLAY "http://…"` /
+      `"./x.mp3"` with no `SOUNDLOAD`) is still unverified — Phase 5 only ever
+      said "believed to work".
       Builds on `WasmAudioSink`, which already plays a Web Audio `AudioBuffer`:
       a new `WasmAudioSink::decode(bytes)` + `EM_JS wasmAudioSinkDecode()` copies
       the compressed bytes out of the heap into a private `ArrayBuffer` and calls
@@ -1370,11 +1380,17 @@ automatic reload on first visit).
       have made the picker silently do nothing at all. Both now use `QDirIterator`
       with `Subdirectories` — which also means a deeper tree would work if the
       curation ever changes.
-      - `MainWindow::openExample()` lists entries as `Games/hangman.kbs` and sorts
-        them, so the flat `QInputDialog` list groups by category for free (the
-        cheap picker — a `QTreeWidget` dialog remains an option later). The tab
-        title is the bare file name: the category is how you *found* the program,
-        not part of what it is called.
+      - `MainWindow::openExample()` is a **`QTreeWidget` dialog**
+        (**browser-verified 2026-07-14**): the category folders fit on screen at
+        once and expand to their programs, replacing the flat 71-entry list that
+        was the first cut. Categories are headings, not programs —
+        `ItemIsSelectable` is cleared on them, so Open cannot act on a folder, and
+        double-clicking one expands it. Nodes are keyed on the full path prefix, so
+        a deeper tree still works. It starts collapsed on purpose: expanding all 71
+        up front would just be the flat list again with extra indentation. Still
+        non-modal (RULE 2): `open()`, not `exec()`, with the file loaded from the
+        `accepted()` handler. The tab title is the bare file name: the category is
+        how you *found* the program, not part of what it is called.
       - `resolveExampleName()` tries the full relative path first, then falls back
         to matching the bare file name **anywhere in the tree** — because
         `?run=mandelbrot` is the form in the README and in every link already
