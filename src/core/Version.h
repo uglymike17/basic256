@@ -24,9 +24,9 @@
 // is only the fallback for builds that don't go through CMake's derivation
 // (e.g. an IDE opening this header directly without a configure step).
 #ifndef VERSION
-#define VERSION "2.1.Alpha04"
+#define VERSION "2.1.Beta"
 #endif
-#define VERSIONSIGNATURE  2001004
-#define VERSIONPRODUCT 2,1,0,4
+#define VERSIONSIGNATURE  200100
+#define VERSIONPRODUCT 2,1,0,0
 
 #endif
