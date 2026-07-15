@@ -22,7 +22,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # All ON by default -- the desktop build keeps its current feature set
 # byte-for-byte. The Phase 4 WASM build configures all six OFF: the
 # underlying Qt module or OS facility either doesn't exist or can't work
-# in a browser sandbox (see WASM.md's decisions and Phase 3 section).
+# in a browser sandbox.
 # When a flag is off, the corresponding opcode(s) raise ERROR_NOTAVAILABLE
 # through the normal Error mechanism instead of silently no-opping.
 option(BASIC256_ENABLE_PROCESS "Enable SYSTEM (QProcess)" ON)
@@ -223,7 +223,7 @@ set(RESOURCES
 # reach in the browser anyway: an IMGLOAD("test.bmp") looks in the (empty)
 # Emscripten MEMFS and then on the network, and nothing maps a program's relative
 # path onto ":/examples/...". Reaching them would mean resolving relative media
-# paths against the page URL -- see WASM.md.
+# paths against the page URL.
 #
 # The .qrc lists nested paths (<file>Games/PacMan.kbs</file> ->
 # ":/examples/Games/PacMan.kbs"); rcc handles that natively, so nothing here
@@ -367,7 +367,7 @@ endif()
 # (NETSERVER/TCP + BasicDownloader -- Network itself is never gated, since
 # BasicDownloader's NETREAD needs it regardless of BASIC256_ENABLE_TCP),
 # QtMultimedia (Sound/BasicMediaPlayer). Widgets and TextToSpeech are
-# GUI/app-only -- see Phase 1 log in WASM.md. Sql/SerialPort/PrintSupport
+# GUI/app-only. Sql/SerialPort/PrintSupport
 # are only linked when their BASIC256_ENABLE_* flag is on.
 target_link_libraries(basic256core
     PUBLIC

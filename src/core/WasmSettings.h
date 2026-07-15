@@ -21,7 +21,7 @@
 
 #ifdef Q_OS_WASM
 
-// WASM settings persistence (WASM.md Phase 7). On WebAssembly the Emscripten
+// WASM settings persistence. On WebAssembly the Emscripten
 // filesystem is ephemeral MEMFS, so anything QSettings writes is lost on
 // reload. wasm-deploy/idbfs.js (a --pre-js) mounts IDBFS -- backed by the
 // browser's IndexedDB -- at /persist and loads it before main(); Main.cpp

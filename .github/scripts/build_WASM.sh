@@ -15,8 +15,8 @@ sudo apt install -y build-essential cmake flex bison
 # -------------------------------------------------------------------
 # Emscripten SDK -- pinned to 4.0.7, the exact version Qt 6.11.1's
 # WebAssembly binaries were built with. Qt does not guarantee ABI
-# compatibility across emsdk versions, so this must track WASM.md's
-# "Decisions already made" pin, not just "latest".
+# compatibility across emsdk versions, so this is a deliberate pin to the
+# Qt-matched version, not just "latest".
 # -------------------------------------------------------------------
 if [ ! -d "$HOME/emsdk" ]; then
     git clone https://github.com/emscripten-core/emsdk.git "$HOME/emsdk"
@@ -60,7 +60,7 @@ fi
 # -------------------------------------------------------------------
 # Configure + build with Qt's own wasm toolchain wrapper (qt-cmake).
 # All six BASIC256_ENABLE_* flags OFF: none of those Qt modules exist in
-# (or make sense for) the WASM SDK -- see WASM.md Phase 3/4.
+# (or make sense for) the WASM SDK.
 # -------------------------------------------------------------------
 "$QT_WASM_DIR/bin/qt-cmake" -S . -B build-wasm \
     -DCMAKE_BUILD_TYPE=Release \

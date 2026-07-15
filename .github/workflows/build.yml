@@ -1,7 +1,7 @@
-name: Build BASIC-256_2.1.Alpha CMake
+name: Build BASIC-256_2.1.Beta CMake
 on:
   push:
-    branches: [ v2.1.Alpha05WASM ]
+    branches: [ v2.1.Beta01 ]
   pull_request:
   release:
     types: [created]
@@ -232,7 +232,7 @@ jobs:
         path: ${{ github.workspace }}/*.exe
 
   flagsoff-dress-rehearsal:
-    # WASM.md Phase 3 gate: a desktop build with all six BASIC256_ENABLE_*
+    # Phase 3 gate: a desktop build with all six BASIC256_ENABLE_*
     # flags OFF is a cheap simulation of the WASM feature surface. Must
     # compile and SYSTEM must raise ERROR_NOTAVAILABLE (129) and continue
     # normally instead of crashing/hanging/silently no-opping. One platform
@@ -268,7 +268,7 @@ jobs:
         bash .github/scripts/run_testsuite_flagsoff.sh build/basic256
 
   wasm:
-    # WASM.md Phase 4: first WebAssembly build. Emscripten 4.0.7 (Qt 6.11.1's
+    # Phase 4: first WebAssembly build. Emscripten 4.0.7 (Qt 6.11.1's
     # pinned version) + Qt's wasm_multithread SDK, all six BASIC256_ENABLE_*
     # flags OFF (mirrors the flags-off dress rehearsal above, but for real --
     # the wasm Qt SDK doesn't ship Sql/SerialPort/PrintSupport/TextToSpeech
@@ -304,14 +304,14 @@ jobs:
           build-wasm/qtlogo.svg
 
   pages-deploy:
-    # WASM.md Phase 6: publish the wasm build to GitHub Pages. Gated on the
+    # Phase 6: publish the wasm build to GitHub Pages. Gated on the
     # full desktop matrix + wasm job succeeding (RULE 1's regression net
     # extends to what gets deployed), and only for real pushes to this
     # branch -- not pull_request builds, which have no gh-pages business
     # deploying over the live site.
     name: Deploy WASM build to GitHub Pages
     needs: [ build, wasm ]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/v2.1.Alpha05WASM'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/v2.1.Beta01'
     runs-on: ubuntu-22.04
     permissions:
       pages: write
@@ -334,7 +334,7 @@ jobs:
         set -euo pipefail
         # Qt's own generated basic256.html is discarded in favor of the
         # vendored custom shell (wasm-deploy/index.html) -- see that file's
-        # header comment and WASM.md Phase 6 for why (QTBUG-109959: Qt's
+        # header comment for why (QTBUG-109959: Qt's
         # CMake build doesn't reliably let you supply a custom shell file,
         # so we replace its output post-build instead of fighting the
         # build system for it).

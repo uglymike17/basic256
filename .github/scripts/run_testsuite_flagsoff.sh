@@ -2,7 +2,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # run_testsuite_flagsoff.sh <path-to-basic256-binary>
 #
-# Phase 3 dress rehearsal (WASM.md): runs TestSuite/testsuite_flagsoff_ci.kbs
+# Phase 3 dress rehearsal: runs TestSuite/testsuite_flagsoff_ci.kbs
 # headlessly via `basic256 -s`, against a build configured with all six
 # BASIC256_ENABLE_* flags OFF (see build_Linux_x86_flagsoff.sh). Verifies
 # that SYSTEM raises the new ERROR_NOTAVAILABLE (129) and execution

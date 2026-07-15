@@ -234,10 +234,6 @@ This GitHub repository ([uglymike17/basic256](https://github.com/uglymike17/basi
 
 Development continues with an emphasis on educational value while preserving compatibility.
 
-### Editor
-
-- Replace the editor with **QScintilla** for improved syntax highlighting and a better editing experience
-
 ### Language
 
 - `ATAN2()` — a two-argument arctangent returns angle θ (in radians) between the positive x-axis and a ray pointing to the point (x, y) in the Cartesian plane. It correctly determines the angle across all four quadrants

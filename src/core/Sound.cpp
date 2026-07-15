@@ -1096,9 +1096,9 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 		}
 #endif
 	}else if(s.startsWith("beep:")){
-		// Generated/loaded-waveform playback -- WasmAudioSink (WASM.md
-		// Phase 7) bridges this to the Web Audio API on WASM; QAudioSink is
-		// used unchanged everywhere else.
+		// Generated/loaded-waveform playback -- WasmAudioSink bridges this
+		// to the Web Audio API on WASM; QAudioSink is used unchanged
+		// everywhere else.
 		if(loadedsounds.count(s)){
 			lastIdUsed++;
 			soundsmap[lastIdUsed] = new Sound(this);
@@ -1201,8 +1201,8 @@ int SoundSystem::playSound(QString s, bool isPlayer){
 
 int SoundSystem::playSound(std::vector<std::vector<double>> sounddata, bool isPlayer) {
 	// SOUND freq,duration / generated-waveform path -- WasmAudioSink
-	// (WASM.md Phase 7) bridges this to the Web Audio API on WASM;
-	// QAudioSink is used unchanged everywhere else.
+	// bridges this to the Web Audio API on WASM; QAudioSink is used
+	// unchanged everywhere else.
 	soundID=0;
 	if(soundSystemIsStopping) return 0;
 	lastIdUsed++;

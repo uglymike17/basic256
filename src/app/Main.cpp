@@ -190,7 +190,7 @@ int main(int argc, char *argv[]) {
     QCoreApplication::setApplicationVersion(VERSION);
 
 #ifdef Q_OS_WASM
-    // WASM persistence (WASM.md Phase 7). The Emscripten FS is ephemeral MEMFS;
+    // WASM persistence. The Emscripten FS is ephemeral MEMFS;
     // wasm-deploy/idbfs.js (--pre-js) has already mounted IDBFS at /persist and
     // synced it in (main() is gated on that). Point NativeFormat QSettings at
     // /persist so preferences and SETSETTING data land in the persisted mount,

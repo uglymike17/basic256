@@ -39,8 +39,8 @@
 // UTF8ToString -- the two Emscripten runtime helpers this build has actually
 // proven in a browser (WasmAudioSink's PCM copy, RunController's SAY). It
 // deliberately does NOT reach for stringToNewUTF8/_malloc/Module.ccall: this
-// build sets no EXPORTED_RUNTIME_METHODS, and the makeDynCall episode (WASM.md,
-// 2026-07-10) showed that a helper which merely *links* can still be missing at
+// build sets no EXPORTED_RUNTIME_METHODS, and the makeDynCall episode
+// (2026-07-10) showed that a helper which merely *links* can still be missing at
 // runtime. So JS never allocates wasm memory. Instead it parks the bytes in a
 // JS-side holder, tells C++ how many there are, and C++ -- which can allocate
 // perfectly well -- hands back a pointer to copy into.

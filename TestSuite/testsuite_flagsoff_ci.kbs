@@ -1,6 +1,6 @@
 # testsuite_flagsoff_ci for BASIC256
 #
-# Phase 3 dress rehearsal (WASM.md): built with all six BASIC256_ENABLE_*
+# Phase 3 dress rehearsal: built with all six BASIC256_ENABLE_*
 # CMake flags OFF, SYSTEM must raise the new ERROR_NOTAVAILABLE (129)
 # through the normal Error mechanism and continue execution normally --
 # not crash, not hang, not silently no-op.

@@ -27,15 +27,14 @@
 // either file's own "#ifdef Q_OS_WASM" is evaluated.
 #include <QtGlobal>
 
-// QAudioSink hangs the WASM main thread indefinitely on construction (see
-// WASM.md Phase 4/5 browser-testing log) -- its single-QAudioFormat-arg
+// QAudioSink hangs the WASM main thread indefinitely on construction (found
+// during Phase 4/5 browser testing) -- its single-QAudioFormat-arg
 // overload resolves the default audio device the same way
 // QMediaDevices::defaultAudioOutput() does, which is also broken there.
 // WasmAudioSink is a QAudioSink-shaped facade over the Web Audio API
 // (bridged via emscripten's EM_JS) exposing exactly the subset of
 // QAudioSink's surface that Sound.cpp calls, so Sound.{h,cpp} can use it as
-// a drop-in replacement (see the Sound.h AudioSinkType alias). WASM.md
-// Phase 7.
+// a drop-in replacement (see the Sound.h AudioSinkType alias).
 //
 // Playback model: Web Audio's AudioBufferSourceNode is one-shot (no native
 // pause/resume/seek). suspend()/resume()/seekTo() are emulated by stopping

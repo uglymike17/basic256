@@ -1,4 +1,4 @@
-// BASIC-256 WASM persistence bootstrap (WASM.md Phase 7).
+// BASIC-256 WASM persistence bootstrap.
 //
 // The Emscripten filesystem is ephemeral MEMFS -- anything written during a
 // session is gone on reload. Mount IDBFS (backed by the browser's IndexedDB)

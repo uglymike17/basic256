@@ -38,10 +38,10 @@
 #include "Constants.h"
 #include "Settings.h"
 
-// QAudioSink hangs the WASM main thread indefinitely on construction (see
-// WASM.md Phase 4/5 browser-testing log) -- WasmAudioSink is a
+// QAudioSink hangs the WASM main thread indefinitely on construction (found
+// during Phase 4/5 browser testing) -- WasmAudioSink is a
 // QAudioSink-shaped facade over the Web Audio API that stands in for it on
-// that platform (WASM.md Phase 7). AudioSinkType lets the rest of this file
+// that platform. AudioSinkType lets the rest of this file
 // use `audio->` unchanged on every platform.
 #ifdef Q_OS_WASM
 #include "WasmAudioSink.h"

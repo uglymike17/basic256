@@ -48,7 +48,7 @@
 #include <QProcess>
 
 
-// Phase 3 feature flags (WASM.md): each browser-unavailable subsystem's
+// Phase 3 feature flags: each browser-unavailable subsystem's
 // real Qt headers are only included when its BASIC256_ENABLE_* flag is on;
 // otherwise a forward declaration keeps the (pointer-only) member
 // declarations below compiling, and the opcode bodies in Interpreter.cpp
