@@ -34,6 +34,7 @@
 #include <QtWidgets/QDialog>
 #include <QtWidgets/QLabel>
 #include <QtGui/QFontDatabase>
+#include <QtGui/QFontInfo>
 #include <QtGui/QShortcut>
 #ifdef Q_OS_WASM
 #include <QDir>
@@ -620,6 +621,18 @@ void MainWindow::loadCustomizations() {
 
     if (fontUserSet && !initialFontString.isEmpty()) {
         editorFont.fromString(initialFontString);
+        // A pinned font can only have come from Options > Font, which offers
+        // monospaced faces only (QFontDialog::MonospacedFonts). So a pinned
+        // font that is not fixed-pitch was never actually chosen -- it is a
+        // leftover from an old build that saved the proportional app font as
+        // the editor font (e.g. "MS Shell Dlg 2,8.25"), which the DejaVu-only
+        // legacy-default check above did not catch. Un-pin it and re-derive,
+        // so the editor goes back to following the system text size. The
+        // cleared flag is persisted by saveCustomizations(), so this runs once.
+        if (!QFontInfo(editorFont).fixedPitch()) {
+            fontUserSet = false;
+            editorFont = defaultEditorFont();
+        }
     } else {
         editorFont = defaultEditorFont();
     }
