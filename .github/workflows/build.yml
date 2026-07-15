@@ -1,7 +1,11 @@
 name: Build BASIC-256_2.1.Beta CMake
 on:
   push:
-    branches: [ main ]
+    branches: [ v2.1.Beta01 ]
+    # This branch (v2.1.Beta01) builds/tests the full matrix on every push,
+    # but never deploys to GitHub Pages -- the pages-deploy job below stays
+    # gated to refs/heads/main, so breaking changes here can't overwrite the
+    # live site. Deployment is main's alone.
   pull_request:
   release:
     types: [created]
