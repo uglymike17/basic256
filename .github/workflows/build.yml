@@ -1,7 +1,7 @@
 name: Build BASIC-256_2.1.Beta CMake
 on:
   push:
-    branches: [ v2.1.Beta01 ]
+    branches: [ main ]
   pull_request:
   release:
     types: [created]
@@ -311,7 +311,7 @@ jobs:
     # deploying over the live site.
     name: Deploy WASM build to GitHub Pages
     needs: [ build, wasm ]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/v2.1.Beta01'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-22.04
     permissions:
       pages: write
