@@ -1207,9 +1207,20 @@ QFont MainWindow::defaultEditorFont() {
     // desktop monospace elsewhere) at the size the rest of the UI is using. The
     // editor must stay monospace -- it is code -- so only the *size* follows the
     // system UI font, which is the part that was out of step with the menus.
+    //
+    // The UI font's size may be carried as points or as pixels: on Windows the
+    // app font is derived from lfMessageFont (see Main.cpp), a pixel height, so
+    // QApplication::font() often has a pixelSize and no valid pointSizeF --
+    // pointSizeF() then returns -1. Reading only pointSizeF left the editor
+    // stuck at the fixed face's own tiny default, never tracking the system
+    // size. Copy whichever the UI font actually uses.
     QFont f = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    const qreal uiSize = QApplication::font().pointSizeF();
-    if (uiSize > 0) f.setPointSizeF(uiSize);
+    const QFont ui = QApplication::font();
+    if (ui.pointSizeF() > 0) {
+        f.setPointSizeF(ui.pointSizeF());
+    } else if (ui.pixelSize() > 0) {
+        f.setPixelSize(ui.pixelSize());
+    }
     return f;
 }
 
