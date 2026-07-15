@@ -1331,8 +1331,19 @@ mod							{ count(); return B256MOD; }
 		int pathlen = snprintf(str, sizeof(str), "%s/%s", include_exec_path, filename);
 		if (pathlen >= 0 && (size_t) pathlen < sizeof(str)) {
 			yyin = fopen( str, "r" );
-		}	
+		}
 		//fprintf(stderr, "real include %s\n", str);
+	}
+	if (!yyin) {
+		// check in the bundled module library, which ships next to the
+		// executable (see the packaging scripts and BASIC256.nsi). This lets a
+		// program pull in a shipped module by bare name -- e.g. include "math.kbs"
+		// -- from anywhere, not only when it sits beside the module file.
+		char str[512];
+		int pathlen = snprintf(str, sizeof(str), "%s/Modules/%s", include_exec_path, filename);
+		if (pathlen >= 0 && (size_t) pathlen < sizeof(str)) {
+			yyin = fopen( str, "r" );
+		}
 	}
 	if ( ! yyin ) {
 			BEGIN(INITIAL);

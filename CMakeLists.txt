@@ -427,6 +427,22 @@ if(UNIX AND NOT APPLE)
     install(TARGETS basic256 DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
 
+# Bundled module library: copy Modules/ next to the built executable so that a
+# plain build tree resolves `include "math.kbs"` the same way a shipped build
+# does (the interpreter searches <exe dir>/Modules -- see LEX/basicParse.l). The
+# packaging scripts place Modules/ beside the executable in each distribution;
+# this mirrors that for developers running straight from the build directory.
+# Emscripten has no native filesystem for include to read, so skip it there.
+if(NOT EMSCRIPTEN)
+    add_custom_command(TARGET basic256 POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_CURRENT_SOURCE_DIR}/Modules
+            $<TARGET_FILE_DIR:basic256>/Modules
+        COMMENT "Copying Modules/ next to the executable"
+        VERBATIM
+    )
+endif()
+
 if(PLATFORM_INCLUDE_DIRS)
     target_include_directories(basic256 PRIVATE ${PLATFORM_INCLUDE_DIRS})
 endif()

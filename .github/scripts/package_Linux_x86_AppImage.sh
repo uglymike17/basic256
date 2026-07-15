@@ -43,6 +43,9 @@ mkdir -p "${APPDIR}/usr/share/basic256"
 # ── Binary & assets ───────────────────────────────────────────────────────────
 cp build/basic256   "${APPDIR}/usr/bin/"
 cp -r Examples      "${APPDIR}/usr/share/basic256/"
+# Bundled module library, beside the binary so include "math.kbs" resolves
+# (the interpreter searches <exe dir>/Modules, and the exe lives in usr/bin).
+cp -r Modules       "${APPDIR}/usr/bin/"
 cp README.md        "${APPDIR}/usr/share/basic256/" 2>/dev/null || true
 cp Basic256-IDE.png Basic256-CLI.png Basic256-Web.png \
                     "${APPDIR}/usr/share/basic256/" 2>/dev/null || true
