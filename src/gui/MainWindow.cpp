@@ -35,6 +35,7 @@
 #include <QtWidgets/QLabel>
 #include <QtGui/QFontDatabase>
 #include <QtGui/QFontInfo>
+#include <QtGui/QFontMetrics>
 #include <QtGui/QShortcut>
 #ifdef Q_OS_WASM
 #include <QDir>
@@ -1217,9 +1218,9 @@ void MainWindow::addFileToRecentList(QString fn) {
 
 QFont MainWindow::defaultEditorFont() {
     // The system's own fixed-width face (Consolas/Courier New on Windows, the
-    // desktop monospace elsewhere) at the size the rest of the UI is using. The
-    // editor must stay monospace -- it is code -- so only the *size* follows the
-    // system UI font, which is the part that was out of step with the menus.
+    // desktop monospace elsewhere) sized to visually match the rest of the UI.
+    // The editor must stay monospace -- it is code -- so only the *size* follows
+    // the system UI font, which is the part that was out of step with the menus.
     //
     // The UI font's size may be carried as points or as pixels: on Windows the
     // app font is derived from lfMessageFont (see Main.cpp), a pixel height, so
@@ -1233,6 +1234,21 @@ QFont MainWindow::defaultEditorFont() {
         f.setPointSizeF(ui.pointSizeF());
     } else if (ui.pixelSize() > 0) {
         f.setPixelSize(ui.pixelSize());
+    }
+
+    // At an equal nominal size a monospace face has a smaller x-height than the
+    // proportional UI font, so the editor still reads as smaller than the menus
+    // even though the point sizes match. Scale it up by the ratio of x-heights
+    // (as CSS font-size-adjust does) so the two look the same visual size. Only
+    // ever grow, and cap the growth so an unusual face cannot balloon.
+    const QFontMetricsF uiM(ui), fM(f);
+    if (fM.xHeight() > 0.0 && uiM.xHeight() > fM.xHeight()) {
+        const qreal ratio = qMin(uiM.xHeight() / fM.xHeight(), 1.5);
+        if (f.pointSizeF() > 0) {
+            f.setPointSizeF(f.pointSizeF() * ratio);
+        } else if (f.pixelSize() > 0) {
+            f.setPixelSize(qRound(f.pixelSize() * ratio));
+        }
     }
     return f;
 }
