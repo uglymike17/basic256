@@ -52,7 +52,6 @@
 #include "VariableWin.h"
 #include "PreferencesWin.h"
 #include "RunController.h"
-#include "EditSyntaxHighlighter.h"
 #include "Settings.h"
 
 
@@ -158,7 +157,6 @@ public:
     QAction * checkupdate;
 
     RunController *rc;
-    EditSyntaxHighlighter * editsyntax;
     QFont editorFont;
     // false => editorFont is derived from the system font on every launch (so it
     // tracks the system text size, like the menus); true => the user picked one in

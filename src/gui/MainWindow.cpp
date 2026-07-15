@@ -56,6 +56,7 @@
 #include "BasicDock.h"
 #include "BasicIcons.h"
 #include "BasicKeyboard.h"
+#include "EditSyntaxHighlighter.h"
 
 // global mymutexes and timers
 QMutex* mymutex;
@@ -1420,7 +1421,10 @@ BasicEdit* MainWindow::newEditor(QString title){
         editor->slotWhitespace(edit_whitespace_act->isChecked());
         editor->slotWrap(edit_wrap_act->isChecked());
         outwin->slotWrap(edit_wrap_act->isChecked());
-        editsyntax = new EditSyntaxHighlighter(editor->document());
+        // Parented to the editor's QTextDocument (see the QSyntaxHighlighter
+        // base ctor), so it lives and dies with the editor when its tab is
+        // closed. Nothing needs to hold the pointer.
+        new EditSyntaxHighlighter(editor->document());
         // connect the signals
         QObject::connect(edit_whitespace_act, SIGNAL(toggled(bool)), editor, SLOT(slotWhitespace(bool)));
         QObject::connect(edit_wrap_act, SIGNAL(toggled(bool)), editor, SLOT(slotWrap(bool)));
