@@ -513,10 +513,14 @@ endif()
 
 # Branches are named like "v2.1.Alpha04Qt6" -- strip the leading "v" to get
 # the "2.1.Alpha04Qt6" version string. Anything that doesn't look like a
-# version branch (main, a detached-HEAD SHA, git not found, ...) leaves
-# VERSION at Version.h's hardcoded fallback instead of showing garbage.
+# version branch (main, a detached-HEAD SHA, git not found, ...) falls back
+# to PROJECT_VERSION -- the single source of truth declared in project()
+# at the top of this file -- so no build depends on the hand-edited string
+# in Version.h, which is exactly the drift this derivation exists to stop.
 if(BASIC256_BUILD_BRANCH MATCHES "^[vV][0-9]")
     string(REGEX REPLACE "^[vV]" "" BASIC256_BUILD_VERSION "${BASIC256_BUILD_BRANCH}")
+else()
+    set(BASIC256_BUILD_VERSION "${PROJECT_VERSION}")
 endif()
 
 # All target_* commands AFTER target creation
