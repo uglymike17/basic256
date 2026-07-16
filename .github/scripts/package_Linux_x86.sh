@@ -11,6 +11,8 @@ set -euo pipefail
         cp build/basic256 Basic256/
         cp -r Examples Basic256/
         cp -r TestSuite Basic256/ || true
+        # Bundled module library, beside the binary so include "math.kbs" resolves
+        cp -r Modules Basic256/
         cp README.md Basic256/ || true
         cp Basic256-IDE.png Basic256-CLI.png Basic256-Web.png Basic256/ || true
 

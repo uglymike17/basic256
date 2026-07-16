@@ -26,6 +26,13 @@ fi
 rm -rf "${DIST_DIR}"
 mkdir -p "${DIST_DIR}"
 
+# Bundled module library, beside the executable inside the .app so that
+# include "math.kbs" resolves (the interpreter searches <exe dir>/Modules, and
+# applicationDirPath() inside a bundle is Contents/MacOS). Added before the
+# move so it travels with the bundle and is covered by the codesign below.
+mkdir -p "${APP_BUNDLE}/Contents/MacOS/Modules"
+cp -r Modules/* "${APP_BUNDLE}/Contents/MacOS/Modules/"
+
 # Move the app bundle and copy your documentation/tests next to it
 mv "${APP_BUNDLE}" "${DIST_DIR}/"
 cp -r Examples "${DIST_DIR}/"

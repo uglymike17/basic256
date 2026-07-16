@@ -9,6 +9,8 @@ Copy-Item Basic256-IDE.png,Basic256-CLI.png,Basic256-Web.png Basic256\
 
 Copy-Item -Path "Examples" -Destination "Basic256\Examples" -Recurse -Force
 Copy-Item -Path "TestSuite" -Destination "Basic256\TestSuite" -Recurse -Force
+# Bundled module library, beside the exe so include "math.kbs" resolves
+Copy-Item -Path "Modules" -Destination "Basic256\Modules" -Recurse -Force
 
 & "$env:QT_DIR\bin\windeployqt.exe" `
   --dir Basic256 `

@@ -34,6 +34,8 @@
 #include <QtWidgets/QDialog>
 #include <QtWidgets/QLabel>
 #include <QtGui/QFontDatabase>
+#include <QtGui/QFontInfo>
+#include <QtGui/QFontMetrics>
 #include <QtGui/QShortcut>
 #ifdef Q_OS_WASM
 #include <QDir>
@@ -56,6 +58,7 @@
 #include "BasicDock.h"
 #include "BasicIcons.h"
 #include "BasicKeyboard.h"
+#include "EditSyntaxHighlighter.h"
 
 // global mymutexes and timers
 QMutex* mymutex;
@@ -619,6 +622,18 @@ void MainWindow::loadCustomizations() {
 
     if (fontUserSet && !initialFontString.isEmpty()) {
         editorFont.fromString(initialFontString);
+        // A pinned font can only have come from Options > Font, which offers
+        // monospaced faces only (QFontDialog::MonospacedFonts). So a pinned
+        // font that is not fixed-pitch was never actually chosen -- it is a
+        // leftover from an old build that saved the proportional app font as
+        // the editor font (e.g. "MS Shell Dlg 2,8.25"), which the DejaVu-only
+        // legacy-default check above did not catch. Un-pin it and re-derive,
+        // so the editor goes back to following the system text size. The
+        // cleared flag is persisted by saveCustomizations(), so this runs once.
+        if (!QFontInfo(editorFont).fixedPitch()) {
+            fontUserSet = false;
+            editorFont = defaultEditorFont();
+        }
     } else {
         editorFont = defaultEditorFont();
     }
@@ -1203,12 +1218,38 @@ void MainWindow::addFileToRecentList(QString fn) {
 
 QFont MainWindow::defaultEditorFont() {
     // The system's own fixed-width face (Consolas/Courier New on Windows, the
-    // desktop monospace elsewhere) at the size the rest of the UI is using. The
-    // editor must stay monospace -- it is code -- so only the *size* follows the
-    // system UI font, which is the part that was out of step with the menus.
+    // desktop monospace elsewhere) sized to visually match the rest of the UI.
+    // The editor must stay monospace -- it is code -- so only the *size* follows
+    // the system UI font, which is the part that was out of step with the menus.
+    //
+    // The UI font's size may be carried as points or as pixels: on Windows the
+    // app font is derived from lfMessageFont (see Main.cpp), a pixel height, so
+    // QApplication::font() often has a pixelSize and no valid pointSizeF --
+    // pointSizeF() then returns -1. Reading only pointSizeF left the editor
+    // stuck at the fixed face's own tiny default, never tracking the system
+    // size. Copy whichever the UI font actually uses.
     QFont f = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    const qreal uiSize = QApplication::font().pointSizeF();
-    if (uiSize > 0) f.setPointSizeF(uiSize);
+    const QFont ui = QApplication::font();
+    if (ui.pointSizeF() > 0) {
+        f.setPointSizeF(ui.pointSizeF());
+    } else if (ui.pixelSize() > 0) {
+        f.setPixelSize(ui.pixelSize());
+    }
+
+    // At an equal nominal size a monospace face has a smaller x-height than the
+    // proportional UI font, so the editor still reads as smaller than the menus
+    // even though the point sizes match. Scale it up by the ratio of x-heights
+    // (as CSS font-size-adjust does) so the two look the same visual size. Only
+    // ever grow, and cap the growth so an unusual face cannot balloon.
+    const QFontMetricsF uiM(ui), fM(f);
+    if (fM.xHeight() > 0.0 && uiM.xHeight() > fM.xHeight()) {
+        const qreal ratio = qMin(uiM.xHeight() / fM.xHeight(), 1.5);
+        if (f.pointSizeF() > 0) {
+            f.setPointSizeF(f.pointSizeF() * ratio);
+        } else if (f.pixelSize() > 0) {
+            f.setPixelSize(qRound(f.pixelSize() * ratio));
+        }
+    }
     return f;
 }
 
@@ -1420,7 +1461,10 @@ BasicEdit* MainWindow::newEditor(QString title){
         editor->slotWhitespace(edit_whitespace_act->isChecked());
         editor->slotWrap(edit_wrap_act->isChecked());
         outwin->slotWrap(edit_wrap_act->isChecked());
-        editsyntax = new EditSyntaxHighlighter(editor->document());
+        // Parented to the editor's QTextDocument (see the QSyntaxHighlighter
+        // base ctor), so it lives and dies with the editor when its tab is
+        // closed. Nothing needs to hold the pointer.
+        new EditSyntaxHighlighter(editor->document());
         // connect the signals
         QObject::connect(edit_whitespace_act, SIGNAL(toggled(bool)), editor, SLOT(slotWhitespace(bool)));
         QObject::connect(edit_wrap_act, SIGNAL(toggled(bool)), editor, SLOT(slotWrap(bool)));

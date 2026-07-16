@@ -63,7 +63,10 @@ function versiontestgood(needed)
 end function
 subroutine versiontest(needed)
    if not versiontestgood(needed) then
-      print "this program requires version " + (needed\1000000) + "." + (needed\10000%100) + "." + (needed\100%100) + "." + (needed%100) + " or better"
+      # parenthesize each \ before %: the bare % binds tighter (undeclared
+      # token precedence defaults to shift), so needed\10000%100 would be
+      # needed\(10000%100) = needed\0 -- a division by zero.
+      print "this program requires version " + (needed\1000000) + "." + ((needed\10000)%100) + "." + ((needed\100)%100) + "." + (needed%100) + " or better"
       end
    end if
 end subroutine
