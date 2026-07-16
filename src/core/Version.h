@@ -26,7 +26,11 @@
 #ifndef VERSION
 #define VERSION "2.1.Beta"
 #endif
-#define VERSIONSIGNATURE  200100
+// What the language's version function returns, encoded as
+// major*1000000 + minor*10000 + patch*100 + sub, so 2.0.0.11 = 2000011 and
+// 2.1.0.0 = 2010000. Programs gate on it (TestSuite/testsuite.kbs decodes
+// exactly this scheme), so keep it in step with VERSIONPRODUCT below.
+#define VERSIONSIGNATURE  2010000
 #define VERSIONPRODUCT 2,1,0,0
 
 #endif
