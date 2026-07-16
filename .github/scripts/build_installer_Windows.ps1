@@ -22,20 +22,20 @@ if (-not $branchName) { $branchName = (git rev-parse --abbrev-ref HEAD).Trim() }
 # Branches are named like "v2.1.Alpha03" - strip the leading "v" to get the
 # "2.1.Alpha03" version string used in the installer name. Anything that is
 # NOT a version branch (main, a detached-HEAD SHA, git not found, ...) falls
-# back to the version declared in CMakeLists.txt's project() -- the same
-# single source of truth CMake's own VERSION derivation uses -- so the
+# back to BASIC256_MAIN_DISPLAY_VERSION declared in CMakeLists.txt -- the
+# same string CMake's own VERSION derivation uses for such builds -- so the
 # installer label can't drift from the About box. This mirrors the
 # ^[vV][0-9] guard in CMakeLists.txt; keeping the two in lockstep is exactly
-# why the fallback reads project() instead of hardcoding a number here.
+# why the fallback reads CMakeLists.txt instead of hardcoding a name here.
 if ($branchName -match '^[vV][0-9]') {
     $version = $branchName -replace '^[vV]', ''
 } else {
     $cmakeLists = Join-Path $PSScriptRoot '..\..\CMakeLists.txt'
     $cmakeText = Get-Content -Raw $cmakeLists
-    if ($cmakeText -match 'project\s*\([^)]*VERSION\s+([0-9]+(?:\.[0-9]+)+)') {
+    if ($cmakeText -match 'BASIC256_MAIN_DISPLAY_VERSION\s+"([^"]+)"') {
         $version = $Matches[1]
     } else {
-        throw "Could not parse project() VERSION from $cmakeLists (branch '$branchName' is not a version branch, so the fallback is required)"
+        throw "Could not parse BASIC256_MAIN_DISPLAY_VERSION from $cmakeLists (branch '$branchName' is not a version branch, so the fallback is required)"
     }
 }
 

@@ -392,14 +392,17 @@ endif()
 
 # Branches are named like "v2.1.Alpha04Qt6" -- strip the leading "v" to get
 # the "2.1.Alpha04Qt6" version string. Anything that doesn't look like a
-# version branch (main, a detached-HEAD SHA, git not found, ...) falls back
-# to PROJECT_VERSION -- the single source of truth declared in project()
-# at the top of this file -- so no build depends on the hand-edited string
-# in Version.h, which is exactly the drift this derivation exists to stop.
+# version branch (main, a detached-HEAD SHA, git not found, ...) shows the
+# rolling pre-release name below: main is the branch the public builds come
+# from, and until 2.1 ships it should read as a beta, not as a final
+# "2.1.0" (PROJECT_VERSION stays numeric for bundle metadata).
+# build_installer_Windows.ps1 parses this exact set() line so the installer
+# label cannot drift from the About box; keep the two in lockstep.
+set(BASIC256_MAIN_DISPLAY_VERSION "2.1.beta")
 if(BASIC256_BUILD_BRANCH MATCHES "^[vV][0-9]")
     string(REGEX REPLACE "^[vV]" "" BASIC256_BUILD_VERSION "${BASIC256_BUILD_BRANCH}")
 else()
-    set(BASIC256_BUILD_VERSION "${PROJECT_VERSION}")
+    set(BASIC256_BUILD_VERSION "${BASIC256_MAIN_DISPLAY_VERSION}")
 endif()
 
 # All target_* commands AFTER target creation
