@@ -9,7 +9,7 @@
 # module files can be dropped next to this one and included the same way.
 #
 # Everything here builds on the language's own math built-ins (abs, atan,
-# sqrt, pi, toint, ...); it only adds what is not already built in.
+# sqrt, pi, int, ...); it only adds what is not already built in.
 
 # --- reductions over an array -----------------------------------------------
 
@@ -62,7 +62,7 @@ end function
 # fmod(a, b) -- floating-point remainder of a / b. Unlike the integer `mod`
 # operator this keeps the fractional part; the result has the sign of a.
 function fmod(a, b)
-   return a - b * toint(a / b)
+   return a - b * int(a / b)
 end function
 
 # atan2(y, x) -- angle in radians of the point (x, y), in the range (-pi, pi].
