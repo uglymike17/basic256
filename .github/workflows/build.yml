@@ -1,11 +1,13 @@
 name: Build BASIC-256_2.1.Beta CMake
 on:
   push:
-    branches: [ v2.1.Beta01 ]
-    # This branch (v2.1.Beta01) builds/tests the full matrix on every push,
-    # but never deploys to GitHub Pages -- the pages-deploy job below stays
-    # gated to refs/heads/main, so breaking changes here can't overwrite the
-    # live site. Deployment is main's alone.
+    branches: [ main, v2.1.Beta01 ]
+    # Pushes to either branch build/test the full matrix, but only main
+    # deploys to GitHub Pages -- the pages-deploy job below stays gated to
+    # refs/heads/main, so breaking changes on the beta branch can't
+    # overwrite the live site. Deployment is main's alone. (Without main in
+    # this list a push to main triggered nothing at all, and the deploy
+    # gate could never be reached.)
   pull_request:
   release:
     types: [created]
