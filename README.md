@@ -1,11 +1,10 @@
 # BASIC256
 
-<!-- Note: adjust the workflow filename in the CI badge below to match your actual workflow file in .github/workflows/ -->
 [![Build](https://img.shields.io/github/actions/workflow/status/uglymike17/basic256/build.yml?label=CI)](https://github.com/uglymike17/basic256/actions)
 [![Latest release](https://img.shields.io/github/v/release/uglymike17/basic256?include_prereleases)](https://github.com/uglymike17/basic256/releases)
 [![License: GPL](https://img.shields.io/badge/license-GPL-blue)](license.txt)
 
-> **The continuation of the classic BASIC-256 educational programming environment.**
+> **The continuation of the classic BASIC256 educational programming environment.**
 
 BASIC256 is a simple, graphical dialect of BASIC designed for education. It enables beginners to learn programming through immediate visual feedback, graphics, sound and experimentation. This repository continues the original SourceForge project, modernizing the codebase (Qt6, CMake, CI, multi-platform) while preserving the spirit and compatibility of the original language.
 
@@ -36,7 +35,7 @@ the app at somebody else's server.
 
 Then `&mode=` chooses the window layout. These mirror the command-line switches:
 
-| `?mode=` | switch | |
+| `?mode=` | switch | Effect |
 |---|---|---|
 | `ide` *(default)* | `-r` | full IDE, auto-run |
 | `edit` | — | full IDE, loaded but **not** run |
@@ -91,7 +90,6 @@ Running inside a browser sandbox, a few things differ from the desktop version:
   and particle simulations will run at a gentler pace.
 
 
-
 ## What the standard desktop app looks like
 
 Started normally, BASIC256 opens a 3-pane IDE with edit, output and graphics windows:
@@ -111,7 +109,7 @@ for i = 1 to 200
 next i
 ```
 
-For more advanced example programs than the ones included in the Examples directory (fractals, attractors, simulations and more), have a look at https://uglymike.static.domains or for older programs, do visit https://basic256.blogspot.com/.
+For more advanced example programs than the ones included in the Examples directory (fractals, attractors, simulations and more), have a look at https://uglymike.static.domains or for older programs, you can find a lot of interesting things at https://basic256.blogspot.com/.
 
 ## Download & install
 
@@ -131,7 +129,7 @@ Grab the latest build for your platform from the [Releases page](https://github.
 Ad-hoc signing should prevent the "basic256.app is damaged and can't be opened" message and show "unidentified developer" instead. If the "damaged" message still appears, strip the quarantine flag:
 
 ```console
-xattr -cr /Applications/BASIC256.app
+xattr -cr /Applications/basic256.app
 ```
 
 Another way to quickly run an ad-hoc signed Mac app is to open Terminal and apply the ad-hoc signature to bypass Gatekeeper:
@@ -148,6 +146,7 @@ The browser build is v1 and has a few known gaps compared to the desktop app:
 
 - `SYSTEM`, serial port commands (`SERIALOPEN`...), `NETSERVER`/TCP server sockets, `DBOPEN`/SQL and `PRINTER...` are not available in a browser sandbox. Programs calling them get a clear "Feature not available on this platform" error and keep running — they don't crash or hang.
 - Files a running program creates only live for the current browser session (no persistent storage yet).
+- As the WASM build has no native filesystem for include to read from, it cannot include modules like math.kbs that are available in the other builds.
 - `NETREAD` (fetching a URL) is subject to the target site's CORS policy, same as any browser page.
 
 ## Command line / Terminal usage
@@ -167,7 +166,7 @@ BASIC256 can also be called from the command line with the following options:
 | -t | --text | Load and run the specified .kbs with only the Text window. |
 | -f | --full | When used with -r/-a/-t/-g, the full screen area will be used. |
 | -s | --silent | Suppress all output. |
-| -l | --lang --languageset | Start BASIC-256 using the specified language. |
+| -l | --lang --language | Start BASIC-256 using the specified language. |
 
 The -a, -g and -t options allow you to run a program in kiosk mode, without showing the actual code window.
 (Careful: if you set edit/graph/outputvisible flags inside your .kbs, these will override your CLI option.)
@@ -200,6 +199,38 @@ sh.Run """C:\PATH_TO_BASIC256\basic256.exe"" -g ""C:\PATH_TO_KBS\Mandelbrot-256.
 
 An example video of starting several graphics demos from Windows shortcuts can be seen here: https://www.youtube.com/watch?v=D8ord7K2QvI
 
+## Standard library
+
+This is functionality that does not exist in SourceForge BASIC-256.
+In the program tree, there is now a directory Modules that contains a single standard library: math.kbs.
+This can be included in any program you write simply with
+
+```basic
+include "math.kbs"
+```
+
+It provides a set of basic functions to cut down on manually typing the same functions over and over.
+Currently this provides:
+
+| Function | Meaning |
+| :---: | :--- |
+| minarr(a), maxarr(a)| Returns the smallest/largest element in an array or in a list between {} |
+| sumarr(a), avgarr(a) | Returns the sum/average of the elements in an array or list. |
+| sign(x) | Returns -1 / 0 / 1. |
+| min(a,b), max(a,b)| Returns the smallest/largest of the two scalars |
+| lerp(a,b,t) | Linear interpolation between a and b by ratio t (usually 0 and 1). |
+| hypot(a, b) | Returns the length of the hypotenuse, sqrt(a*a + b*b) |
+| atan2(y, x) | angle in radians of the point (x, y) |
+| clamp(a,lo,hi) | Clamps the value of a between lo and hi - r=clamp(r,0,255). |
+| remap(x, a1,a2, b1,b2)| remap a value between ranges — very handy in graphics-oriented BASIC256 |
+| wrap(x, lo, hi) | cyclic wrap (angles, screen edges) — natural companion to clamp |
+| dist(x1,y1,x2,y2)| distance between two points|
+| fmod(a,b)| floating-point remainder of a / b|
+| fround(x, n)| round to n decimals (built-in command round is 0-decimal)|
+| cbrt(x)| cube root|
+| randint(lo,hi)| returns a random integer between lo and hi (inclusive)|
+| gaussian(mean, sd)| random number with normal distribution|
+
 ## Building from source
 
 Detailed compiling instructions can be found in [COMPILING.txt](COMPILING.txt).
@@ -220,7 +251,7 @@ Highlights of the modernized build:
 
 ### The original project
 
-The original BASIC-256 v2.0.0.11 is a GPL-licensed, retro BASIC programming environment for learning coding and having fun. It was originally called KidBasic and was started in 2007 by Ian Larsen, later maintained by Jim Reneau and many contributors through the SourceForge project. After years of updates by the contributors and a rename to BASIC-256, it is in its current state still quite capable for everyday hobby use, but it is showing its age.
+The original BASIC-256 v2.0.0.11 is a GPL-licensed, retro BASIC programming environment for learning coding and having fun. It was originally called KidBasic and was started in 2006 by Ian Paul Larsen, later maintained by Jim Reneau and many contributors through the SourceForge project. After years of updates by the contributors and a rename to BASIC-256, it is in its current state still quite capable for everyday hobby use, but it is showing its age.
 
 The original code and last downloadable version reside on [SourceForge](https://sourceforge.net/projects/kidbasic/) at version 2.0.0.11, released in 2020. It uses qmake and MinGW to compile the Windows version and is Qt5-based. It comes with an Examples directory, but most programs there need to be updated to modern specs related to speed and graphics sizes. There is also a TestSuite directory to test edge cases, but this doesn't run fully on 2.0.0.11.
 
@@ -236,13 +267,8 @@ Development continues with an emphasis on educational value while preserving com
 
 ### Language
 
-- `ATAN2()` — a two-argument arctangent returns angle θ (in radians) between the positive x-axis and a ray pointing to the point (x, y) in the Cartesian plane. It correctly determines the angle across all four quadrants
-- `FMOD()` —  This calculates the floating-point remainder of x/y, while MOD() is only for integers
-- `SIMPLEX1D()` / `SIMPLEX2D()` — OpenSimplex noise, a spatially coherent noise generator (an evolution of Perlin noise): the backbone of natural-looking terrain, cloud textures, water ripples and wood grain in computer graphics
-- `MAPWINDOW(xmin,xmax,ymin,ymax)` — coordinate mapping
-- `CLAMP(value,min,max)` — value clamping, e.g. `red = CLAMP(red,0,255)`
-
-Future additions will focus on mathematics, procedural graphics, simulations and classroom use.
+- Adding other include modules such as a graphical BTK2-like toolkit, and extending the existing one.
+- Improving the language syntax and semantics, including new opcodes where a module cannot do the job.
 
 ## Vision
 
