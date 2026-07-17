@@ -5,7 +5,7 @@ Set-Content -Path "Basic256\basic256.bat" -Value "@echo off`r`nset QT_OPENGL=des
 
 Copy-Item build\Release\basic256.exe Basic256\
 Copy-Item README.md                  Basic256\
-Copy-Item Basic256-IDE.png,Basic256-CLI.png,Basic256-Web.png Basic256\
+Copy-Item Basic256-IDE.png,Basic256-CLI.png,Basic256-Web.png,Basic256-Web_GraphicsOnly.png Basic256\
 
 Copy-Item -Path "Examples" -Destination "Basic256\Examples" -Recurse -Force
 Copy-Item -Path "TestSuite" -Destination "Basic256\TestSuite" -Recurse -Force
