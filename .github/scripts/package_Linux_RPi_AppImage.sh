@@ -230,3 +230,22 @@ for f in ./*.AppImage; do
     echo "==> Created ${ARTIFACT_NAME}.AppImage"
     break
 done
+
+# ── Verify bundled Examples/ and Modules/math.kbs shipped in the AppImage ────
+# linuxdeploy packages the staged AppDir as-is, but a silent loss here would
+# ship an AppImage with no example programs or standard-library module
+# (Examples was reported missing on ARM). Extract the finished image and fail
+# the build if either is absent.
+echo "==> Verifying Examples/ and Modules/math.kbs inside ${ARTIFACT_NAME}.AppImage"
+rm -rf squashfs-root
+./"${ARTIFACT_NAME}.AppImage" --appimage-extract >/dev/null
+if [ -z "$(find squashfs-root/usr/share/basic256/Examples -type f -name '*.kbs' 2>/dev/null | head -n1)" ]; then
+    echo "ERROR: Examples/ missing or empty in ${ARTIFACT_NAME}.AppImage" >&2
+    exit 1
+fi
+if [ ! -f squashfs-root/usr/bin/Modules/math.kbs ]; then
+    echo "ERROR: Modules/math.kbs missing in ${ARTIFACT_NAME}.AppImage" >&2
+    exit 1
+fi
+echo "==> Examples/ and Modules/math.kbs verified in ${ARTIFACT_NAME}.AppImage"
+rm -rf squashfs-root

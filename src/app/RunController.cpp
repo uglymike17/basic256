@@ -586,13 +586,20 @@ void RunController::stopRunFinalized(bool ok) {
 }
 
 void RunController::showOnlineDocumentation() {
-	QDesktopServices::openUrl(QUrl("http://doc.basic256.org"));
+	QDesktopServices::openUrl(QUrl("https://uglymike17.github.io/Basic256-Docs/"));
 }
 
 void RunController::showOnlineContextDocumentation() {
 	if(editwin){
 		QString w = editwin->getCurrentWord();
-		QDesktopServices::openUrl(QUrl("http://doc.basic256.org/doku.php?id=en:" + w));
+		// Basic256-Docs is a Docusaurus site: per-keyword pages live at
+		// /docs/en/<keyword> with case-sensitive, lowercase file names, so
+		// lower-case the word under the cursor. Empty word -> docs home.
+		if(w.isEmpty()){
+			QDesktopServices::openUrl(QUrl("https://uglymike17.github.io/Basic256-Docs/"));
+		}else{
+			QDesktopServices::openUrl(QUrl("https://uglymike17.github.io/Basic256-Docs/docs/en/" + w.toLower()));
+		}
 	}
 }
 
