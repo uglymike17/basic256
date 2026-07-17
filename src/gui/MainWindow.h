@@ -87,9 +87,7 @@ public:
     QMenu * filemenu_recentfiles;
     QAction * filemenu_new_act;
 	QAction * filemenu_open_act;
-#ifdef Q_OS_WASM
 	QAction * filemenu_openexample_act;
-#endif
 	QAction * filemenu_save_act;
     QAction * filemenu_saveas_act;
     QAction * filemenu_saveall_act;
@@ -242,9 +240,7 @@ private slots:
     void currentEditorTabChanged(int);
     void closeEditorTab(int);
     void loadProgram();
-#ifdef Q_OS_WASM
     void openExample();
-#endif
     void activeEditorCloseTab();
     void closeAllPrograms(std::function<void(bool)> onDone);
     void closeAllProgramsSlot();
