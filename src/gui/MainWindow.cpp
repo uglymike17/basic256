@@ -204,13 +204,12 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     filemenu_new_act->setShortcuts(QKeySequence::keyBindings(QKeySequence::New));
     filemenu_open_act = filemenu->addAction(basicIcons->openIcon, QObject::tr("&Open..."));
     filemenu_open_act->setShortcuts(QKeySequence::keyBindings(QKeySequence::Open));
-#ifdef Q_OS_WASM
-    // No real filesystem to browse to Examples/ on WASM (see loadProgram()'s
-    // Q_OS_WASM branch) -- desktop doesn't need this menu item at all,
-    // Examples/ ships as loose files next to the binary and users just
-    // browse to it via the normal Open dialog.
+    // Open Example: on WASM the programs are read from Qt resources; on desktop
+    // they live on disk relative to the executable. Either way the item earns
+    // its place -- inside an AppImage the bundled Examples/ sits at an ephemeral
+    // squashfs mount path the user can't navigate to by hand, so a menu entry
+    // that resolves it for them is the only practical way to reach it.
     filemenu_openexample_act = filemenu->addAction(basicIcons->openIcon, QObject::tr("Open &Example..."));
-#endif
 
     // Recent files menu
     filemenu_recentfiles = filemenu->addMenu(QObject::tr("Open &Recent"));
@@ -452,9 +451,7 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     QObject::connect(filemenu_saveas_act, SIGNAL(triggered()), this, SLOT(activeEditorSaveAsProgram()));
     QObject::connect(filemenu_close_act, SIGNAL(triggered()), this, SLOT(activeEditorCloseTab()));
     QObject::connect(filemenu_closeall_act, SIGNAL(triggered()), this, SLOT(closeAllProgramsSlot()));
-#ifdef Q_OS_WASM
     QObject::connect(filemenu_openexample_act, SIGNAL(triggered()), this, SLOT(openExample()));
-#endif
     QObject::connect(undoact, SIGNAL(triggered()), this, SLOT(activeEditorUndo()));
     QObject::connect(redoact, SIGNAL(triggered()), this, SLOT(activeEditorRedo()));
     QObject::connect(cutact, SIGNAL(triggered()), this, SLOT(activeEditorCut()));
@@ -1590,8 +1587,10 @@ void MainWindow::hidePlayerChrome() {
     outwin_toolbar_visible_act->setChecked(false);
     outwin_widget->slotShowToolBar(false);
 }
+#endif
 
 void MainWindow::openExample() {
+#ifdef Q_OS_WASM
     // DemoWASM/examples.qrc (CMakeLists.txt, EMSCRIPTEN-only) bundles a curated,
     // self-contained subset of Examples/ under this prefix, grouped into category
     // folders (Games/, Demo/, Simulations/...). Resource reads are synchronous
@@ -1693,8 +1692,30 @@ void MainWindow::openExample() {
     // Non-modal (RULE 2): exec() never returns on the WASM main thread.
     dialog->setWindowModality(Qt::ApplicationModal);
     dialog->open();
-}
+#else
+    // Desktop: browse the bundled Examples/ directory with the normal file
+    // dialog. Inside an AppImage the app runs from an ephemeral squashfs mount,
+    // so the only reliable way to reach the bundled examples is a path resolved
+    // relative to the executable -- probe the layouts the packaging scripts
+    // produce and open the first that exists.
+    const QString appDir = QCoreApplication::applicationDirPath();
+    QString dir;
+    const QStringList candidates = {
+        appDir + "/Examples",                    // Windows / Linux zip & tar.gz (Examples beside the binary)
+        appDir + "/../share/basic256/Examples",  // Linux AppImage (binary in usr/bin)
+        appDir + "/../../../Examples",           // macOS .app (Examples beside the bundle)
+    };
+    for (const QString &c : std::as_const(candidates)) {
+        if (QDir(c).exists()) { dir = QDir(c).absolutePath(); break; }
+    }
+    // No bundled Examples found (e.g. a bare dev build) -> let the dialog open
+    // wherever the plain Open dialog would.
+    if (dir.isEmpty()) dir = QStringLiteral(".");
+    const QString s = QFileDialog::getOpenFileName(this, QObject::tr("Open an example"), dir,
+        QObject::tr("BASIC-256 file ") + "(*.kbs);;" + QObject::tr("Any File ") + "(*.*)");
+    loadFile(s);
 #endif
+}
 
 bool MainWindow::loadFile(QString s) {
     s = s.trimmed();
