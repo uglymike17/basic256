@@ -1701,9 +1701,9 @@ void MainWindow::openExample() {
     const QString appDir = QCoreApplication::applicationDirPath();
     QString dir;
     const QStringList candidates = {
-        appDir + "/Examples",                    // Windows / Linux zip & tar.gz (Examples beside the binary)
+        appDir + "/Examples",                    // Windows/Linux zip & tar.gz, and macOS .app (Examples beside the binary, e.g. Contents/MacOS)
         appDir + "/../share/basic256/Examples",  // Linux AppImage (binary in usr/bin)
-        appDir + "/../../../Examples",           // macOS .app (Examples beside the bundle)
+        appDir + "/../../../Examples",           // macOS .app run from its distribution folder (Examples beside the bundle)
     };
     for (const QString &c : std::as_const(candidates)) {
         if (QDir(c).exists()) { dir = QDir(c).absolutePath(); break; }
