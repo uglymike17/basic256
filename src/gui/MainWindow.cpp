@@ -390,9 +390,12 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     // Help menu
     QMenu *helpmenu = menuBar()->addMenu(QObject::tr("&Help"));
     onlinehact = helpmenu->addAction(basicIcons->webIcon, QObject::tr("&Online help..."));
-    onlinehact->setShortcuts(QKeySequence::keyBindings(QKeySequence::HelpContents));
+    // F1 (HelpContents) is the context-sensitive lookup on the keyword under
+    // the cursor (helpthis); the general docs homepage (onlinehact) moves to
+    // Shift+F1 (WhatsThis). Users expect F1 to open help for the keyword.
+    onlinehact->setShortcuts(QKeySequence::keyBindings(QKeySequence::WhatsThis));
     helpthis = new QAction (this);
-    helpthis->setShortcuts(QKeySequence::keyBindings(QKeySequence::WhatsThis));
+    helpthis->setShortcuts(QKeySequence::keyBindings(QKeySequence::HelpContents));
     addAction (helpthis);
     helpmenu->addSeparator();
     checkupdate = helpmenu->addAction(QObject::tr("&Check for update..."));
