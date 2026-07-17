@@ -34,7 +34,7 @@ cp -r Examples      "${APPDIR}/usr/share/basic256/"
 # (the interpreter searches <exe dir>/Modules, and the exe lives in usr/bin).
 cp -r Modules       "${APPDIR}/usr/bin/"
 cp README.md        "${APPDIR}/usr/share/basic256/" 2>/dev/null || true
-cp Basic256-IDE.png Basic256-CLI.png Basic256-Web.png \
+cp Basic256-IDE.png Basic256-CLI.png Basic256-Web.png Basic256-Web_GraphicsOnly.png \
                     "${APPDIR}/usr/share/basic256/" 2>/dev/null || true
 # Desktop/launcher icon: the real 64x64 BASIC256 app logo (same image the
 # running app uses as its window icon), not a screenshot.

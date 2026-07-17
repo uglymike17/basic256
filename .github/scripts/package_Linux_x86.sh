@@ -14,7 +14,7 @@ set -euo pipefail
         # Bundled module library, beside the binary so include "math.kbs" resolves
         cp -r Modules Basic256/
         cp README.md Basic256/ || true
-        cp Basic256-IDE.png Basic256-CLI.png Basic256-Web.png Basic256/ || true
+        cp Basic256-IDE.png Basic256-CLI.png Basic256-Web.png Basic256-Web_GraphicsOnly.png Basic256/ || true
 
         # Point at the aqtinstall-installed Qt6 tree (build_Linux_x86.sh exports
         # QT_DIR via $GITHUB_ENV; this is a fresh step so read it from there).
