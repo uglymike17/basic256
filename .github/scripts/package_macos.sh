@@ -33,6 +33,14 @@ mkdir -p "${DIST_DIR}"
 mkdir -p "${APP_BUNDLE}/Contents/MacOS/Modules"
 cp -r Modules/* "${APP_BUNDLE}/Contents/MacOS/Modules/"
 
+# Bundled example programs, inside the .app beside the executable so the in-app
+# "File > Open Example..." resolves them via applicationDirPath()/Examples even
+# after the .app is dragged out of this distribution folder. Also copied next to
+# the .app below for plain Finder browsing. Added before the move/codesign so it
+# travels with the bundle and is covered by the signature.
+mkdir -p "${APP_BUNDLE}/Contents/MacOS/Examples"
+cp -r Examples/* "${APP_BUNDLE}/Contents/MacOS/Examples/"
+
 # Move the app bundle and copy your documentation/tests next to it
 mv "${APP_BUNDLE}" "${DIST_DIR}/"
 cp -r Examples "${DIST_DIR}/"
