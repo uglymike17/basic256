@@ -6,7 +6,8 @@
 
 > **The continuation of the classic BASIC256 educational programming environment.**
 
-BASIC256 is a simple, graphical dialect of BASIC designed for education. It enables beginners to learn programming through immediate visual feedback, graphics, sound and experimentation. This repository continues the original SourceForge project, modernizing the codebase (Qt6, CMake, CI, multi-platform) while preserving the spirit and compatibility of the original language.
+BASIC256 is a simple, graphical dialect of BASIC designed for education. It enables beginners to learn programming through immediate visual feedback, graphics, sound and experimentation. This repository continues the original SourceForge project, modernizing the codebase (Qt6, CMake, CI, multi-platform) while preserving the spirit and compatibility of the original language.  
+As I do not control the old docuwiki site https://doc.basic256.org, I created a Docusaurus copy at https://uglymike17.github.io/Basic256-Docs. This is now the online help you will see. The F1 on a Basic256 keyword will also fetch from that site.  
 
 ## Try it in your browser
 
