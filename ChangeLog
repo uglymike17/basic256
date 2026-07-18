@@ -1,3 +1,9 @@
+2026-07-17 M. Vilain <uglymike17@gmail.com>  
+	* The project has now moved to Beta state, meaning it runs, but issues might still lie dormant in both program and documentation
+	* A Docusaurus website has been created to replace the old doc.basic256.org in the code and is activated via the menu-item Help/Online help or by pressing F1 over a keyword. It lives on https://uglymike17.github.io/Basic256-Docs and is also shown in the Help/About BASIC-256 menu-item.
+	* All desktops now show a File/Open Examples. Previously, only the WASM build gave this option.
+ 	* Fix small errors that cropped up during testing.
+
 2026-07-10 M. Vilain <uglymike17@gmail.com>  
 	* Another Big one: Migrating Basic256 from Qt5 to Qt6 has allowed us to build Basic256 as a WASM application, meaning you can run it from the Web Browser! Currently, it runs here: https://uglymike17.github.io/basic256/
 	There are some caveats on this explained in the README.md file.
