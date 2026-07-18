@@ -1049,6 +1049,14 @@ functionvariable:
 			args[numargs] = varnumber[--nvarnumber]; argstype[numargs] = ARGSTYPEVALUE; numargs++;
 			//printf("functionvariable %i %i %i\n", args[numargs-1], argstype[numargs-1],numargs);
 		}
+		| B256REF '(' variable_a ')' {
+			// ref(variable) parameter - the caller passes a T_REF (see callexpr's
+			// OP_VAR_REF) so the ordinary OP_VAR_SET / setData stores the reference
+			// and the parameter aliases the caller's variable. The keyword here is
+			// accepted for documentation/symmetry and generates the same code as a
+			// plain value parameter.
+			args[numargs] = varnumber[--nvarnumber]; argstype[numargs] = ARGSTYPEVALUE; numargs++;
+		}
 		;
 
 functionvariablelist:
