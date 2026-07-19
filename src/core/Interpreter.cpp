@@ -3838,7 +3838,9 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						}
 					} else {
 						// get the 4 values and build own
-						std::vector<double> envelope;
+						// (fill the outer 'envelope' declared above -- do NOT
+						// redeclare it here, or sound->envelope() below receives
+						// an empty vector and reads e[0] out of bounds)
 						double r = convert->getFloat(de); //release
 						double s = stack->popDouble(); //sustain
 						double d = stack->popDouble(); //decrease

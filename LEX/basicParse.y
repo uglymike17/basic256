@@ -2125,8 +2125,9 @@ expr_numeric:
 		addOp(OP_SOUNDPLAYER);
 	}
 	| B256SOUNDPLAYER '(' args_ee ')' {
-		addIntOp(OP_PUSHINT, 2);	// 2 columns
+		addIntOp(OP_PUSHINT, 2);	// 2 columns (this)
 		addIntOp(OP_PUSHINT, 1);	// 1 row
+		addIntOp(OP_PUSHINT, 2);	// 2 columns (max)
 		addOp(OP_LIST2ARRAY);
 		addOp(OP_SOUNDPLAYER);
 	}
@@ -2289,8 +2290,9 @@ expr_string:
 		addOp(OP_SOUNDLOAD);
 	}
 	| B256SOUNDLOAD '(' args_ee ')' {
-		addIntOp(OP_PUSHINT, 2);	// 2 columns
+		addIntOp(OP_PUSHINT, 2);	// 2 columns (this)
 		addIntOp(OP_PUSHINT, 1);	// 1 row
+		addIntOp(OP_PUSHINT, 2);	// 2 columns (max)
 		addOp(OP_LIST2ARRAY);
 		addOp(OP_SOUNDLOAD);
 	}
@@ -3366,8 +3368,9 @@ soundplaystmt:	B256SOUNDPLAY args_none {
 		addOp(OP_SOUNDPLAY);
 	}
 	| B256SOUNDPLAY args_ee {
-		addIntOp(OP_PUSHINT, 2);	// 2 columns
+		addIntOp(OP_PUSHINT, 2);	// 2 columns (this)
 		addIntOp(OP_PUSHINT, 1);	// 1 row
+		addIntOp(OP_PUSHINT, 2);	// 2 columns (max)
 		addOp(OP_LIST2ARRAY);
 		addOp(OP_SOUNDPLAY);
 	}
