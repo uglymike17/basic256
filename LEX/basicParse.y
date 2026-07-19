@@ -3461,11 +3461,12 @@ soundfadestmt:  B256SOUNDFADE args_eeee {
 		addOp(OP_SOUNDFADE);
 	}
 	| B256SOUNDFADE args_eee {
-		addOp(OP_STACKTOPTO2);
-		addOp(OP_STACKTOPTO2);
-		addIntOp(OP_PUSHINT, -1);
-		addOp(OP_STACKSWAP);
-		addOp(OP_STACKSWAP2);
+		// documented 3-arg form: soundfade player#, volume, seconds
+		// -- identical to the 4-arg form with the trailing delay omitted,
+		// so just default delay to 0. (The previous code instead inserted
+		// player#=-1 at the front, shifting the args to volume/seconds/delay
+		// so `soundfade id, vol, secs` was misread and no fade was heard.)
+		addIntOp(OP_PUSHINT, 0);	// default delay = 0 seconds
 		addOp(OP_SOUNDFADE);
 	}
 	;
