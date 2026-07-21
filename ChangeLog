@@ -1,3 +1,12 @@
+2026-xx-xx M. Vilain <uglymike17@gmail.com>  
+	* The project has now moved to Beta2 state, meaning it runs, but issues might still lie dormant in both program and documentation
+	* A Docusaurus website has been created to replace the old doc.basic256.org in the code and is activated via the menu-item Help/Online help or by pressing F1 over a keyword. It lives on https://uglymike17.github.io/Basic256-Docs and is also shown in the Help/About BASIC-256 menu-item.
+	* Polyphonic sound have been corrected
+	* A new Example program 'SoundStatementDemo.kbs' demonstrating the new SOUNDxxx statements has been added to the Examples/Sound_Speech directory
+ 	* The REF() command (passing arrays to subroutines by reference) has been corrected.
+	* The Edit and Output windows are now pinned to a white/light scheme so code and text stay readable on desktops using a dark OS theme (Ubuntu dark, iPhone/iPad, etc.).
+*
+
 2026-07-17 M. Vilain <uglymike17@gmail.com>  
 	* The project has now moved to Beta state, meaning it runs, but issues might still lie dormant in both program and documentation
 	* A Docusaurus website has been created to replace the old doc.basic256.org in the code and is activated via the menu-item Help/Online help or by pressing F1 over a keyword. It lives on https://uglymike17.github.io/Basic256-Docs and is also shown in the Help/About BASIC-256 menu-item.

@@ -70,6 +70,7 @@
         <file>Simulations/CollidingMultipleBalls.kbs</file>
         <file>Simulations/DoublePendulum.kbs</file>
         <file>Sound_Speech/AIChatbot.kbs</file>
+        <file>Sound_Speech/SoundStatementDemo.kbs</file>
         <file>Sound_Speech/TwinkleTwinkle.kbs</file>
     </qresource>
 </RCC>

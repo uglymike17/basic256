@@ -48,6 +48,18 @@ BasicOutput::BasicOutput( ) : QTextEdit () {
 	setFocusPolicy(Qt::StrongFocus);
 	setAcceptRichText(false);
 	setUndoRedoEnabled(false);
+	// Pin the output pane to a fixed light scheme regardless of the OS colour
+	// scheme. Text is emitted with hardcoded colours (default Qt::black) and no
+	// background is ever set, so on Qt 6.5+ under a dark desktop theme the
+	// widget's Base role turns near-black and black-on-black text disappears.
+	// A stylesheet reliably overrides both the style and the OS scheme.
+	setStyleSheet(
+		"QTextEdit{"
+		"  background-color:#ffffff;"
+		"  color:#000000;"
+		"  selection-background-color:#c0d8f0;"
+		"  selection-color:#000000;"
+		"}");
 	gettingInput = false;
 	saveLastPosition();
 

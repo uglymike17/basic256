@@ -58,6 +58,23 @@ BasicEdit::BasicEdit(const QString & defaulttitle) {
     action->setCheckable(true);
     fileChangedOnDiskFlag = false;
 
+    // Pin the editor to a fixed light scheme regardless of the OS colour
+    // scheme. The syntax highlighter (EditSyntaxHighlighter) only ever sets
+    // dark FOREGROUND colours chosen for a white page and never a background,
+    // so on Qt 6.5+ under a dark desktop theme the widget's Base role turns
+    // near-black and the dark code becomes unreadable. A stylesheet (unlike
+    // setPalette(), which some styles ignore under a dark scheme) reliably
+    // overrides both the style and the OS scheme. The gutter and current-line
+    // highlight bands already assume a light background, so this keeps them
+    // consistent too.
+    setStyleSheet(
+        "QPlainTextEdit{"
+        "  background-color:#ffffff;"
+        "  color:#000000;"
+        "  selection-background-color:#c0d8f0;"
+        "  selection-color:#000000;"
+        "}");
+
     setReadOnly(guiState!=GUISTATENORMAL);
     if(guiState==GUISTATEAPP){
         startPos=0;

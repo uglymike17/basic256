@@ -1,0 +1,575 @@
+# ==========================================================================
+#  BASIC-256 SOUND SHOWCASE
+#  A tour of everything BASIC-256 can do with sound, using the Sound*
+#  family of statements and functions.
+#
+#    * Tone generation .... waveforms, harmonics, envelopes, polyphony,
+#                           raw sample synthesis, melodies
+#    * Sound files ........ load .wav / .mp3, players, play / pause / resume,
+#                           seek, position, state, length, per-sound volume,
+#                           looping and fades
+#    * Speech ............. text-to-speech with SAY
+#
+#  Each tone demo also DRAWS the wave or envelope on the graphics screen,
+#  so you can see the shape while you hear it.
+# ==========================================================================
+
+global GW, GH
+GW = 640 : GH = 420
+graphsize GW, GH
+fastgraphics
+
+call banner("BASIC-256 Sound Showcase")
+
+do
+	call showmenu()
+	input "  Select 1-9: ", sel$
+	choice = int(sel$)
+
+	begin case
+		case choice = 1 : call demoWaveforms()
+		case choice = 2 : call demoHarmonics()
+		case choice = 3 : call demoEnvelope()
+		case choice = 4 : call demoPolyphony()
+		case choice = 5 : call demoRawSynth()
+		case choice = 6 : call demoMelody()
+		case choice = 7 : call demoFilesAndPlayers()
+		case choice = 8 : call demoSpeech()
+		case choice = 9 : print "Goodbye!"
+			else            : print "  Please choose a number from 1 to 9."
+	end case
+until choice = 9
+
+# clean up: stop and free every sound the demo created
+soundsystem 3
+end
+
+
+# --------------------------------------------------------------------------
+#  MENU + SCREEN HELPERS
+# --------------------------------------------------------------------------
+subroutine showmenu()
+	print
+	print "==================== MENU ===================="
+	print "  Tone generation"
+	print "    1. Waveforms (sine / square / triangle / saw / pulse)"
+	print "    2. Harmonics  - build a richer timbre"
+	print "    3. Envelope   - ADSR shaping (pluck vs. pad)"
+	print "    4. Polyphony  - play a chord"
+	print "    5. Raw synth  - a wave built sample-by-sample"
+	print "    6. Melody     - a tune from a note list"
+	print "  Sound files & control"
+	print "    7. Files & players (play/pause/seek/loop/fade/volume)"
+	print "  Speech"
+	print "    8. Text to speech (SAY)"
+	print "    9. Quit"
+	print "=============================================="
+end subroutine
+
+subroutine banner(t$)
+	clg
+	color rgb(20, 24, 40)
+	rect 0, 0, GW, GH
+	color rgb(90, 200, 255)
+	font "Sans", 22, 100
+	text 20, 20, t$
+	color rgb(150, 160, 190)
+	font "Sans", 11, 50
+	text 22, 58, "Watch this window - each tone demo draws its wave here."
+	refresh
+end subroutine
+
+# Draw an empty framed plotting area (uses globals GW, GH)
+subroutine plotframe(title$)
+	clg
+	color rgb(18, 20, 34)
+	rect 0, 0, GW, GH
+	color rgb(120, 130, 160)
+	font "Sans", 14, 100
+	text 16, 12, title$
+	color rgb(55, 60, 85)
+	line 20, GH/2, GW-20, GH/2
+	color rgb(120, 130, 160)
+	line 20, 60, 20, GH-30
+	line 20, GH-30, GW-20, GH-30
+	refresh
+end subroutine
+
+
+# --------------------------------------------------------------------------
+#  1. WAVEFORMS
+#     soundwaveform chooses the shape used by later tones.
+# --------------------------------------------------------------------------
+subroutine demoWaveforms()
+	dim name$(5)
+	name$[0] = "Sine (default)"
+	name$[1] = "Square"
+	name$[2] = "Triangle"
+	name$[3] = "Sawtooth"
+	name$[4] = "Pulse"
+
+	print "  Playing each built-in waveform at 500 Hz..."
+	for k = 0 to 4
+		call plotframe("Waveform " + k + " - " + name$[k])
+		call drawwave(k)
+		soundwaveform k          # pick the shape for tones that follow
+		sound 500, 1700           # blocking: waits until the tone ends
+		pause 1
+	next k
+
+	soundwaveform 0              # restore the default sine
+	print "  Done. (waveform reset to sine)"
+end subroutine
+
+# Plot two cycles of built-in waveform "kind" inside the frame
+subroutine drawwave(kind)
+	x0 = 22 : y0 = 62
+	w  = GW - 46 : h = GH - 96
+	midy = y0 + h/2
+	amp  = h/2 - 6
+	color rgb(90, 220, 140)
+	cycles = 2
+	lastx = x0 : lasty = midy
+	for px = 0 to w
+		t = (px / w) * cycles          # 0..cycles
+		phase = t - int(t)             # 0..1 within a cycle
+		theta = 2 * pi * t
+		begin case
+			case kind = 0 : y = sin(theta)                            # sine
+			case kind = 1 : if sin(theta) >= 0 then y = 1 else y = -1 # square
+			case kind = 2 : y = (2/pi) * asin(sin(theta))             # triangle
+			case kind = 3 : y = 2 * phase - 1                         # sawtooth
+			case kind = 4                                             # pulse 20%
+				if phase < 0.4 then y = 1 else y = -1
+		end case
+		cx = x0 + px
+		cy = midy - y * amp
+		if px > 0 then line lastx, lasty, cx, cy
+		lastx = cx : lasty = cy
+	next px
+	refresh
+end subroutine
+
+
+# --------------------------------------------------------------------------
+#  2. HARMONICS
+#     Add whole-number multiples of the fundamental for a richer tone.
+# --------------------------------------------------------------------------
+subroutine demoHarmonics()
+	call plotframe("Harmonics - stacking overtones")
+	soundwaveform 0
+
+	print "  Pure 220 Hz tone..."
+	soundharmonics                 # clear any previous harmonics
+	sound 220, 2000
+
+	print "  + octave (2nd harmonic) at half strength..."
+	soundharmonics 2, 0.5
+	sound 220, 2000
+
+	print "  + fifth above (3rd harmonic)..."
+	soundharmonics 3, 0.3
+	sound 220, 2000
+
+	print "  Organ-ish blend, all set at once..."
+	soundharmonics {2, 0.5, 3, 0.35, 4, 0.2, 6, 0.15}
+	sound 220, 2000
+
+	print "  Organ-ish blend, all set at once..."
+	soundharmonics {2, 1, 3, 0.7, 4, 0.4, 6, 0.3, 8, 0.15}
+	sound 220, 3000
+
+
+	soundharmonics                 # back to a pure fundamental
+	print "  Done. (harmonics cleared)"
+end subroutine
+
+
+# --------------------------------------------------------------------------
+#  3. ENVELOPE (ADSR)
+#     Shape the loudness of a tone over its duration.
+# --------------------------------------------------------------------------
+subroutine demoEnvelope()
+	print "  Flat tone (no envelope)..."
+	call plotframe("Envelope - flat (constant amplitude)")
+	call drawadsr(0, 0, 1.0, 0, 2000)
+	soundenvelope                  # ensure none is set
+	sound 440, 2000
+
+	print "  Plucked (fast attack, quick decay, no sustain)..."
+	call plotframe("Envelope - pluck  A5 D800 S0.0 R400")
+	call drawadsr(5, 800, 0.0, 400, 1200)
+	soundenvelope 5, 500, 0.0, 700
+	sound 440, 1200
+
+	print "  Soft pad (slow attack, long release)..."
+	call plotframe("Envelope - pad  A300 D300 S0.2 R400")
+	call drawadsr(300, 300, 0.2, 400, 1000)
+	soundenvelope 300, 300, 0.2, 400
+	sound 440, 1000
+
+	soundenvelope                  # remove the envelope
+	print "  Done. (envelope removed)"
+end subroutine
+
+# Draw an ADSR outline for a note of total length "tot" ms
+subroutine drawadsr(a, d, s, r, tot)
+	x0 = 22 : y0 = 62
+	w  = GW - 46 : h = GH - 96
+	baseY = y0 + h - 4
+	topY  = y0 + 6
+	fullH = baseY - topY
+	if tot <= 0 then tot = 1
+	xA = a
+	xD = a + d
+	xR = tot - r
+	if xR < xD then xR = xD
+	color rgb(255, 180, 90)
+	line x0 + w*0/tot, baseY, x0 + w*xA/tot, topY                       # attack
+	line x0 + w*xA/tot, topY, x0 + w*xD/tot, baseY - fullH*s            # decay
+	line x0 + w*xD/tot, baseY - fullH*s, x0 + w*xR/tot, baseY - fullH*s # sustain
+	line x0 + w*xR/tot, baseY - fullH*s, x0 + w*tot/tot, baseY          # release
+	refresh
+end subroutine
+
+
+# --------------------------------------------------------------------------
+#  4. POLYPHONY
+#     A 2-D list of {frequency, duration} pairs plays notes together.
+# --------------------------------------------------------------------------
+subroutine demoPolyphony()
+	# Bars grow left-to-right in real time as each note sounds.
+	# Three single notes (C4, E4, G4) play one after another, then a
+	# C-E-G chord plays with all three bars growing together.
+	# Uses non-blocking soundplayer playback so the drawing can animate
+	# while the audio plays - a blocking "sound" call could not.
+
+	# ---- plot geometry (time = x, pitch = y), same mapping as the melody ----
+	leftx  = 52
+	rightx = GW - 16
+	topy   = 58
+	boty   = GH - 36
+	plotw  = rightx - leftx
+	ploth  = boty - topy
+	minf   = 250
+	maxf   = 452
+	gap    = 4
+
+	# (To just hear a chord without animation, one line does it:
+	#  sound {{262, 2000}, {330, 2000}, {392, 2000}} )
+	# ---- one bar per note; chord notes share the same start time ----
+	nbars = 6
+	dim bf(nbars)                       # frequency of each bar
+	dim bs(nbars)                       # start time (ms)
+	dim bd(nbars)                       # duration (ms)
+	bf = {262, 330, 392, 262, 330, 392}
+	bs = {  0, 1000, 2000, 3000, 3000, 3000}
+	bd = {1000, 1000, 1000, 2000, 2000, 2000}
+	total = 5000
+
+	# ---- voice: baked into each tone by soundload, so set it first ----
+	soundwaveform 0
+	soundharmonics
+	soundenvelope 20, 100, 0.7, 900
+
+	# ---- frame + pitch grid (C D E F G A of octave 4) ----
+	call plotframe("Polyphony - C, E, G, then a C-E-G chord")
+	color rgb(18, 20, 34)
+	line 20, GH/2, GW-20, GH/2          # hide plotframe's default midline
+	dim pf(6)
+	pf = {262, 294, 330, 349, 392, 440}
+	dim pn$(6)
+	pn$ = {"C4", "D4", "E4", "F4", "G4", "A4"}
+	font "Sans", 10, 100
+	for i = 0 to 5
+		gy = boty - (pf[i] - minf) / (maxf - minf) * ploth
+		color rgb(40, 44, 66)
+		line leftx, gy, rightx, gy
+		color rgb(110, 120, 150)
+		text 25, gy - 8, pn$[i]
+	next i
+	refresh
+
+	# ---- build a player for each note (created now, started on cue) ----
+	dim pl(nbars)
+	dim started(nbars)
+	for b = 0 to nbars - 1
+		pl[b] = soundplayer(soundload(bf[b], bd[b]))
+		started[b] = 0
+	next b
+
+	print "  Single notes C4, E4, G4, then all three as a chord..."
+
+	# ---- a single clock drives the audio triggers AND the bar growth ----
+	t0 = msec
+	running = 1
+	while running = 1
+		clk = msec - t0
+
+		# start each note the moment its cue time arrives (non-blocking)
+		for b = 0 to nbars - 1
+			if started[b] = 0 and clk >= bs[b] then
+				soundplay pl[b]
+				started[b] = 1
+			endif
+		next b
+
+		# redraw every started bar at its current width (bars only grow)
+		for b = 0 to nbars - 1
+			if started[b] = 1 then
+				frac = (clk - bs[b]) / bd[b]
+				if frac < 0 then frac = 0
+				if frac > 1 then frac = 1
+				x = leftx + bs[b] / total * plotw
+				fullw = bd[b] / total * plotw - gap
+				if fullw < 1 then fullw = 1
+				y = boty - (bf[b] - minf) / (maxf - minf) * ploth
+				call notecolor(bf[b])
+				rect x, y - 5, frac * fullw, 10
+			endif
+		next b
+		refresh
+		pause 0.02
+
+		if clk >= total then running = 0
+	end while
+
+	pause 0.3                            # let the chord's release ring out
+	for b = 0 to nbars - 1
+		soundplayeroff pl[b]
+	next b
+	soundenvelope
+	print "  Done."
+end subroutine
+
+
+# --------------------------------------------------------------------------
+#  5. RAW SAMPLE SYNTHESIS
+#     Build a waveform sample-by-sample and turn it into a resource.
+# --------------------------------------------------------------------------
+subroutine demoRawSynth()
+	sr = soundsamplerate                 # samples per second
+	print "  Sound system sample rate: " + sr + " Hz"
+
+	# -- one second of a 440 Hz tone whose harmonics we mix by hand --
+	n = sr
+	dim wave(n)
+	for i = 0 to n - 1
+		tt = i / sr
+		v = 0.6 * sin(2*pi*440*tt)
+		v = v + 0.3 * sin(2*pi*880*tt)   # octave
+		v = v + 0.15 * sin(2*pi*1320*tt) # fifth above
+		v = v * (1 - tt)                 # gentle fade so it doesn't click
+		wave[i] = v
+	next i
+
+	call plotframe("Raw synthesis - hand-built samples")
+	call drawsamples(ref(wave), n)
+
+	print "  Playing the hand-built wave via soundloadraw()..."
+	tone$ = soundloadraw(wave[])         # returns a reusable resource string
+	sound tone$                          # play it (blocking)
+	pause 2
+	# -- a custom repeating waveform via soundwaveform's breakpoint form --
+	print "  Custom repeating waveform (breakpoint triangle)..."
+	soundwaveform {-1, 1, 1, 1, -1, 0}, true
+	sound 330, 2000
+	soundwaveform 0
+
+	print "  Done."
+end subroutine
+
+# Plot up to ~900 evenly spaced samples from the wave array
+subroutine drawsamples(ref(wave), n)
+	x0 = 22 : y0 = 62
+	w  = GW - 46 : h = GH - 96
+	midy = y0 + h/2
+	amp  = h/2 - 6
+	color rgb(120, 200, 255)
+	stp = n / w
+	if stp < 1 then stp = 1
+	lastx = x0 : lasty = midy
+	px = 0
+	for i = 0 to n - 1 step stp
+		cx = x0 + px
+		cy = midy - wave[i] * amp
+		if px > 0 then line lastx, lasty, cx, cy
+		lastx = cx : lasty = cy
+		px = px + 1
+		if px > w then exit for
+	next i
+	refresh
+end subroutine
+
+
+# --------------------------------------------------------------------------
+#  6. MELODY
+# Twinkle, Twinkle - full 42-note melody with a piano-roll plot
+# Melody plays on a triangle voice; notes are drawn in a 640x420 canvas
+# (time = horizontal, pitch = vertical), inspired by Manuel Santos' note-list version.
+# ---- 42 notes: 6 phrases of 7 (six 350ms notes + one 600ms note) -----------
+#        Twinkle twinkle little star | How I wonder what you are
+#        Up above the world so high  | Like a diamond in the sky
+#        Twinkle twinkle little star | How I wonder what you are
+# --------------------------------------------------------------------------
+subroutine demoMelody()
+	dim freq(42)
+	freq = {262,262,392,392,440,440,392,349,349,330,330,294,294,262,392,392,349,349,330,330,294,392,392,349,349,330,330,294,262,262,392,392,440,440,392,349,349,330,330,294,294,262}
+	dim dur(42)
+	dur  = {350,350,350,350,350,350,600,350,350,350,350,350,350,600,350,350,350,350,350,350,600,350,350,350,350,350,350,600,350,350,350,350,350,350,600,350,350,350,350,350,350,600}
+
+	# ---- plot geometry (globals, used by the frame + the play loop) -----------
+	leftx  = 52
+	rightx = GW - 16
+	topy   = 58
+	boty   = GH - 36
+	plotw  = rightx - leftx
+	ploth  = boty - topy
+	minf   = 250
+	maxf   = 452
+
+	total = 0
+	for a = 0 to 41
+		total = total + dur[a]
+	next a
+
+	# ---- draw the frame + pitch grid ------------------------------------------
+	call plotframe("Twinkle, Twinkle - triangle wave, 42 notes")
+	color rgb(18, 20, 34)
+	line 20, GH/2, GW-20, GH/2
+   # pitch gridlines + labels (C D E F G A of octave 4)
+   dim pf(6)
+   pf = {262, 294, 330, 349, 392, 440}
+   dim pn$(6)
+   pn$ = {"C4", "D4", "E4", "F4", "G4", "A4"}
+   font "Sans", 10, 100
+   for i = 0 to 5
+      gy = boty - (pf[i] - minf) / (maxf - minf) * ploth
+      color rgb(40, 44, 66)
+      line leftx, gy, rightx, gy
+      color rgb(110, 120, 150)
+      text 25, gy - 8, pn$[i]
+   next i
+   refresh
+	soundwaveform 2                      # triangle: soft, flute-like
+	soundenvelope 15, 60, 0.7, 120
+
+	print "  Playing 'Twinkle, Twinkle'..."
+	# ---- play + draw each note in time ----------------------------------------
+	elapsed = 0
+	for a = 0 to 41
+		hz = freq[a]
+		x = leftx + elapsed / total * plotw
+		w = dur[a] / total * plotw - 2
+		y = boty - (hz - minf) / (maxf - minf) * ploth
+		call notecolor(hz)
+		rect x, y - 5, w, 10
+		refresh
+		sound hz, dur[a]
+		elapsed = elapsed + dur[a]
+	next a
+
+	soundwaveform 0
+	soundenvelope
+	print " Done."
+end subroutine
+
+subroutine notecolor(hz)
+	t = (hz - 262) / (440 - 262)
+	if t < 0 then t = 0
+	if t > 1 then t = 1
+	r = int(90 + t * 150)
+	g = int(150 + (1 - abs(t - 0.5) * 2) * 60)
+	b = int(240 - t * 150)
+	color rgb(r, g, b)
+end subroutine
+# --------------------------------------------------------------------------
+#  7. SOUND FILES & PLAYERS
+#     The player API works on any sound source. To keep the demo self-
+#     contained we build a ~5-second tone "track", but if you type the
+#     path to a real .wav or .mp3 it will use that instead.
+# --------------------------------------------------------------------------
+subroutine demoFilesAndPlayers()
+	call plotframe("Sound files & players")
+
+	print
+	print "  Enter a path to a .wav or .mp3 file, or just press Enter"
+	print "  to use a generated 5-second tone instead."
+	input "  File (or blank): ", path$
+
+	if length(path$) > 0 and exists(path$) then
+		track$ = path$                       # a filename is a valid source
+		print "  Using file: " + path$
+	else
+		if length(path$) > 0 then print "  (not found - using a generated tone)"
+		track$ = soundload(220, 5000)        # 5-second A3 tone, as a resource
+		print "  Using a generated 5-second tone."
+	endif
+
+	# Build ONE reusable player instance (does not start it yet)
+	p = soundplayer(track$)
+	soundvolume p, 8                         # this instance only, 0..10
+
+	print
+	print "  length : " + soundlength(p) + " s"
+	print "  state  : " + statename$(soundstate(p)) + "  (before start)"
+	pause 2
+	print "  play..."
+	soundplay p                              # non-blocking start
+	pause 3
+	print "  position: " + int(soundposition(p)*100)/100 + " s   state: " + statename$(soundstate(p))
+
+	print "  pause..."
+	soundpause p
+	print "  state  : " + statename$(soundstate(p)) + "  (frozen)"
+	pause 3.0
+	print "  resume (soundplay on the same player picks up where it left off)..."
+	soundplay p
+
+	print "  seek to 3.0 s (near the end)..."
+	pause 2
+	soundseek p, 3.0
+	print "  position: " + int(soundposition(p)*100)/100 + " s"
+
+	print "  fade out over 1.5 s..."
+	soundfade p, 0, 1.5
+	soundwait p                              # let it finish
+	print "  state  : " + statename$(soundstate(p)) + "  (ended)"
+    pause 2
+	# -- looping: repeat a short beep a fixed number of times --
+	print
+	print "  Looping demo: three short beeps from one resource..."
+	beep$ = soundload(660, 300)
+	b = soundplayer(beep$)
+	soundloop b, 3                           # count=0 would loop forever
+	soundplay b
+	soundwait b*50
+
+	soundplayeroff p                         # release this player's memory
+	soundplayeroff b
+	print "  Done. (players released)"
+end subroutine
+
+function statename$(st)
+	begin case
+		case st = 0 : statename$ = "stopped"
+		case st = 1 : statename$ = "playing"
+		case st = 2 : statename$ = "paused"
+			else        : statename$ = "?"
+	end case
+end function
+
+
+# --------------------------------------------------------------------------
+#  8. SPEECH
+#     SAY uses the operating system's text-to-speech engine.
+# --------------------------------------------------------------------------
+subroutine demoSpeech()
+	call plotframe("Text to speech - SAY")
+	print "  Speaking with the OS text-to-speech engine..."
+	print "  (Windows uses SAPI; Linux needs eSpeak/Flite installed.)"
+	say "Hello. This is BASIC 256 speaking."
+	say "I can even read numbers. Three plus seven is"
+	say 3 + 7                                # spoken as "ten"
+	print "  Done."
+end subroutine
