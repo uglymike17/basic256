@@ -1,3 +1,9 @@
+2026-08-14 M. Vilain <uglymike17@gmail.com>  
+	* Work has started on v2.1.1, beginning at Beta1. v2.1.0 is the stable release and stays available on the releases page.
+	* The Help/About BASIC-256 box now names the project's own website, https://basic256.org, as well as the documentation site, https://doc.basic256.org.
+	* The status bar reads "Stopping" while a program is being stopped, instead of the misspelled "Stoping".
+	* The Windows downloads no longer include Microsoft's Visual C++ redistributable as a file of its own. It has always been, and still is, bundled inside the installer, which offers to install it if the system needs it.
+
 2026-08-10 M. Vilain <uglymike17@gmail.com>  
 	* The project has now reached a stable v2.1 state.
 	* The check box or radio button in front of a checkable menu item now sits clear of the item's text instead of overlapping it, and is drawn at the size the platform intends.
