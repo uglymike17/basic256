@@ -22,14 +22,12 @@ Stack::~Stack() {
 }
 
 void Stack::stackGrow() {
-	// add 10 elements to the size of the stack
-	int i = stacksize;
-	stackdata.resize(stacksize+10);
+	// add 10 empty slots to the size of the stack
+	// the slots are left NULL - every push allocates the element it stores, so
+	// filling them in advance saved nothing and leaked each pre-made element
+	// as soon as a push overwrote its pointer
+	stackdata.resize(stacksize+10, NULL);
 	stacksize=stackdata.size();
-	while(i< stacksize) {
-		stackdata[i] = new DataElement();
-		i++;
-	}
 }
 
 QString Stack::debug() {
@@ -292,9 +290,15 @@ void Stack::drop(int n){
 	//quick drop a number of elements from stack
 	//usefull to clear the stack when an array from stack is not needed anymore
 	//in case that error is catched and we want to pass over that (ONERROR or TRY/CATCH)
-	stackpointer-=n;
-	if (stackpointer<0) {
-		stackpointer=0;
-		e = ERROR_STACKUNDERFLOW;
+	// the dropped elements are deleted - nobody else holds a pointer to them
+	while (n-- > 0) {
+		if (stackpointer<=0) {
+			stackpointer=0;
+			e = ERROR_STACKUNDERFLOW;
+			return;
+		}
+		stackpointer--;
+		delete stackdata[stackpointer];
+		stackdata[stackpointer] = NULL;
 	}
 }
