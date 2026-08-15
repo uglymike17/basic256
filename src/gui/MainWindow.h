@@ -48,6 +48,9 @@
 #include "RunController.h"
 #include "Settings.h"
 
+#ifdef Q_OS_WASM
+class QTimer;   // wasmSessionTimer below is only ever a pointer
+#endif
 
 class MainWindow : public QMainWindow
 {
@@ -66,6 +69,13 @@ public:
 #ifdef Q_OS_WASM
     void loadFileContent(QString fileName, const QByteArray &content);
     void hidePlayerChrome();
+    // Re-open whatever the last visit left in the editor. Returns false when
+    // there is nothing worth restoring, so the caller falls back to a blank
+    // document. Call before enableWasmSessionAutosave().
+    bool restoreWasmSession();
+    // Start mirroring the editor into /persist. Only the full IDE calls this;
+    // a URL-launched player must not overwrite the user's own session.
+    void enableWasmSessionAutosave();
 #endif
     void resizeToFitGraph(int canvasW, int canvasH);
 
@@ -197,6 +207,12 @@ private:
     void clampGraphDock();
     void finishCloseAllPrograms(bool doit, std::function<void(bool)> onDone);
     BasicEdit* newEditor(QString title);
+#ifdef Q_OS_WASM
+    // Browser session persistence -- see the block above saveWasmSession() in
+    // MainWindow.cpp. Null unless enableWasmSessionAutosave() has been called.
+    QTimer *wasmSessionTimer;
+    void saveWasmSession();
+#endif
     int untitledNumber;
     int runState;
     // Set just before calling qApp->quit() from closeEvent()'s async completion
@@ -240,6 +256,9 @@ private slots:
     void activeEditorClearBreakPoints();
     void currentEditorTabChanged(int);
     void closeEditorTab(int);
+#ifdef Q_OS_WASM
+    void scheduleWasmSessionSave();
+#endif
     void loadProgram();
     void openExample();
     void activeEditorCloseTab();

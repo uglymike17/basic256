@@ -40,13 +40,19 @@
 #ifdef Q_OS_WASM
 #include <QDir>
 #include <QDirIterator>
+#include <QFile>
 #include <QFileInfo>
 #include <QHash>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QTextDocument>
 #include <QtWidgets/QDialogButtonBox>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QTreeWidget>
 #include <QtWidgets/QVBoxLayout>
 #include <utility>
+#include "WasmSettings.h"
 #endif
 
 #include <QEvent>
@@ -94,6 +100,12 @@ MainWindow::MainWindow(QWidget * parent, Qt::WindowFlags f, QString localestring
     untitledNumber = 1;
     runState = RUNSTATESTOP;
     quitConfirmed = false;
+#ifdef Q_OS_WASM
+    // Null until enableWasmSessionAutosave() runs, and that null is what tells
+    // scheduleWasmSessionSave() this session is not one that autosaves -- a
+    // ?run= player must not overwrite the editor session the user left behind.
+    wasmSessionTimer = nullptr;
+#endif
     editwin=NULL;
     basicIcons = new BasicIcons();
     basicKeyboard = new BasicKeyboard();
@@ -1491,6 +1503,14 @@ void MainWindow::closeEditorTab(int tab){
         auto doCloseEditor = [this, e]() {
             if(fileSystemWatcher && !(e->filename.isEmpty())) fileSystemWatcher->removePath(e->filename);
             e->deleteLater();
+#ifdef Q_OS_WASM
+            // A closed tab has to leave the saved session too, and closing one
+            // that is not the current tab may not move the current index, so
+            // the currentChanged connection cannot be relied on to notice.
+            // deleteLater() means the widget is still counted right now; the
+            // debounce outlives it, so the write sees the tab already gone.
+            scheduleWasmSessionSave();
+#endif
         };
         if (e->document()->isModified()) {
             // Async (RULE 2): QMessageBox::warning()'s exec() never returns on
@@ -1553,6 +1573,13 @@ BasicEdit* MainWindow::newEditor(QString title){
             if(fileSystemWatcher) QObject::connect(fileSystemWatcher, SIGNAL(fileChanged(QString)), editor, SLOT(fileChangedOnDiskSlot(QString)) );
         }
     }
+#ifdef Q_OS_WASM
+    // Every tab is made here, so this one connection covers the whole session.
+    // It is harmless before enableWasmSessionAutosave() has run: the slot finds
+    // a null timer and does nothing.
+    QObject::connect(editor->document(), &QTextDocument::contentsChanged,
+                     this, &MainWindow::scheduleWasmSessionSave);
+#endif
     return editor;
 }
 
@@ -1629,6 +1656,134 @@ void MainWindow::loadFileContent(QString fileName, const QByteArray &content) {
     } else {
         neweditor->updateTitle();
     }
+    scheduleWasmSessionSave();
+}
+
+// --- browser session persistence ---------------------------------------------
+//
+// On WASM a "save" is a browser download (BasicEdit::saveFile), so nothing the
+// user types is kept anywhere the page can read back again: a refresh, a
+// restarted browser or an accidentally closed tab loses the program outright.
+// Every open editor tab is therefore mirrored into a file the page CAN read
+// back, and restored at the next start.
+//
+// That file lives in /persist -- the IDBFS mount wasm-deploy/idbfs.js loads
+// before main() and WasmSettings flushes to IndexedDB. Writing an ordinary
+// QFile there is exactly what QSettings already does (Main.cpp points it at the
+// same mount), so this adds no second persistence mechanism: the write below is
+// a plain file write, and WasmSettings::persistSoon() coalesces the FS.syncfs
+// that actually makes it durable. localStorage was the obvious alternative and
+// is the wrong tool here -- it is unreachable from the thread Qt's GUI runs on
+// in a wasm_multithread build, and caps out around 5 MB.
+static const char *WASM_SESSION_FILE = "/persist/session.json";
+
+void MainWindow::scheduleWasmSessionSave() {
+    // Coalesce typing into one write. The timer exists only once
+    // enableWasmSessionAutosave() has run, so a null one means this is not a
+    // session that autosaves -- a URL-launched player, or the window still
+    // being built -- and the signal is simply dropped.
+    if (wasmSessionTimer) wasmSessionTimer->start();
+}
+
+void MainWindow::saveWasmSession() {
+    QJsonArray tabs;
+    for (int i = 0; i < editwintabs->count(); i++) {
+        BasicEdit *e = (BasicEdit*)editwintabs->widget(i);
+        if (!e) continue;
+        QJsonObject tab;
+        tab["title"] = e->title;
+        tab["text"] = e->document()->toPlainText();
+        // Kept so a restored program still looks unsaved if it was: on WASM
+        // "saved" means "downloaded", and the modified flag is the only thing
+        // telling the user they have not done that yet.
+        tab["modified"] = e->document()->isModified();
+        tabs.append(tab);
+    }
+
+    QJsonObject session;
+    session["tabs"] = tabs;
+    session["active"] = editwintabs->currentIndex();
+
+    QFile f(QString::fromLatin1(WASM_SESSION_FILE));
+    if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate)) return;
+    f.write(QJsonDocument(session).toJson(QJsonDocument::Compact));
+    f.close();
+    WasmSettings::persistSoon();
+}
+
+void MainWindow::enableWasmSessionAutosave() {
+    if (wasmSessionTimer) return;
+    wasmSessionTimer = new QTimer(this);
+    wasmSessionTimer->setSingleShot(true);
+    // Long enough that ordinary typing costs one write, short enough that
+    // little is lost if the tab goes away without warning. A browser refresh
+    // gives no reliable last-chance callback, so this timer -- not a shutdown
+    // hook -- is what actually saves the work.
+    wasmSessionTimer->setInterval(2000);
+    QObject::connect(wasmSessionTimer, &QTimer::timeout, this, [this](){ saveWasmSession(); });
+
+    // Individual documents are connected in newEditor(), which every tab goes
+    // through, so there is nothing to catch up on here -- their signals simply
+    // did nothing while the timer was null.
+    //
+    // Closing or reordering tabs changes the session as surely as typing does.
+    QObject::connect(editwintabs, &QTabWidget::currentChanged, this, &MainWindow::scheduleWasmSessionSave);
+    QObject::connect(qApp, &QCoreApplication::aboutToQuit, this, [this](){
+        saveWasmSession();
+        WasmSettings::persistNow();
+    });
+}
+
+bool MainWindow::restoreWasmSession() {
+    QFile f(QString::fromLatin1(WASM_SESSION_FILE));
+    if (!f.open(QIODevice::ReadOnly)) return false;
+    const QJsonDocument doc = QJsonDocument::fromJson(f.readAll());
+    f.close();
+    if (!doc.isObject()) return false;
+
+    const QJsonArray tabs = doc.object()["tabs"].toArray();
+    // A lone empty document is what a first-time visitor gets from newProgram()
+    // anyway; restoring it would only mean reviving a blank tab and claiming a
+    // session was recovered.
+    if (tabs.isEmpty()) return false;
+    if (tabs.size() == 1 && tabs.at(0).toObject()["text"].toString().isEmpty()) return false;
+
+    int restored = 0;
+    for (const QJsonValue &v : tabs) {
+        const QJsonObject tab = v.toObject();
+        QString title = tab["title"].toString();
+        if (title.isEmpty()) title = QObject::tr("Untitled") + QString(" ") + QString::number(restored + 1);
+        BasicEdit *e = newEditor(title);
+        // As in loadFileContent(): a browser cannot silently overwrite a file it
+        // downloaded earlier, so a restored program has no filename to save back
+        // to and every Save is a fresh download.
+        e->filename = "";
+        e->path = "";
+        e->title = title;
+        e->setPlainText(tab["text"].toString());
+        e->document()->setModified(tab["modified"].toBool(true));
+        editwin = e;
+        int i = editwintabs->addTab(e, title);
+        editwintabs->setTabIcon(i, basicIcons->documentIcon);
+        restored++;
+    }
+    if (restored == 0) return false;
+
+    // loadFileContent() reads untitledNumber==2 as "the only tab is the pristine
+    // blank document newProgram() just made, so an opened file may replace it".
+    // Restored tabs are real work and must never be replaced that way, so step
+    // the counter past the sentinel.
+    untitledNumber = restored + 2;
+
+    int active = doc.object()["active"].toInt(0);
+    if (active < 0 || active >= editwintabs->count()) active = 0;
+    editwintabs->setCurrentIndex(active);
+    BasicEdit *e = (BasicEdit*)editwintabs->widget(active);
+    if (e) {
+        editwin = e;
+        e->setFocus();
+    }
+    return true;
 }
 
 void MainWindow::hidePlayerChrome() {
