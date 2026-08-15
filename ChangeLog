@@ -4,6 +4,7 @@
 	* The Help/About BASIC-256 box now names the project's own website, https://basic256.org, as well as the documentation site, https://doc.basic256.org.
 	* The status bar reads "Stopping" while a program is being stopped, instead of the misspelled "Stoping".
 	* The Windows downloads no longer include Microsoft's Visual C++ redistributable as a file of its own. It has always been, and still is, bundled inside the installer, which offers to install it if the system needs it.
+	* Programs run faster, most noticeably loops that do a lot of arithmetic. The interpreter reuses the memory it holds values in instead of asking the system for a new block and handing it back for every value it creates, and it steps from one instruction to the next with less work. The browser version gains the most.
 
 2026-08-10 M. Vilain <uglymike17@gmail.com>  
 	* The project has now reached a stable v2.1 state.
