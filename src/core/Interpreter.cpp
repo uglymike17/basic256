@@ -3265,6 +3265,43 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					break;
 
 				case OP_ADD: {
+						// in-place fast path - when both operands are already
+						// numbers the answer is worked out in the element
+						// underneath and the other one dropped, so an add
+						// costs one pool release instead of two releases and
+						// an allocation. Anything else falls through to the
+						// general case below, which is unchanged.
+						{
+							DataElement *a1 = stack->peekDE(0);
+							DataElement *a2 = stack->peekDE(1);
+							if (a1 && a2) {
+								if (a1->type==T_INT && a2->type==T_INT) {
+									qint64 a = a2->intval + a1->intval;
+									if(a>=INT_MIN && a<=INT_MAX) {
+										a2->intval = a;
+									} else {
+										// overflow - promote to float, as below
+										a2->floatval = (double)(a2->intval) + (double)(a1->intval);
+										a2->type = T_FLOAT;
+									}
+									stack->dropTop();
+									break;
+								}
+								if ((a1->type==T_INT || a1->type==T_FLOAT) &&
+									(a2->type==T_INT || a2->type==T_FLOAT)) {
+									double ans = (a2->type==T_INT ? (double)(a2->intval) : a2->floatval)
+											   + (a1->type==T_INT ? (double)(a1->intval) : a1->floatval);
+									if (std::isinf(ans)) {
+										error->q(ERROR_INFINITY);
+										ans = 0.0;
+									}
+									a2->floatval = ans;
+									a2->type = T_FLOAT;
+									stack->dropTop();
+									break;
+								}
+							}
+						}
 						// integer and float safe ADD operation
 						DataElement *one = stack->popDE();			// RELEASE
 						DataElement *two = stack->popDE();			// RELEASE
@@ -3320,6 +3357,35 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					break;
 
 				case OP_SUB: {
+						// in-place fast path - see OP_ADD
+						{
+							DataElement *a1 = stack->peekDE(0);
+							DataElement *a2 = stack->peekDE(1);
+							if (a1 && a2) {
+								if (a1->type==T_INT && a2->type==T_INT) {
+									qint64 a = a2->intval - a1->intval;
+									if(a>=INT_MIN && a<=INT_MAX) {
+										a2->intval = a;
+										stack->dropTop();
+										break;
+									}
+									// overflow falls through to the float case
+								}
+								if ((a1->type==T_INT || a1->type==T_FLOAT) &&
+									(a2->type==T_INT || a2->type==T_FLOAT)) {
+									double ans = (a2->type==T_INT ? (double)(a2->intval) : a2->floatval)
+											   - (a1->type==T_INT ? (double)(a1->intval) : a1->floatval);
+									if (std::isinf(ans)) {
+										error->q(ERROR_INFINITY);
+										ans = 0.0;
+									}
+									a2->floatval = ans;
+									a2->type = T_FLOAT;
+									stack->dropTop();
+									break;
+								}
+							}
+						}
 						// integer and float safe SUB operation
 						DataElement *one = stack->popDE();			// RELEASE
 						DataElement *two = stack->popDE();			// RELEASE
@@ -3349,6 +3415,44 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					break;
 
 				case OP_MUL: {
+						// in-place fast path - see OP_ADD. The string repeat
+						// case (int * string) is not handled here and falls
+						// through to the general case below.
+						{
+							DataElement *a1 = stack->peekDE(0);
+							DataElement *a2 = stack->peekDE(1);
+							if (a1 && a2) {
+								if (a1->type==T_INT && a2->type==T_INT) {
+									if(a2->intval==0 || a1->intval==0) {
+										a2->intval = 0;
+										stack->dropTop();
+										break;
+									}
+									if (llabs(a1->intval) <= INT64_MAX / llabs(a2->intval)) {
+										qint64 a = a2->intval * a1->intval;
+										if(a>=INT_MIN && a<=INT_MAX) {
+											a2->intval = a;
+											stack->dropTop();
+											break;
+										}
+									}
+									// overflow - fall into the float case below
+								}
+								if ((a1->type==T_INT || a1->type==T_FLOAT) &&
+									(a2->type==T_INT || a2->type==T_FLOAT)) {
+									double ans = (a2->type==T_INT ? (double)(a2->intval) : a2->floatval)
+											   * (a1->type==T_INT ? (double)(a1->intval) : a1->floatval);
+									if (std::isinf(ans)) {
+										error->q(ERROR_INFINITY);
+										ans = 0.0;
+									}
+									a2->floatval = ans;
+									a2->type = T_FLOAT;
+									stack->dropTop();
+									break;
+								}
+							}
+						}
 						// integer and float safe MUL operation
 						DataElement *one = stack->popDE();			// RELEASE
 						DataElement *two = stack->popDE();			// RELEASE

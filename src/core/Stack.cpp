@@ -63,79 +63,19 @@ void Stack::pushDE(DataElement *source) {
 	stackpointer++;
 }
 
-void Stack::pushLong(qint64 i) {
-	if (stackpointer >= stacksize)  stackGrow();
-	stackdata[stackpointer++] = new DataElement((qint64)i);
-}
-
-void Stack::pushRef(int i, int level) {
-	if (stackpointer >= stacksize)  stackGrow();
-	stackdata[stackpointer] = new DataElement();
-	stackdata[stackpointer]->type = T_REF;
-	stackdata[stackpointer]->intval = i;
-	stackdata[stackpointer++]->level = level;
-}
-
-void Stack::pushDouble(double d) {
-	if (stackpointer >= stacksize)  stackGrow();
-	stackdata[stackpointer++] = new DataElement(d);
-}
-
-void Stack::pushQString(QString string) {
-	if (stackpointer >= stacksize)  stackGrow();
-	stackdata[stackpointer++] = new DataElement(string);
-}
-
-void Stack::pushInt(int i) {
-	if (stackpointer >= stacksize)  stackGrow();
-	stackdata[stackpointer++] = new DataElement((qint64)i);
-}
-
-void Stack::pushBool(bool i) {
-	if (stackpointer >= stacksize)  stackGrow();
-	stackdata[stackpointer++] = new DataElement(i?1LL:0LL);
-}
-
-void Stack::pushUnassigned() {
-	if (stackpointer >= stacksize)  stackGrow();
-	stackdata[stackpointer++] = new DataElement();
-}
-
-//
-// Peek Operations - look but dont touch
-
-int Stack::peekType() {
-	return peekType(0);
-}
-
-int Stack::peekType(int i) {
-	if (stackpointer<=i) {
-		e = ERROR_STACKUNDERFLOW;
-		return T_UNASSIGNED;
-	}
-	return stackdata[stackpointer - i - 1]->type;
-}
-
 //
 // Raw Pop Operations
 
-DataElement *Stack::popDE() {
-	// pop an element - a POINTER to the data on the stack
-	// WILL CHANGE ON NEXT PUSH!!!!
-	
-	// MUST delete THIS AFTER YOU ARE DONE WITH IT!!!!!!!!
-	
-	if (stackpointer==0) {
-		e = ERROR_STACKUNDERFLOW;
-		// return a fake element instead of NULL
-		// to handle a potential error in Interpreter
-		DataElement *de = new DataElement();
-		de->type = T_INT;
-		de->intval = 0l;
-		return de;
-	}
-	stackpointer--;
-	return stackdata[stackpointer];
+DataElement *Stack::popDEUnderflow() {
+	// the cold half of popDE() - kept out of line so the inline fast path in
+	// Stack.h stays small enough to be worth inlining
+	e = ERROR_STACKUNDERFLOW;
+	// return a fake element instead of NULL
+	// to handle a potential error in Interpreter
+	DataElement *de = new DataElement();
+	de->type = T_INT;
+	de->intval = 0l;
+	return de;
 }
 
 int Stack::popBool() {
