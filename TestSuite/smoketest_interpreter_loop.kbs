@@ -1,0 +1,141 @@
+# smoketest_interpreter_loop.kbs
+#
+# Manual smoke test for the interpreter loop changes made for v2.1.1.
+#
+# execByteCode() now runs the opcode loop itself instead of returning to
+# runLoop() after each opcode, and the four "return 0" that meant "this
+# opcode is finished" became "goto nextop". Three of those four paths are
+# checked below -- the ONERROR handler, the TRY/CATCH unwind, and READ from
+# a file. The fourth is the ordinary end of an opcode, which every line in
+# this file already uses.
+#
+# DataElement blocks are recycled through a free list now, and Stack::drop()
+# deletes the elements it drops, so the try/catch unwind is repeated many
+# times to give a double free or a leak somewhere to show itself.
+#
+# This file is deliberately NOT part of testsuite_ci.kbs: the last section
+# cannot run unattended. Run it from the IDE and read the last section.
+#
+# There is no ONSTOP check here because BASIC256 has no ONSTOP statement.
+# OP_ONSTOPCALL exists in WordCodes.h and execByteCode() handles it, but no
+# rule in basicParse.y ever emits it, so no program can reach that path.
+
+include "testsuite_common_include.kbs"
+
+currentsuite = "smoke"
+
+# used to keep a division by zero out of reach of any constant folding
+zero = 0
+
+###################################################
+call section("ONERROR trap")
+###################################################
+
+goto skipsmokehandler
+
+smokeerrorhandler:
+   handlerruns = handlerruns + 1
+return
+
+skipsmokehandler: ## jump over the handler
+
+handlerruns = 0
+onerror smokeerrorhandler
+x = 8 / zero
+call n("onerror traps divide by zero", lasterror, 50)
+throwerror 771
+call n("onerror traps throwerror", lasterror, 771)
+call n("onerror handler ran for both errors", handlerruns, 2)
+offerror
+
+###################################################
+call section("TRY/CATCH trap")
+###################################################
+
+a = 0
+try
+   a = a + 1
+   throwerror 9001
+   a = a + 2
+catch
+   a = a + 4
+   caught = lasterror
+end try
+call n("try/catch skips the rest of the try block", a, 5)
+call n("try/catch reports the thrown error", caught, 9001)
+
+###################################################
+call section("TRY/CATCH unwind of a part built expression")
+###################################################
+
+# the error fires part way through the expression, so the values already
+# worked out are still on the operand stack when the catch is reached and
+# the unwind is what discards them. Two thousand times over, because one
+# block freed twice would only show up once it had been handed out again.
+k = 0
+for i = 1 to 2000
+   try
+      junk = 1 + 2 + 3 * (10 / zero) + 99
+   catch
+      k = k + 1
+   end try
+next i
+call n("2000 try/catch unwinds, all caught", k, 2000)
+call n("value after 2000 unwinds is still right", 6 * 7, 42)
+
+###################################################
+call section("READ from a file")
+###################################################
+
+smokefile$ = "smoketest_read.txt"
+fn = 3
+open fn, smokefile$
+reset fn
+write fn, "alpha beta gamma"
+close fn
+
+open fn, smokefile$
+r1$ = read(fn)
+r2$ = read(fn)
+r3$ = read(fn)
+close fn
+kill smokefile$
+
+call s("read first token", r1$, "alpha")
+call s("read second token", r2$, "beta")
+call s("read third token", r3$, "gamma")
+
+###################################################
+call section("Stop button during a tight arithmetic loop")
+###################################################
+
+print
+print "Everything above this point checked itself. This last one needs you."
+print
+print "The loop below does nothing but arithmetic. It does not print, draw,"
+print "or touch a file, so nothing in it obliges the interpreter to look at"
+print "anything outside itself. That is exactly the case where a stale copy"
+print "of the run status would hide the Stop button from it."
+print
+print "Press the Stop button while the loop runs."
+print
+print "  It stops within a moment    -> pass."
+print "  It runs on and reports below -> the Stop button is not getting"
+print "                                  through, which is a regression."
+print
+input "Press ENTER to start the loop: ", ready$
+
+t0 = msec
+x = 0
+finished = false
+while not finished
+   for j = 1 to 200000
+      x = x + 1
+   next j
+   if msec - t0 > 30000 then finished = true
+end while
+
+print
+print "The loop ran the full 30 seconds and ended on its own."
+print "If you pressed Stop, it did not get through -- that is a regression."
+print "If you did not press Stop, nothing was proved. Run it again."
