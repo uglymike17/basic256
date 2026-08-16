@@ -185,8 +185,7 @@ There is however a possibility to add your own Developer ID in the build script,
 The browser build is v1 and has a few known gaps compared to the desktop app:
 
 - `SYSTEM`, serial port commands (`SERIALOPEN`...), `NETSERVER`/TCP server sockets, `DBOPEN`/SQL and `PRINTER...` are not available in a browser sandbox. Programs calling them get a clear "Feature not available on this platform" error and keep running — they don't crash or hang.
-- Files a running program creates only live for the current browser session (no persistent storage yet).
-- As the WASM build has no native filesystem for include to read from, it cannot include modules like math.kbs that are available in the other builds.
+- Data files a running program creates with `open`/`write` only live for the current browser session. Your programs in the editor do persist across a refresh.
 - `NETREAD` (fetching a URL) is subject to the target site's CORS policy, same as any browser page.
 
 ## Command line / Terminal usage
