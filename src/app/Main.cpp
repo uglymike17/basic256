@@ -426,6 +426,21 @@ int main(int argc, char *argv[]) {
 
     setlocale(LC_ALL,"C");
 
+#ifdef Q_OS_WASM
+    // Re-open what the last visit left in the editor before falling back to a
+    // blank document. A browser download is the only "save" WASM has, so
+    // without this a refresh loses the program outright.
+    //
+    // Reached only by the ordinary startup path: a deep-link launch
+    // (?run=/?src=/?url=) returned above, which is deliberate twice over -- it
+    // brings its own program, and a player must not overwrite the session the
+    // user left behind. Autosave is armed after the restore so that reading the
+    // session back never rewrites it, and before newProgram() so a first-time
+    // visitor's work is covered from the first keystroke.
+    if (!loaded) loaded = mainwin.restoreWasmSession();
+    mainwin.enableWasmSessionAutosave();
+#endif
+
     if(!loaded) mainwin.newProgram();
     return qapp.exec();
 }

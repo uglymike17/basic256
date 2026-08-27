@@ -145,6 +145,10 @@ Interpreter::~Interpreter() {
 }
 
 #define optype(op) (OPTYPE_MASK & op) //faster
+// the optype as a small dense number 0..7 rather than 0x00000000..0x07000000
+// - the values run consecutively so the dispatch switch in execByteCode
+// compiles to a single jump table instead of a chain of comparisons
+#define optypeindex(op) (((unsigned int)(op)) >> 24)
 /*
 int Interpreter::optype(int op) {
 	// use constantants found in WordCodes.h
@@ -1095,8 +1099,9 @@ Interpreter::run() {
 }
 
 void Interpreter::runLoop() {
-	int rv = 0;
-	while (status != R_STOPPING && rv==0) {rv = execByteCode();} //continue
+	// execByteCode() now runs opcodes until the program stops or a fatal error
+	// is raised - it returns 0 when it saw R_STOPPING and -1 when it died
+	int rv = execByteCode();
 	if (status == R_STOPPING && onstopaddr && rv >=0 ) {
 		// is there an onstop handler for user event stop
 		// and we are not at a programatic "end"
@@ -1378,6 +1383,15 @@ int
 Interpreter::execByteCode() {
 	int opcode;
 
+	// The interpreter loop lives here rather than in runLoop() so that the
+	// prologue and epilogue of this very large function run once per run
+	// instead of once per opcode.  Finishing an opcode used to be "return 0"
+	// and a fresh call from runLoop() - it is now a jump back to nextop.
+	// A jump rather than a loop with "continue" because the opcode bodies are
+	// full of nested loops and switches that "continue" would bind to instead.
+nextop:
+	if (status == R_STOPPING) return 0;
+
 	// if errnum is set then handle the last thrown error
 	if (error->pending()) {
 		//change ERROR_VARNOTASSIGNED into ERROR_ARRAYELEMENT if variable implied is in fact an array element
@@ -1408,13 +1422,13 @@ Interpreter::execByteCode() {
 			trycatchframe *temp_trycatchstack = trycatchstack;
 			trycatchstack=trycatchstack->next;
 			delete temp_trycatchstack;
-			return 0;
+			goto nextop;
 		}else if(onerrorstack->count() > 0) {
 			//there is on-error defined
 			// progess call to subroutine for error handling
 			callstack->push(op);
 			op = onerrorstack->peek();
-			return 0;
+			goto nextop;
 		} else {
 			isError=true;
 			// no error handler defined or FATAL error - display message
@@ -1477,8 +1491,8 @@ Interpreter::execByteCode() {
 	opcode = *op;
 	op++;
 
-	switch (optype(opcode)) {
-		case OPTYPE_VAR_VAR: {
+	switch (optypeindex(opcode)) {
+		case optypeindex(OPTYPE_VAR_VAR): {
 			//
 			// OPCODES with two variable numbers following in the wordCcode go in this switch
 			// int i is the symbol/variable number
@@ -1600,7 +1614,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 			break;
 		}	
 
-		case OPTYPE_VARIABLE: {
+		case optypeindex(OPTYPE_VARIABLE): {
 			//
 			// OPCODES with an variable number following in the wordCcode go in this switch
 			// int i is the symbol/variable number
@@ -2048,7 +2062,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 		}
 		break;
 
-		case OPTYPE_INT: {
+		case optypeindex(OPTYPE_INT): {
 			//
 			// OPCODES with an integer following in the wordCcode go in this switch
 			// int i is the number extracted from the wordCode
@@ -2101,7 +2115,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 			}
 			break;
 
-		case OPTYPE_FLOAT: {
+		case optypeindex(OPTYPE_FLOAT): {
 			//
 			// OPCODES with an double following in the wordCcode go in this switch
 			// double d is the number extracted from the wordCode
@@ -2119,7 +2133,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 		}
 		break;
 
-		case OPTYPE_LONG: {
+		case optypeindex(OPTYPE_LONG): {
     		qint64 *ll = (qint64 *) op;
     		op += bytesToFullWords(sizeof(qint64));     // advance by 2 words
     		switch(opcode) {
@@ -2130,7 +2144,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 		}
 		break;
 
-		case OPTYPE_STRING: {
+		case optypeindex(OPTYPE_STRING): {
 			//
 			// OPCODES with a string in the wordCcode go in this switch
 			// int len will be set to the length and
@@ -2150,7 +2164,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 		}
 		break;
 
-		case OPTYPE_LABEL: {
+		case optypeindex(OPTYPE_LABEL): {
 			//
 			// OPCODES with an integer wordCode label/symbol number go here
 			// the symbol is looked up in the symtableaddress and changed to an array location
@@ -2344,7 +2358,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 			}
 		}
 			break;
-			 case OPTYPE_NONE: {
+			 case optypeindex(OPTYPE_NONE): {
 			switch(opcode) {
 				case OP_NOP:
 					break;
@@ -2574,7 +2588,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
                 				} while (readmore && c != ' ' && c != '\t' && c != '\n');
             				}
             				stack->pushQString(QString::fromUtf8(token));
-            				return 0; // nextop
+            				goto nextop;
         				}
     				}
 				}
@@ -3251,6 +3265,43 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					break;
 
 				case OP_ADD: {
+						// in-place fast path - when both operands are already
+						// numbers the answer is worked out in the element
+						// underneath and the other one dropped, so an add
+						// costs one pool release instead of two releases and
+						// an allocation. Anything else falls through to the
+						// general case below, which is unchanged.
+						{
+							DataElement *a1 = stack->peekDE(0);
+							DataElement *a2 = stack->peekDE(1);
+							if (a1 && a2) {
+								if (a1->type==T_INT && a2->type==T_INT) {
+									qint64 a = a2->intval + a1->intval;
+									if(a>=INT_MIN && a<=INT_MAX) {
+										a2->intval = a;
+									} else {
+										// overflow - promote to float, as below
+										a2->floatval = (double)(a2->intval) + (double)(a1->intval);
+										a2->type = T_FLOAT;
+									}
+									stack->dropTop();
+									break;
+								}
+								if ((a1->type==T_INT || a1->type==T_FLOAT) &&
+									(a2->type==T_INT || a2->type==T_FLOAT)) {
+									double ans = (a2->type==T_INT ? (double)(a2->intval) : a2->floatval)
+											   + (a1->type==T_INT ? (double)(a1->intval) : a1->floatval);
+									if (std::isinf(ans)) {
+										error->q(ERROR_INFINITY);
+										ans = 0.0;
+									}
+									a2->floatval = ans;
+									a2->type = T_FLOAT;
+									stack->dropTop();
+									break;
+								}
+							}
+						}
 						// integer and float safe ADD operation
 						DataElement *one = stack->popDE();			// RELEASE
 						DataElement *two = stack->popDE();			// RELEASE
@@ -3306,6 +3357,35 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					break;
 
 				case OP_SUB: {
+						// in-place fast path - see OP_ADD
+						{
+							DataElement *a1 = stack->peekDE(0);
+							DataElement *a2 = stack->peekDE(1);
+							if (a1 && a2) {
+								if (a1->type==T_INT && a2->type==T_INT) {
+									qint64 a = a2->intval - a1->intval;
+									if(a>=INT_MIN && a<=INT_MAX) {
+										a2->intval = a;
+										stack->dropTop();
+										break;
+									}
+									// overflow falls through to the float case
+								}
+								if ((a1->type==T_INT || a1->type==T_FLOAT) &&
+									(a2->type==T_INT || a2->type==T_FLOAT)) {
+									double ans = (a2->type==T_INT ? (double)(a2->intval) : a2->floatval)
+											   - (a1->type==T_INT ? (double)(a1->intval) : a1->floatval);
+									if (std::isinf(ans)) {
+										error->q(ERROR_INFINITY);
+										ans = 0.0;
+									}
+									a2->floatval = ans;
+									a2->type = T_FLOAT;
+									stack->dropTop();
+									break;
+								}
+							}
+						}
 						// integer and float safe SUB operation
 						DataElement *one = stack->popDE();			// RELEASE
 						DataElement *two = stack->popDE();			// RELEASE
@@ -3335,6 +3415,44 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					break;
 
 				case OP_MUL: {
+						// in-place fast path - see OP_ADD. The string repeat
+						// case (int * string) is not handled here and falls
+						// through to the general case below.
+						{
+							DataElement *a1 = stack->peekDE(0);
+							DataElement *a2 = stack->peekDE(1);
+							if (a1 && a2) {
+								if (a1->type==T_INT && a2->type==T_INT) {
+									if(a2->intval==0 || a1->intval==0) {
+										a2->intval = 0;
+										stack->dropTop();
+										break;
+									}
+									if (llabs(a1->intval) <= INT64_MAX / llabs(a2->intval)) {
+										qint64 a = a2->intval * a1->intval;
+										if(a>=INT_MIN && a<=INT_MAX) {
+											a2->intval = a;
+											stack->dropTop();
+											break;
+										}
+									}
+									// overflow - fall into the float case below
+								}
+								if ((a1->type==T_INT || a1->type==T_FLOAT) &&
+									(a2->type==T_INT || a2->type==T_FLOAT)) {
+									double ans = (a2->type==T_INT ? (double)(a2->intval) : a2->floatval)
+											   * (a1->type==T_INT ? (double)(a1->intval) : a1->floatval);
+									if (std::isinf(ans)) {
+										error->q(ERROR_INFINITY);
+										ans = 0.0;
+									}
+									a2->floatval = ans;
+									a2->type = T_FLOAT;
+									stack->dropTop();
+									break;
+								}
+							}
+						}
 						// integer and float safe MUL operation
 						DataElement *one = stack->popDE();			// RELEASE
 						DataElement *two = stack->popDE();			// RELEASE
@@ -8039,5 +8157,5 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 	if (Convert::getError()) error->q(Convert::getError(true));
 	if (DataElement::getError()) error->q(DataElement::getError(true));
 
-	return 0;
+	goto nextop;
 }

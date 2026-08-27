@@ -12,7 +12,7 @@
   <img src="BitBot_Hello.png" height="192" alt="BitBot, the BASIC256 mascot: a friendly white and green robot with a smiling screen for a face, headphones, a green cape and 256 on its chest, waving hello">
 </p>
 
-This project is the actively maintained continuation of the original BASIC256, bringing the educational environment to Windows, Linux, macOS and the Web while preserving compatibility with existing BASIC256 programs. It also has an extensive documentation site, https://doc.basic256.org, accessible from the application's Help → Online Help menu.  
+This project is the actively maintained continuation of the original BASIC256, bringing the educational environment to Windows, Linux, macOS and the Web while preserving compatibility with existing BASIC256 programs. Its homepage is at https://basic256.org. It also has an extensive documentation site, https://doc.basic256.org, accessible from the application's Help → Online Help menu, and a third site, https://run.basic256.org, lets you run it in a browser.  
 
 ## Why use BASIC256?
 
@@ -25,18 +25,15 @@ This project is the actively maintained continuation of the original BASIC256, b
 
 ## What's new in BASIC256 2.1
 
-- Qt6
-- CMake build system  
-- Microsoft Visual Studio 2022 support  
-- WebAssembly  
-- macOS builds for Silicon and Intel Macs!  
-- GitHub Actions  
-- New standard library  
-- Better command line (fullscreen mode, graphics only, text only and silent running)  
-- Modern documentation  
-- Updated examples  
-- View > Theme settings for Dark themes  
+- Build environment: GitHub Actions / CMake / Qt6 /  MS Visual Studio 2022 support   
+- Supported architectures: WebAssembly  and macOS for Silicon and Intel Macs!  
+- Command line: fullscreen mode, graphics only, text only and silent running  
+- IDE: View-Theme settings for Dark themes / Updated examples / New standard library  
+- Updated documentation based on Docusaurus
 
+## What's new in BASIC256 2.1.1
+- 2x speed-up for arithmetic-heavy loops (fractals, physics,..)
+- WASM code persistence so your coding session doesn't just disappear when doing a browser refresh or restart.
 
 ## Try it in your browser
 
@@ -185,8 +182,7 @@ There is however a possibility to add your own Developer ID in the build script,
 The browser build is v1 and has a few known gaps compared to the desktop app:
 
 - `SYSTEM`, serial port commands (`SERIALOPEN`...), `NETSERVER`/TCP server sockets, `DBOPEN`/SQL and `PRINTER...` are not available in a browser sandbox. Programs calling them get a clear "Feature not available on this platform" error and keep running — they don't crash or hang.
-- Files a running program creates only live for the current browser session (no persistent storage yet).
-- As the WASM build has no native filesystem for include to read from, it cannot include modules like math.kbs that are available in the other builds.
+- Data files a running program creates with `open`/`write` only live for the current browser session. Your programs in the editor do persist across a refresh.
 - `NETREAD` (fetching a URL) is subject to the target site's CORS policy, same as any browser page.
 
 ## Command line / Terminal usage

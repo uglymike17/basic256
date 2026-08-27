@@ -5,6 +5,54 @@
 
 int DataElement::e = ERROR_NONE;
 
+// Free list of recycled DataElement blocks.
+//
+// The interpreter allocates and frees a DataElement for every value it pushes
+// or pops, so a single "a * b" costs three malloc/free pairs.  Recycling the
+// raw blocks removes that traffic without changing a single call site - every
+// "new DataElement(...)" and "delete" below and in Stack, Variables and
+// Interpreter goes through here.  Constructors and destructors still run as
+// normal, so the QString member is built and torn down correctly.
+//
+// The list is intrusive: a freed block stores the next pointer in its own first
+// bytes, so keeping the list costs no memory of its own.  It is thread_local so
+// each thread owns its own list and no locking is needed; the head is a plain
+// pointer with no destructor, so a block freed late in shutdown can never land
+// in an already-destroyed container.
+//
+// The list is capped.  Tearing down a large array frees up to a million
+// elements at once and an uncapped list would hold that memory for the life of
+// the program - painful under emscripten.  The cap is far above the depth the
+// operand stack ever reaches, so the hot path is always served from the list.
+namespace {
+	const int DE_POOL_MAX = 4096;
+	thread_local void *de_pool = nullptr;
+	thread_local int de_pool_count = 0;
+}
+
+void* DataElement::operator new(std::size_t size) {
+	// nothing derives from DataElement today, but operator new is inherited -
+	// only serve a request the pooled blocks are known to be big enough for
+	if (size == sizeof(DataElement) && de_pool) {
+		void *p = de_pool;
+		de_pool = *reinterpret_cast<void**>(p);
+		de_pool_count--;
+		return p;
+	}
+	return ::operator new(size);
+}
+
+void DataElement::operator delete(void *p) noexcept {
+	if (!p) return;
+	if (de_pool_count >= DE_POOL_MAX) {
+		::operator delete(p);
+		return;
+	}
+	*reinterpret_cast<void**>(p) = de_pool;
+	de_pool = p;
+	de_pool_count++;
+}
+
 void DataElement::init() {
 	// initialize dataelement common stuff
 	e=0;

@@ -6,6 +6,8 @@
 #include <math.h>
 #include <cmath>
 #include <limits>
+#include <cstddef>
+#include <new>
 
 #include <QString>
 
@@ -58,7 +60,14 @@ class DataElement
 		DataElement(qint64);
 		DataElement(int);
 		DataElement(DataElement *);
-		
+
+		// DataElements are created and destroyed constantly - every stack push
+		// and pop of the interpreter is one - so the raw blocks are recycled
+		// through a free list instead of going back to the allocator each time.
+		// Construction and destruction are untouched, only the memory is reused.
+		static void* operator new(std::size_t);
+		static void operator delete(void*) noexcept;
+
 		QString debug();
 		void copy(DataElement *);
 		

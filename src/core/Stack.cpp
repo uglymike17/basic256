@@ -22,14 +22,12 @@ Stack::~Stack() {
 }
 
 void Stack::stackGrow() {
-	// add 10 elements to the size of the stack
-	int i = stacksize;
-	stackdata.resize(stacksize+10);
+	// add 10 empty slots to the size of the stack
+	// the slots are left NULL - every push allocates the element it stores, so
+	// filling them in advance saved nothing and leaked each pre-made element
+	// as soon as a push overwrote its pointer
+	stackdata.resize(stacksize+10, NULL);
 	stacksize=stackdata.size();
-	while(i< stacksize) {
-		stackdata[i] = new DataElement();
-		i++;
-	}
 }
 
 QString Stack::debug() {
@@ -65,79 +63,19 @@ void Stack::pushDE(DataElement *source) {
 	stackpointer++;
 }
 
-void Stack::pushLong(qint64 i) {
-	if (stackpointer >= stacksize)  stackGrow();
-	stackdata[stackpointer++] = new DataElement((qint64)i);
-}
-
-void Stack::pushRef(int i, int level) {
-	if (stackpointer >= stacksize)  stackGrow();
-	stackdata[stackpointer] = new DataElement();
-	stackdata[stackpointer]->type = T_REF;
-	stackdata[stackpointer]->intval = i;
-	stackdata[stackpointer++]->level = level;
-}
-
-void Stack::pushDouble(double d) {
-	if (stackpointer >= stacksize)  stackGrow();
-	stackdata[stackpointer++] = new DataElement(d);
-}
-
-void Stack::pushQString(QString string) {
-	if (stackpointer >= stacksize)  stackGrow();
-	stackdata[stackpointer++] = new DataElement(string);
-}
-
-void Stack::pushInt(int i) {
-	if (stackpointer >= stacksize)  stackGrow();
-	stackdata[stackpointer++] = new DataElement((qint64)i);
-}
-
-void Stack::pushBool(bool i) {
-	if (stackpointer >= stacksize)  stackGrow();
-	stackdata[stackpointer++] = new DataElement(i?1LL:0LL);
-}
-
-void Stack::pushUnassigned() {
-	if (stackpointer >= stacksize)  stackGrow();
-	stackdata[stackpointer++] = new DataElement();
-}
-
-//
-// Peek Operations - look but dont touch
-
-int Stack::peekType() {
-	return peekType(0);
-}
-
-int Stack::peekType(int i) {
-	if (stackpointer<=i) {
-		e = ERROR_STACKUNDERFLOW;
-		return T_UNASSIGNED;
-	}
-	return stackdata[stackpointer - i - 1]->type;
-}
-
 //
 // Raw Pop Operations
 
-DataElement *Stack::popDE() {
-	// pop an element - a POINTER to the data on the stack
-	// WILL CHANGE ON NEXT PUSH!!!!
-	
-	// MUST delete THIS AFTER YOU ARE DONE WITH IT!!!!!!!!
-	
-	if (stackpointer==0) {
-		e = ERROR_STACKUNDERFLOW;
-		// return a fake element instead of NULL
-		// to handle a potential error in Interpreter
-		DataElement *de = new DataElement();
-		de->type = T_INT;
-		de->intval = 0l;
-		return de;
-	}
-	stackpointer--;
-	return stackdata[stackpointer];
+DataElement *Stack::popDEUnderflow() {
+	// the cold half of popDE() - kept out of line so the inline fast path in
+	// Stack.h stays small enough to be worth inlining
+	e = ERROR_STACKUNDERFLOW;
+	// return a fake element instead of NULL
+	// to handle a potential error in Interpreter
+	DataElement *de = new DataElement();
+	de->type = T_INT;
+	de->intval = 0l;
+	return de;
 }
 
 int Stack::popBool() {
@@ -292,9 +230,15 @@ void Stack::drop(int n){
 	//quick drop a number of elements from stack
 	//usefull to clear the stack when an array from stack is not needed anymore
 	//in case that error is catched and we want to pass over that (ONERROR or TRY/CATCH)
-	stackpointer-=n;
-	if (stackpointer<0) {
-		stackpointer=0;
-		e = ERROR_STACKUNDERFLOW;
+	// the dropped elements are deleted - nobody else holds a pointer to them
+	while (n-- > 0) {
+		if (stackpointer<=0) {
+			stackpointer=0;
+			e = ERROR_STACKUNDERFLOW;
+			return;
+		}
+		stackpointer--;
+		delete stackdata[stackpointer];
+		stackdata[stackpointer] = NULL;
 	}
 }
