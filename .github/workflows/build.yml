@@ -1,7 +1,7 @@
 name: Build BASIC-256_2.1.Beta CMake
 on:
   push:
-    branches: [ main, v2.1.1.Beta01 ]
+    branches: [ main, v2.1.2.Beta01 ]
     # Pushes to either branch build/test the full matrix, but only main
     # deploys to GitHub Pages -- the pages-deploy job below stays gated to
     # refs/heads/main, so breaking changes on the beta branch can't
@@ -10,10 +10,9 @@ on:
     # gate could never be reached.)
     #
     # Note a push only ever consults the workflow file on the branch being
-    # pushed, so the beta entry here is documentation of what is active --
-    # v2.1.1.Beta01's own copy is what actually builds that branch, and a
-    # new beta branch has to add itself to its own copy or a push to it
-    # triggers nothing at all.
+    # pushed, so the beta entry here is what makes THIS branch build at all
+    # -- and main's own copy is what builds main. A new beta branch has to
+    # add itself here, in its own copy, or a push to it triggers nothing.
   pull_request:
   release:
     types: [created]

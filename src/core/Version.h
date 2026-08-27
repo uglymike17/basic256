@@ -27,13 +27,13 @@
 #endif
 // What the language's version function returns, encoded as
 // major*1000000 + minor*10000 + patch*100 + sub, so 2.0.0.11 = 2000011 and
-// 2.1.1.0 = 2010100. Programs gate on it (TestSuite/testsuite.kbs decodes
+// 2.1.2.0 = 2010200. Programs gate on it (TestSuite/testsuite.kbs decodes
 // exactly this scheme), so keep it in step with VERSIONPRODUCT below.
 //
 // Unlike VERSION above, this does NOT follow the branch name: a program
-// asking version() on a 2.1.1 beta build should be told 2.1.1, so these two
+// asking version() on a 2.1.2 beta build should be told 2.1.2, so these two
 // are bumped by hand when a new patch line opens.
-#define VERSIONSIGNATURE  2010100
-#define VERSIONPRODUCT 2,1,1,0
+#define VERSIONSIGNATURE  2010200
+#define VERSIONPRODUCT 2,1,2,0
 
 #endif
