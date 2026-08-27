@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(basic256 VERSION 2.1.0 LANGUAGES C CXX)
+project(basic256 VERSION 2.1.1 LANGUAGES C CXX)
 
 # Force C++17 standard 
 set(CMAKE_CXX_STANDARD 17)
@@ -410,14 +410,14 @@ endif()
 # the "2.1.Alpha04Qt6" version string. Anything that doesn't look like a
 # version branch (main, a detached-HEAD SHA, git not found, ...) shows the
 # name below: main is the branch the public builds come from, and it now
-# carries released 2.1.0, so it reads as the release and no longer as a
+# carries released 2.1.1, so it reads as the release and no longer as a
 # beta. Spelled out rather than written as "${PROJECT_VERSION}", which
-# happens to hold the same 2.1.0: build_installer_Windows.ps1 recovers this
+# happens to hold the same 2.1.1: build_installer_Windows.ps1 recovers this
 # value by regex over the file, so it has to be a literal string here or the
 # installer would be labelled with the unexpanded variable name.
 # That script parses this exact set() line so the installer label cannot
 # drift from the About box; keep the two in lockstep.
-set(BASIC256_MAIN_DISPLAY_VERSION "2.1.0")
+set(BASIC256_MAIN_DISPLAY_VERSION "2.1.1")
 if(BASIC256_BUILD_BRANCH MATCHES "^[vV][0-9]")
     string(REGEX REPLACE "^[vV]" "" BASIC256_BUILD_VERSION "${BASIC256_BUILD_BRANCH}")
 else()

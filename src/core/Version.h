@@ -23,7 +23,7 @@
 // is only the fallback for builds that don't go through CMake's derivation
 // (e.g. an IDE opening this header directly without a configure step).
 #ifndef VERSION
-#define VERSION "2.1.0"
+#define VERSION "2.1.1"
 #endif
 // What the language's version function returns, encoded as
 // major*1000000 + minor*10000 + patch*100 + sub, so 2.0.0.11 = 2000011 and
