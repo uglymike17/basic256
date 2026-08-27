@@ -1,0 +1,2 @@
+# Local build tree (CMake / Visual Studio generator output, deployed app, packages)
+build/
