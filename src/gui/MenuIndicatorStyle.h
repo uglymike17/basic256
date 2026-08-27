@@ -39,15 +39,27 @@ class QStyleOptionMenuItem;
 // a checkable item should read as checkable, and the icon still shows on the
 // toolbar. Only menu painting is affected; nothing else in the application
 // changes appearance.
+//
+// It also keeps the menu bar's own titles at the system text size -- see
+// drawItemText() -- which the Windows 11 style otherwise ignores.
 class MenuIndicatorStyle : public QProxyStyle
 {
 public:
 	void drawControl(ControlElement element, const QStyleOption *option,
 					 QPainter *painter, const QWidget *widget) const override;
+	void drawItemText(QPainter *painter, const QRect &rect, int flags, const QPalette &pal,
+					  bool enabled, const QString &text,
+					  QPalette::ColorRole textRole = QPalette::NoRole) const override;
 	QSize sizeFromContents(ContentsType type, const QStyleOption *option,
 						   const QSize &contentsSize, const QWidget *widget) const override;
 
 private:
+	// The menu bar whose item is being painted right now, or nullptr when the
+	// text about to be drawn is anything else. Set by drawControl() for the
+	// length of one CE_MenuBarItem and read back in drawItemText(), which the
+	// base style reaches through proxy() while it draws that item.
+	mutable const QWidget *menubar = nullptr;
+
 	static bool menuHasCheckableItem(const QWidget *widget);
 	// Side of the square box, and the width of the column it is drawn in --
 	// half a box wider, so the box sits left of the text rather than under it.

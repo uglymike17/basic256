@@ -16,12 +16,14 @@
 #include "MenuIndicatorStyle.h"
 
 #include <QAction>
+#include <QFont>
 #include <QMenu>
 #include <QPainter>
 #include <QPaintDevice>
 #include <QPixmap>
 #include <QPixmapCache>
 #include <QStyleOption>
+#include <QWidget>
 
 bool MenuIndicatorStyle::menuHasCheckableItem(const QWidget *widget) {
 	const QMenu *menu = qobject_cast<const QMenu *>(widget);
@@ -107,6 +109,25 @@ int MenuIndicatorStyle::capToSlot(int box, const QStyleOptionMenuItem &item, con
 void MenuIndicatorStyle::drawControl(ControlElement element, const QStyleOption *option,
 									 QPainter *painter, const QWidget *widget) const {
 
+	if (element == CE_MenuBarItem) {
+		// The Windows 11 style paints every menu bar title at a hardcoded 10
+		// points -- qwindows11style.cpp, CE_MenuBarItem, "newMbi.font.setPointSize(10)"
+		// -- so File/Edit/View/... alone stay one fixed size while the rest of
+		// the application follows the system text size (Main.cpp derives the
+		// application font from it). It hands the text to QCommonStyle, which
+		// draws it through proxy()->drawItemText(), and proxy() is this style:
+		// note the menu bar for the length of this one item and drawItemText()
+		// below puts the widget's own font back. Correcting it there leaves
+		// every rectangle the style worked out untouched -- only the size of
+		// the glyphs changes -- and costs nothing under a style that never
+		// substituted a font in the first place.
+		const QWidget *previous = menubar;
+		menubar = widget;
+		QProxyStyle::drawControl(element, option, painter, widget);
+		menubar = previous;
+		return;
+	}
+
 	if (element == CE_MenuItem) {
 		const QStyleOptionMenuItem *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option);
 		if (item && item->menuItemType == QStyleOptionMenuItem::Normal
@@ -145,10 +166,38 @@ void MenuIndicatorStyle::drawControl(ControlElement element, const QStyleOption 
 	QProxyStyle::drawControl(element, option, painter, widget);
 }
 
+void MenuIndicatorStyle::drawItemText(QPainter *painter, const QRect &rect, int flags,
+									  const QPalette &pal, bool enabled, const QString &text,
+									  QPalette::ColorRole textRole) const {
+
+	if (menubar && painter) {
+		// A menu bar title, so draw it in the menu bar's own font rather than
+		// whatever the base style left on the painter (see drawControl).
+		const QFont substituted = painter->font();
+		painter->setFont(menubar->font());
+		QProxyStyle::drawItemText(painter, rect, flags, pal, enabled, text, textRole);
+		painter->setFont(substituted);
+		return;
+	}
+
+	QProxyStyle::drawItemText(painter, rect, flags, pal, enabled, text, textRole);
+}
+
 QSize MenuIndicatorStyle::sizeFromContents(ContentsType type, const QStyleOption *option,
 										   const QSize &contentsSize, const QWidget *widget) const {
 
 	QSize size = QProxyStyle::sizeFromContents(type, option, contentsSize, widget);
+
+	if (type == CT_MenuBarItem && !contentsSize.isEmpty()) {
+		// The same style fixes the height of a menu bar item at 32 logical
+		// pixels whatever the text in it, so at a large system text size the
+		// title -- now drawn at that size, see drawItemText() -- no longer fits
+		// the bar and is clipped top and bottom. contentsSize is the size of
+		// the text itself; keep the padding the style asked for around it, and
+		// only ever grow, so the bar is left alone at the sizes where it fits.
+		const int padding = 10;
+		size.setHeight(qMax(size.height(), contentsSize.height() + padding));
+	}
 
 	if (type == CT_MenuItem) {
 		const QStyleOptionMenuItem *item = qstyleoption_cast<const QStyleOptionMenuItem *>(option);
