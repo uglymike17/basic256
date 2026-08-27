@@ -1,10 +1,11 @@
-2026-08-14 M. Vilain <uglymike17@gmail.com>  
-	* Work has started on v2.1.1, beginning at Beta1. v2.1.0 is the stable release and stays available on the releases page.
+2026-08-27 M. Vilain <uglymike17@gmail.com>  
+	* The project has now reached a stable v2.1.1 state.
 	* Browser (WASM): what is in the editor now stays in the browser, so a refresh, a closed tab or a restarted browser no longer loses the program. Every open tab comes back with its text, its name and whichever one was in front. Saving still downloads the file exactly as before -- this is a safety net, not a replacement for saving.
-	* The Help/About BASIC-256 box now names the project's own website, https://basic256.org, as well as the documentation site, https://doc.basic256.org.
-	* The status bar reads "Stopping" while a program is being stopped, instead of the misspelled "Stoping".
-	* The Windows downloads no longer include Microsoft's Visual C++ redistributable as a file of its own. It has always been, and still is, bundled inside the installer, which offers to install it if the system needs it.
 	* Programs run faster, with arithmetic-heavy loops roughly twice as fast. The interpreter reuses the memory it holds values in instead of asking the system for a new block and handing it back for every value it creates, and it steps from one instruction to the next with less work. The browser version gains the most.
+	* The Help/About BASIC-256 box now names the project's own website, https://basic256.org, as well as the documentation site, https://doc.basic256.org.
+	* The Windows downloads no longer include Microsoft's Visual C++ redistributable as a file of its own. It has always been, and still is, bundled inside the installer, which offers to install it if the system needs it.
+	* Windows 11: the titles in the menu bar -- File, Edit, View and the rest -- are drawn at the system text size, like everything else in the program, and the bar makes room for them when that size is large.
+	
 
 2026-08-10 M. Vilain <uglymike17@gmail.com>  
 	* The project has now reached a stable v2.1 state.

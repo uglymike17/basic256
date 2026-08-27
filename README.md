@@ -12,7 +12,7 @@
   <img src="BitBot_Hello.png" height="192" alt="BitBot, the BASIC256 mascot: a friendly white and green robot with a smiling screen for a face, headphones, a green cape and 256 on its chest, waving hello">
 </p>
 
-This project is the actively maintained continuation of the original BASIC256, bringing the educational environment to Windows, Linux, macOS and the Web while preserving compatibility with existing BASIC256 programs. It also has an extensive documentation site, https://doc.basic256.org, accessible from the application's Help → Online Help menu.  
+This project is the actively maintained continuation of the original BASIC256, bringing the educational environment to Windows, Linux, macOS and the Web while preserving compatibility with existing BASIC256 programs. Its homepage is at https://basic256.org. It also has an extensive documentation site, https://doc.basic256.org, accessible from the application's Help → Online Help menu and a third site, https://run.basic256.org,  allows you to run it in a browser: .  
 
 ## Why use BASIC256?
 
@@ -25,18 +25,15 @@ This project is the actively maintained continuation of the original BASIC256, b
 
 ## What's new in BASIC256 2.1
 
-- Qt6
-- CMake build system  
-- Microsoft Visual Studio 2022 support  
-- WebAssembly  
-- macOS builds for Silicon and Intel Macs!  
-- GitHub Actions  
-- New standard library  
-- Better command line (fullscreen mode, graphics only, text only and silent running)  
-- Modern documentation  
-- Updated examples  
-- View > Theme settings for Dark themes  
+- Build environment: GitHub Actions / CMake / Qt6 /  MS Visual Studio 2022 support   
+- Supported architectures: WebAssembly  and macOS for Silicon and Intel Macs!  
+- Command line: fullscreen mode, graphics only, text only and silent running  
+- IDE: View-Theme settings for Dark themes / Updated examples / New standard library  
+- Updated documentation based on Docusaurus
 
+## What's new in BASIC256 2.1.1
+- 2x speed-up for arithmetic-heavy loops (fractals, physics,..)
+- WASM code persistence so your coding session doesn't just disappear when doing a browser refresh or restart.
 
 ## Try it in your browser
 
