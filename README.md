@@ -181,9 +181,9 @@ There is however a possibility to add your own Developer ID in the build script,
 
 The browser build is v1 and has a few known gaps compared to the desktop app:
 
-- `SYSTEM`, serial port commands (`SERIALOPEN`...), `NETSERVER`/TCP server sockets, `DBOPEN`/SQL and `PRINTER...` are not available in a browser sandbox. Programs calling them get a clear "Feature not available on this platform" error and keep running — they don't crash or hang.
+- `SYSTEM`, serial port commands (`SERIALOPEN`...), the whole `NET...` family (`NETCONNECT` as well as `NETLISTEN`), `DBOPEN`/SQL and `PRINTER...` are not available in a browser sandbox. Programs calling them get a clear "Feature not available on this platform" error and keep running — they don't crash or hang.
 - Data files a running program creates with `open`/`write` only live for the current browser session. Your programs in the editor do persist across a refresh.
-- `NETREAD` (fetching a URL) is subject to the target site's CORS policy, same as any browser page.
+- Loading media over HTTP is a separate path and does work: `SOUNDLOAD`, `IMGLOAD` and the sprite loads resolve a relative path against the page's own URL, so `sounds/bounce.mp3` is fetched from the server that served the page. An absolute URL naming another host is subject to that site's CORS policy, same as any browser page.
 
 ## Command line / Terminal usage
 
