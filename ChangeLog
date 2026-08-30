@@ -1,3 +1,6 @@
+2026-08-30 M. Vilain <uglymike17@gmail.com>  
+	* Windows: a running program's graphics no longer stop for seconds at a time until the mouse is moved. Animations that end each frame with REFRESH, and programs that draw without FASTGRAPHICS, now run at a steady rate whether or not the mouse is touched.
+
 2026-08-27 M. Vilain <uglymike17@gmail.com>  
 	* The project has now reached a stable v2.1.1 state.
 	* Browser (WASM): what is in the editor now stays in the browser, so a refresh, a closed tab or a restarted browser no longer loses the program. Every open tab comes back with its text, its name and whichever one was in front. Saving still downloads the file exactly as before -- this is a safety net, not a replacement for saving.
