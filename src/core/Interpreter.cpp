@@ -4402,10 +4402,10 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_LINE: {
-					int y1val = stack->popInt();
-					int x1val = stack->popInt();
-					int y0val = stack->popInt();
-					int x0val = stack->popInt();
+					double y1val = stack->popDouble();
+					double x1val = stack->popDouble();
+					double y0val = stack->popDouble();
+					double x0val = stack->popDouble();
 
 					//update painter's attributes only if needed (only pen)
 					if(painter_pen_need_update){
@@ -4421,7 +4421,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					}
 					//end painter update
 
-					painter->drawLine(x0val, y0val, x1val, y1val);
+					painter->drawLine(QLineF(x0val, y0val, x1val, y1val));
 
 					if (!fastgraphics && drawingOnScreen) waitForGraphics();
 				}
@@ -4431,10 +4431,10 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_ROUNDEDRECT:{
 					double y_rad = stack->popDouble();
 					double x_rad = stack->popDouble();
-					int y1val = stack->popInt();
-					int x1val = stack->popInt();
-					int y0val = stack->popInt();
-					int x0val = stack->popInt();
+					double y1val = stack->popDouble();
+					double x1val = stack->popDouble();
+					double y0val = stack->popDouble();
+					double x0val = stack->popDouble();
 
 					if(x1val<0) {
 						x0val+=x1val+1;
@@ -4464,16 +4464,16 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					//end painter update
 
 					if (x1val > 1 && y1val > 1) {
-						painter->drawRoundedRect(x0val, y0val, x1val-1, y1val-1, x_rad, y_rad);
+						painter->drawRoundedRect(QRectF(x0val, y0val, x1val-1, y1val-1), x_rad, y_rad);
 					} else if (x1val==1 && y1val==1) {
 						// rect 1x1 is actually a point
-						painter->drawPoint(x0val, y0val);
+						painter->drawPoint(QPointF(x0val, y0val));
 					} else if (x1val==1 && y1val!=0) {
 						// rect 1xn is actually a line
-						painter->drawLine(x0val, y0val, x0val, y0val+y1val);
+						painter->drawLine(QLineF(x0val, y0val, x0val, y0val+y1val));
 					} else if (x1val!=0 && y1val==1) {
 						// rect nx1 is actually a line
-						painter->drawLine(x0val, y0val, x0val + x1val, y0val);
+						painter->drawLine(QLineF(x0val, y0val, x0val + x1val, y0val));
 					}
 
 					if (!fastgraphics && drawingOnScreen) waitForGraphics();
@@ -4481,10 +4481,10 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_RECT: {
-					int y1val = stack->popInt();
-					int x1val = stack->popInt();
-					int y0val = stack->popInt();
-					int x0val = stack->popInt();
+					double y1val = stack->popDouble();
+					double x1val = stack->popDouble();
+					double y0val = stack->popDouble();
+					double x0val = stack->popDouble();
 
 					if(x1val<0) {
 						x0val+=x1val+1;
@@ -4514,16 +4514,16 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					//end painter update
 
 					if (x1val > 1 && y1val > 1) {
-						painter->drawRect(x0val, y0val, x1val-1, y1val-1);
+						painter->drawRect(QRectF(x0val, y0val, x1val-1, y1val-1));
 					} else if (x1val==1 && y1val==1) {
 						// rect 1x1 is actually a point
-						painter->drawPoint(x0val, y0val);
+						painter->drawPoint(QPointF(x0val, y0val));
 					} else if (x1val==1 && y1val!=0) {
 						// rect 1xn is actually a line
-						painter->drawLine(x0val, y0val, x0val, y0val+y1val);
+						painter->drawLine(QLineF(x0val, y0val, x0val, y0val+y1val));
 					} else if (x1val!=0 && y1val==1) {
 						// rect nx1 is actually a line
-						painter->drawLine(x0val, y0val, x0val + x1val, y0val);
+						painter->drawLine(QLineF(x0val, y0val, x0val + x1val, y0val));
 					}
 
 					if (!fastgraphics && drawingOnScreen) waitForGraphics();
@@ -4574,8 +4574,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					QPolygonF *poly = convert->getPolygonF(e);
 					double rotate = stack->popDouble();
 					double scale = stack->popDouble();
-					int y = stack->popInt();
-					int x = stack->popInt();
+					double y = stack->popDouble();
+					double x = stack->popDouble();
 					
 					if (poly) {
 						// scale, rotate, and position the points
@@ -4620,9 +4620,9 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 
 				case OP_CIRCLE: {
-					int rval = stack->popInt();
-					int yval = stack->popInt();
-					int xval = stack->popInt();
+					double rval = stack->popDouble();
+					double yval = stack->popDouble();
+					double xval = stack->popDouble();
 
 					//update painter's attributes only if needed (pen and brush)
 					if(painter_pen_need_update){
@@ -4642,17 +4642,17 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					}
 					//end painter update
 
-					painter->drawEllipse(xval - rval, yval - rval, 2 * rval, 2 * rval);
+					painter->drawEllipse(QRectF(xval - rval, yval - rval, 2 * rval, 2 * rval));
 
 					if (!fastgraphics && drawingOnScreen) waitForGraphics();
 				}
 				break;
 
 				case OP_ELLIPSE: {
-					int hval = stack->popInt();
-					int wval = stack->popInt();
-					int yval = stack->popInt();
-					int xval = stack->popInt();
+					double hval = stack->popDouble();
+					double wval = stack->popDouble();
+					double yval = stack->popDouble();
+					double xval = stack->popDouble();
 
 					//update painter's attributes only if needed (pen and brush)
 					if(painter_pen_need_update){
@@ -4672,7 +4672,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					}
 					//end painter update
 
-					painter->drawEllipse(xval, yval, wval, hval);
+					painter->drawEllipse(QRectF(xval, yval, wval, hval));
 
 					if (!fastgraphics && drawingOnScreen) waitForGraphics();
 				}
@@ -4686,8 +4686,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 					double rotate = stack->popDouble();
 					double scale = stack->popDouble();
-					double y = stack->popInt();
-					double x = stack->popInt();
+					double y = stack->popDouble();
+					double x = stack->popDouble();
 
 					QImage i;
 					if(QFileInfo(file).exists()){
@@ -4717,7 +4717,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 							}
 							//end update painter
 
-							painter->drawImage((int)(x - .5 * i.width()), (int)(y - .5 * i.height()), i);
+							painter->drawImage(QPointF(x - .5 * i.width(), y - .5 * i.height()), i);
 						}
 						if (!fastgraphics && drawingOnScreen) waitForGraphics();
 					}
@@ -4726,8 +4726,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 				case OP_TEXT: {
 					QString txt = stack->popQString();
-					int y0val = stack->popInt();
-					int x0val = stack->popInt();
+					double y0val = stack->popDouble();
+					double x0val = stack->popDouble();
 
 					//update painter's attributes only if needed (only pen)
 					if(painter_pen_need_update){
@@ -4747,7 +4747,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						painter->setFont(font);
 						painter_font_need_update=false;
 					}
-					painter->drawText(x0val, y0val+(QFontMetrics(painter->font()).ascent()), txt);
+					painter->drawText(QPointF(x0val, y0val+(QFontMetrics(painter->font()).ascent())), txt);
 
 					if (!fastgraphics && drawingOnScreen) waitForGraphics();
 				}
@@ -4757,10 +4757,10 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_TEXTBOX: {
 					int flags = stack->popInt();
 					QString txt = stack->popQString();
-					int h = stack->popInt();
-					int w = stack->popInt();
-					int y = stack->popInt();
-					int x = stack->popInt();
+					double h = stack->popDouble();
+					double w = stack->popDouble();
+					double y = stack->popDouble();
+					double x = stack->popDouble();
 
 					if(h<0){
 						y+=h;
@@ -4789,7 +4789,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						painter->setFont(font);
 						painter_font_need_update=false;
 					}
-					painter->drawText(x, y, w, h, flags|Qt::TextWordWrap|Qt::TextExpandTabs, txt);
+					painter->drawText(QRectF(x, y, w, h), flags|Qt::TextWordWrap|Qt::TextExpandTabs, txt);
 
 					if (!fastgraphics && drawingOnScreen) waitForGraphics();
 				}
@@ -4797,7 +4797,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 				case OP_TEXTBOXHEIGHT:
 				case OP_TEXTBOXWIDTH: {
-					int w = stack->popInt();
+					double w = stack->popDouble();
 					QString txt = stack->popQString();
 
 					if(w<0) w=-w;
@@ -4813,8 +4813,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						painter->setFont(font);
 						painter_font_need_update=false;
 					}
-					QRect boundingRect;
-					painter->drawText(-1, -1, w, 0, Qt::TextWordWrap, txt, &boundingRect);
+					QRectF boundingRect;
+					painter->drawText(QRectF(-1, -1, w, 0), Qt::TextWordWrap, txt, &boundingRect);
 					if(opcode==OP_TEXTBOXHEIGHT){
 						stack->pushInt(boundingRect.height());
 					}else{
@@ -4889,8 +4889,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_PLOT: {
-					int oneval = stack->popInt();
-					int twoval = stack->popInt();
+					double oneval = stack->popDouble();
+					double twoval = stack->popDouble();
 
 					//update painter's attributes only if needed (only pen)
 					if(painter_pen_need_update){
@@ -4906,7 +4906,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					}
 					//end painter update
 
-					painter->drawPoint(twoval, oneval);
+					painter->drawPoint(QPointF(twoval, oneval));
 
 					if (!fastgraphics && drawingOnScreen) waitForGraphics();
 				}
@@ -6656,22 +6656,22 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_ARC:
 				case OP_CHORD:
 				case OP_PIE: {
-					int yval, xval, hval, wval;
+					double yval, xval, hval, wval;
 					int arg = stack->popInt(); // number of arguments
 					double angwval = stack->popDouble();
 					double startval = stack->popDouble();
 
 					if(arg==5){
-						int rval = stack->popInt();
-						yval = stack->popInt() - rval;
-						xval = stack->popInt() - rval;
+						double rval = stack->popDouble();
+						yval = stack->popDouble() - rval;
+						xval = stack->popDouble() - rval;
 						hval = rval * 2;
 						wval = rval * 2;
 					}else{
-						hval = stack->popInt();
-						wval = stack->popInt();
-						yval = stack->popInt();
-						xval = stack->popInt();
+						hval = stack->popDouble();
+						wval = stack->popDouble();
+						yval = stack->popDouble();
+						xval = stack->popDouble();
 					}
 
 					// degrees * 16
@@ -6716,13 +6716,13 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					}
 
 					if(opcode==OP_ARC) {
-						painter->drawArc(xval, yval, wval, hval, s, aw);
+						painter->drawArc(QRectF(xval, yval, wval, hval), s, aw);
 					}
 					if(opcode==OP_CHORD) {
-						painter->drawChord(xval, yval, wval, hval, s, aw);
+						painter->drawChord(QRectF(xval, yval, wval, hval), s, aw);
 					}
 					if(opcode==OP_PIE) {
-						painter->drawPie(xval, yval, wval, hval, s, aw);
+						painter->drawPie(QRectF(xval, yval, wval, hval), s, aw);
 					}
 
 					if (!fastgraphics && drawingOnScreen) waitForGraphics();

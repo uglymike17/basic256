@@ -1,5 +1,6 @@
 2026-08-30 M. Vilain <uglymike17@gmail.com>  
 	* Windows: a running program's graphics no longer stop for seconds at a time until the mouse is moved. Animations that end each frame with REFRESH, and programs that draw without FASTGRAPHICS, now run at a steady rate whether or not the mouse is touched.
+	* Graphics statements now accept fractional coordinates. PLOT, LINE, RECT, CIRCLE, ELLIPSE, ARC, CHORD, PIE, STAMP, TEXT and IMGLOAD place what they draw where they are told instead of rounding down to the nearest whole pixel, so a circle at 100.5, 100.5 sits half a pixel right of and below one at 100, 100. Whole-number coordinates draw exactly as they always did. PIXEL, GETSLICE and PUTSLICE still address whole pixels, as they must.
 
 2026-08-27 M. Vilain <uglymike17@gmail.com>  
 	* The project has now reached a stable v2.1.1 state.
