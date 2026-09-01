@@ -478,6 +478,9 @@ QString Error::getErrorMessage(char **symtable) {
 		case ERROR_NOTAVAILABLE:
 			errormessage = tr("Feature not available on this platform");
 			break;
+		case ERROR_WINDOWSIZE:
+			errormessage = tr("WINDOW needs a width and a height that are not zero");
+			break;
 
 
 

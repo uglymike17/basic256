@@ -131,6 +131,7 @@
 #define ERROR_RMDIR						127
 #define ERROR_MKDIR						128
 #define ERROR_NOTAVAILABLE				129
+#define ERROR_WINDOWSIZE				130
 
 
 

@@ -103,6 +103,10 @@ extern "C" {
 Interpreter::Interpreter(QLocale *applocale, GraphicsBuffer *appgraphics, BasicKeyboard *appbasicKeyboard) {
 	//yydebug = 1;
 	fastgraphics = false;
+	windowActive = false;
+	winX1 = winY1 = winX2 = winY2 = 0.0;
+	windowTransform.reset();
+	windowInverse.reset();
 	status = R_STOPPED;
 	printing = false;
 	sleeper = new Sleeper();
@@ -311,6 +315,7 @@ QString Interpreter::opname(int op) {
 	case OP_MAINTOOLBARVISIBLE : return QString("OP_MAINTOOLBARVISIBLE");
 	case OP_MAP_DIM : return QString("OP_MAP_DIM");
 	case OP_MAXIMIZE : return QString("OP_MAXIMIZE");
+	case OP_WINDOW : return QString("OP_WINDOW");
 	case OP_MD5 : return QString("OP_MD5");
 	case OP_MID : return QString("OP_MID");
 	case OP_MIDX : return QString("OP_MIDX");
@@ -873,6 +878,10 @@ Interpreter::initialize() {
 	CompositionModeClear = false;
 	PenColorIsClear = false;
 	fastgraphics = false;
+	windowActive = false;
+	winX1 = winY1 = winX2 = winY2 = 0.0;
+	windowTransform.reset();
+	windowInverse.reset();
 
 	nsprites = 0;
 	printing = false;
@@ -1342,6 +1351,25 @@ void Interpreter::waitForGraphics() {
 	mymutex->unlock();
 }
 
+// Build the window-units -> surface-pixels map for a surface w x h. A window
+// runs from (winX1,winY1) at the surface's top-left corner to (winX2,winY2) at
+// its bottom-right, so the sign of winX2-winX1 and winY2-winY1 chooses which
+// way each axis runs: WINDOW -1,-1,1,1 puts y=-1 at the top (screen order) and
+// WINDOW -1,1,1,-1 puts y=1 at the top (maths order).
+void Interpreter::updateWindowTransform(int w, int h) {
+	if (!windowActive || w <= 0 || h <= 0) {
+		windowTransform.reset();
+		windowInverse.reset();
+		return;
+	}
+	double sx = (double) w / (winX2 - winX1);
+	double sy = (double) h / (winY2 - winY1);
+	// QTransform(m11, m12, m21, m22, dx, dy) maps
+	//   x' = m11*x + m21*y + dx,  y' = m12*x + m22*y + dy
+	windowTransform = QTransform(sx, 0.0, 0.0, sy, -sx * winX1, -sy * winY1);
+	windowInverse = windowTransform.inverted();
+}
+
 bool Interpreter::setPainterTo(QPaintDevice *destination) {
 	drawingOnScreen = (destination == graphics->image);
 	if(painter->isActive()) painter->end();
@@ -1357,7 +1385,23 @@ bool Interpreter::setPainterTo(QPaintDevice *destination) {
 		// resource (drawingOnScreen==false) is unaffected and still works normally.
 		return true;
 	}
-	return (painter->begin(destination));
+	if (!painter->begin(destination)) return false;
+	// The window maps onto whichever surface we just started painting on, so
+	// WINDOW composes with SETGRAPH: the same window spans a 200x200 image
+	// resource and the full graphics canvas alike.
+	updateWindowTransform(destination->width(), destination->height());
+	if (windowActive) {
+		painter->setWorldTransform(windowTransform);
+		// PENWIDTH and FONT stay in surface pixels, so a line does not grow
+		// thicker just because the window makes a unit large. A cosmetic pen is
+		// measured in device space whatever the world transform says.
+		drawingpen.setCosmetic(true);
+		painter_pen_need_update = true;
+	} else if (drawingpen.isCosmetic()) {
+		drawingpen.setCosmetic(false);
+		painter_pen_need_update = true;
+	}
+	return true;
 }
 
 void Interpreter::setGraph(QString id){
@@ -4301,8 +4345,19 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_PIXEL: {
-					int y = stack->popInt();
-					int x = stack->popInt();
+					double yd = stack->popDouble();
+					double xd = stack->popDouble();
+					int x, y;
+					if (windowActive) {
+						// PIXEL is the read-side inverse of PLOT, so it speaks
+						// window units and lands on the nearest whole pixel
+						QPointF p = windowTransform.map(QPointF(xd, yd));
+						x = qRound(p.x());
+						y = qRound(p.y());
+					} else {
+						x = (int) xd;
+						y = (int) yd;
+					}
 					if(drawingOnScreen || drawto.isEmpty()){
 						QRgb rgb = graphics->image->pixel(x,y);
 						stack->pushInt((int) rgb);
@@ -4436,12 +4491,15 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					double y0val = stack->popDouble();
 					double x0val = stack->popDouble();
 
+					// the +1 makes a negative size include its starting pixel --
+					// a pixel convention, so it only applies without a window
+					double edge = windowActive ? 0.0 : 1.0;
 					if(x1val<0) {
-						x0val+=x1val+1;
+						x0val+=x1val+edge;
 						x1val*=-1;
 					}
 					if(y1val<0) {
-						y0val+=y1val+1;
+						y0val+=y1val+edge;
 						y1val*=-1;
 					}
 
@@ -4463,7 +4521,10 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					}
 					//end painter update
 
-					if (x1val > 1 && y1val > 1) {
+					if (windowActive) {
+						// as OP_RECT: no pixel fudging in window units
+						painter->drawRoundedRect(QRectF(x0val, y0val, x1val, y1val), x_rad, y_rad);
+					} else if (x1val > 1 && y1val > 1) {
 						painter->drawRoundedRect(QRectF(x0val, y0val, x1val-1, y1val-1), x_rad, y_rad);
 					} else if (x1val==1 && y1val==1) {
 						// rect 1x1 is actually a point
@@ -4486,12 +4547,15 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					double y0val = stack->popDouble();
 					double x0val = stack->popDouble();
 
+					// the +1 makes a negative size include its starting pixel --
+					// a pixel convention, so it only applies without a window
+					double edge = windowActive ? 0.0 : 1.0;
 					if(x1val<0) {
-						x0val+=x1val+1;
+						x0val+=x1val+edge;
 						x1val*=-1;
 					}
 					if(y1val<0) {
-						y0val+=y1val+1;
+						y0val+=y1val+edge;
 						y1val*=-1;
 					}
 
@@ -4513,7 +4577,12 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					}
 					//end painter update
 
-					if (x1val > 1 && y1val > 1) {
+					if (windowActive) {
+						// in window units a size of 1 is not "one pixel wide", so
+						// neither the -1 nor the degenerate 1xN cases below apply:
+						// the rectangle is simply the rectangle asked for
+						painter->drawRect(QRectF(x0val, y0val, x1val, y1val));
+					} else if (x1val > 1 && y1val > 1) {
 						painter->drawRect(QRectF(x0val, y0val, x1val-1, y1val-1));
 					} else if (x1val==1 && y1val==1) {
 						// rect 1x1 is actually a point
@@ -4747,7 +4816,19 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						painter->setFont(font);
 						painter_font_need_update=false;
 					}
-					painter->drawText(QPointF(x0val, y0val+(QFontMetrics(painter->font()).ascent())), txt);
+					if (windowActive && painter->isActive()) {
+						// FONT is in surface pixels, so place the anchor through
+						// the window and then draw with the transform off --
+						// otherwise the glyphs stretch with the window instead of
+						// staying the size FONT asked for
+						QPointF p = windowTransform.map(QPointF(x0val, y0val));
+						painter->save();
+						painter->resetTransform();
+						painter->drawText(QPointF(p.x(), p.y()+(QFontMetrics(painter->font()).ascent())), txt);
+						painter->restore();
+					} else {
+						painter->drawText(QPointF(x0val, y0val+(QFontMetrics(painter->font()).ascent())), txt);
+					}
 
 					if (!fastgraphics && drawingOnScreen) waitForGraphics();
 				}
@@ -4789,7 +4870,17 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						painter->setFont(font);
 						painter_font_need_update=false;
 					}
-					painter->drawText(QRectF(x, y, w, h), flags|Qt::TextWordWrap|Qt::TextExpandTabs, txt);
+					if (windowActive && painter->isActive()) {
+						// as OP_TEXT: the box is placed by the window, the text
+						// inside it is laid out at its FONT size in pixels
+						QRectF r = windowTransform.mapRect(QRectF(x, y, w, h));
+						painter->save();
+						painter->resetTransform();
+						painter->drawText(r, flags|Qt::TextWordWrap|Qt::TextExpandTabs, txt);
+						painter->restore();
+					} else {
+						painter->drawText(QRectF(x, y, w, h), flags|Qt::TextWordWrap|Qt::TextExpandTabs, txt);
+					}
 
 					if (!fastgraphics && drawingOnScreen) waitForGraphics();
 				}
@@ -4909,6 +5000,41 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					painter->drawPoint(QPointF(twoval, oneval));
 
 					if (!fastgraphics && drawingOnScreen) waitForGraphics();
+				}
+				break;
+
+				case OP_WINDOW: {
+					// WINDOW x1,y1,x2,y2 gives the drawing surface a logical
+					// coordinate space: (x1,y1) is its top-left corner and
+					// (x2,y2) its bottom-right, so the argument order picks
+					// which way each axis runs. WINDOW on its own goes back to
+					// surface pixels.
+					int arg = stack->popInt();
+					bool ok = true;
+					if (arg == 0) {
+						windowActive = false;
+					} else {
+						double y2 = stack->popDouble();
+						double x2 = stack->popDouble();
+						double y1 = stack->popDouble();
+						double x1 = stack->popDouble();
+						if (x1 == x2 || y1 == y2) {
+							// a zero-width or zero-height window would divide by
+							// zero in updateWindowTransform()
+							error->q(ERROR_WINDOWSIZE);
+							ok = false;
+						} else {
+							winX1 = x1; winY1 = y1; winX2 = x2; winY2 = y2;
+							windowActive = true;
+						}
+					}
+					if (ok && painter->isActive()) {
+						// rebuild the painter on the same surface so the new
+						// transform (or its removal) takes effect; this covers
+						// the screen canvas, an image resource and the printer
+						// without having to know which one we are on
+						setPainterTo(painter->device());
+					}
 				}
 				break;
 
@@ -5176,12 +5302,22 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_MOUSEX: {
-					stack->pushInt((int) graphics->mouseX);
+					// -1 is the "pointer is not on the canvas" marker and is
+					// passed through unmapped so existing tests for it still work
+					if (windowActive && graphics->mouseX >= 0) {
+						stack->pushDouble(windowInverse.map(QPointF(graphics->mouseX, graphics->mouseY)).x());
+					} else {
+						stack->pushInt((int) graphics->mouseX);
+					}
 				}
 				break;
 
 				case OP_MOUSEY: {
-					stack->pushInt((int) graphics->mouseY);
+					if (windowActive && graphics->mouseY >= 0) {
+						stack->pushDouble(windowInverse.map(QPointF(graphics->mouseX, graphics->mouseY)).y());
+					} else {
+						stack->pushInt((int) graphics->mouseY);
+					}
 				}
 				break;
 
@@ -5198,12 +5334,20 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_CLICKX: {
-					stack->pushInt((int) graphics->clickX);
+					if (windowActive) {
+						stack->pushDouble(windowInverse.map(QPointF(graphics->clickX, graphics->clickY)).x());
+					} else {
+						stack->pushInt((int) graphics->clickX);
+					}
 				}
 				break;
 
 				case OP_CLICKY: {
-					stack->pushInt((int) graphics->clickY);
+					if (windowActive) {
+						stack->pushDouble(windowInverse.map(QPointF(graphics->clickX, graphics->clickY)).y());
+					} else {
+						stack->pushInt((int) graphics->clickY);
+					}
 				}
 				break;
 

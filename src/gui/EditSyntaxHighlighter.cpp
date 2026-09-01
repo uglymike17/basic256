@@ -379,6 +379,7 @@ void EditSyntaxHighlighter::initKeywords() {
 			<< "wavstop"							//wavstop
 			<< "wavwait"							//wavwait
 			<< "while"								//while
+			<< "window"								//window
 			<< "write"								//write
 			<< "writebyte"							//writebyte
 			<< "writeline"							//writeline

@@ -890,6 +890,7 @@
 %token B256WAVSTOP
 %token B256WAVWAIT
 %token B256WHILE
+%token B256WINDOW
 %token B256WHITE
 %token B256WRITE
 %token B256WRITEBYTE
@@ -2446,6 +2447,7 @@ statement:
 	| gosubstmt
 	| gotostmt
 	| graphsizestmt
+	| windowstmt
 	| graphvisiblestmt
 	| graphtoolbarvisiblestmt
 	| ifstmt
@@ -3010,6 +3012,17 @@ graphsizestmt:
 			}
 			| B256GRAPHSIZE args_eee {
 					addOp(OP_GRAPHSIZE);
+			}
+			;
+
+windowstmt:
+			B256WINDOW args_eeee {
+				addIntOp(OP_PUSHINT, 4); // number of arguments
+				addOp(OP_WINDOW);
+			}
+			| B256WINDOW args_none {
+				addIntOp(OP_PUSHINT, 0); // no arguments - back to surface pixels
+				addOp(OP_WINDOW);
 			}
 			;
 

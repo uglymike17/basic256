@@ -591,6 +591,7 @@ wavstate [Ww][Aa][Vv][Ss][Tt][Aa][Tt][Ee]
 wavstop [Ww][Aa][Vv][Ss][Tt][Oo][Pp]
 wavwait [Ww][Aa][Vv][Ww][Aa][Ii][Tt]
 while [Ww][Hh][Ii][Ll][Ee]
+window [Ww][Ii][Nn][Dd][Oo][Ww]
 white [Ww][Hh][Ii][Tt][Ee]
 write [Ww][Rr][Ii][Tt][Ee]
 writebyte [Ww][Rr][Ii][Tt][Ee][Bb][Yy][Tt][Ee]
@@ -1057,6 +1058,7 @@ zfill [Zz][Ff][Ii][Ll][Ll]
 {gosub}						{ count(); return B256GOSUB; }
 {goto}						{ count(); return B256GOTO; }
 {graphsize}					{ count(); return B256GRAPHSIZE; }
+{window}					{ count(); return B256WINDOW; }
 {graphvisible}				{ count(); return B256GRAPHVISIBLE; }
 {graphtoolbarvisible}		{ count(); return B256GRAPHTOOLBARVISIBLE; }
 {if}						{ count(); return B256IF; }

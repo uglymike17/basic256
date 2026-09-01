@@ -29,6 +29,7 @@
 #include <QTime>
 #include <QElapsedTimer>
 #include <QRegularExpression>
+#include <QTransform>
 #include <cmath>
 #include "GraphicsBuffer.h"
 #include "BasicKeyboard.h"
@@ -358,6 +359,17 @@ class Interpreter : public QThread
 		bool CompositionModeClear;
 		bool PenColorIsClear;
 		bool drawingOnScreen;
+
+		// WINDOW: a logical coordinate space mapped onto whatever surface is being
+		// drawn to. windowTransform maps window units to that surface's pixels;
+		// windowInverse maps back, for PIXEL and the mouse functions. Both stay
+		// identity and unused while windowActive is false, so a program that never
+		// says WINDOW behaves exactly as it always did.
+		bool windowActive;
+		double winX1, winY1, winX2, winY2;
+		QTransform windowTransform;
+		QTransform windowInverse;
+		void updateWindowTransform(int w, int h);
 
 		QFont font;
 		QString defaultfontfamily;
