@@ -1,0 +1,151 @@
+# testsuite_graphicsheadless_include for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20260902	m.vilain	original coding
+
+currentsuite = "graphicsheadless"
+
+# Everything here draws into an off-screen image resource instead of into the
+# graphics window. That path keeps the painter live under --silent, so unlike
+# testsuite_graphics_include.kbs -- which asks the user "does this look right?"
+# and therefore cannot be automated -- this suite runs unattended and can sit
+# in the CI gate.
+#
+# Every assertion below lands on a whole pixel by exact arithmetic, so it holds
+# on every platform. Nothing here depends on how glyphs or curves happen to be
+# rasterised, which is where platform differences live.
+
+# ---------------------------------------------------------------------------
+# WINDOW maps a logical coordinate space onto the surface
+# ---------------------------------------------------------------------------
+
+# 100x100 surface, 10 units across, so one unit is exactly ten pixels
+a$ = imagenew(100, 100, rgb(255,255,255))
+setgraph a$
+window 0, 0, 10, 10
+color red
+plot 1.5, 1.5
+plot 3.7, 2.2
+window
+call n("window unit maps to 10 pixels", pixel(15,15), red)
+call n("and only there", pixel(14,15) = red, 0)
+call n("fractional coordinates survive the mapping", pixel(37,22), red)
+
+# 0,0 in the middle of a 500x500 surface
+c$ = imagenew(500, 500, rgb(255,255,255))
+setgraph c$
+window -1, -1, 1, 1
+color green
+plot 0, 0
+call n("window -1,-1,1,1 puts 0,0 in the middle", pixel(0,0), green)
+window
+call n("which really is the centre pixel", pixel(250,250), green)
+
+# ---------------------------------------------------------------------------
+# the argument order chooses which way the y axis runs
+# ---------------------------------------------------------------------------
+
+d$ = imagenew(500, 500, rgb(255,255,255))
+setgraph d$
+window -1, 1, 1, -1
+color black
+plot 0, 0.996
+window
+found = 0
+for r = 0 to 9
+   if pixel(250, r) = black then found = 1
+next r
+call boolean("window -1,1,1,-1 puts a large y at the top", found)
+
+e$ = imagenew(500, 500, rgb(255,255,255))
+setgraph e$
+window -1, -1, 1, 1
+color black
+plot 0, 0.996
+window
+found = 0
+for r = 490 to 499
+   if pixel(250, r) = black then found = 1
+next r
+call boolean("window -1,-1,1,1 puts a large y at the bottom", found)
+
+# ---------------------------------------------------------------------------
+# PIXEL is the read-side inverse of PLOT
+# ---------------------------------------------------------------------------
+
+f$ = imagenew(200, 200, rgb(255,255,255))
+setgraph f$
+window -1, -1, 1, 1
+color blue
+plot 0.5, 0.5
+call n("pixel reads back at the coordinate plot wrote", pixel(0.5,0.5), blue)
+window
+call n("and the same window spans a 200x200 surface", pixel(150,150), blue)
+
+# ---------------------------------------------------------------------------
+# PENWIDTH stays in pixels, it does not scale with the window
+# ---------------------------------------------------------------------------
+
+g$ = imagenew(100, 100, rgb(255,255,255))
+setgraph g$
+window 0, 0, 10, 10
+penwidth 3
+color red
+line 0, 5, 10, 5
+window
+rows = 0
+for r = 0 to 99
+   if pixel(50, r) = red then rows = rows + 1
+next r
+call n("penwidth 3 is 3 pixels, not 3 window units", rows, 3)
+penwidth 1
+
+# ---------------------------------------------------------------------------
+# RECT drops its whole-pixel conventions inside a window
+# ---------------------------------------------------------------------------
+
+# rect 0,0,5,5 in a 10-unit window on a 100 pixel surface covers 50 pixels.
+# The -1 that makes an integer rectangle span exactly w pixels would stop it
+# short at 40, so pixel 45 is what tells the two apart.
+h$ = imagenew(100, 100, rgb(255,255,255))
+setgraph h$
+window 0, 0, 10, 10
+color blue
+rect 0, 0, 5, 5
+window
+call n("rect spans the window units asked for", pixel(45,45), blue)
+call n("rect starts where it was told", pixel(0,0), blue)
+
+# ---------------------------------------------------------------------------
+# WINDOW with no arguments goes back to pixels
+# ---------------------------------------------------------------------------
+
+i$ = imagenew(100, 100, rgb(255,255,255))
+setgraph i$
+window -1, -1, 1, 1
+window
+color yellow
+plot 30, 40
+call n("window with no arguments restores pixel coordinates", pixel(30,40), yellow)
+
+# ---------------------------------------------------------------------------
+# a window with no width or no height is an error
+# ---------------------------------------------------------------------------
+
+goto skipwindowtrap
+
+windowtrap:
+return
+
+skipwindowtrap:
+
+onerror windowtrap
+window 5, 5, 5, 5
+call n("zero sized window raises an error", lasterror, 130)
+offerror
+
+# leave the drawing state as it was found so later suites are unaffected
+window
+setgraph
+penwidth 1

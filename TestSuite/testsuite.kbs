@@ -129,6 +129,12 @@ call section("Basic Graphics")
 ###################################################
 include "testsuite_graphics_include.kbs"
 
+section_graphicsheadless:
+###################################################
+call section("Headless graphics: fractional coordinates and WINDOW")
+###################################################
+include "testsuite_graphicsheadless_include.kbs"
+
 section_slice:
 ###################################################
 call section("screen slicing")

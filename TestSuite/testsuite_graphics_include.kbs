@@ -127,3 +127,27 @@ call n("getpenwidth - did it set to 10", getpenwidth(), 10)
 penwidth 1
 call q("chord,pie - yellow eyed monster with chevron for mouth")
 call n("getpenwidth - did it set BACK to 1", getpenwidth(), 1)
+
+#
+# WINDOW - logical coordinates. The headless assertions for this live in
+# testsuite_graphicsheadless_include.kbs; what needs a human eye is whether the
+# coordinate system actually looks the way it is meant to.
+graphsize 300,300
+clg
+window -1.5, 1.5, 1.5, -1.5
+color black
+penwidth 1
+line -1.5, 0, 1.5, 0
+line 0, -1.5, 0, 1.5
+color red, clear
+penwidth 2
+circle 0, 0, 1
+color blue
+penwidth 1
+for a = -1.5 to 1.5 step 0.005
+   plot a, sin(a * 3) * 0.7
+next a
+call q("window - axes cross in the middle, red unit circle, and the blue wave crests ABOVE the axis to the RIGHT of centre (that is what shows y increasing upwards)")
+window
+call n("penwidth survives the window", getpenwidth(), 1)
+graphsize 300,300

@@ -142,6 +142,15 @@ call section("Map")
 include "testsuite_map_include.kbs"
 
 ###################################################
+call section("Headless graphics: fractional coordinates and WINDOW")
+###################################################
+# Unlike testsuite_graphics_include.kbs, which asks the user to confirm what
+# it drew and so cannot be automated, this one draws into an off-screen image
+# resource -- a path that stays live under --silent -- and asserts on whole
+# pixels reached by exact arithmetic.
+include "testsuite_graphicsheadless_include.kbs"
+
+###################################################
 ###################################################
 ###################################################
 print "BASIC256_TESTSUITE_CI_PASSED"
