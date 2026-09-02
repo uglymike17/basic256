@@ -315,6 +315,11 @@ QString Interpreter::opname(int op) {
 	case OP_MAINTOOLBARVISIBLE : return QString("OP_MAINTOOLBARVISIBLE");
 	case OP_MAP_DIM : return QString("OP_MAP_DIM");
 	case OP_MAXIMIZE : return QString("OP_MAXIMIZE");
+	case OP_MATADD : return QString("OP_MATADD");
+	case OP_MATINV : return QString("OP_MATINV");
+	case OP_MATMUL : return QString("OP_MATMUL");
+	case OP_MATSUB : return QString("OP_MATSUB");
+	case OP_MATTRN : return QString("OP_MATTRN");
 	case OP_WINDOW : return QString("OP_WINDOW");
 	case OP_MD5 : return QString("OP_MD5");
 	case OP_MID : return QString("OP_MID");
@@ -618,6 +623,341 @@ void Interpreter::watchdecurse(bool doit) {
 	// send an event to the variable watch window to remove a function's variables
 	if (doit) {
 		emit(varWinDropLevel(variables->getrecurse()));
+	}
+}
+
+// ---------------------------------------------------------------------------
+// MAT - matrix arithmetic over BASIC-256 arrays
+//
+// An array is read as rows by columns, the way DIM writes it: DIM a(200,2) is
+// 200 rows of 2 columns, arrayRows() gives the rows and arrayCols() the
+// columns, and element (r,c) sits at arr->data[r*ydim+c].  Every MAT statement
+// uses that one reading, so a matrix of particle positions is 200 rows of an x
+// and a y.
+//
+// Element arithmetic follows the rules an ordinary "a + b" follows: two whole
+// numbers give a whole number unless the answer leaves the 32-bit range
+// BASIC-256 promotes at, and anything else is worked out in floating point.
+// Integer matrices therefore give exactly the answers a textbook does.
+//
+// The loops below run over the array's own storage, so nothing goes back
+// through the interpreter for an element, and an operation that can be done
+// element by element writes its answer straight into the DataElements the
+// destination already holds.  MAT ADD Position = Position + Velocity over 200
+// particles therefore allocates nothing at all, and is still correct when the
+// destination is one of the operands.  Only the operations whose answer
+// depends on more than one element of a source - MUL between two matrices,
+// TRN onto itself, and INV - build a working copy first.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+	// one number taken out of a matrix element, kept whole while it can be
+	struct MatNum {
+		bool isint;
+		qint64 i;
+		double d;
+		double f() const {
+			return isint ? (double) i : d;
+		}
+	};
+
+	inline MatNum matInt(qint64 v) {
+		MatNum n;
+		n.isint = true;
+		n.i = v;
+		n.d = 0.0;
+		return n;
+	}
+
+	inline MatNum matFloat(double v) {
+		MatNum n;
+		n.isint = false;
+		n.i = 0;
+		n.d = v;
+		return n;
+	}
+
+	// the three below mirror OP_ADD, OP_SUB and OP_MUL exactly, including where
+	// each of them gives up on whole numbers and promotes to floating point
+	inline MatNum matNumAdd(const MatNum &a, const MatNum &b) {
+		if (a.isint && b.isint) {
+			qint64 v = a.i + b.i;
+			if (v>=INT_MIN && v<=INT_MAX) return matInt(v);
+		}
+		return matFloat(a.f() + b.f());
+	}
+
+	inline MatNum matNumSub(const MatNum &a, const MatNum &b) {
+		if (a.isint && b.isint) {
+			qint64 v = a.i - b.i;
+			if (v>=INT_MIN && v<=INT_MAX) return matInt(v);
+		}
+		return matFloat(a.f() - b.f());
+	}
+
+	inline MatNum matNumMul(const MatNum &a, const MatNum &b) {
+		if (a.isint && b.isint) {
+			if (a.i==0 || b.i==0) return matInt(0);
+			if (llabs(a.i) <= INT64_MAX / llabs(b.i)) {
+				qint64 v = a.i * b.i;
+				if (v>=INT_MIN && v<=INT_MAX) return matInt(v);
+			}
+		}
+		return matFloat(a.f() * b.f());
+	}
+
+	// write one element, reusing the DataElement that is already there
+	inline void matPut(DataElement *e, const MatNum &v) {
+		e->clear();
+		if (v.isint) {
+			e->type = T_INT;
+			e->intval = v.i;
+		} else {
+			e->type = T_FLOAT;
+			e->floatval = v.d;
+		}
+	}
+
+	MatNum matGet(DataElement *m, int k, int varnum, int arraybase, Convert *convert) {
+		// read element k of a matrix storage vector.  An element that has never
+		// been given a value is an error naming the variable and the element,
+		// just as reading it with an index would be; a string element converts
+		// the way it would anywhere else, warning and all.
+		DataElement *e = m->arr->data[k];
+		if (e && e->type==T_INT) return matInt(e->intval);
+		if (e && e->type==T_FLOAT) return matFloat(e->floatval);
+		if (!e || e->type==T_UNASSIGNED) {
+			error->q(ERROR_VARNOTASSIGNED, varnum, k / m->arr->ydim + arraybase, k % m->arr->ydim + arraybase);
+			return matInt(0);
+		}
+		if (e->type==T_ARRAY || e->type==T_MAP) {
+			error->q(ERROR_NUMBEREXPR, varnum, k / m->arr->ydim + arraybase, k % m->arr->ydim + arraybase);
+			return matInt(0);
+		}
+		return matFloat(convert->getFloat(e));
+	}
+
+	bool matSource(DataElement *e, int varnum) {
+		// a MAT source has to be an array - say which variable is not one
+		if (DataElement::getType(e)==T_ARRAY) return true;
+		error->q(DataElement::getType(e)==T_UNASSIGNED ? ERROR_VARNOTASSIGNED : ERROR_MATNOTMATRIX, varnum);
+		return false;
+	}
+
+	bool matDestination(DataElement *dest, int rows, int cols) {
+		// give the destination the shape of the answer.  When it already has
+		// that shape - which is what a simulation loop finds every frame after
+		// the first - nothing is allocated and nothing is thrown away.
+		if (DataElement::getType(dest)!=T_ARRAY || dest->arr->xdim!=rows || dest->arr->ydim!=cols) {
+			dest->arrayDim(rows, cols, false);
+			if (DataElement::getError()) {
+				error->q(DataElement::getError(true));
+				return false;
+			}
+		}
+		const int n = rows * cols;
+		for (int k=0; k<n; k++) {
+			if (!dest->arr->data[k]) dest->arr->data[k] = new DataElement();
+		}
+		return true;
+	}
+}
+
+void Interpreter::matStatement(int opcode, int destvar, DataElement *left, int leftvar, DataElement *right, int rightvar) {
+	// left is the source matrix and right the second operand - another matrix,
+	// a single number, or NULL for the one operand statements.  All three of
+	// the variables involved may be the same variable.
+
+	if (!matSource(left, leftvar)) return;
+	const int arows = left->arr->xdim;
+	const int acols = left->arr->ydim;
+	const int asize = arows * acols;
+	DataElement *dest = variables->getData(destvar);			// DONT RELEASE
+
+	switch (opcode) {
+
+		case OP_MATTRN: {
+			// element (c,r) of the answer is element (r,c) of the source, so
+			// unlike the element by element statements this can not be written
+			// over its own source unless a copy is taken first
+			if (dest==left) {
+				std::vector<MatNum> t(asize);
+				for (int k=0; k<asize; k++) t[k] = matGet(left, k, leftvar, arraybase, convert);
+				if (error->pending()) return;
+				if (!matDestination(dest, acols, arows)) return;
+				for (int r=0; r<arows; r++) {
+					for (int c=0; c<acols; c++) {
+						matPut(dest->arr->data[c*arows+r], t[r*acols+c]);
+					}
+				}
+			} else {
+				if (!matDestination(dest, acols, arows)) return;
+				for (int r=0; r<arows; r++) {
+					for (int c=0; c<acols; c++) {
+						matPut(dest->arr->data[c*arows+r], matGet(left, r*acols+c, leftvar, arraybase, convert));
+					}
+				}
+			}
+		}
+		break;
+
+		case OP_MATINV: {
+			// Gauss-Jordan elimination with partial pivoting on [ a | I ].
+			// Worked out in floating point throughout - an inverse is not a
+			// whole number matrix except by accident.
+			if (arows!=acols) {
+				error->q(ERROR_MATNOTSQUARE, leftvar);
+				return;
+			}
+			const int n = arows;
+			const int w = 2 * n;
+			std::vector<double> m((size_t)n * w, 0.0);
+			double biggest = 0.0;
+			for (int r=0; r<n; r++) {
+				for (int c=0; c<n; c++) {
+					const double v = matGet(left, r*n+c, leftvar, arraybase, convert).f();
+					m[(size_t)r*w+c] = v;
+					if (fabs(v) > biggest) biggest = fabs(v);
+				}
+				m[(size_t)r*w+n+r] = 1.0;
+			}
+			if (error->pending()) return;
+			// how small a pivot has to be before the matrix counts as singular,
+			// measured against the size of the numbers in the matrix itself so
+			// that a matrix of large values is not condemned for a pivot that
+			// is small only next to them
+			const double tol = (biggest>0.0 ? biggest : 1.0) * n * std::numeric_limits<double>::epsilon();
+			for (int col=0; col<n; col++) {
+				int piv = col;
+				for (int r=col+1; r<n; r++) {
+					if (fabs(m[(size_t)r*w+col]) > fabs(m[(size_t)piv*w+col])) piv = r;
+				}
+				if (fabs(m[(size_t)piv*w+col]) <= tol) {
+					error->q(ERROR_MATSINGULAR, leftvar);
+					return;
+				}
+				if (piv!=col) {
+					for (int c=col; c<w; c++) std::swap(m[(size_t)piv*w+c], m[(size_t)col*w+c]);
+				}
+				const double p = m[(size_t)col*w+col];
+				for (int c=col; c<w; c++) m[(size_t)col*w+c] /= p;
+				for (int r=0; r<n; r++) {
+					if (r==col) continue;
+					const double f = m[(size_t)r*w+col];
+					if (f==0.0) continue;
+					for (int c=col; c<w; c++) m[(size_t)r*w+c] -= f * m[(size_t)col*w+c];
+				}
+			}
+			if (!matDestination(dest, n, n)) return;
+			for (int r=0; r<n; r++) {
+				for (int c=0; c<n; c++) {
+					matPut(dest->arr->data[r*n+c], matFloat(m[(size_t)r*w+n+c]));
+				}
+			}
+		}
+		break;
+
+		default: {
+			// ADD, SUB and MUL.  A second matrix and a single number are two
+			// different operations for MUL and the same shape of loop for the
+			// other two, so the operand is sorted out first.
+			if (DataElement::getType(right)!=T_ARRAY) {
+				// a single number - read out before the destination is touched,
+				// because the destination may be the very variable holding it
+				if (DataElement::getType(right)==T_UNASSIGNED) {
+					error->q(ERROR_VARNOTASSIGNED, rightvar);
+					return;
+				}
+				if (DataElement::getType(right)==T_MAP) {
+					error->q(ERROR_NUMBEREXPR, rightvar);
+					return;
+				}
+				const MatNum s = (right->type==T_INT) ? matInt(right->intval) :
+								 (right->type==T_FLOAT) ? matFloat(right->floatval) :
+								 matFloat(convert->getFloat(right));
+				if (!matDestination(dest, arows, acols)) return;
+				for (int k=0; k<asize; k++) {
+					const MatNum a = matGet(left, k, leftvar, arraybase, convert);
+					MatNum v = (opcode==OP_MATADD) ? matNumAdd(a, s) :
+							   (opcode==OP_MATSUB) ? matNumSub(a, s) : matNumMul(a, s);
+					if (!v.isint && std::isinf(v.d)) {
+						error->q(ERROR_INFINITY);
+						v = matFloat(0.0);
+					}
+					matPut(dest->arr->data[k], v);
+				}
+				return;
+			}
+
+			const int brows = right->arr->xdim;
+			const int bcols = right->arr->ydim;
+
+			if (opcode==OP_MATMUL) {
+				// the textbook product: the answer has a row for every row of
+				// the first matrix and a column for every column of the second,
+				// which only works out when the first has as many columns as
+				// the second has rows
+				if (acols!=brows) {
+					error->q(ERROR_MATMULDIM, leftvar);
+					return;
+				}
+				// every element of the answer draws on a whole row and a whole
+				// column, so both sources are copied out before the destination
+				// - which may be either of them - is written
+				const int bsize = brows * bcols;
+				const int csize = arows * bcols;
+				std::vector<MatNum> a(asize), b(bsize);
+				for (int k=0; k<asize; k++) a[k] = matGet(left, k, leftvar, arraybase, convert);
+				for (int k=0; k<bsize; k++) b[k] = matGet(right, k, rightvar, arraybase, convert);
+				if (error->pending()) return;
+				std::vector<MatNum> c(csize, matInt(0));
+				// a row of the answer at a time, walking a row of each source
+				// forwards - the order the storage is already in
+				for (int r=0; r<arows; r++) {
+					const size_t crow = (size_t)r * bcols;
+					for (int k=0; k<acols; k++) {
+						const MatNum &aik = a[(size_t)r*acols+k];
+						if (aik.isint && aik.i==0) continue;
+						const size_t brow = (size_t)k * bcols;
+						for (int col=0; col<bcols; col++) {
+							c[crow+col] = matNumAdd(c[crow+col], matNumMul(aik, b[brow+col]));
+						}
+					}
+				}
+				if (!matDestination(dest, arows, bcols)) return;
+				bool infinite = false;
+				for (int k=0; k<csize; k++) {
+					if (!c[k].isint && std::isinf(c[k].d)) {
+						infinite = true;
+						c[k] = matFloat(0.0);
+					}
+					matPut(dest->arr->data[k], c[k]);
+				}
+				if (infinite) error->q(ERROR_INFINITY);
+				return;
+			}
+
+			// ADD and SUB element by element - element k of the answer needs
+			// only element k of each source, so this is safe to write straight
+			// into a destination that is one of them
+			if (arows!=brows || acols!=bcols) {
+				error->q(ERROR_MATDIM, leftvar);
+				return;
+			}
+			if (!matDestination(dest, arows, acols)) return;
+			for (int k=0; k<asize; k++) {
+				const MatNum a = matGet(left, k, leftvar, arraybase, convert);
+				const MatNum b = matGet(right, k, rightvar, arraybase, convert);
+				MatNum v = (opcode==OP_MATADD) ? matNumAdd(a, b) : matNumSub(a, b);
+				if (!v.isint && std::isinf(v.d)) {
+					error->q(ERROR_INFINITY);
+					v = matFloat(0.0);
+				}
+				matPut(dest->arr->data[k], v);
+			}
+		}
+		break;
 	}
 }
 
@@ -2061,6 +2401,53 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_VAR_UN: {
 					variables->unassign(i);
 					watchvariable(debugMode, i);
+				}
+				break;
+
+				case OP_MATADD:
+				case OP_MATSUB:
+				case OP_MATMUL: {
+					// MAT ADD/SUB/MUL destination = source op operand.  The stack
+					// holds a reference to the source matrix and then the operand,
+					// which is a reference too when it was written as a plain
+					// variable name - see matRightOperand() in basicParse.y - and
+					// an ordinary value otherwise.  Only the run time can tell
+					// whether a name holds a matrix or a single number.
+					DataElement *right = stack->popDE();			// RELEASE
+					DataElement *left = stack->popDE();			// RELEASE
+					int leftvar = -1;
+					int rightvar = -1;
+					DataElement *leftdata = left;
+					DataElement *rightdata = right;
+					if (DataElement::getType(left)==T_REF) {
+						leftvar = left->intval;
+						leftdata = variables->get(left->intval, left->level)->data;		// DONT RELEASE
+					}
+					if (DataElement::getType(right)==T_REF) {
+						rightvar = right->intval;
+						rightdata = variables->get(right->intval, right->level)->data;	// DONT RELEASE
+					}
+					matStatement(opcode, i, leftdata, leftvar, rightdata, rightvar);
+					watchvariable(debugMode, i);
+					delete left;
+					delete right;
+				}
+				break;
+
+				case OP_MATTRN:
+				case OP_MATINV: {
+					// MAT TRN/INV destination = source - one operand, always a
+					// reference to the source matrix
+					DataElement *left = stack->popDE();			// RELEASE
+					int leftvar = -1;
+					DataElement *leftdata = left;
+					if (DataElement::getType(left)==T_REF) {
+						leftvar = left->intval;
+						leftdata = variables->get(left->intval, left->level)->data;		// DONT RELEASE
+					}
+					matStatement(opcode, i, leftdata, leftvar, NULL, -1);
+					watchvariable(debugMode, i);
+					delete left;
 				}
 				break;
 

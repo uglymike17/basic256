@@ -328,6 +328,11 @@ class Interpreter : public QThread
 		void watchvariable(bool, int, int, int);
 		void watchvariable(bool, int, QString);
 		void watchdecurse(bool);
+
+		// MAT ADD/SUB/MUL/TRN/INV - matrix arithmetic straight over the array
+		// storage.  See the block comment above it in Interpreter.cpp for how
+		// an array is read as a matrix and what the element arithmetic does.
+		void matStatement(int, int, DataElement *, int, DataElement *, int);
 		
 		void runLoop();
 

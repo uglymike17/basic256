@@ -223,6 +223,11 @@ void EditSyntaxHighlighter::initKeywords() {
 			<< "maintoolbarvisible"
 			<< "map"
 			<< "maximize"
+			<< "mat[ \t]*add"						//matadd or mat add
+			<< "mat[ \t]*inv"						//matinv or mat inv
+			<< "mat[ \t]*mul"						//matmul or mat mul
+			<< "mat[ \t]*sub"						//matsub or mat sub
+			<< "mat[ \t]*trn"						//mattrn or mat trn
 			<< "md5"								//md5
 			<< "mid"								//mid
 			<< "midx"								//midx

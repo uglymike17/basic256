@@ -397,6 +397,11 @@ ltrim [Ll][Tt][Rr][Ii][Mm]
 maintoolbarvisible [Mm][Aa][Ii][Nn][Tt][Oo][Oo][Ll][Bb][Aa][Rr][Vv][Ii][Ss][Ii][Bb][Ll][Ee]
 map [Mm][Aa][Pp]
 maximize [Mm][Aa][Xx][Ii][Mm][Ii][Zz][Ee]
+matadd [Mm][Aa][Tt][ \t]*[Aa][Dd][Dd]
+matinv [Mm][Aa][Tt][ \t]*[Ii][Nn][Vv]
+matmul [Mm][Aa][Tt][ \t]*[Mm][Uu][Ll]
+matsub [Mm][Aa][Tt][ \t]*[Ss][Uu][Bb]
+mattrn [Mm][Aa][Tt][ \t]*[Tt][Rr][Nn]
 md5 [Mm][Dd][5]
 mid [Mm][Ii][Dd]
 midx [Mm][Ii][Dd][Xx]
@@ -1085,6 +1090,11 @@ zfill [Zz][Ff][Ii][Ll][Ll]
 {maintoolbarvisible}		{ count(); return B256MAINTOOLBARVISIBLE; }
 {map}						{ count(); return B256MAP; }
 {maximize}					{ count(); return B256MAXIMIZE; }
+{matadd}					{ count(); return B256MATADD; }
+{matinv}					{ count(); return B256MATINV; }
+{matmul}					{ count(); return B256MATMUL; }
+{matsub}					{ count(); return B256MATSUB; }
+{mattrn}					{ count(); return B256MATTRN; }
 {netclose}					{ count(); return B256NETCLOSE; }
 {netclose}":"				{ count(); unputcolon(); return B256NETCLOSE; }
 {netconnect}				{ count(); return B256NETCONNECT; }

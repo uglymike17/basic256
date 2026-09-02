@@ -151,6 +151,11 @@ call section("Headless graphics: fractional coordinates and WINDOW")
 include "testsuite_graphicsheadless_include.kbs"
 
 ###################################################
+call section("MAT matrix operations")
+###################################################
+include "testsuite_mat_include.kbs"
+
+###################################################
 ###################################################
 ###################################################
 print "BASIC256_TESTSUITE_CI_PASSED"

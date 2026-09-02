@@ -1,0 +1,99 @@
+# Matrix Particles -- 200 particles whose physics is done with MAT
+#
+# Every particle is one row of a matrix:
+#
+#     Position(200,2)       x1 y1        Velocity(200,2)     dx1 dy1
+#                           x2 y2                            dx2 dy2
+#                           ...                              ...
+#                        x200 y200                        dx200 dy200
+#
+# so the whole swarm moves one step with two statements, however many
+# particles there are:
+#
+#     mat add Velocity = Velocity + Acceleration
+#     mat add Position = Position + Velocity
+#
+# There is no FOR loop over the particles in the physics at all. The only
+# loop left in the frame is the one that draws them.
+
+N = 200
+W = 500
+H = 500
+R = 2
+
+graphsize W, H
+fastgraphics
+
+# Position and Velocity start random, as the brief for any particle system
+# does: somewhere on the canvas, drifting in any direction.
+dim Position(N,2)
+dim Velocity(N,2)
+for i = 0 to N-1
+   Position[i,0] = int(rand * W)
+   Position[i,1] = int(rand * H)
+   Velocity[i,0] = rand * 10 - 5
+   Velocity[i,1] = rand * 10 - 5
+next i
+
+# Acceleration is a matrix too, one row per particle, so gravity is added to
+# every velocity in a single statement. Filling it here with the same value in
+# every row is what makes the force uniform -- give the rows different values
+# and each particle gets its own force with no change to the loop below.
+dim Acceleration(N,2)
+for i = 0 to N-1
+   Acceleration[i,0] = 0
+   Acceleration[i,1] = 0.06
+next i
+
+# A transformation matrix. Multiplying the whole Velocity matrix by this 2x2
+# turns every particle's direction by ANGLE degrees at once -- 200 rotations
+# in one MAT MUL. Each row of Velocity is a vector, so the matrix is the
+# rotation written for row vectors.
+ANGLE = radians(3)
+dim Spin(2,2)
+Spin[0,0] = cos(ANGLE)  : Spin[0,1] = sin(ANGLE)
+Spin[1,0] = -sin(ANGLE) : Spin[1,1] = cos(ANGLE)
+
+# ...and the rotation that undoes it, which is exactly the inverse matrix.
+# Worth doing this way rather than rebuilding it from cos and sin: MAT INV
+# gives the undo of whatever transformation you happen to have, whether you
+# know how it was built or not.
+dim Unspin(2,2)
+mat inv Unspin = Spin
+
+frame = 0
+while true
+
+   # ---- the physics: 200 particles, two statements, no loop ----------------
+   mat add Velocity = Velocity + Acceleration
+   mat add Position = Position + Velocity
+
+   # Every 150 frames, swirl the whole swarm for 40 frames -- one way, then
+   # back again with the inverse matrix.
+   swirl = frame % 300
+   if swirl < 40 then mat mul Velocity = Velocity * Spin
+   if swirl >= 150 and swirl < 190 then mat mul Velocity = Velocity * Unspin
+
+   # ---- the walls ---------------------------------------------------------
+   # Bouncing is the one thing a matrix operation can not do, because it needs
+   # a different answer for each particle. What is left of it is only a test
+   # and a change of sign -- all of the arithmetic, for all 200 particles,
+   # already happened in the statements above.
+   for i = 0 to N-1
+      if Position[i,0] < R then Position[i,0] = R : Velocity[i,0] = abs(Velocity[i,0])
+      if Position[i,0] > W-R then Position[i,0] = W-R : Velocity[i,0] = -abs(Velocity[i,0])
+      if Position[i,1] < R then Position[i,1] = R : Velocity[i,1] = abs(Velocity[i,1])
+      if Position[i,1] > H-R then Position[i,1] = H-R : Velocity[i,1] = -abs(Velocity[i,1]) * 0.92
+   next i
+
+   # ---- and the only other loop, which draws ------------------------------
+   clg
+   color rgb(40,120,255)
+   for i = 0 to N-1
+      circle Position[i,0], Position[i,1], R
+   next i
+   refresh
+
+   frame = frame + 1
+   pause 0.01
+end while

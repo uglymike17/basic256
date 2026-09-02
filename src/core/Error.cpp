@@ -481,6 +481,21 @@ QString Error::getErrorMessage(char **symtable) {
 		case ERROR_WINDOWSIZE:
 			errormessage = tr("WINDOW needs a width and a height that are not zero");
 			break;
+		case ERROR_MATNOTMATRIX:
+			errormessage = tr("MAT needs an array for %VARNAME%, not a single value");
+			break;
+		case ERROR_MATDIM:
+			errormessage = tr("MAT needs both matrices to have the same number of rows and the same number of columns");
+			break;
+		case ERROR_MATMULDIM:
+			errormessage = tr("MAT MUL needs the first matrix to have as many columns as the second has rows");
+			break;
+		case ERROR_MATNOTSQUARE:
+			errormessage = tr("MAT INV needs a square matrix");
+			break;
+		case ERROR_MATSINGULAR:
+			errormessage = tr("MAT INV can not invert a singular matrix");
+			break;
 
 
 

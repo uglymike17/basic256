@@ -71,6 +71,7 @@
         <file>Simulations/Colliding3Balls.kbs</file>
         <file>Simulations/CollidingMultipleBalls.kbs</file>
         <file>Simulations/DoublePendulum.kbs</file>
+        <file>Simulations/MatrixParticles.kbs</file>
         <file>Sound_Speech/AIChatbot.kbs</file>
         <file>Sound_Speech/SoundStatementDemo.kbs</file>
         <file>Sound_Speech/TwinkleTwinkle.kbs</file>

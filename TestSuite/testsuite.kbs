@@ -338,6 +338,12 @@ call section("Map")
 ###################################################
 include "testsuite_map_include.kbs"
 
+section_mat:
+###################################################
+call section("MAT matrix operations")
+###################################################
+include "testsuite_mat_include.kbs"
+
 
 
 ###################################################

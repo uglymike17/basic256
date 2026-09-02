@@ -200,6 +200,23 @@
 		wordOffset += wlen;
 	}
 
+	// where the code for the right hand operand of a MAT statement starts -
+	// set once the left operand's reference has been emitted, read by
+	// matRightOperand() below.  MAT statements never nest, so one is enough.
+	unsigned int matoperandstart = 0;
+
+	void matRightOperand() {
+		// The right hand operand of MAT ADD/SUB/MUL is compiled as an ordinary
+		// expression, because only the run time knows whether the name in it
+		// holds a matrix or a single number.  A lone variable compiles to
+		// OP_VAR_GET, which would copy the whole array onto the stack; rewrite
+		// that one case to OP_VAR_REF so the operation is handed the variable
+		// itself and can tell a matrix from a scalar without copying either.
+		if (wordOffset == matoperandstart + 2 && wordCode[matoperandstart] == OP_VAR_GET) {
+			wordCode[matoperandstart] = OP_VAR_REF;
+		}
+	}
+
 	void clearIfTable() {
 		int j;
 		for (j = 0; j < IFTABLESIZE; j++) {
@@ -691,6 +708,11 @@
 %token B256MAINTOOLBARVISIBLE
 %token B256MAP
 %token B256MAXIMIZE
+%token B256MATADD
+%token B256MATINV
+%token B256MATMUL
+%token B256MATSUB
+%token B256MATTRN
 %token B256MD5
 %token B256MID
 %token B256MIDX
@@ -2472,6 +2494,7 @@ statement:
 	| maintoolbarvisiblestmt
 	| mapstmt
 	| maximizestmt
+	| matstmt
 	| netclosestmt
 	| netconnectstmt
 	| netlistenstmt
@@ -2881,6 +2904,41 @@ mapstmt: 	B256MAP functionvariables {
 				}
 				numargs=0;	// clear the list for next function
 			}
+
+/* MAT - matrix arithmetic on arrays.  Every form is
+   "MAT op destination = source op operand", where the destination and the
+   left hand source are always array variables and so are passed by variable
+   number, and the right hand operand is an expression that may turn out at
+   run time to be either a matrix or a single number. */
+
+matsource:
+			variable_a {
+				// the left hand source is always a matrix - push a reference to
+				// it rather than its value, so no copy of the array is made
+				addIntOp(OP_VAR_REF, varnumber[--nvarnumber]);
+				matoperandstart = wordOffset;
+			}
+			;
+
+matstmt:	B256MATADD variable_a '=' matsource '+' expr {
+				matRightOperand();
+				addIntOp(OP_MATADD, varnumber[--nvarnumber]);
+			}
+			| B256MATSUB variable_a '=' matsource '-' expr {
+				matRightOperand();
+				addIntOp(OP_MATSUB, varnumber[--nvarnumber]);
+			}
+			| B256MATMUL variable_a '=' matsource '*' expr {
+				matRightOperand();
+				addIntOp(OP_MATMUL, varnumber[--nvarnumber]);
+			}
+			| B256MATTRN variable_a '=' matsource {
+				addIntOp(OP_MATTRN, varnumber[--nvarnumber]);
+			}
+			| B256MATINV variable_a '=' matsource {
+				addIntOp(OP_MATINV, varnumber[--nvarnumber]);
+			}
+			;
 
 dimstmt: 	B256DIM array_element {
 				// No FILL clause: zero-fill by default (0, or "" for a $ name).
