@@ -83,6 +83,15 @@ int linenumber;
 int column;
 char *lexingfilename;
 
+// How deeply we are nested inside the mustaches of a list or list-of-lists
+// literal.  While it is above zero a newline is not the end of a statement and
+// a remark is not a statement of its own, so the lexer swallows both and a
+// literal may be written over as many lines as it needs to read well, with its
+// rows annotated.  linenumber is bumped by hand for a swallowed newline because
+// the parser - which normally does it in the programnewline action - never sees
+// the token.
+int bracedepth = 0;
+
 #define MAX_INCLUDE_DEPTH 10
 YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
 int include_linenumber[MAX_INCLUDE_DEPTH];
@@ -1132,8 +1141,8 @@ zfill [Zz][Ff][Ii][Ll][Ll]
 {refresh}					{ count(); return B256REFRESH; }
 {refresh}":"				{ count(); unputcolon(); return B256REFRESH; }
 {regexminimal}				{ count(); return B256REGEXMINIMAL; }
-{remalt}					{ count(); return B256REM; }
-{rem}						{ count(); return B256REM; }
+{remalt}					{ count(); if (bracedepth==0) return B256REM; }
+{rem}						{ count(); if (bracedepth==0) return B256REM; }
 {reset}						{ count(); return B256RESET; }
 {reset}":"					{ count(); unputcolon(); return B256RESET; }
 {return}					{ count(); return B256RETURN; }
@@ -1239,8 +1248,8 @@ mod							{ count(); return B256MOD; }
 ":"							{ count(); return ':'; }
 "("							{ count(); return '('; }
 ")"							{ count(); return ')'; }
-"{"							{ count(); return '{'; }
-"}"							{ count(); return '}'; }
+"{"							{ count(); bracedepth++; return '{'; }
+"}"							{ count(); if (bracedepth>0) bracedepth--; return '}'; }
 "["							{ count(); return '['; }
 "]"							{ count(); return ']'; }
 "<<"						{ count(); return B256BITSHIFTL; }
@@ -1282,7 +1291,17 @@ mod							{ count(); return B256MOD; }
 }
 
 
-"\n"	{ return '\n'; }
+"\n"	{
+	if (bracedepth>0) {
+		// inside the mustaches of a literal - the statement carries on onto the
+		// next line.  Count the line so that everything reported from here on
+		// still points at the right one, and go back for the next token.
+		linenumber++;
+		column = 0;
+	} else {
+		return '\n';
+	}
+}
 
 {whitespace}	{
 	/* eat the whitespace at the begining of a token - but count */
@@ -1492,6 +1511,7 @@ int basicParse(char *code) {
 	numincludes=0;
 	linenumber = 1;
 	column = 0;
+	bracedepth = 0;
 	errorcode = COMPERR_NONE;
 	functionDefSymbol = -1;
 	subroutineDefSymbol = -1;

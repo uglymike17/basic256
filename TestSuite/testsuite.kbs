@@ -344,6 +344,12 @@ call section("MAT matrix operations")
 ###################################################
 include "testsuite_mat_include.kbs"
 
+section_multiline:
+###################################################
+call section("Multi-line array and map literals")
+###################################################
+include "testsuite_multiline_include.kbs"
+
 
 
 ###################################################

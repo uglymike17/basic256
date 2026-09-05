@@ -156,6 +156,11 @@ call section("MAT matrix operations")
 include "testsuite_mat_include.kbs"
 
 ###################################################
+call section("Multi-line array and map literals")
+###################################################
+include "testsuite_multiline_include.kbs"
+
+###################################################
 ###################################################
 ###################################################
 print "BASIC256_TESTSUITE_CI_PASSED"
