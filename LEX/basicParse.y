@@ -738,6 +738,7 @@
 %token B256NETREAD
 %token B256NETWRITE
 %token B256NEXT
+%token B256NOISE
 %token B256NOT
 %token B256OFFERROR
 %token B256ONERROR
@@ -1931,6 +1932,8 @@ expr_numeric:
 	| B256EXP '(' expr ')' { addOp(OP_EXP); }
 	| B256ABS '(' expr ')' { addOp(OP_ABS); }
 	| B256RAND args_none { addOp(OP_RAND); }
+	| B256NOISE '(' expr ')' { addIntOp(OP_PUSHINT, 1); addOp(OP_NOISE); }
+	| B256NOISE '(' args_ee ')' { addIntOp(OP_PUSHINT, 2); addOp(OP_NOISE); }
 				| B256PI args_none { addFloatOp(OP_PUSHFLOAT, 3.14159265358979323846); }
 	| B256BOOLEOF args_none {
 		addIntOp(OP_PUSHINT, 0);

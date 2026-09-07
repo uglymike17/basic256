@@ -433,6 +433,7 @@ netdata [Nn][Ee][Tt][Dd][Aa][Tt][Aa]
 netlisten [Nn][Ee][Tt][Ll][Ii][Ss][Tt][Ee][Nn]
 netread [Nn][Ee][Tt][Rr][Ee][Aa][Dd]
 netwrite [Nn][Ee][Tt][Ww][Rr][Ii][Tt][Ee]
+noise [Nn][Oo][Ii][Ss][Ee]
 next [Nn][Ee][Xx][Tt]
 not [Nn][Oo][Tt]
 offerror [Oo][Ff][Ff][Ee][Rr][Rr][Oo][Rr]
@@ -896,6 +897,7 @@ zfill [Zz][Ff][Ii][Ll][Ll]
 {netaddress}				{ count(); return B256NETADDRESS; }
 {netdata}					{ count(); return B256NETDATA; }
 {netread}					{ count(); return B256NETREAD; }
+{noise}						{ count(); return B256NOISE; }
 {openfiledialog}			{ count(); return B256OPENFILEDIALOG; }
 {orange}					{ count(); return B256ORANGE; }
 {ostype_android}			{ count(); return B256OSTYPE_ANDROID; }

@@ -161,6 +161,11 @@ call section("Multi-line array and map literals")
 include "testsuite_multiline_include.kbs"
 
 ###################################################
+call section("OpenSimplex Noise")
+###################################################
+include "testsuite_noise_include.kbs"
+
+###################################################
 ###################################################
 ###################################################
 print "BASIC256_TESTSUITE_CI_PASSED"

@@ -63,6 +63,7 @@ set(SOURCES_CORE
     src/core/GraphicsBuffer.cpp
     src/core/Interpreter.cpp
     src/core/md5.cpp
+    src/core/opensimplex.cpp
     src/core/MediaPath.cpp
     src/core/Sleeper.cpp
     src/core/Sound.cpp
@@ -88,6 +89,7 @@ set(HEADERS_CORE
     src/core/GraphicsBuffer.h
     src/core/Interpreter.h
     src/core/md5.h
+    src/core/opensimplex.h
     src/core/MediaPath.h
     src/core/Sleeper.h
     src/core/Sound.h

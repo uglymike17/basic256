@@ -313,6 +313,7 @@ class Interpreter : public QThread
 		QString inputString;        // input string from user
 		int inputType;				// data type to convert the input into
 		double double_random_max;
+		int64_t noiseSeed;			// seeds NOISE, set alongside srand by SEED
 		int currentLine;
 		void clearsprites();
 		void update_sprite_screen();

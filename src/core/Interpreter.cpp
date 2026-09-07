@@ -52,6 +52,7 @@
 #include "Interpreter.h"
 #include "MediaPath.h"
 #include "md5.h"
+#include "opensimplex.h"
 #include "Settings.h"
 #include "Sound.h"
 #include "Constants.h"
@@ -380,6 +381,7 @@ QString Interpreter::opname(int op) {
 	case OP_PUSHSTRING : return QString("OP_PUSHSTRING");
 	case OP_PUTSLICE : return QString("OP_PUTSLICE");
 	case OP_RADIANS : return QString("OP_RADIANS");
+	case OP_NOISE : return QString("OP_NOISE");
 	case OP_RAND : return QString("OP_RAND");
 	case OP_READ : return QString("OP_READ");
 	case OP_READBYTE : return QString("OP_READBYTE");
@@ -1439,6 +1441,7 @@ Interpreter::run() {
 	//link sound system to error mechanism
 	sound->error = &error;
 	srand(time(NULL)+QTime::currentTime().msec()*911L); rand(); rand(); 	// initialize the random number generator for this thread
+	noiseSeed = (int64_t)time(NULL) ^ ((int64_t)QTime::currentTime().msec() * 911L);	// and the noise field, so an unseeded run differs like RAND does
 	runtimer.start(); // used by MSEC function
 	runLoop();			// run the opcodes
 	debugMode = 0;
@@ -3291,6 +3294,22 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				}
 				break;
 
+				case OP_NOISE: {
+					// NOISE(x) walks a line through the two dimensional field and
+					// NOISE(x,y) samples it directly - the grammar pushes 1 or 2 to
+					// say which form was written.
+					int dims = stack->popInt();
+					if (dims == 2) {
+						double y = stack->popDouble();
+						double x = stack->popDouble();
+						stack->pushDouble(OpenSimplex2::noise2(noiseSeed, x, y));
+					} else {
+						double x = stack->popDouble();
+						stack->pushDouble(OpenSimplex2::noise1(noiseSeed, x));
+					}
+				}
+				break;
+
 				case OP_RAND: {
 					double r = ((double) rand() * (double) RAND_MAX + (double) rand()) / double_random_max;
 					stack->pushDouble(r);
@@ -3300,6 +3319,9 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_SEED: {
 					unsigned int seed = stack->popLong();
 					srand(seed);
+					// one SEED covers both generators, so a program that seeds gets
+					// the same RAND sequence and the same NOISE field every run
+					noiseSeed = (int64_t) seed;
 				}
 				break;
 
@@ -5772,24 +5794,35 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					DataElement *e = stack->popDE();			// RELEASE
 					QPolygonF *poly = convert->getPolygonF(e);
 					if (poly) {
-						// now move points to the top left (if they are not there)
+						// Move the polygon to the top left corner of the sprite and
+						// leave a margin for the pen.  drawPolygon centres the stroke
+						// on the path, so half of it falls outside the polygon's own
+						// bounds - without the margin a wide pen is clipped on every
+						// edge.  The caller cannot make room instead, because any
+						// margin it adds is taken back out by the move to the corner.
 						QRectF bound = poly->boundingRect();
-						if (bound.top() !=0 || bound.left() !=0) {
+						qreal margin = drawingpen.width() / 2.0;
+						qreal dx = margin - bound.left();
+						qreal dy = margin - bound.top();
+						if (dx != 0 || dy != 0) {
 							for(int j=0;j<poly->size();j++) {
 								QPointF pt = poly->at(j);
-								pt.setX(pt.x()-bound.top());
-								pt.setY(pt.y()-bound.left());
+								pt.setX(pt.x()+dx);
+								pt.setY(pt.y()+dy);
 								poly->replace(j, pt);
 							}
 							bound = poly->boundingRect();
 						}
+						// the image is the polygon plus the margin on both sides
+						int spritewidth = (int) ceil(bound.width() + drawingpen.width());
+						int spriteheight = (int) ceil(bound.height() + drawingpen.width());
 						//
 						// now build sprite
 						int n = stack->popInt(); // sprite number
 						if(n >= 0 && n < nsprites) {
 							// free old, draw, and capture sprite
 							sprite_prepare_for_new_content(n);
-							sprites[n].image = new QImage(bound.right(),bound.bottom(),QImage::Format_ARGB32_Premultiplied);
+							sprites[n].image = new QImage(spritewidth,spriteheight,QImage::Format_ARGB32_Premultiplied);
 							if(!sprites[n].image->isNull()){
 								sprites[n].image->fill(Qt::transparent);
 								if (!CompositionModeClear) {
@@ -5799,7 +5832,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 									p->drawPolygon(*poly);
 									p->end();
 									delete p;
-									sprites[n].position.setRect(-(bound.right()/2),-(bound.bottom()/2),bound.right(),bound.bottom());
+									sprites[n].position.setRect(-(spritewidth/2),-(spriteheight/2),spritewidth,spriteheight);
 								}
 							}
 						} else {

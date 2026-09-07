@@ -145,6 +145,53 @@ window 5, 5, 5, 5
 call n("zero sized window raises an error", lasterror, 130)
 offerror
 
+
+# ---------------------------------------------------------------------------
+# SPRITEPOLY sizes the sprite from the polygon and the pen
+# ---------------------------------------------------------------------------
+
+# Sprites are never composited under --silent, so nothing here can look at
+# what was drawn - but spritew and spriteh read the sprite image directly and
+# work headlessly, which is enough to pin the geometry.
+#
+# The sprite is the polygon's bounding box plus the pen width, because
+# drawPolygon centres the stroke on the path and half of it falls outside the
+# polygon. Where the polygon sits in the plane must not matter: it is moved to
+# the corner of the sprite wherever it was drawn.
+
+spritedim 5
+
+penwidth 1
+color white, red
+
+# a 30 wide by 5 tall rectangle, at the origin and then moved away from it
+spritepoly 0, {0,0, 30,0, 30,5, 0,5}
+call n("spritepoly width at the origin", spritew(0), 31)
+call n("spritepoly height at the origin", spriteh(0), 6)
+
+spritepoly 1, {5,1, 35,1, 35,6, 5,6}
+call n("spritepoly width is the same moved off the origin", spritew(1), 31)
+call n("spritepoly height is the same moved off the origin", spriteh(1), 6)
+
+# wholly negative coordinates - and not square, so a swapped axis would show
+spritepoly 2, {-40,-30, -10,-30, -10,-25, -40,-25}
+call n("spritepoly width with negative coordinates", spritew(2), 31)
+call n("spritepoly height with negative coordinates", spriteh(2), 6)
+
+# the pen is allowed for on both sides of the polygon
+penwidth 4
+spritepoly 3, {0,0, 30,0, 30,5, 0,5}
+call n("a wider pen makes a wider sprite", spritew(3), 34)
+call n("a wider pen makes a taller sprite", spriteh(3), 9)
+
+# a two dimensional list of points is accepted for the same shape
+penwidth 1
+spritepoly 4, {{0,0}, {30,0}, {30,5}, {0,5}}
+call n("2d list of points gives the same width", spritew(4), 31)
+call n("2d list of points gives the same height", spriteh(4), 6)
+
+penwidth 1
+
 # leave the drawing state as it was found so later suites are unaffected
 window
 setgraph
