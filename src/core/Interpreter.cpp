@@ -2157,9 +2157,11 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_ARR_SET: {
 					// assign a value to an array element
 					// assumes that arrays are always two dimensional (if 1d then one row [0,i]) )
-					DataElement *e = stack->popDE();			// RELEASE
-					DataElement *col = stack->popDE();			// RELEASE
-					DataElement *row = stack->popDE();			// RELEASE
+					// borrowed: the stack keeps these, and nothing here pushes
+					// before the last read of them
+					DataElement *e = stack->popDEborrow();			// DO NOT RELEASE
+					DataElement *col = stack->popDEborrow();		// DO NOT RELEASE
+					DataElement *row = stack->popDEborrow();		// DO NOT RELEASE
 					DataElement *vdata = variables->getData(i);			// DONT RELEASE
 					switch (DataElement::getType(vdata)) {
 						case T_ARRAY:
@@ -2184,17 +2186,16 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						default:
 							error->q(ERROR_ARRAYORMAPEXPR);
 					}
-					delete e;
-					delete col;
-					delete row;
 				}
 				break;
 
 
 				case OP_ARR_GET: {
 					// get a value from an array and push it to the stack
-					DataElement *col = stack->popDE();			// RELEASE
-					DataElement *row = stack->popDE();			// RELEASE
+					// borrowed: both are read into r and c, and into the map key,
+					// before anything is pushed over them
+					DataElement *col = stack->popDEborrow();		// DO NOT RELEASE
+					DataElement *row = stack->popDEborrow();		// DO NOT RELEASE
 					DataElement *vdata = variables->getData(i);			// DONT RELEASE
 					switch (DataElement::getType(vdata)) {
 						case T_ARRAY:
@@ -2222,8 +2223,6 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 							error->q(ERROR_ARRAYORMAPEXPR);
 							stack->pushBool(false);
 					}
-					delete col;
-					delete row;
 				}
 				break;
 
@@ -2245,11 +2244,10 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 				case OP_VAR_SET: {
 					// assign a value to a variable
-					DataElement *e = stack->popDE();			// RELEASE
+					DataElement *e = stack->popDEborrow();		// DO NOT RELEASE
 					variables->setData(i,e);
 					if (DataElement::getError()) {error->q(DataElement::getError(true),i);}
 					watchvariable(debugMode, i);
-					delete e;
 				}
 				break;
 
@@ -4089,62 +4087,56 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_EQUAL:{
-					DataElement *two = stack->popDE();			// RELEASE
-					DataElement *one = stack->popDE();			// RELEASE
+					// borrowed: both are read by compare() before anything is pushed
+					DataElement *two = stack->popDEborrow();		// DO NOT RELEASE
+					DataElement *one = stack->popDEborrow();		// DO NOT RELEASE
 					int ans = convert->compare(one,two);
 					stack->pushBool(ans==0);
-					delete one;
-					delete two;
 				}
 				break;
 
 				case OP_NEQUAL:{
-					DataElement *two = stack->popDE();			// RELEASE
-					DataElement *one = stack->popDE();			// RELEASE
+					// borrowed: both are read by compare() before anything is pushed
+					DataElement *two = stack->popDEborrow();		// DO NOT RELEASE
+					DataElement *one = stack->popDEborrow();		// DO NOT RELEASE
 					int ans = convert->compare(one,two);
 					stack->pushBool(ans!=0);
-					delete one;
-					delete two;
 				}
 				break;
 
 				case OP_GT:{
-					DataElement *two = stack->popDE();			// RELEASE
-					DataElement *one = stack->popDE();			// RELEASE
+					// borrowed: both are read by compare() before anything is pushed
+					DataElement *two = stack->popDEborrow();		// DO NOT RELEASE
+					DataElement *one = stack->popDEborrow();		// DO NOT RELEASE
 					int ans = convert->compare(one,two);
 					stack->pushBool(ans==1);
-					delete one;
-					delete two;
 				}
 				break;
 
 				case OP_LTE:{
-					DataElement *two = stack->popDE();			// RELEASE
-					DataElement *one = stack->popDE();			// RELEASE
+					// borrowed: both are read by compare() before anything is pushed
+					DataElement *two = stack->popDEborrow();		// DO NOT RELEASE
+					DataElement *one = stack->popDEborrow();		// DO NOT RELEASE
 					int ans = convert->compare(one,two);
 					stack->pushBool(ans!=1);
-					delete one;
-					delete two;
 				}
 				break;
 
 				case OP_LT:{
-					DataElement *two = stack->popDE();			// RELEASE
-					DataElement *one = stack->popDE();			// RELEASE
+					// borrowed: both are read by compare() before anything is pushed
+					DataElement *two = stack->popDEborrow();		// DO NOT RELEASE
+					DataElement *one = stack->popDEborrow();		// DO NOT RELEASE
 					int ans = convert->compare(one,two);
 					stack->pushBool(ans==-1);
-					delete one;
-					delete two;
 				}
 				break;
 
 				case OP_GTE:{
-					DataElement *two = stack->popDE();			// RELEASE
-					DataElement *one = stack->popDE();			// RELEASE
+					// borrowed: both are read by compare() before anything is pushed
+					DataElement *two = stack->popDEborrow();		// DO NOT RELEASE
+					DataElement *one = stack->popDEborrow();		// DO NOT RELEASE
 					int ans = convert->compare(one,two);
 					stack->pushBool(ans!=-1);
-					delete one;
-					delete two;
 				}
 				break;
 
