@@ -726,7 +726,7 @@ namespace {
 		// been given a value is an error naming the variable and the element,
 		// just as reading it with an index would be; a string element converts
 		// the way it would anywhere else, warning and all.
-		DataElement *e = m->arr->data[k];
+		DataElement *e = &m->arr->data[k];
 		if (e && e->type==T_INT) return matInt(e->intval);
 		if (e && e->type==T_FLOAT) return matFloat(e->floatval);
 		if (!e || e->type==T_UNASSIGNED) {
@@ -758,10 +758,7 @@ namespace {
 				return false;
 			}
 		}
-		const int n = rows * cols;
-		for (int k=0; k<n; k++) {
-			if (!dest->arr->data[k]) dest->arr->data[k] = new DataElement();
-		}
+		// the elements exist as soon as the array does - nothing to allocate
 		return true;
 	}
 }
@@ -790,14 +787,14 @@ void Interpreter::matStatement(int opcode, int destvar, DataElement *left, int l
 				if (!matDestination(dest, acols, arows)) return;
 				for (int r=0; r<arows; r++) {
 					for (int c=0; c<acols; c++) {
-						matPut(dest->arr->data[c*arows+r], t[r*acols+c]);
+						matPut(&dest->arr->data[c*arows+r], t[r*acols+c]);
 					}
 				}
 			} else {
 				if (!matDestination(dest, acols, arows)) return;
 				for (int r=0; r<arows; r++) {
 					for (int c=0; c<acols; c++) {
-						matPut(dest->arr->data[c*arows+r], matGet(left, r*acols+c, leftvar, arraybase, convert));
+						matPut(&dest->arr->data[c*arows+r], matGet(left, r*acols+c, leftvar, arraybase, convert));
 					}
 				}
 			}
@@ -854,7 +851,7 @@ void Interpreter::matStatement(int opcode, int destvar, DataElement *left, int l
 			if (!matDestination(dest, n, n)) return;
 			for (int r=0; r<n; r++) {
 				for (int c=0; c<n; c++) {
-					matPut(dest->arr->data[r*n+c], matFloat(m[(size_t)r*w+n+c]));
+					matPut(&dest->arr->data[r*n+c], matFloat(m[(size_t)r*w+n+c]));
 				}
 			}
 		}
@@ -887,7 +884,7 @@ void Interpreter::matStatement(int opcode, int destvar, DataElement *left, int l
 						error->q(ERROR_INFINITY);
 						v = matFloat(0.0);
 					}
-					matPut(dest->arr->data[k], v);
+					matPut(&dest->arr->data[k], v);
 				}
 				return;
 			}
@@ -934,7 +931,7 @@ void Interpreter::matStatement(int opcode, int destvar, DataElement *left, int l
 						infinite = true;
 						c[k] = matFloat(0.0);
 					}
-					matPut(dest->arr->data[k], c[k]);
+					matPut(&dest->arr->data[k], c[k]);
 				}
 				if (infinite) error->q(ERROR_INFINITY);
 				return;
@@ -956,7 +953,7 @@ void Interpreter::matStatement(int opcode, int destvar, DataElement *left, int l
 					error->q(ERROR_INFINITY);
 					v = matFloat(0.0);
 				}
-				matPut(dest->arr->data[k], v);
+				matPut(&dest->arr->data[k], v);
 			}
 		}
 		break;
@@ -1936,7 +1933,7 @@ nextop:
 								temp->arrayIter = d->arr->data.begin();
 								temp->arrayIterEnd = d->arr->data.end();
 								// set variable to first element
-								variables->setData(temp->forVarnum, *temp->arrayIter);
+								variables->setData(temp->forVarnum, &*temp->arrayIter);
 								watchvariable(debugMode, temp->forVarnum);
 								// add new forframe to the forframe stack
 								temp->next = forstack;
@@ -2307,11 +2304,24 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 								// a stack that grows on demand. Harmless once; unbounded for a
 								// fill inside a loop, which a zero-filling bare DIM now makes
 								// commonplace.
+								// Mode 1 overwrites everything, so it has no reason to read
+								// the element first.  It used to read one anyway, which set
+								// DataElement's not-assigned flag for every element of a
+								// fresh array; nothing consumed it, and it only stayed
+								// invisible because allocating the replacement element ran
+								// a constructor, and the constructor clears that flag.
+								// Elements are no longer allocated one at a time, so the
+								// read has to go - and mode 0, which does need to know
+								// whether the element is set, clears the flag it raises.
 								for(int row = 0; row<rows; row++) {
 									for (int col = 0; col<columns; col++) {
-										DataElement *temp = edest->arrayGetData(row, col);			// DONT RELEASE
-										if (mode||DataElement::getType(temp)==T_UNASSIGNED) {
+										if (mode) {
 											edest->arraySetData(row, col, e);
+										} else {
+											DataElement *temp = edest->arrayGetData(row, col);			// DONT RELEASE
+											const bool unassigned = (DataElement::getType(temp)==T_UNASSIGNED);
+											if (unassigned) DataElement::getError(true);	// "not assigned" is the answer here, not an error
+											if (unassigned) edest->arraySetData(row, col, e);
 										}
 									}
 								}
@@ -8580,7 +8590,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 								temp->arrayIter++;
 								if (temp->arrayIter != temp->arrayIterEnd) {
 									// set variable to this element
-									variables->setData(temp->forVarnum, *temp->arrayIter);
+									variables->setData(temp->forVarnum, &*temp->arrayIter);
 									watchvariable(debugMode, temp->forVarnum);
 									// loop again
 									op = temp->forAddr;
