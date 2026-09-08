@@ -87,7 +87,14 @@ class DataElement
 
 		QString debug();
 		void copy(DataElement *);
-		
+		// Hand this element everything the source holds and leave the source
+		// empty.  Unlike copy() it is O(1) whatever the element holds - an
+		// array changes owner instead of being duplicated - which is what
+		// taking a value off the stack wants.
+		void stealFrom(DataElement *);
+		// Exchange contents with another element, for the stack's SWAP family
+		void swapWith(DataElement *);
+
 		void clear();
 		
 		void arrayDim(const int, const int, const bool);

@@ -152,6 +152,31 @@ fprintf(stderr,"de copy map source len %d\n",source->map->data.size());
 	}
 }
 
+void DataElement::stealFrom(DataElement *source) {
+	// take the source's contents whole - no allocation, no deep copy - and
+	// leave it holding nothing
+	clear();
+	if (!source) return;
+	type = source->type;
+	level = source->level;
+	intval = source->intval;		// the union: covers floatval too
+	arr = source->arr;				// the union: covers map too
+	if (source->type == T_STRING) {
+		stringval.swap(source->stringval);
+	}
+	source->type = T_UNASSIGNED;
+	source->arr = NULL;
+}
+
+void DataElement::swapWith(DataElement *other) {
+	if (!other) return;
+	const int t = type;			type = other->type;			other->type = t;
+	const int l = level;		level = other->level;		other->level = l;
+	const qint64 v = intval;	intval = other->intval;		other->intval = v;
+	DataElementArray *a = arr;	arr = other->arr;			other->arr = a;
+	stringval.swap(other->stringval);
+}
+
 void DataElement::clear() {
 	//fprintf(stderr, "DataElement clear %s\n", debug().toStdString().c_str());
 	switch (type){
