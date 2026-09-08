@@ -30,7 +30,10 @@ class DataElementArray
     public:
         int xdim;
         int ydim;
-        std::vector<DataElement*> data;
+        // Elements live IN the vector, not behind a pointer each.  One
+        // allocation holds the whole array, the elements are contiguous, and
+        // a dimension no longer costs one trip to the allocator per element.
+        std::vector<DataElement> data;
 };
 
 
@@ -43,14 +46,28 @@ class DataElementMap
 class DataElement
 {
 	public:
+		// Members that can never be live at the same time share their storage,
+		// which takes a DataElement from 72 bytes to 48 - and every value in
+		// the system is one of these, on the stack, in a variable or in an
+		// array.  (72 rather than the 48 the members suggest at a glance:
+		// Qt6's QString is three words, not one.)
+		// The type field says which member of each union is the live
+		// one: T_INT/T_REF use intval, T_FLOAT uses floatval, T_ARRAY uses arr
+		// and T_MAP uses map.  level is only meaningful for a T_REF, which
+		// also uses intval, so it stays a member of its own - it costs nothing
+		// because it sits in the padding that follows type.
 		int type;	// type from BasicTypes.h
-		QString stringval;
-		double floatval;
-		qint64 intval;
 		int level;
-		DataElementArray *arr;
-		DataElementMap *map;
-        
+		QString stringval;
+		union {
+			double floatval;
+			qint64 intval;
+		};
+		union {
+			DataElementArray *arr;
+			DataElementMap *map;
+		};
+
 
 		DataElement();
 		~DataElement();

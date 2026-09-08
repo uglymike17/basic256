@@ -171,8 +171,8 @@ struct forframe {
     qint64 intEnd;
     qint64 intStep;
     DataElement* foreach_de;		// copy of data used for the foreach
-    std::vector<DataElement*>::iterator arrayIter;
-    std::vector<DataElement*>::iterator arrayIterEnd;
+    std::vector<DataElement>::iterator arrayIter;
+    std::vector<DataElement>::iterator arrayIterEnd;
     std::map<std::string, DataElement*>::iterator mapIter;
     std::map<std::string, DataElement*>::iterator mapIterEnd;
 };
