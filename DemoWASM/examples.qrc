@@ -65,6 +65,11 @@
         <file>Original_Examples/tictactoe_comp.kbs</file>
         <file>Original_Examples/trig.kbs</file>
         <file>Original_Examples/uniformRV.kbs</file>
+        <file>Physics/Verlet1a_Particles.kbs</file>
+        <file>Physics/Verlet1b_SimilarBalls.kbs</file>
+        <file>Physics/Verlet1c_DifferentBalls.kbs</file>
+        <file>Physics/Verlet1d_MouseMove.kbs</file>
+        <file>Physics/Verlet1e_Optim.kbs</file>
         <file>Simulations/AnimatedBall.kbs</file>
         <file>Simulations/BouncingBall.kbs</file>
         <file>Simulations/Colliding2Balls.kbs</file>
