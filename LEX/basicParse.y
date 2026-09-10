@@ -465,6 +465,7 @@
 %token B256COS
 %token B256COUNT
 %token B256COUNTX
+%token B256CROSS
 %token B256CURRENTDIR
 %token B256CYAN
 %token B256DARKBLUE
@@ -492,6 +493,7 @@
 %token B256DIR
 %token B256DIVEQUAL
 %token B256DO
+%token B256DOT
 %token B256EDITVISIBLE
 %token B256ELLIPSE
 %token B256ELSE
@@ -739,6 +741,7 @@
 %token B256NETWRITE
 %token B256NEXT
 %token B256NOISE
+%token B256NORM
 %token B256NOT
 %token B256OFFERROR
 %token B256ONERROR
@@ -882,6 +885,7 @@
 %token B256TYPE_STRING
 %token B256TYPE_UNASSIGNED
 %token B256UNASSIGN
+%token B256UNIT
 %token B256UNLOAD
 %token B256UNSERIALIZE
 %token B256UNTIL
@@ -946,6 +950,12 @@
 %left B256AND
 %nonassoc B256NOT B256ADD1 B256SUB1
 %left '<' B256LTE '>' B256GTE '=' B256NE
+/* the vector products bind tighter than a comparison, so a DOT b = 0 asks
+   whether the dot product is zero, and CROSS binds tighter than DOT, so the
+   triple products a DOT b CROSS c and a CROSS b DOT c both read the way a
+   mathematician writes them */
+%left B256DOT
+%left B256CROSS
 %left B256BINARYOR B256AMP
 %left B256BITSHIFTL B256BITSHIFTR
 %left '-' '+'
@@ -1280,6 +1290,16 @@ expr_multi:
 	}
 	| expr '*' expr {
 		addOp(OP_MUL);
+	}
+	/* the vector products.  Both operands are whole arrays on the stack and
+	   the result is a number for DOT, and for CROSS either an array (three
+	   element vectors) or a number (two element ones), so they live here
+	   among the operators whose type depends on what they are given. */
+	| expr B256DOT expr {
+		addOp(OP_DOT);
+	}
+	| expr B256CROSS expr {
+		addOp(OP_CROSS);
 	}	;
 
 /* ###########################################
@@ -1931,6 +1951,7 @@ expr_numeric:
 	| B256SQR '(' expr ')' { addOp(OP_SQR); }
 	| B256EXP '(' expr ')' { addOp(OP_EXP); }
 	| B256ABS '(' expr ')' { addOp(OP_ABS); }
+	| B256NORM '(' expr ')' { addOp(OP_NORM); }	/* length of a vector */
 	| B256RAND args_none { addOp(OP_RAND); }
 	| B256NOISE '(' expr ')' { addIntOp(OP_PUSHINT, 1); addOp(OP_NOISE); }
 	| B256NOISE '(' args_ee ')' { addIntOp(OP_PUSHINT, 2); addOp(OP_NOISE); }
@@ -2397,6 +2418,12 @@ expr_dataelement:
 	}
 	| B256UNSERIALIZE '(' expr ')'{
 		addOp(OP_UNSERIALIZE);
+	}
+	/* UNIT gives back a vector of the same shape as the one it is given, so
+	   it belongs here with the other expressions that are whole arrays -
+	   which also lets FOREACH walk one without a variable in between */
+	| B256UNIT '(' expr ')'{
+		addOp(OP_UNIT);
 	}
 	
 	| B256EXPLODE args_ee {

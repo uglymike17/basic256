@@ -367,3 +367,188 @@ function matproduct(ref(x), ref(y))
    return z[0,0]
 end function
 call n("MAT on arrays passed to a function", matproduct(a[], e[]), 19)
+
+###################################################
+# DOT, CROSS, NORM and UNIT - vector arithmetic
+#
+# These read an array as a plain list of elements in the order they are
+# stored, so a row, a column, and anything MAT TRN hands back all work and
+# only the number of elements has to agree.
+###################################################
+
+vr = {1,2,3}
+vs = {4,5,6}
+
+call n("dot product of two rows", vr dot vs, 32)
+call n("dot product of whole numbers is a whole number", typeof(vr dot vs), TYPE_INT)
+call n("dot product is the same both ways round", vs dot vr, 32)
+call nclose("dot product with a fraction", {1,2} dot {0.5,0.25}, 1.0)
+call n("a fraction anywhere makes the answer a float", typeof({1,2} dot {0.5,0.25}), TYPE_FLOAT)
+call n("dot product of a vector with itself", vr dot vr, 14)
+
+# a column from MAT TRN dotted with the row it came from
+mat trn vc = vr
+call n("transposed source is a column", vc[?,], 3)
+call n("transposed source has one column", vc[,?], 1)
+call n("a column dotted with a row", vc dot vr, 14)
+
+###################################################
+# CROSS in three dimensions
+###################################################
+
+vx = vr cross vs
+call n("cross product [0,0]", vx[0,0], -3)
+call n("cross product [0,1]", vx[0,1], 6)
+call n("cross product [0,2]", vx[0,2], -3)
+call n("cross product of whole numbers is whole", typeof(vx[0,0]), TYPE_INT)
+call n("cross product of a row is a row", vx[?,], 1)
+call n("cross product of a row has three columns", vx[,?], 3)
+
+# the answer takes the shape of the left hand vector
+vy = vc cross vr
+call n("cross product of a column is a column", vy[?,], 3)
+call n("cross product of a column has one column", vy[,?], 1)
+
+# the standard basis, which is the definition of the thing
+vi = {1,0,0}
+vj = {0,1,0}
+vk = vi cross vj
+call n("i cross j is k [0,0]", vk[0,0], 0)
+call n("i cross j is k [0,1]", vk[0,1], 0)
+call n("i cross j is k [0,2]", vk[0,2], 1)
+
+# anticommutative - b cross a is the negative of a cross b
+vz = vs cross vr
+call n("cross product the other way round negates [0,0]", vz[0,0], 3)
+call n("cross product the other way round negates [0,1]", vz[0,1], -6)
+call n("cross product the other way round negates [0,2]", vz[0,2], 3)
+
+# a cross product is at right angles to both of the vectors that made it
+call n("cross product is perpendicular to the first", vx dot vr, 0)
+call n("cross product is perpendicular to the second", vx dot vs, 0)
+
+###################################################
+# CROSS in two dimensions gives the single number
+###################################################
+
+call n("two dimensional cross product", {3,4} cross {5,6}, -2)
+call n("two dimensional cross product is a whole number", typeof({3,4} cross {5,6}), TYPE_INT)
+call n("two dimensional cross product of parallel vectors", {2,4} cross {1,2}, 0)
+call n("two dimensional cross product the other way round", {5,6} cross {3,4}, 2)
+
+###################################################
+# NORM - the length of a vector
+###################################################
+
+call nclose("length of a 3-4-5 triangle", norm({3,4}), 5)
+call n("a length is always a float", typeof(norm({3,4})), TYPE_FLOAT)
+call nclose("length in three dimensions", norm({2,3,6}), 7)
+call nclose("length of a unit vector along an axis", norm({0,1,0}), 1)
+call nclose("length of the zero vector", norm({0,0,0}), 0)
+call nclose("length of a column", norm(vc), sqr(14))
+call nclose("length is the square root of the dot product", norm(vr), sqr(vr dot vr))
+
+###################################################
+# UNIT - the same vector scaled to length one
+###################################################
+
+vu = unit({3,4})
+call nclose("unit vector [0,0]", vu[0,0], 0.6)
+call nclose("unit vector [0,1]", vu[0,1], 0.8)
+call n("a unit vector is always float", typeof(vu[0,0]), TYPE_FLOAT)
+call nclose("a unit vector has length one", norm(unit(vr)), 1)
+call n("unit keeps the shape of a row", vu[?,], 1)
+call n("unit keeps the number of columns", vu[,?], 2)
+
+vw = unit(vc)
+call n("unit keeps the shape of a column", vw[?,], 3)
+call n("unit of a column has one column", vw[,?], 1)
+call nclose("unit points the same way", unit({3,4}) dot unit({6,8}), 1)
+
+###################################################
+# how the operators sit next to each other
+###################################################
+
+# CROSS binds tighter than DOT, so both triple products come out right
+call n("scalar triple product a dot b cross a", vr dot vs cross vr, 0)
+call n("scalar triple product a cross b dot a", vr cross vs dot vr, 0)
+call n("the triple product of the basis vectors", vi dot vj cross {0,0,1}, 1)
+
+# DOT binds tighter than a comparison
+call boolean("a dot product compares without brackets", vr dot vs = 32)
+
+# and FOREACH walks a UNIT straight out of the expression
+foreachtotal = 0
+foreach foreachone in unit({3,4})
+   foreachtotal = foreachtotal + foreachone
+next foreachone
+call nclose("FOREACH over a unit vector", foreachtotal, 1.4)
+
+###################################################
+# things that are not vectors, or are the wrong size
+###################################################
+
+notavector = 7
+
+try
+   badvector = {1,2} dot {1,2,3}
+   call boolean("a dot product of different lengths should have raised an error", false)
+catch
+   call n("DOT with different numbers of elements", lasterror, 137)
+end try
+
+try
+   badvector = {1,2,3} cross {1,2}
+   call boolean("a cross product of different lengths should have raised an error", false)
+catch
+   call n("CROSS with different numbers of elements", lasterror, 137)
+end try
+
+try
+   badvector = {1,2,3,4} cross {5,6,7,8}
+   call boolean("a cross product of four elements should have raised an error", false)
+catch
+   call n("CROSS of anything but two or three elements", lasterror, 138)
+end try
+
+try
+   badvector = notavector dot {1,2}
+   call boolean("a single value as a vector should have raised an error", false)
+catch
+   call n("DOT of something that is not an array", lasterror, 136)
+end try
+
+try
+   badvector = norm(notavector)
+   call boolean("NORM of a single value should have raised an error", false)
+catch
+   call n("NORM of something that is not an array", lasterror, 136)
+end try
+
+try
+   badvector = unit({0,0,0})
+   call boolean("UNIT of the zero vector should have raised an error", false)
+catch
+   call n("UNIT of a vector with no length", lasterror, 140)
+end try
+
+try
+   raggedvector = {{1,2,3},{4,5}}
+   badvector = raggedvector dot raggedvector
+   call boolean("an element with no value should have raised an error", false)
+catch
+   call n("DOT where an element has never been given a value", lasterror, 139)
+end try
+
+###################################################
+# vectors held in variables, passed to functions, and in brackets form
+###################################################
+
+call n("the brackets form of a whole array", vr[] dot vs[], 32)
+
+function vectorangle(ref(p), ref(r))
+   # the cosine of the angle between two vectors
+   return (p dot r) / (norm(p) * norm(r))
+end function
+call nclose("DOT and NORM on arrays passed to a function", vectorangle(vi[], vi[]), 1)
+call nclose("perpendicular vectors have a cosine of zero", vectorangle(vi[], vj[]), 0)

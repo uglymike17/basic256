@@ -172,6 +172,7 @@ continuewhile [Cc][Oo][Nn][Tt][Ii][Nn][Uu][Ee][ \t]*[Ww][Hh][Ii][Ll][Ee]
 cos [Cc][Oo][Ss]
 count [Cc][Oo][Uu][Nn][Tt]
 countx [Cc][Oo][Uu][Nn][Tt][Xx]
+cross [Cc][Rr][Oo][Ss][Ss]
 currentdir [Cc][Uu][Rr][Rr][Ee][Nn][Tt][Dd][Ii][Rr]
 cyan [Cc][Yy][Aa][Nn]
 dark [Dd][Aa][Rr][Kk]
@@ -190,6 +191,7 @@ debuginfo [Dd][Ee][Bb][Uu][Gg][Ii][Nn][Ff][Oo]
 degrees [Dd][Ee][Gg][Rr][Ee][Ee][Ss]
 dim [Dd][Ii][Mm]
 dir [Dd][Ii][Rr]
+dot [Dd][Oo][Tt]
 do [Dd][Oo]
 editvisible [Ee][Dd][Ii][Tt][Vv][Ii][Ss][Ii][Bb][Ll][Ee]
 ellipse [Ee][Ll][Ll][Ii][Pp][Ss][Ee]
@@ -435,6 +437,7 @@ netread [Nn][Ee][Tt][Rr][Ee][Aa][Dd]
 netwrite [Nn][Ee][Tt][Ww][Rr][Ii][Tt][Ee]
 noise [Nn][Oo][Ii][Ss][Ee]
 next [Nn][Ee][Xx][Tt]
+norm [Nn][Oo][Rr][Mm]
 not [Nn][Oo][Tt]
 offerror [Oo][Ff][Ff][Ee][Rr][Rr][Oo][Rr]
 onerror [Oo][Nn][Ee][Rr][Rr][Oo][Rr]
@@ -575,6 +578,7 @@ type_string [Tt][Yy][Pp][Ee][_][Ss][Tt][Rr][Ii][Nn][Gg]
 type_unassigned [Tt][Yy][Pp][Ee][_][Uu][Nn][Aa][Ss][Ss][Ii][Gg][Nn][Ee][Dd]
 typeof [Tt][Yy][Pp][Ee][Oo][Ff]
 unassign [Uu][Nn][Aa][Ss][Ss][Ii][Gg][Nn]
+unit [Uu][Nn][Ii][Tt]
 unload [Uu][Nn][Ll][Oo][Aa][Dd]
 unserialize [Uu][Nn][Ss][Ee][Rr][Ii][Aa][Ll][Ii][Zz][Ee]
 until [Uu][Nn][Tt][Ii][Ll]
@@ -898,6 +902,7 @@ zfill [Zz][Ff][Ii][Ll][Ll]
 {netdata}					{ count(); return B256NETDATA; }
 {netread}					{ count(); return B256NETREAD; }
 {noise}						{ count(); return B256NOISE; }
+{norm}						{ count(); return B256NORM; }
 {openfiledialog}			{ count(); return B256OPENFILEDIALOG; }
 {orange}					{ count(); return B256ORANGE; }
 {ostype_android}			{ count(); return B256OSTYPE_ANDROID; }
@@ -970,6 +975,7 @@ zfill [Zz][Ff][Ii][Ll][Ll]
 {type_string}				{ count(); return B256TYPE_STRING; }
 {type_unassigned}			{ count(); return B256TYPE_UNASSIGNED; }
 {typeof}					{ count(); return B256TYPEOF; }
+{unit}						{ count(); return B256UNIT; }
 {unserialize}				{ count(); return B256UNSERIALIZE; }
 {upper}						{ count(); return B256UPPER; }
 {variablewatch}				{ count(); return B256VARIABLEWATCH; }
@@ -1221,6 +1227,8 @@ zfill [Zz][Ff][Ii][Ll][Ll]
 {not}						{ count(); return B256NOT; }
 {or}						{ count(); return B256OR; }
 {xor}						{ count(); return B256XOR; }
+{dot}						{ count(); return B256DOT; }
+{cross}						{ count(); return B256CROSS; }
 ">="						{ count(); return B256GTE; }
 "<="						{ count(); return B256LTE; }
 "<>"						{ count(); return B256NE; }

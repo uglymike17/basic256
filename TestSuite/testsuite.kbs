@@ -340,7 +340,7 @@ include "testsuite_map_include.kbs"
 
 section_mat:
 ###################################################
-call section("MAT matrix operations")
+call section("MAT matrix and vector operations")
 ###################################################
 include "testsuite_mat_include.kbs"
 

@@ -105,6 +105,7 @@ void EditSyntaxHighlighter::initKeywords() {
 			<< "cos"								//cos
 			<< "count"								//count
 			<< "countx"								//countx
+			<< "cross"								//cross
 			<< "currentdir"							//currentdir
 			<< "day"								//day
 			<< "dbclose"							//dbclose
@@ -121,6 +122,7 @@ void EditSyntaxHighlighter::initKeywords() {
 			<< "degrees"							//degrees
 			<< "dim"								//dim
 			<< "dir"								//dir
+			<< "dot"								//dot
 			<< "do"									//do
 			<< "editvisible"						//editvisible
 			<< "ellipse"                            //ellipse
@@ -247,6 +249,7 @@ void EditSyntaxHighlighter::initKeywords() {
 			<< "netread"							//netread
 			<< "netwrite"							//netwrite
 			<< "next"								//next
+			<< "norm"								//norm
 			<< "not"								//not
 			<< "offerror"							//offerror
 			<< "onerror"							//onerror
@@ -369,6 +372,7 @@ void EditSyntaxHighlighter::initKeywords() {
 			<< "typeof"								//typeof
 			<< "unassign"							//unassign
 			<< "unload"                             //unload
+			<< "unit"								//unit
 			<< "unserialize"						//unserialize
 			<< "until"								//until
 			<< "upper"								//upper

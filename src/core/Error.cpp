@@ -496,6 +496,21 @@ QString Error::getErrorMessage(char **symtable) {
 		case ERROR_MATSINGULAR:
 			errormessage = tr("MAT INV can not invert a singular matrix");
 			break;
+		case ERROR_VECNOTVECTOR:
+			errormessage = tr("DOT, CROSS, NORM and UNIT need an array, not a single value");
+			break;
+		case ERROR_VECDIM:
+			errormessage = tr("DOT and CROSS need both vectors to have the same number of elements");
+			break;
+		case ERROR_CROSSDIM:
+			errormessage = tr("CROSS needs vectors of two or three elements");
+			break;
+		case ERROR_VECELEMENT:
+			errormessage = tr("the vector has an element that has not been given a value");
+			break;
+		case ERROR_VECZERO:
+			errormessage = tr("UNIT can not make a unit vector from a vector of length zero");
+			break;
 
 
 

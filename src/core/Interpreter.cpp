@@ -207,6 +207,7 @@ QString Interpreter::opname(int op) {
 	case OP_CONCATENATE : return QString("OP_CONCATENATE");
 	case OP_CONFIRM : return QString("OP_CONFIRM");
 	case OP_COS : return QString("OP_COS");
+	case OP_CROSS : return QString("OP_CROSS");
 	case OP_COUNT : return QString("OP_COUNT");
 	case OP_COUNTX : return QString("OP_COUNTX");
 	case OP_CURRENTDIR : return QString("OP_CURRENTDIR");
@@ -229,6 +230,7 @@ QString Interpreter::opname(int op) {
 	case OP_DIM : return QString("OP_DIM");
 	case OP_DIR : return QString("OP_DIR");
 	case OP_DIV : return QString("OP_DIV");
+	case OP_DOT : return QString("OP_DOT");
 	case OP_EDITVISIBLE : return QString("OP_EDITVISIBLE");
 	case OP_ELLIPSE : return QString("OP_ELLIPSE");
 	case OP_END : return QString("OP_END");
@@ -382,6 +384,7 @@ QString Interpreter::opname(int op) {
 	case OP_PUTSLICE : return QString("OP_PUTSLICE");
 	case OP_RADIANS : return QString("OP_RADIANS");
 	case OP_NOISE : return QString("OP_NOISE");
+	case OP_NORM : return QString("OP_NORM");
 	case OP_RAND : return QString("OP_RAND");
 	case OP_READ : return QString("OP_READ");
 	case OP_READBYTE : return QString("OP_READBYTE");
@@ -475,6 +478,7 @@ QString Interpreter::opname(int op) {
 	case OP_TRIM : return QString("OP_TRIM");
 	case OP_TYPEOF : return QString("OP_TYPEOF");
 	case OP_UNLOAD : return QString("OP_UNLOAD");
+	case OP_UNIT : return QString("OP_UNIT");
 	case OP_UNSERIALIZE : return QString("OP_UNSERIALIZE");
 	case OP_UPPER : return QString("OP_UPPER");
 	case OP_VARIABLECOPY : return QString("OP_VARIABLECOPY");
@@ -760,6 +764,52 @@ namespace {
 		}
 		// the elements exist as soon as the array does - nothing to allocate
 		return true;
+	}
+
+	// DOT, CROSS, NORM and UNIT read a vector the way MAT reads a matrix -
+	// through MatNum, so whole numbers stay whole - but their operands are
+	// values on the stack rather than named variables, so an element that
+	// will not do has to name itself by position instead of by variable name.
+	MatNum vecGet(DataElement *v, int k, Convert *convert) {
+		DataElement *e = &v->arr->data[k];
+		if (e->type==T_INT) return matInt(e->intval);
+		if (e->type==T_FLOAT) return matFloat(e->floatval);
+		if (e->type==T_UNASSIGNED) {
+			error->q(ERROR_VECELEMENT, QString("element %1").arg(k));
+			return matInt(0);
+		}
+		if (e->type==T_ARRAY || e->type==T_MAP) {
+			error->q(ERROR_NUMBEREXPR, QString("element %1").arg(k));
+			return matInt(0);
+		}
+		return matFloat(convert->getFloat(e));
+	}
+
+	// a vector operand is any array - a row, a column, or for that matter a
+	// whole matrix, which is read as its elements in the order they are
+	// stored.  What matters to DOT and CROSS is how many elements there are,
+	// not what shape they are held in, so MAT TRN output works as it stands.
+	bool vecOperand(DataElement *e) {
+		if (DataElement::getType(e)==T_ARRAY) return true;
+		// an unassigned variable has already reported itself from OP_VAR_GET,
+		// and Error keeps the first error of an operation, so saying this as
+		// well costs nothing and covers the case where that one is a warning
+		error->q(ERROR_VECNOTVECTOR);
+		return false;
+	}
+
+	inline int vecSize(DataElement *e) {
+		return e->arr->xdim * e->arr->ydim;
+	}
+
+	// read a whole vector out into MatNums.  Both operands are always read
+	// before anything is pushed, because a push may reuse the very stack slot
+	// an operand is still being read from.
+	bool vecRead(DataElement *v, std::vector<MatNum> &out, Convert *convert) {
+		const int n = vecSize(v);
+		out.resize(n);
+		for (int k=0; k<n; k++) out[k] = vecGet(v, k, convert);
+		return !error->pending();
 	}
 }
 
@@ -8443,6 +8493,184 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				}
 				break;
 
+
+				case OP_DOT: {
+					// the dot product of two vectors.  Any two arrays holding
+					// the same number of elements will do - a row, a column or
+					// the output of MAT TRN - because what is multiplied is
+					// element by element in the order they are stored.
+					DataElement *b = stack->popDEborrow();		// DO NOT RELEASE
+					DataElement *a = stack->popDEborrow();		// DO NOT RELEASE
+					if (!vecOperand(a) || !vecOperand(b)) {
+						stack->pushLong(0);
+						break;
+					}
+					const int n = vecSize(a);
+					if (vecSize(b)!=n) {
+						error->q(ERROR_VECDIM);
+						stack->pushLong(0);
+						break;
+					}
+					// whole numbers in give a whole number out, the way the
+					// MAT statements work, until one will not fit
+					MatNum sum = matInt(0);
+					for (int k=0; k<n; k++) {
+						sum = matNumAdd(sum, matNumMul(vecGet(a, k, convert), vecGet(b, k, convert)));
+					}
+					if (error->pending()) {
+						stack->pushLong(0);
+						break;
+					}
+					if (!sum.isint && std::isinf(sum.d)) {
+						error->q(ERROR_INFINITY);
+						sum = matFloat(0.0);
+					}
+					if (sum.isint) stack->pushLong(sum.i); else stack->pushDouble(sum.d);
+				}
+				break;
+
+				case OP_CROSS: {
+					// the cross product.  Three elements each gives the vector
+					// product, shaped like the left operand; two elements each
+					// gives the single number that is the z of the three
+					// dimensional answer - a torque, a winding direction, or
+					// which side of a line a point falls, which is what a two
+					// dimensional program actually wants.
+					DataElement *b = stack->popDEborrow();		// DO NOT RELEASE
+					DataElement *a = stack->popDEborrow();		// DO NOT RELEASE
+					if (!vecOperand(a) || !vecOperand(b)) {
+						stack->pushLong(0);
+						break;
+					}
+					const int n = vecSize(a);
+					if (vecSize(b)!=n) {
+						error->q(ERROR_VECDIM);
+						stack->pushLong(0);
+						break;
+					}
+					if (n!=2 && n!=3) {
+						error->q(ERROR_CROSSDIM);
+						stack->pushLong(0);
+						break;
+					}
+					// both operands are read out in full, and the shape of the
+					// answer noted, before anything is pushed - a push may move
+					// the stack out from under the borrowed elements
+					std::vector<MatNum> x, y;
+					if (!vecRead(a, x, convert) || !vecRead(b, y, convert)) {
+						stack->pushLong(0);
+						break;
+					}
+					const int rows = a->arr->xdim;
+					const int cols = a->arr->ydim;
+
+					if (n==2) {
+						MatNum z = matNumSub(matNumMul(x[0], y[1]), matNumMul(x[1], y[0]));
+						if (!z.isint && std::isinf(z.d)) {
+							error->q(ERROR_INFINITY);
+							z = matFloat(0.0);
+						}
+						if (z.isint) stack->pushLong(z.i); else stack->pushDouble(z.d);
+						break;
+					}
+
+					MatNum c[3] = {
+						matNumSub(matNumMul(x[1], y[2]), matNumMul(x[2], y[1])),
+						matNumSub(matNumMul(x[2], y[0]), matNumMul(x[0], y[2])),
+						matNumSub(matNumMul(x[0], y[1]), matNumMul(x[1], y[0]))
+					};
+					bool infinite = false;
+					for (int k=0; k<3; k++) {
+						if (!c[k].isint && std::isinf(c[k].d)) {
+							infinite = true;
+							c[k] = matFloat(0.0);
+						}
+					}
+					// built straight into the slot it is pushed onto, so the
+					// answer is never copied
+					stack->pushUnassigned();
+					DataElement *r = stack->peekDE(0);			// DONT RELEASE
+					r->arrayDim(rows, cols, false);
+					if (DataElement::getError()) {
+						error->q(DataElement::getError(true));
+						break;
+					}
+					for (int k=0; k<3; k++) matPut(&r->arr->data[k], c[k]);
+					if (infinite) error->q(ERROR_INFINITY);
+				}
+				break;
+
+				case OP_NORM: {
+					// the length of a vector.  Always a float - a square root
+					// is not a whole number except by accident.
+					DataElement *v = stack->popDEborrow();		// DO NOT RELEASE
+					if (!vecOperand(v)) {
+						stack->pushLong(0);
+						break;
+					}
+					const int n = vecSize(v);
+					double sum = 0.0;
+					for (int k=0; k<n; k++) {
+						const double e = vecGet(v, k, convert).f();
+						sum += e * e;
+					}
+					if (error->pending()) {
+						stack->pushLong(0);
+						break;
+					}
+					const double len = sqrt(sum);
+					if (std::isinf(len)) {
+						error->q(ERROR_INFINITY);
+						stack->pushDouble(0.0);
+						break;
+					}
+					stack->pushDouble(len);
+				}
+				break;
+
+				case OP_UNIT: {
+					// the same vector scaled to length one, in the shape it
+					// came in.  Every element is a float, for the same reason
+					// NORM is.
+					DataElement *v = stack->popDEborrow();		// DO NOT RELEASE
+					if (!vecOperand(v)) {
+						stack->pushLong(0);
+						break;
+					}
+					const int n = vecSize(v);
+					std::vector<double> e(n);
+					double sum = 0.0;
+					for (int k=0; k<n; k++) {
+						e[k] = vecGet(v, k, convert).f();
+						sum += e[k] * e[k];
+					}
+					if (error->pending()) {
+						stack->pushLong(0);
+						break;
+					}
+					const double len = sqrt(sum);
+					if (len==0.0) {
+						error->q(ERROR_VECZERO);
+						stack->pushLong(0);
+						break;
+					}
+					if (std::isinf(len)) {
+						error->q(ERROR_INFINITY);
+						stack->pushLong(0);
+						break;
+					}
+					const int rows = v->arr->xdim;
+					const int cols = v->arr->ydim;
+					stack->pushUnassigned();
+					DataElement *r = stack->peekDE(0);			// DONT RELEASE
+					r->arrayDim(rows, cols, false);
+					if (DataElement::getError()) {
+						error->q(DataElement::getError(true));
+						break;
+					}
+					for (int k=0; k<n; k++) matPut(&r->arr->data[k], matFloat(e[k] / len));
+				}
+				break;
 
 				case OP_LIST2MAP: {
 					// pop a list of values off of stack and push

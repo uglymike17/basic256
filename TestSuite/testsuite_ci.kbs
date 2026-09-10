@@ -151,7 +151,7 @@ call section("Headless graphics: fractional coordinates and WINDOW")
 include "testsuite_graphicsheadless_include.kbs"
 
 ###################################################
-call section("MAT matrix operations")
+call section("MAT matrix and vector operations")
 ###################################################
 include "testsuite_mat_include.kbs"
 
