@@ -29,10 +29,11 @@ This project is the actively maintained continuation of the original BASIC256, b
 - All drawing primitives (CIRCLE, LINE, RECT,..) have been adapted to handle the new WINDOW command, as have the location-based ones (PIXEL, MOUSEX/Y, CLICKX/Y). They now also accept fractional coordinates, so a circle at 100.5,100.5 sits half a pixel right of and below one at 100,100.
 - A new command NOISE to generate OpenSimplex noise (follow-up to Perlin noise).
 - A MAT command for matrix calculations (MAT MUL, MAT ADD, MAT SUB, MAT INV, MAT TRN)
+- Some vector commands have been added: DOT and CROSS products, NORM (vector length) and UNIT (unit vector). As there is no real vector primitive, arrays are used to represent vectors.
 - An array or map literal may now be written over several lines instead of a single continuous line and a remark may be put inside the outer mustaches, so the rows of a table can be documented.
 - Programs run 20-25% faster than 2.1.1, and none run slower.
 - Arrays use about half the memory they used to, and the statements that act on a whole array at once -- DIM, REDIM, MAT statements -- are three to five times faster.
-- Bug fixes: on Windows a running program's graphics no longer stall for seconds at a time until the mouse is moved, and SPRITEPOLY now places the polygon where it was drawn and leaves room for the pen width.
+- Bug fixes: on Windows a running program's graphics no longer stall for seconds at a time until the mouse is moved, and SPRITEPOLY now places the polygon where it was drawn and leaves room for the pen width. Although mod and % correctly returned the modulo function, MOD was not recognized. This is now fixed.
 
 ## What's new in BASIC256 2.1.1
 
