@@ -249,6 +249,7 @@ void EditSyntaxHighlighter::initKeywords() {
 			<< "netread"							//netread
 			<< "netwrite"							//netwrite
 			<< "next"								//next
+			<< "noise"								//noise
 			<< "norm"								//norm
 			<< "not"								//not
 			<< "offerror"							//offerror
