@@ -104,6 +104,7 @@ extern "C" {
 Interpreter::Interpreter(QLocale *applocale, GraphicsBuffer *appgraphics, BasicKeyboard *appbasicKeyboard) {
 	//yydebug = 1;
 	fastgraphics = false;
+	frameRateSet = false;
 	windowActive = false;
 	winX1 = winY1 = winX2 = winY2 = 0.0;
 	windowTransform.reset();
@@ -479,6 +480,7 @@ QString Interpreter::opname(int op) {
 	case OP_TYPEOF : return QString("OP_TYPEOF");
 	case OP_UNLOAD : return QString("OP_UNLOAD");
 	case OP_UNIT : return QString("OP_UNIT");
+	case OP_FRAMERATE : return QString("OP_FRAMERATE");
 	case OP_UNSERIALIZE : return QString("OP_UNSERIALIZE");
 	case OP_UPPER : return QString("OP_UPPER");
 	case OP_VARIABLECOPY : return QString("OP_VARIABLECOPY");
@@ -573,6 +575,15 @@ bool Interpreter::isStopping() {
 	// interpreter is stopped or is about to stop
 	// to avoid RunController::stopRun() to be triggered while status == R_STOPPING too
 	return (status == R_STOPPED || status == R_STOPPING);
+}
+
+void Interpreter::wakeSleeper() {
+	// Called from the GUI thread when the user presses Stop. The interpreter
+	// thread may be parked in a PAUSE or a FRAMERATE wait, neither of which
+	// the status flag alone can reach -- the run loop only looks at the status
+	// between opcodes, so without this a PAUSE 60 would ignore Stop for a
+	// minute.
+	sleeper->wake();
 }
 
 void Interpreter::setStatus(run_status s) {
@@ -1267,6 +1278,10 @@ Interpreter::initialize() {
 	CompositionModeClear = false;
 	PenColorIsClear = false;
 	fastgraphics = false;
+	frameRateSet = false;
+	// drop a stop signal left standing by the previous run so it cannot
+	// shorten this run's first PAUSE
+	sleeper->clearWake();
 	windowActive = false;
 	winX1 = winY1 = winX2 = winY2 = 0.0;
 	windowTransform.reset();
@@ -3387,6 +3402,40 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					double val = stack->popDouble();
 					if (val > 0) {
 						sleeper->sleepSeconds(val);
+					}
+				}
+				break;
+
+				case OP_FRAMERATE: {
+					// Cap the rate of the loop this statement sits in. Unlike PAUSE,
+					// which sleeps for a fixed time ON TOP of the drawing and so
+					// yields 1/(draw + delay), this waits UNTIL the next frame's
+					// deadline and so absorbs however long the drawing took.
+					double target = stack->popDouble();
+					if (!(target > 0)) {
+						// FRAMERATE 0 turns the cap off and forgets the deadline, so a
+						// later FRAMERATE n starts timing from that point
+						frameRateSet = false;
+						break;
+					}
+					double secs = 1.0 / target;
+					if (secs > 3600.0) secs = 3600.0;	// a frame longer than an hour is not a frame rate
+					std::chrono::steady_clock::duration period =
+						std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+							std::chrono::duration<double>(secs));
+					std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+					if (!frameRateSet || now > frameDeadline + period) {
+						// First frame, or a frame so slow we are already a whole frame
+						// past due. Resync instead of carrying the deficit forward --
+						// catching up would run a burst of zero-length frames and make
+						// one slow frame look like a stutter that spreads.
+						frameDeadline = now + period;
+						frameRateSet = true;
+					} else {
+						// A deadline already past returns at once, which is how a small
+						// overrun is clawed back over the following frames.
+						sleeper->sleepUntil(frameDeadline);
+						frameDeadline += period;
 					}
 				}
 				break;

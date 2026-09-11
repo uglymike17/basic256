@@ -629,6 +629,7 @@
 %token B256FONT
 %token B256FOR
 %token B256FOREACH
+%token B256FRAMERATE
 %token B256FREEDB
 %token B256FREEDBSET
 %token B256FREEFILE
@@ -2493,6 +2494,7 @@ statement:
 	| fastgraphicsstmt
 	| fontstmt
 	| forstmt
+	| frameratestmt
 	| foreachstmt
 	| functionstmt
 	| globalstmt
@@ -3060,6 +3062,11 @@ redimstmt:	B256REDIM array_element {
 
 pausestmt:	B256PAUSE expr {
 				addOp(OP_PAUSE);
+			}
+			;
+
+frameratestmt:	B256FRAMERATE expr {
+				addOp(OP_FRAMERATE);
 			}
 			;
 

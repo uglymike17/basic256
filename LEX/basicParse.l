@@ -327,6 +327,7 @@ fill [Ff][Ii][Ll][Ll]
 floor [Ff][Ll][Oo][Oo][Rr]
 font [Ff][Oo][Nn][Tt]
 for [Ff][Oo][Rr]
+framerate [Ff][Rr][Aa][Mm][Ee][Rr][Aa][Tt][Ee]
 foreach [Ff][Oo][Rr][ \t]*[Ee][Aa][Cc][Hh]
 freedb [Ff][Rr][Ee][Ee][Dd][Bb]
 freedbset [Ff][Rr][Ee][Ee][Dd][Bb][Ss][Ee][Tt]
@@ -1074,6 +1075,7 @@ zfill [Zz][Ff][Ii][Ll][Ll]
 {fastgraphics}":"			{ count(); unputcolon(); return B256FASTGRAPHICS; }
 {font}						{ count(); return B256FONT; }
 {for}						{ count(); return B256FOR; }
+{framerate}					{ count(); return B256FRAMERATE; }
 {foreach}						{ count(); return B256FOREACH; }
 {function}					{ count(); return B256FUNCTION; }
 {global}					{ count(); return B256GLOBAL; }

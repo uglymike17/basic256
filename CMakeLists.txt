@@ -308,6 +308,11 @@ target_link_libraries(basic256core
         Qt${QT_VERSION_MAJOR}::Network
         Qt${QT_VERSION_MAJOR}::Multimedia
 )
+if(WIN32)
+    # winmm -- timeBeginPeriod/timeEndPeriod, used by Sleeper to hold the
+    # system timer at 1ms while a PAUSE or a FRAMERATE wait is in progress.
+    target_link_libraries(basic256core PUBLIC winmm)
+endif()
 if(BASIC256_ENABLE_SQL)
     target_link_libraries(basic256core PUBLIC Qt${QT_VERSION_MAJOR}::Sql)
 endif()

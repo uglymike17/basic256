@@ -628,6 +628,11 @@ void RunController::stopRun() {
 		//mainwin->setRunState(RUNSTATESTOPPING);
 
 		i->setStatus(R_STOPPING);//no more ops
+
+		// Cut short a PAUSE or a FRAMERATE wait. The status flag above is only
+		// read between opcodes, so a program parked inside a long PAUSE would
+		// otherwise ignore Stop until the sleep ran out on its own.
+		i->wakeSleeper();
 		
 		// wait for speech to stop
 #ifdef Q_OS_WASM

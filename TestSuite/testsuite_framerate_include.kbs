@@ -1,0 +1,122 @@
+# testsuite_framerate_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20260911	m.vilain	original coding
+
+currentsuite = "framerate"
+
+# FRAMERATE caps the rate of the loop it is written in by waiting until the
+# next frame's DEADLINE, so time already spent drawing comes out of the wait
+# instead of being added to it.  That is the property worth testing, and it is
+# tested below by running the same loop twice, once with extra work in it.
+#
+# These are timing assertions, so the bounds are deliberately lop-sided: a
+# result that is too EARLY is always a bug, while one that is too LATE can just
+# be a busy machine.  Lower bounds are therefore tight and upper bounds loose,
+# and the "absorbs work" test compares two measurements taken back to back
+# rather than either one against a constant.
+#
+# fps is used as an ordinary variable throughout on purpose - the statement is
+# FRAMERATE precisely so that fps stays free for programs to use.
+
+###################################################
+# framerate 0 turns the cap off
+###################################################
+
+framerate 0
+t0 = msec
+for i = 1 to 200
+	framerate 0
+next i
+call boolean("framerate 0 does not block", msec - t0 < 100)
+
+###################################################
+# the cap never runs faster than asked
+###################################################
+
+fps = 50
+frames = 20
+budget = frames * 1000 / fps			# 400 ms
+
+framerate 0
+framerate fps							# prime the deadline, does not wait
+t0 = msec
+for i = 1 to frames
+	framerate fps
+next i
+idle = msec - t0
+
+call boolean("20 frames at 50fps are not delivered early", idle >= budget - 5)
+call boolean("20 frames at 50fps are not absurdly late", idle < budget * 3)
+
+###################################################
+# work inside the loop comes out of the wait
+###################################################
+
+work = 15								# ms per frame, inside the 20ms budget
+
+framerate 0
+framerate fps
+t0 = msec
+for i = 1 to frames
+	pause work / 1000
+	framerate fps
+next i
+busy = msec - t0
+
+# A limiter that slept for a fixed time rather than until a deadline would add
+# the whole of the work to every frame (+300ms here).  Half of that is allowed
+# to leak before this is called a failure, so CI noise cannot fail a good build.
+call boolean("work inside the frame is absorbed, not added", busy <= idle + frames * work / 2)
+call boolean("the busy loop is still not delivered early", busy >= budget - 5)
+
+###################################################
+# one slow frame resyncs rather than catching up
+###################################################
+
+fps = 20
+period = 50								# ms
+
+framerate 0
+framerate fps
+pause 0.25								# blow the budget by five whole frames
+
+t0 = msec
+framerate fps
+call boolean("the frame after an overrun does not wait", msec - t0 < period / 2)
+
+t0 = msec
+framerate fps
+back = msec - t0
+call boolean("the frame after that is back on budget", back >= period * 0.8)
+call boolean("and it is not running a burst to catch up", back < period * 2)
+
+###################################################
+# PAUSE never returns early
+###################################################
+
+# PAUSE now waits until an absolute deadline, so the total of n of them can
+# only ever come out at or above n times the requested time.  The -1 on each
+# bound is MSEC resolution, not slack: both reads truncate to whole
+# milliseconds, so a perfectly timed run can read one millisecond short.
+
+t0 = msec
+for i = 1 to 50
+	pause 0.020
+next i
+total = msec - t0
+call boolean("50 x pause .020 is never short", total >= 1000 - 1)
+call boolean("50 x pause .020 is not absurdly long", total < 1000 * 3)
+
+# .029 seconds is 28.999999999999996 milliseconds in binary floating point.
+# Converting a PAUSE to a whole number of milliseconds therefore rounded this
+# one DOWN to 28 and returned early every time; going straight to the clock's
+# own resolution is what removes that.
+t0 = msec
+for i = 1 to 50
+	pause 0.029
+next i
+total = msec - t0
+call boolean("50 x pause .029 does not round down to 28ms each", total >= 1450 - 1)
+call boolean("50 x pause .029 is not absurdly long", total < 1450 * 3)

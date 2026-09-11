@@ -149,6 +149,7 @@ void EditSyntaxHighlighter::initKeywords() {
 			<< "font"								//font
 			<< "for"								//for
 			<< "for[ \t]*each"
+			<< "framerate"							//framerate
 			<< "freedb"								//freedb
 			<< "freedbset"							//freedbset
 			<< "freefile"							//freefile

@@ -204,6 +204,7 @@ class Interpreter : public QThread
 		bool isStopped();
 		bool isStopping();
 		void setStatus(run_status);
+		void wakeSleeper();				// cut a PAUSE/FRAMERATE wait short (called from the GUI thread on Stop)
 		void setInputString(QString);	// used to return string vlues from runcontroller (into inputString)
 		void cleanup();
 		void run();
@@ -310,6 +311,11 @@ class Interpreter : public QThread
 		// returns to runLoop() between opcodes
 		volatile run_status status;
 		bool fastgraphics;
+		// FRAMERATE - the deadline the next FRAMERATE statement waits for, and
+		// whether one has been set yet. Cleared at the start of every run and by
+		// FRAMERATE 0.
+		std::chrono::steady_clock::time_point frameDeadline;
+		bool frameRateSet;
 		QString inputString;        // input string from user
 		int inputType;				// data type to convert the input into
 		double double_random_max;
