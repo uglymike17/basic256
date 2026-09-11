@@ -1,7 +1,7 @@
 # Collision
 # 2 "balls" reflect on the walls and can collide
 # see http://www.geocities.com/vobarian
-# limit FPS
+
 clg
 fastgraphics
 # graphics window size

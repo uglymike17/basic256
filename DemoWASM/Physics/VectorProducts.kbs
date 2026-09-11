@@ -13,23 +13,23 @@
 #************************************************************************************************
 # Definitions
 #************************************************************************************************
-global wide, high, mid_x, mid_y
+global width, height, mid_x, mid_y
 
-wide = 500
-high = 500
-mid_x = wide / 2
-mid_y = high / 2
+width = 500
+height = 500
+mid_x = width / 2
+mid_y = height / 2
 
-graphsize wide, high
+graphsize width, height
 fastgraphics
 
-call SceneOne()		#DOT   - the angle between two vectors
-call SceneTwo()		#CROSS - which side of a line a point falls on
-call SceneThree()	#UNIT  - a ball steered by a direction of length one
-call SceneFour()	#CROSS in three dimensions - a surface lit by the way it faces
+ call SceneOne()	#DOT   - the angle between two vectors
+ call SceneTwo()	#CROSS - which side of a line a point falls on
+ call SceneThree()	#UNIT  - a ball steered by a direction of length one
+ call SceneFour()	#CROSS in three dimensions - a surface lit by the way it faces
 
 color black
-text 10, high - 26, "that is all four"
+text 10, height - 26, "that is all four"
 refresh
 end
 
@@ -69,26 +69,26 @@ end subroutine
 
 #************************************************************************************************
 subroutine SceneOne()
-	# DOT - the angle between two vectors.  a DOT b is norm(a) * norm(b) * cos(angle), so
-	# dividing the dot product by the two lengths leaves the cosine of the angle on its own
+	# DOT - the angle between two vectors.  a DOT b is the same as NORM(a) * NORM(b) * COS(angle), 
+	# so dividing the dot product by the two lengths leaves the cosine of the angle on its own
 	fixed = {140, 0}
-	for degree = 0 to 350 step 10
+	for degree = 0 to 340 step 20
 		call Title("DOT - the angle between two arrows")
 		turning = {140 * cos(radians(degree)), 140 * sin(radians(degree))}
 		call Arrow(mid_x, mid_y, fixed, blue)
 		call Arrow(mid_x, mid_y, turning, red)
 		cosine = (fixed dot turning) / (norm(fixed) * norm(turning))
 		color black
-		text 10, 40, "fixed DOT turning = " + int(fixed dot turning)
-		text 10, 60, "cos of the angle  = " + left(string(cosine), 6)
-		text 10, 80, "angle             = " + int(degrees(acos(cosine))) + " degrees"
+		text 10, 40, "DOT product of both arrows = " + int(fixed dot turning)
+		text 10, 60, "cos of the angle in Radians   = " + left(string(cosine), 6)
+		text 10, 80, "angle in degrees                  = " + int(degrees(acos(cosine))) + " degrees"
 		if abs(fixed dot turning) < 1 then
 			color red
 			text 10, 110, "a dot product of zero means the two are at right angles"
 		end if
-		call ShowFrame(0.12)
+		call ShowFrame(1)
 	next degree
-	call ShowFrame(1)
+	call ShowFrame(1.5)
 end subroutine
 
 #************************************************************************************************
@@ -139,8 +139,12 @@ subroutine SceneThree()
 	# the gap rather than the gap itself
 	ball_x = mid_x
 	ball_y = mid_y
-	for frame = 1 to 400
+	for frame = 1 to 800
 		call Title("UNIT - a steady speed toward the mouse")
+		refresh
+		while mousex = -1
+	   		pause 0.5
+		end while 
 		gap = {mousex - ball_x, mousey - ball_y}
 		distance = norm(gap)
 		if distance > 2 then
@@ -168,7 +172,7 @@ subroutine SceneFour()
 	# triangle crossed together give the direction the surface faces, and DOT of that against
 	# the direction of the light is how brightly it is lit.  That is the whole of flat
 	# shading, in two statements
-	light = unit({-0.4, -0.7, 1})
+	light = unit({-0.4, 0.7, 1})
 	for turn = 0 to 356 step 4
 		call Title("CROSS in three dimensions - a lit surface")
 		angle = radians(turn)

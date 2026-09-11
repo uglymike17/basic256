@@ -7,8 +7,6 @@ y = 10
 r = 10
 xinc = 5
 yinc = 4
-# limit FPS
-frameTime=7
 while true
 	# limit FPS
 	framerate 30
