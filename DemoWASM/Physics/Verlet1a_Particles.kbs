@@ -33,7 +33,7 @@ subroutine ScreenSetup()
 	graphsize width, height
 	color black
 	rect 0,0,width,height
-	editvisible 1
+	editvisible 0
 	outputvisible 0
 	refresh
 end subroutine
