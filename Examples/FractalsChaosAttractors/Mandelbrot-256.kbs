@@ -9,7 +9,7 @@
 #21/10/2024:
 #...and slightly more than a decade later, I have updated it to 2.0.0.11!!
 # Made it quite a bit larger (beefy PC is required) and improved the Full Julia set creation
-#Colorhandling internally is a mess, but still, nice results can be had
+# Colorhandling internally is a mess, but still, nice results can be had
 #********************************
 #  Setup
 #********************************
@@ -1832,22 +1832,20 @@ while swabout=0
             pause 0.2
             b_pressed=0
             gosub drawbutton
-            Mandellogo$=getslice (320,180,600,320)
+            Mandellogo$=getslice (320,180,620,320)
             color rgb(200,200,200)
-            rect 320,180, 600,320
+            rect 320,180, 620,320
             about_txt1$="Mandelbrot-256 aims to be a fun little program which shows that Basic-256"
             about_txt2$="is already able to create full-featured programs if you so want...  "
             about_txt3$="It is not intended to be a 'real' fractal program, of which there are plenty, but"
             about_txt4$="just uses the Mandelbrot set as a foundation for a 'visual' Basic-256 experience"
             about_txt5$="I do hope you have fun with it!!"
             about_txt6$="UglyMike"
-            about_txt7$="*Basic-256 is being maintained by myself (UglyMike)"
-            about_txt8$="*The GUI Toolkit is based on BTK-256, a set of sub-routines I am working on"
-            about_txt9$="*Lots of Mandelbrot data and most code for the fractal-specific parts of this program"
-            about_txt10$="can be found in the Wikipedia entry "
-            about_txt11$="http://en.wikipedia.org/wiki/Mandelbrot_set"
-            
-            font "Times New Roman", 14, 60
+            about_txt7$=""
+            about_txt8$="*Lots of Mandelbrot data and most code for the fractal-specific parts "
+            about_txt9$="of this program can be found in the Wikipedia entry "
+            about_txt10$="     http://en.wikipedia.org/wiki/Mandelbrot_set"           
+            font "Times New Roman", 11, 60
             color black
             text 330,190,about_txt1$
             text 330,215,about_txt2$
@@ -1855,13 +1853,12 @@ while swabout=0
             text 330,265,about_txt4$
             text 330,290,about_txt5$
             text 360,315,about_txt6$
-            font "Times New Roman", 12, 50
+            font "Times New Roman", 11, 50
             text 330,345,about_txt7$
             text 330,365,about_txt8$
             text 330,385,about_txt9$
-            text 330,405,about_txt10$
             color blue
-            text 330,425,about_txt11$
+            text 330,415,about_txt10$
             # Show Return button
             b_text$= "Return":b_textsize=8
             b_offsetx=8:b_offsety=3
