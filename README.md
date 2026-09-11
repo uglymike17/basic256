@@ -23,14 +23,14 @@ This project is the actively maintained continuation of the original BASIC256, b
 - Simple BASIC syntax  
 - Free and open source (GPL3)  
 
-## What's new in BASIC256 2.2
+## What's new in BASIC256 2.2.0
 
 - A classic BASIC command WINDOW to set the logical coordinates of the canvas.
 - All drawing primitives (CIRCLE, LINE, RECT,..) have been adapted to handle the new WINDOW command, as have the location-based ones (PIXEL, MOUSEX/Y, CLICKX/Y). They now also accept fractional coordinates, so a circle at 100.5,100.5 sits half a pixel right of and below one at 100,100.
 - A new command NOISE to generate OpenSimplex noise (follow-up to Perlin noise).
 - A MAT command for matrix calculations (MAT MUL, MAT ADD, MAT SUB, MAT INV, MAT TRN)
 - Some vector commands have been added: DOT and CROSS products, NORM (vector length) and UNIT (unit vector). As there is no real vector primitive, arrays are used to represent vectors.
-- A new command FRAMERATE to hold a drawing loop to a steady number of frames a second. FRAMERATE 60 in the loop waits until the next frame is due rather than for a fixed time, so the drawing time comes out of the wait instead of being added to it and the rate is the one asked for whatever the scene costs.
+- A new command FRAMERATE to hold a drawing loop to a steady number of frames a second. BASIC256 runs on everything from an RPi to an M5, so a program written on one machine should keep its speed on another. FRAMERATE 60 in the loop waits until the next frame is due rather than for a fixed time, so the drawing time comes out of the wait instead of being added to it and the rate is the one asked for whatever the scene costs.
 - An array or map literal may now be written over several lines instead of a single continuous line and a remark may be put inside the outer mustaches, so the rows of a table can be documented.
 - Programs run 20-25% faster than 2.1.1, and none run slower.
 - Arrays use about half the memory they used to, and the statements that act on a whole array at once -- DIM, REDIM, MAT statements -- are three to five times faster.
