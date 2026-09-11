@@ -20,6 +20,7 @@ call CreateParticles()	#location, old location, color (no velocity in verlet int
 # Drawing loop
 #************************************************************************************************
 while true
+	framerate 30
 	call UpdatePoints()
 	call DrawPoints()
 end while
@@ -32,7 +33,7 @@ subroutine ScreenSetup()
 	graphsize width, height
 	color black
 	rect 0,0,width,height
-	editvisible 0
+	editvisible 1
 	outputvisible 0
 	refresh
 end subroutine
@@ -46,7 +47,7 @@ subroutine WorldParameters()
 end subroutine
 
 subroutine CreateParticles()
-	Particles = 500
+	Particles = 50
 	dim Part(Particles,7)
 	#give particle indices a name
 	pos_x = 0: pos_y = 1: old_pos_x = 2: old_pos_y = 3: r= 4: g= 5: b= 6
@@ -98,7 +99,6 @@ subroutine DrawPoints()
 		circle (Part[i,pos_x],Part[i,pos_y],radius)
 	next i
 	refresh
-	pause 0.02
 	color black
 	rect 0,0,width,height
-end subroutine	
+end subroutine

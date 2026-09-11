@@ -19,7 +19,7 @@
 N = 200
 W = 500
 H = 500
-R = 2
+R = 4
 
 graphsize W, H
 fastgraphics

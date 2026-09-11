@@ -1,11 +1,9 @@
 # Collision
 # 2 "balls" reflect on the walls and can collide
 # see http://www.geocities.com/vobarian
-
+# limit FPS
 clg
 fastgraphics
-# limit FPS
-frameTime=3
 # graphics window size
 gwidth  = 500
 gheight = 500
@@ -45,7 +43,8 @@ vx2 = 10*rand - 5 : vy2 = -3*rand
 ###################################
 kollision = 0    # do we have a collision (1 yes, 0 no)
 loopz:
-  framestart = msec
+  # limit FPS
+  framerate 30
   c = key
   if c = 16777220 then goto ende
 
@@ -64,9 +63,6 @@ loopz:
 
   m2:
   gosub getnewpos
-   while (msec - frameStart) < frameTime
-        #  Do nothing here
-   end while
 goto loopz
 
 getnewpos:
