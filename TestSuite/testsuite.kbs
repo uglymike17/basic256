@@ -356,6 +356,12 @@ call section("OpenSimplex Noise")
 ###################################################
 include "testsuite_noise_include.kbs"
 
+section_framerate:
+###################################################
+call section("Frame Rate Limiting")
+###################################################
+include "testsuite_framerate_include.kbs"
+
 
 
 ###################################################

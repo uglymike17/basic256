@@ -971,8 +971,17 @@
 
 %%
 
+/* Left recursion, not right: bison reduces each line as it is read, so the
+   parser stack stays a constant depth instead of holding the whole program at
+   once.  Written the other way round, every source line sat on the stack until
+   EOF -- two slots each -- so a program hit bison's default YYMAXDEPTH of
+   10000 at line 5000 and stopped with a "syntax error" pointing at whatever
+   line the parser had reached, which is nothing to do with the real problem.
+   TestSuite/testsuite.kbs expands to a little over 5000 lines and was already
+   sitting on that ceiling.  The order the actions run in is unchanged: a line
+   is still reduced, and its code still emitted, as soon as it is complete. */
 program:
-	programline programnewline program
+	program programnewline programline
 	| programline
 	;
 
