@@ -1,0 +1,174 @@
+#**************************************************************
+#                         PONG WARS                           *
+#                    ******************                       *
+#   Found this gem on hackernews:                             *
+# 	     https://news.ycombinator.com/item?id=39159418        *
+#**************************************************************
+# Feel free to increase/decrease variable pongs and/or square *
+#**************************************************************
+global width, height, balls, square,Left_color, Right_color, leftScore, rightScore, posx,posy, dposx,dposy, reverseColor,ball_color, numSqX, numSqY,field, min_speed, max_speed,pongs
+call SetScreen()
+call CreateBallField()
+font "Arial",14,100
+
+# Drawing loop
+#*******************************
+while true
+	clg
+	call drawSquares()
+	call drawScore(leftScore,rightScore)
+	call drawBalls()
+	call checkSquareCollision()
+	call checkBoundaryCollision()
+	call updateBalls()
+	call addRandomness()
+	refresh
+#	pause 0.02
+end while
+
+# Subroutines
+#********************************
+
+subroutine SetScreen()
+	Fastgraphics
+	width = 800
+	height = 800
+	editvisible 0
+	outputvisible 0
+	graphsize width, height
+end subroutine
+
+subroutine CreateBallField()
+	Left_color ="cornflowerblue"
+	Left_Ball_color = "coral"
+	Left_Score = 0
+	Right_color ="coral"
+	Right_Ball_color = "cornflowerblue"
+	Right_Score = 0
+	pongs=40
+	square=20
+	min_speed = 2
+	max_speed = 8
+	numSqX= width/square
+	numSqY= height/square
+	Dim field(numSqX,numSqY)
+	for i = 0 to numSqX-1
+		for j = 0 to numSqY-1
+			if i >= numSqX/2 then
+				field[i,j]= Right_color
+				color field[i,j]
+				rect i*square,j*square,square,square
+			else
+				field[i,j]= Left_color
+				color field[i,j]
+				rect i*square,j*square,square,square
+			endif
+		next j
+	next i
+	posx=0: posy=1: dposx = 2:dposy=3:reverseColor=4: ball_color=5
+	dim balls(pongs,6)
+	for i = 0 to pongs-1
+	  if floor(i+1) mod 2 = 1 then
+		balls[i,posx]=width/4+(rand*200-100)
+		balls[i,posy]=height/2+(rand*400-200)
+		balls[i,dposx]=-1 + (rand*2-1)
+		balls[i,dposy]=1 + (rand*2-1)
+		balls[i,reverseColor]=Left_color
+		balls[i,ball_color]=Right_color
+	 else	
+		balls[i,posx]=(width/4)*3+(rand*200-100)
+		balls[i,posy]=height/2+(rand*400-200)
+		balls[i,dposx]=1 + (rand*2-1)
+		balls[i,dposy]=-1 + (rand*2-1)
+		balls[i,reverseColor]=Right_color
+		balls[i,ball_color]=Left_color
+	 endif	
+	next i	 
+end subroutine
+
+
+subroutine drawBalls()
+	for i = 0 to pongs-1
+	 color balls[i,ball_color]
+	 circle balls[i,posx],balls[i,posy],square/3
+	next i 
+end subroutine
+
+subroutine drawSquares()
+	leftScore = 0
+	rightScore = 0
+	for i = 0 to numSqX-1
+		for j = 0 to numSqY-1
+			color field[i,j]
+			rect i*square,j*square, square,square
+			if field[i,j] = Left_color then leftScore = leftScore+1
+			if field[i,j] = Right_color then rightScore = rightScore+1
+		next j
+	next i
+end subroutine
+
+
+subroutine checkSquareCollision()
+	# Check multiple points around the ball's circumference
+	for angle = 0 to PI * 2 - 0.01 step PI / 4
+	  for i = 0 to pongs-1
+		checkX = (balls[i,posx]+square/2) + cos(angle) * (square / 2)
+		checkY = (balls[i,posy]+square/2) + sin(angle) * (square / 2)
+		k = floor(checkX / square)
+		j = floor(checkY / square)
+		if (k >= 0 and k < numSqX and j >= 0 and j < numSqY) then
+			if field[k,j] <> balls[i,reverseColor] then
+				# Square hit! Update square color
+				field[k,j] = balls[i,reverseColor]
+				# Determine bounce direction based on the angle
+				if (abs(cos(angle)) > abs(sin(angle))) then
+					balls[i,dposx] = -balls[i,dposx]
+				else
+					balls[i,dposy] = -balls[i,dposy]
+				endif
+			endif
+		endif
+	 next i	
+	next angle
+end subroutine
+
+subroutine checkBoundaryCollision()
+	for i = 0 to pongs-1
+		if ((balls[i,posx] + balls[i,dposx]) > width - square/2) or  ((balls[i,posx] + balls[i,dposx]) < square/2) then
+		balls[i,dposx] = -balls[i,dposx]	
+		endif
+		if ((balls[i,posy] + balls[i,dposy]) > height - square/2) or  ((balls[i,posy] + balls[i,dposy]) < square/2) then
+		balls[i,dposy] = -balls[i,dposy]	
+		endif
+	next i	
+end subroutine
+
+subroutine updateBalls()
+ 	for i = 0 to pongs-1
+ 		balls[i,posx] = balls[i,posx] +balls[i,dposx]
+		balls[i,posy] = balls[i,posy] +balls[i,dposy]
+	next i 	
+end subroutine 	
+
+subroutine addRandomness()
+	for i = 0 to pongs-1
+		balls[i,dposx] += rand * 0.02 - 0.01
+		balls[i,dposy] += rand * 0.02 - 0.01
+		# Impose maximum speed
+		if balls[i,dposx] > max_speed then balls[i,dposx] = max_speed
+		if balls[i,dposx] < -max_speed then balls[i,dposx] = -max_speed
+		if balls[i,dposy] > max_speed then balls[i,dposy] = max_speed
+		if balls[i,dposy] < -max_speed then balls[i,dposy] = -max_speed
+		# Do not go below minimum speed
+		if balls[i,dposx] < min_speed and balls[i,dposx] > 0 then balls[i,dposx] = min_speed
+		if balls[i,dposx] > -min_speed and balls[i,dposx] < 0 then balls[i,dposx] = -min_speed
+		if balls[i,dposy] < min_speed and balls[i,dposy] > 0 then balls[i,dposy] = min_speed
+		if balls[i,dposy] > -min_speed and balls[i,dposy] < 0 then balls[i,dposy] = -min_speed
+	next i
+end subroutine
+
+subroutine drawscore(leftsc, rightsc)
+	color black
+	text width/6,height-20, "Left score = "; leftsc
+	text width/6*4,height-20, "Right score = "; rightsc
+end subroutine

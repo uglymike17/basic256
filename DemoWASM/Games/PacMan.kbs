@@ -111,7 +111,7 @@ for life = 3 to 0 step- 1
 	# Action gameplay loop
 	do
 		# Start 50 FPS timing check
-		framerate 50
+		framerate 90
 		gosub packman
 		gosub monsters
 		# Update and draw score + lives counters on right sidebar

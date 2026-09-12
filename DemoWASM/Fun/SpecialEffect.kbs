@@ -1,0 +1,116 @@
+#**************************************************************************************
+#                             Screensaver-type toy                                   *
+#**************************************************************************************
+# Green particles connect to all particles that are within a minimum distance distance
+# the closer they get, the thicker the link becomes
+#**************************************************************************************
+#initialization
+#**************
+gosub ScreenSetup
+gosub CreateParticles
+gosub CreateConnections
+
+#Main  drawing routine
+#*********************
+while true
+	gosub UpdateParticles
+	gosub Updateconnections
+	refresh
+end while
+
+# subroutines
+#************
+ScreenSetup:
+fastgraphics
+width = 1200
+height = 1050
+graphsize width,height
+editvisible 0
+outputvisible 0
+color rgb(0,30,0)
+rect 0,0,width,height
+return
+
+CreateParticles:
+min_dist = 50
+maxp = 75
+radius = 5
+dim Particles[maxp,4]
+posx = 0
+posy = 1
+velx = 2
+vely = 3
+for i = 0 to maxp-1
+	Particles[i,posx] = rand*(width-10)+5
+	Particles[i,posy] = rand*(height-10)+5
+	Particles[i,velx] = rand*2-1
+	Particles[i,vely] = rand*2-1
+	color yellow
+	circle Particles[i,posx],Particles[i,posy], radius
+next i
+return
+
+CreateConnections:
+for i = 0 to maxp - 1
+	for j = i + 1 to maxp - 1
+		dx = Particles[i,posx] - Particles[j,posx]
+		dy = Particles[i,posy] - Particles[j,posy]
+		distance = sqr(dx * dx + dy * dy)
+		# Both balls have the same radius
+		if (distance < min_dist) then
+			color "mediumaquamarine"
+			line Particles[i,posx],Particles[i,posy],Particles[j,posx], Particles[j,posy]
+		endif
+	next j
+next i
+return
+
+UpdateParticles:
+color rgb(0,30,0,20)
+rect 0, 0, width, height
+for i = 0 to maxp-1
+	Particles[i,posx] = Particles[i,posx] + Particles[i,velx]
+	Particles[i,posy] = Particles[i,posy] + Particles[i,vely]
+	if Particles[i,posx] < 5 or Particles[i,posx] > width-5 then Particles[i,velx]= -Particles[i,velx]
+	if Particles[i,posy] < 5 or Particles[i,posy] > height-5 then Particles[i,vely]= -Particles[i,vely]
+	color green
+	circle Particles[i,posx],Particles[i,posy], radius
+next i
+return
+
+UpdateConnections:
+for i = 0 to maxp - 1
+	for j = i + 1 to maxp - 1
+		dx = Particles[i,posx] - Particles[j,posx]
+		dy = Particles[i,posy] - Particles[j,posy]
+		distance = sqr(dx * dx + dy * dy)
+		# Both balls have the same radius
+		if (distance < 200) then
+			begin case 
+				case distance < 10
+					penwidth 7
+				case distance < 20
+					penwidth 6
+				case distance < 30
+					penwidth 5
+				case distance < 40
+					penwidth 4
+				case distance < 50
+					penwidth 3
+				case distance < 60
+					penwidth 3
+				case distance < 70
+					penwidth 2
+				case distance < 80
+					penwidth 2
+				case distance < 90
+					penwidth 1
+				else 
+					penwidth 1
+			end case		
+			color "mediumaquamarine"
+			line Particles[i,posx],Particles[i,posy],Particles[j,posx], Particles[j,posy]
+		endif
+	next j
+next i
+return

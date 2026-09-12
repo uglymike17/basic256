@@ -63,7 +63,7 @@ mat inv Unspin = Spin
 
 frame = 0
 while true
-
+	framerate 50
    # ---- the physics: 200 particles, two statements, no loop ----------------
    mat add Velocity = Velocity + Acceleration
    mat add Position = Position + Velocity
@@ -93,7 +93,5 @@ while true
       circle Position[i,0], Position[i,1], R
    next i
    refresh
-
    frame = frame + 1
-   pause 0.01
 end while
