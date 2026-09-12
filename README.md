@@ -28,13 +28,14 @@ This project is the actively maintained continuation of the original BASIC256, b
 - A classic BASIC command WINDOW to set the logical coordinates of the canvas.
 - All drawing primitives (CIRCLE, LINE, RECT,..) have been adapted to handle the new WINDOW command, as have the location-based ones (PIXEL, MOUSEX/Y, CLICKX/Y). They now also accept fractional coordinates, so a circle at 100.5,100.5 sits half a pixel right of and below one at 100,100.
 - A new command NOISE to generate OpenSimplex noise (follow-up to Perlin noise).
-- A MAT command for matrix calculations (MAT MUL, MAT ADD, MAT SUB, MAT INV, MAT TRN)
-- Some vector commands have been added: DOT and CROSS products, NORM (vector length) and UNIT (unit vector). As there is no real vector primitive, arrays are used to represent vectors.
-- A new command FRAMERATE to hold a drawing loop to a steady number of frames a second. BASIC256 runs on everything from an RPi to an M5, so a program written on one machine should keep its speed on another. FRAMERATE 60 in the loop waits until the next frame is due rather than for a fixed time, so the drawing time comes out of the wait instead of being added to it and the rate is the one asked for whatever the scene costs.
+- For more advanced use, matrix calculations can now be performed withe the MAT command (MAT MUL, MAT ADD, MAT SUB, MAT INV, MAT TRN) and vector calculations can be done with DOT and CROSS products, NORM (vector length) and UNIT (unit vector). As there are no real matrix or vector primitives, arrays are used to represent these.
+- A new command FRAMERATE to hold a drawing loop to a steady number of frames a second. BASIC256 runs on everything from an RPi to an M5, so a program written on one machine should keep its speed on another. FRAMERATE 30 in the loop waits until the next frame is due rather than for a fixed time, so the drawing time comes out of the wait instead of being added to it and the rate is the one asked for whatever the scene costs.
+- On the more educational side, there is now a turtle.kbs as a module to simulate turtle graphics. The turtle commands are well documented on the documentation site.
 - An array or map literal may now be written over several lines instead of a single continuous line and a remark may be put inside the outer mustaches, so the rows of a table can be documented.
 - Programs run 20-25% faster than 2.1.1, and none run slower.
 - Arrays use about half the memory they used to, and the statements that act on a whole array at once -- DIM, REDIM, MAT statements -- are three to five times faster.
 - PAUSE is now accurate to about a millisecond on every platform, waits for any length up to a day, and can be cut short by the Stop button.
+- New and updated Example files are included, also in the WASM version.
 - Bug fixes: on Windows a running program's graphics no longer stall for seconds at a time until the mouse is moved, and SPRITEPOLY now places the polygon where it was drawn and leaves room for the pen width. Although mod and % correctly returned the modulo function, MOD was not recognized. This is now fixed.
 
 ## What's new in BASIC256 2.1.1
