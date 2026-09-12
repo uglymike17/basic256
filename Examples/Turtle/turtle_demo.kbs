@@ -6,7 +6,10 @@
 #
 # The module lives in the Modules folder that ships with BASIC-256, so the
 # bare name works wherever this program is saved. The include has to come
-# before the first t_ call -- it is what places the turtle to begin with.
+# before the first t_ call, and on a line the program actually runs through,
+# because it sets the turtle's state up. It does not place the turtle -- the
+# first t_ call does that -- which is why the graphsize below can come after
+# it and the turtle still starts in the middle of the canvas it draws on.
 
 include "turtle.kbs"
 
