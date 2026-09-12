@@ -392,8 +392,14 @@ if(EMSCRIPTEN)
     target_link_options(basic256 PRIVATE
         "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/Modules@/Modules")
 
+    # The embed above takes the whole Modules directory, so a change to any file
+    # in it has to force a relink.  Naming one module here meant editing any other
+    # -- turtle.kbs, say -- left the previously embedded copy in the binary with
+    # nothing to say so.  The glob is re-run whenever cmake reconfigures, so a
+    # module added later is covered without this list being touched again.
+    file(GLOB BASIC256_WASM_MODULES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/Modules/*.kbs")
     set_target_properties(basic256 PROPERTIES
-        LINK_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/wasm-deploy/idbfs.js;${CMAKE_CURRENT_SOURCE_DIR}/Modules/math.kbs")
+        LINK_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/wasm-deploy/idbfs.js;${BASIC256_WASM_MODULES}")
 endif()
 
 if(DEFINED ENV{GITHUB_HEAD_REF} AND NOT "$ENV{GITHUB_HEAD_REF}" STREQUAL "")
