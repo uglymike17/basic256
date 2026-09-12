@@ -57,10 +57,24 @@
 # below: in BASIC-256 a function name and a variable name share one namespace,
 # so a global named t_x would make the function t_x() unreachable.
 #
-# t_state_ready is 0 until the turtle has been placed. Undefined variables read
-# as 0 in BASIC-256, so it needs no initialisation of its own.
+# t_state_ready is 0 until the turtle has been placed, and is set to 0 below
+# rather than left to take that value by default. An unassigned variable does
+# read as 0, but reading one is exactly what the 'Runtime Handling of variable
+# not assigned' setting warns about, so every turtle program used to open with
+# two warnings before it had drawn anything -- that one, and a conversion
+# warning for the empty string it reads as being compared against 0.
+#
+# The other four are written by t_reset() before anything can read them, so
+# they need no line of their own.
+#
+# The assignment runs where the INCLUDE sits, which does not place the turtle
+# any earlier -- that is still done by the first t_ command, for the reason
+# given above. It does mean the INCLUDE wants to be somewhere the program
+# actually reaches: written after an END it never runs and the two warnings
+# come back, though the turtle itself works either way.
 
 global t_state_x, t_state_y, t_state_h, t_state_pen, t_state_ready
+t_state_ready = 0
 
 # t_ensure() -- place the turtle if it has not been placed yet. Every command
 # below starts with this, so the first one to run finds a turtle on the canvas.
