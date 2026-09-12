@@ -47,14 +47,27 @@ for i = 1 to frames
 next i
 idle = msec - t0
 
-call boolean("20 frames at 50fps are not delivered early", idle >= budget - 5)
-call boolean("20 frames at 50fps are not absurdly late", idle < budget * 3)
+call boolean("20 frames at 50fps are not delivered early (" + idle + "ms)", idle >= budget - 5)
+call boolean("20 frames at 50fps are not absurdly late (" + idle + "ms)", idle < budget * 3)
 
 ###################################################
 # work inside the loop comes out of the wait
 ###################################################
 
 work = 15								# ms per frame, inside the 20ms budget
+
+# What the work alone costs on THIS machine.  PAUSE only promises to wait at
+# least as long as it was asked to, and a loaded or virtualised runner can
+# stretch a 15ms one past the whole 20ms frame -- the macOS runners do.  The
+# bound below is therefore written against the work as measured right here
+# rather than against the 15ms it asked for, so that this goes on testing
+# FRAMERATE instead of quietly testing the host's sleep accuracy.
+framerate 0
+t0 = msec
+for i = 1 to frames
+	pause work / 1000
+next i
+alone = msec - t0
 
 framerate 0
 framerate fps
@@ -65,11 +78,17 @@ for i = 1 to frames
 next i
 busy = msec - t0
 
-# A limiter that slept for a fixed time rather than until a deadline would add
-# the whole of the work to every frame (+300ms here).  Half of that is allowed
-# to leak before this is called a failure, so CI noise cannot fail a good build.
-call boolean("work inside the frame is absorbed, not added", busy <= idle + frames * work / 2)
-call boolean("the busy loop is still not delivered early", busy >= budget - 5)
+# Absorbing the work means the loop costs whichever is the GREATER of the frame
+# budget and the work itself, never the two added together.  A limiter that
+# slept for a fixed time instead would come out at idle + alone, and neither of
+# those is ever below 300ms here, so it misses the bound by twice the slack
+# allowed however slowly the host sleeps.  The measurements are printed with
+# the result because a timing test that fails on a machine you cannot see is
+# no use without them.
+least = idle
+if alone > least then least = alone
+call boolean("work inside the frame is absorbed, not added (busy " + busy + ", idle " + idle + ", alone " + alone + ")", busy <= least + frames * work / 2)
+call boolean("the busy loop is still not delivered early (" + busy + "ms)", busy >= budget - 5)
 
 ###################################################
 # one slow frame resyncs rather than catching up
@@ -89,8 +108,8 @@ call boolean("the frame after an overrun does not wait", msec - t0 < period / 2)
 t0 = msec
 framerate fps
 back = msec - t0
-call boolean("the frame after that is back on budget", back >= period * 0.8)
-call boolean("and it is not running a burst to catch up", back < period * 2)
+call boolean("the frame after that is back on budget (" + back + "ms)", back >= period * 0.8)
+call boolean("and it is not running a burst to catch up (" + back + "ms)", back < period * 2)
 
 ###################################################
 # PAUSE never returns early
@@ -106,8 +125,8 @@ for i = 1 to 50
 	pause 0.020
 next i
 total = msec - t0
-call boolean("50 x pause .020 is never short", total >= 1000 - 1)
-call boolean("50 x pause .020 is not absurdly long", total < 1000 * 3)
+call boolean("50 x pause .020 is never short (" + total + "ms)", total >= 1000 - 1)
+call boolean("50 x pause .020 is not absurdly long (" + total + "ms)", total < 1000 * 3)
 
 # .029 seconds is 28.999999999999996 milliseconds in binary floating point.
 # Converting a PAUSE to a whole number of milliseconds therefore rounded this
@@ -118,5 +137,5 @@ for i = 1 to 50
 	pause 0.029
 next i
 total = msec - t0
-call boolean("50 x pause .029 does not round down to 28ms each", total >= 1450 - 1)
-call boolean("50 x pause .029 is not absurdly long", total < 1450 * 3)
+call boolean("50 x pause .029 does not round down to 28ms each (" + total + "ms)", total >= 1450 - 1)
+call boolean("50 x pause .029 is not absurdly long (" + total + "ms)", total < 1450 * 3)
