@@ -1,7 +1,7 @@
-name: Build BASIC-256_2.2.Beta CMake
+name: Build BASIC-256_2.2.0.Beta CMake
 on:
   push:
-    branches: [ main, v2.2.Beta ]
+    branches: [ main, v2.2.0.Beta ]
     # Pushes to either branch build/test the full matrix, but only main
     # deploys to GitHub Pages -- the pages-deploy job below stays gated to
     # refs/heads/main, so breaking changes on the beta branch can't
