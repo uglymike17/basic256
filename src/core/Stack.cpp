@@ -7,34 +7,31 @@ int Stack::e = ERROR_NONE;
 Stack::Stack(Convert *c) {
 	convert = c;
 	stackpointer = 0;	// height of stack
-	stacksize = 0;       //max size of stack to avoid calling stackdata.size()
+	stacksize = 0;       //max size of stack, so the depth never has to be asked for
 	stackGrow();
 }
 
 Stack::~Stack() {
-	for(int i = 0; i< stackpointer; i++) {
-		if (stackdata[i]) {
-			delete(stackdata[i]);
-			stackdata[i] = NULL;
-		}
+	for (size_t i = 0; i < chunks.size(); i++) {
+		delete [] chunks[i];
 	}
-	stackdata.clear();
+	chunks.clear();
 }
 
 void Stack::stackGrow() {
-	// add 10 empty slots to the size of the stack
-	// the slots are left NULL - every push allocates the element it stores, so
-	// filling them in advance saved nothing and leaked each pre-made element
-	// as soon as a push overwrote its pointer
-	stackdata.resize(stacksize+10, NULL);
-	stacksize=stackdata.size();
+	// one more chunk of ready-built slots.  The slots are constructed here,
+	// once, and then reused by every push that lands on them; the chunks
+	// already handed out are never moved or freed, so an element borrowed
+	// from one stays where it is.
+	chunks.push_back(new DataElement[CHUNKSLOTS]);
+	stacksize += CHUNKSLOTS;
 }
 
 QString Stack::debug() {
 	// return a string representing the stack
 	QString s("");
 	for (int i=0; i<stackpointer; i++) {
-		s += stackdata[i]->debug() +  " ";
+		s += at(i)->debug() +  " ";
 	}
 	return s;
 }
@@ -50,21 +47,31 @@ int Stack::height() {
 //
 
 void Stack::pushDE(DataElement *source) {
-	if (stackpointer >= stacksize)  stackGrow();
-	// push to stack a copy of he dataelement
-	
+	// push to stack a copy of the dataelement
+
 	// IF YOU CREATED A DE TO PUSH - BE SURE TO DELETE
 	// AFTER pushDE
-	
-	stackdata[stackpointer] = new DataElement();
+
+	DataElement *s = nextSlot();
 	if (source) {
-		stackdata[stackpointer]->copy(source);
+		s->copy(source);
+	} else {
+		s->clear();
 	}
-	stackpointer++;
 }
 
 //
 // Raw Pop Operations
+
+DataElement *Stack::borrowUnderflow() {
+	// the borrowed pops hand back an element the stack owns, so underflow
+	// cannot answer with something the caller would have to free
+	e = ERROR_STACKUNDERFLOW;
+	underflowSlot.clear();
+	underflowSlot.type = T_INT;
+	underflowSlot.intval = 0l;
+	return &underflowSlot;
+}
 
 DataElement *Stack::popDEUnderflow() {
 	// the cold half of popDE() - kept out of line so the inline fast path in
@@ -83,8 +90,8 @@ int Stack::popBool() {
 		e = ERROR_STACKUNDERFLOW;
 		return 0;
 	}
-	bool b = convert->getBool(stackdata[--stackpointer]);
-	delete stackdata[stackpointer];
+	bool b = convert->getBool(at(--stackpointer));
+	at(stackpointer)->clear();
 	return b;
 }
 
@@ -93,8 +100,8 @@ int Stack::popInt() {
 		e = ERROR_STACKUNDERFLOW;
 		return 0;
 	}
-	int i = convert->getInt(stackdata[--stackpointer]);
-	delete stackdata[stackpointer];
+	int i = convert->getInt(at(--stackpointer));
+	at(stackpointer)->clear();
 	return i;
 }
 
@@ -103,8 +110,8 @@ qint64 Stack::popLong() {
 		e = ERROR_STACKUNDERFLOW;
 		return 0;
 	}
-	qint64 l = convert->getLong(stackdata[--stackpointer]);
-	delete stackdata[stackpointer];
+	qint64 l = convert->getLong(at(--stackpointer));
+	at(stackpointer)->clear();
 	return l;
 }
 
@@ -113,8 +120,8 @@ double Stack::popDouble() {
 		e = ERROR_STACKUNDERFLOW;
 		return 0.0;
 	}
-	double f = convert->getFloat(stackdata[--stackpointer]);
-	delete stackdata[stackpointer];
+	double f = convert->getFloat(at(--stackpointer));
+	at(stackpointer)->clear();
 	return f;
 }
 
@@ -123,8 +130,8 @@ double Stack::popMusicalNote() {
 		e = ERROR_STACKUNDERFLOW;
 		return 0.0;
 	}
-	double f = convert->getMusicalNote(stackdata[--stackpointer]);
-	delete stackdata[stackpointer];
+	double f = convert->getMusicalNote(at(--stackpointer));
+	at(stackpointer)->clear();
 	return f;
 }
 
@@ -133,8 +140,8 @@ QString Stack::popQString() {
 		e = ERROR_STACKUNDERFLOW;
 		return QString("");
 	}
-	QString s = convert->getString(stackdata[--stackpointer]);
-	delete stackdata[stackpointer];
+	QString s = convert->getString(at(--stackpointer));
+	at(stackpointer)->clear();
 	return s;
 }
 
@@ -157,52 +164,41 @@ QColor Stack::popQColor() {
 void Stack::swap2() {
 	// swap top two pairs of elements
 	// if top of stack is A,B,C,D make it C,D,A,B
-	DataElement *t;
 
 	if (stackpointer<4) {
 		e = ERROR_STACKUNDERFLOW;
 		return;
 	}
 	
-	t = stackdata[stackpointer-3];
-	stackdata[stackpointer-3] = stackdata[stackpointer-1];
-	stackdata[stackpointer-1] = t;
-
-	t = stackdata[stackpointer-4];
-	stackdata[stackpointer-4] = stackdata[stackpointer-2];
-	stackdata[stackpointer-2] = t;
+	at(stackpointer-3)->swapWith(at(stackpointer-1));
+	at(stackpointer-4)->swapWith(at(stackpointer-2));
 }
 
 void Stack::swap() {
 	// swap top two elements
 	// if top of stack is A,B,C,D make it B,A,C,D
-	DataElement *t;
 
 	if (stackpointer<2) {
 		e = ERROR_STACKUNDERFLOW;
 		return;
 	}
 	
-	t = stackdata[stackpointer-2];
-	stackdata[stackpointer-2] = stackdata[stackpointer-1];
-	stackdata[stackpointer-1] = t;
+	at(stackpointer-2)->swapWith(at(stackpointer-1));
 }
 
 void
 Stack::topto2() {
 	// move the top of the stack under the next two
 	// 0, 1, 2, 3...  becomes 1, 2, 0, 3...
-	DataElement *t;
 
 	if (stackpointer<3) {
 		e = ERROR_STACKUNDERFLOW;
 		return;
 	}
 	
-	t = stackdata[stackpointer-1];
-	stackdata[stackpointer-1] = stackdata[stackpointer-2];
-	stackdata[stackpointer-2] = stackdata[stackpointer-3];
-	stackdata[stackpointer-3] = t;
+	// 0,1,2 -> 1,2,0 by two exchanges
+	at(stackpointer-1)->swapWith(at(stackpointer-2));
+	at(stackpointer-2)->swapWith(at(stackpointer-3));
 }
 
 void Stack::dup() {
@@ -212,7 +208,7 @@ void Stack::dup() {
 		e = ERROR_STACKUNDERFLOW;
 		return;
 	}
-	pushDE(stackdata[stackpointer-1]);
+	pushDE(at(stackpointer-1));
 }
 
 void Stack::dup2() {
@@ -222,8 +218,8 @@ void Stack::dup2() {
 		e = ERROR_STACKUNDERFLOW;
 		return;
 	}
-	pushDE(stackdata[stackpointer-2]);
-	pushDE(stackdata[stackpointer-2]);
+	pushDE(at(stackpointer-2));
+	pushDE(at(stackpointer-2));
 }
 
 void Stack::drop(int n){
@@ -237,8 +233,6 @@ void Stack::drop(int n){
 			e = ERROR_STACKUNDERFLOW;
 			return;
 		}
-		stackpointer--;
-		delete stackdata[stackpointer];
-		stackdata[stackpointer] = NULL;
+		at(--stackpointer)->clear();
 	}
 }

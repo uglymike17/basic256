@@ -44,7 +44,7 @@ call drawfixedgraphics()
 # loop
 k=1: t=0: tnext=0
 while not keypressed()
-
+framerate 30
 # calc new values of derivatives
 # 2 very simple ODEs, derivatives of the angles
 da1_dt=w1

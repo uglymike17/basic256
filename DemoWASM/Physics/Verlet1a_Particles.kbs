@@ -1,0 +1,104 @@
+#************************************************************************************************
+#*               Verlet integration for particle balls of same size, no collision               *
+#************************************************************************************************
+# Very simple particle system with just particle balls, gravity, bounce and a bit of friction
+# Particles do not collide and are all of even mass (hence no mass defined)
+# Verlet integration has no explicit velocity defined. Velocity is derived from previous position
+#************************************************************************************************
+# Definitions
+#************************************************************************************************
+#Globals to be used in the subroutines
+global height, width, pos_x, pos_y, old_pos_x, old_pos_y 
+global radius, bounce, gravity, friction 
+global r, g, b, Particles, Part
+# Initialisation
+#************************************************************************************************
+call ScreenSetup()		#dimension & color
+call WorldParameters()	#gravity, friction/drag, elasticity
+call CreateParticles()	#location, old location, color (no velocity in verlet integration!!!
+
+# Drawing loop
+#************************************************************************************************
+while true
+	framerate 30
+	call UpdatePoints()
+	call DrawPoints()
+end while
+
+#here begin the subroutines
+#************************************************************************************************
+subroutine ScreenSetup()
+	fastgraphics
+	width = 800: height = 800
+	graphsize width, height
+	color black
+	rect 0,0,width,height
+	editvisible 0
+	outputvisible 0
+	refresh
+end subroutine
+
+subroutine WorldParameters()
+	bounce = 0.5
+	gravity = 0.5
+	friction = 0.9999
+	# All balls have the same radius and mass
+	radius = 15
+end subroutine
+
+subroutine CreateParticles()
+	Particles = 50
+	dim Part(Particles,7)
+	#give particle indices a name
+	pos_x = 0: pos_y = 1: old_pos_x = 2: old_pos_y = 3: r= 4: g= 5: b= 6
+	for i = 0 to Particles-1
+		Part[i,pos_x]= rand*width
+		Part[i,pos_y]= rand*height
+		Part[i,old_pos_x]= part[i,pos_x]-(rand*10-5)
+		Part[i,old_pos_y]= part[i,pos_y]-(rand*10-5)
+		Part[i,r]=50+(rand*155)
+		Part[i,g]=50+(rand*155)
+		Part[i,b]=50+(rand*155)
+	next i
+end subroutine
+
+subroutine UpdatePoints()
+# Here is the actual Verlet integration
+# As there are no collision calculations or other, you can increase the number of particles and make them smaller (eg 5000 particles of size 5) In fact, with 500 particles of size 15, we need to put in a pause at every DrawPoints()
+	for i = 0 to Particles-1
+		vx = (Part[i,pos_x]-Part[i,old_pos_x]) * friction 
+		vy = (Part[i,pos_y]-Part[i,old_pos_y]) * friction
+		Part[i,old_pos_x] = Part[i,pos_x]
+		Part[i,old_pos_y] = Part[i,pos_y]
+		Part[i,pos_x] = Part[i,pos_x] + vx
+		Part[i,pos_y] = Part[i,pos_y] + vy + gravity
+		if Part[i,pos_x] > width - radius then
+			Part[i,pos_x] = width -radius
+			Part[i,old_pos_x] = Part[i,pos_x] + vx * bounce
+		else
+			if Part[i,pos_x] < radius then
+				Part[i,pos_x] = radius
+				Part[i,old_pos_x] = Part[i,pos_x] + vx * bounce
+			endif
+		endif
+		if Part[i,pos_y] > height - radius then
+			Part[i,pos_y] = height - radius
+			Part[i,old_pos_y] = Part[i,pos_y] + vy * bounce
+		else
+			if Part[i,pos_y] < radius then
+				Part[i,pos_y] = radius
+				Part[i,old_pos_y] = Part[i,pos_y] + vy * bounce
+			endif
+		endif
+	next i
+end subroutine	
+
+subroutine DrawPoints()
+	for i = 0 to Particles-1
+		color rgb(Part[i,r],Part[i,g],Part[i,b])
+		circle (Part[i,pos_x],Part[i,pos_y],radius)
+	next i
+	refresh
+	color black
+	rect 0,0,width,height
+end subroutine

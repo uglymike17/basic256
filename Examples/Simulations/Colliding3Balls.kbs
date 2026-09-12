@@ -6,8 +6,6 @@ print "The return key ends the program."
 
 clg
 fastgraphics
-# limit FPS
-frameTime=4
 # graphics window size
 gwidth  = 500
 gheight = 500
@@ -34,14 +32,14 @@ vx3 = 10*rand - 5 : vy3 = 6*rand
 
 kollision = 0    # do we have a collision (1 yes, 0 no)
 loopz:
-  framestart = msec
+  # limit FPS
+  framerate 30
   c = key()
   if c = 16777220 then goto ende
 
   clg
   gosub zeichne
   refresh
-  #pause .01
 
   gosub iskollision
   if kollision = 0 then goto m1
@@ -55,10 +53,6 @@ loopz:
 
   m2:
   gosub getnewpos
-  
-  while (msec - frameStart) < frameTime
-        #  Do nothing here
-  end while
 
 goto loopz
 

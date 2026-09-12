@@ -1,0 +1,368 @@
+#************************************************************************
+#                              Multi Julia IFS                          *
+# Found this page: https://paulbourke.net/fractals/multijulia/          *
+#  (thanks to a post from Maurizio Cammalleri about SendaiBasic)        *
+# Put in a lot of comments so people can see what is going on.          *
+# (Not enough of this is happening in my opinion.)                      *
+#************************************************************************
+#Initialisation
+#************************************************************************
+gosub ScreenSetup
+gosub Intro
+gosub VariableSetup
+gosub ColorSetup
+Gosub WarmUp
+
+#************************************************************************
+#Main Routine to calculate points, count hits/point and render result
+#************************************************************************
+for i = 1 to total_points
+    gosub NextStep    
+    # Map complex coordinates (zx, zy) to array grid indices (0 to widt/height)
+    px = int((zx - xmin) / (xmax - xmin) * grid_size)
+    py = int((zy - ymin) / (ymax - ymin) * grid_size)    
+    if px >= 0 and px < grid_size and py >= 0 and py < grid_size then
+        hits[px, py] = hits[px, py] + 1
+    endif
+    #waiting screen
+    if (i mod 500000) = 0 then     
+		angle = angle + inc_angle
+    	rad= rad+inc
+    	if rad > 50 then inc = -inc
+    	if rad < 5  then inc = -inc
+    	color rgb(0,0,0,100)
+    	rect width/2-60,height/2-60,120,120
+    	penwidth 5
+    	color white
+    	line width/2+cos(angle)*20,height/2+sin(angle)*20, width/2+cos(angle)*50,height/2+sin(angle)*50
+    	penwidth 1
+    	if ( msec mod 5000 ) > 3600 then
+    		color black
+    		rect 0,0,width,100
+     		color rgb(100,100,100)
+        	text 20,20,"Still wating.... Duration = ";int(msec/1000);" seconds"
+        endif	
+    	refresh
+    endif 	
+next i
+
+# Find point with maximum hits for scaling
+max_hits = 0
+for px = 0 to grid_size - 1
+    for py = 0 to grid_size - 1
+        if hits[px, py] > max_hits then max_hits = hits[px, py]
+    next py
+next px
+
+# Render using logarithmic mapping (Logarithmic mapping prevents dense regions from blowing out)
+color black
+rect 0,0,width, height
+for px = 0 to grid_size - 1
+    for py = 0 to grid_size - 1
+        if hits[px, py] > 0 then
+        	#reducee the hits to between 0 and 255 and choose (uncomment) the color gradient you want
+            intensity = int(255 * (log(hits[px, py]) / log(max_hits)))
+#            color rgb(intensity, intensity, intensity)  #simple grayscale - no array needed
+#            color rgb(Sunsetarr[intensity,0], Sunsetarr[intensity,1], Sunsetarr[intensity,2])
+#            color rgb(Oceanarr[intensity,0], Oceanarr[intensity,1], Oceanarr[intensity,2])
+              color rgb(Firearr[intensity,0], Firearr[intensity,1], Firearr[intensity,2])
+#            color rgb(Rainbowarr[intensity,0], Rainbowarr[intensity,1], Rainbowarr[intensity,2])
+#            color rgb(CustomPalettearr[intensity,0], CustomPalettearr[intensity,1], CustomPalettearr[intensity,2])
+            plot px, py
+        endif
+    next py
+    refresh
+next px
+color white
+font "Tahoma",12,100
+text 20,10,"c0x: ";c0x;"  c0y: ";c0y;"  c1x: ";c1x;"  c1y: ";c1y
+text 800,10,"Duration:"; msec/1000;" seconds"
+refresh
+imgsave "MultiJulia_"+c0x+"_"+c0y+"_"+c1x+"_"+c1y+".png"
+# Program can run for several minutes based on total_points, so be notified when done
+say "Done"
+#print msec/1000
+end
+
+#************************************************************************
+#Subroutines
+#************************************************************************
+#Here we do the calculation as seen at the top of the Paul Bourke page
+NextStep:
+    if rand < weight then
+        x = zx - c0x
+        y = zy - c0y
+    else
+        x = zx - c1x
+        y = zy - c1y
+    endif
+    
+    gosub ComplexSQR
+    
+    if rand < weight then
+        zx = res_r
+        zy = res_i
+    else
+        zx = -res_r
+        zy = -res_i
+    endif
+return
+
+ComplexSQR:
+    mag = sqrt(x * x + y * y)
+    res_r = sqrt((mag + x) / 2.0)
+    res_i = sqrt((mag - x) / 2.0)
+    if y < 0 then res_i = -res_i
+return
+
+#Screen setup
+ScreenSetup:
+fastgraphics
+width = 1000
+height = 1000
+# Screen grid to keep track of how many hits/point
+grid_size = 1000
+dim hits(grid_size, grid_size)
+graphsize width, height
+color black
+rect 0,0,width, height
+editvisible 0
+outputvisible 0
+refresh
+return
+
+#Intro
+Intro:
+color white
+
+font "Tahoma",18,100
+text 400,50,"Multi Julia IFS "
+
+font "Tahoma",12,100
+text 240,150,"Original equation found on https://paulbourke.net/fractals/multijulia/ "
+text 270,175,"Inspiration and equations apparently by Chris Thomasson"
+font "Tahoma",14,100
+text 150,250,"This program will by default render image 13 in a 1000x1000 windows with as "
+text 150,300,"color gradient the Fire gradient. It will iterate 20.000.000 points"
+text 150,350,"The calculations will start when you hold the mouse down or when you press the spacebar"
+text 150,400,"Once done, it will say so and save the image as MultiJulia_c0x_c0y_c1x_c1y.png"
+font "Tahoma",12,100
+text 100,475,"How to change"
+text 190,500,"You can select the image by setting variable selrow from 0 to 12 on line 163"
+text 190,550,"You can select the color gradient by uncommenting your favorite one starting on line 62"
+text 190,575,"(do not forget to comment out the other color gradients)"
+text 190,625,"You can change width and/or weight, but make sure grids_size equals width*height"
+text 190,675,"You can also change total_points. Lower values give faster output, but have more undefined areas"
+text 190,725,"There are 13 images defined in array 'settings'. "
+text 190,750,"You can add your own simply by adding 4 values between {} at the end of the settings array"
+
+refresh
+while not keypressed(32) and mouseb=0
+  pause 0.1
+end while
+clg black  
+return
+#Variable setup
+VariableSetup:
+# basic256 has a nice way of initializing 1 or 2 dimensional arrays called array literal
+# Although there is no DIM, we can still create an array by filling the array directly by feeding it its content between 'moustaches' {} Use double 'moustaches' for a 2 dimensional array.
+# Each row of 2D array 'settings' consists of 4 values: c0x, c0y, c1x, c1y. Add your own for experimentation
+ settings = {{0.5,0.0,-5.5,0.0},{0.0,1.0,0.0,-1.0},{1,0,-1,0},{-.75, 0.06,-.45, 0.6 },{0.726514,0.240242,0.171039,0.235043},{-1.444991,0.139179,-0.063294,-1.401774},{-0.794716, 0.296604,-0.069119, 0.735714},{0.955468,-0.054127,-0.658920,0.236375},{-0.696060,0.818488,-0.257704,-0.546857},{0.657032,1.446509,-0.490664,0.929678},{0.5,1,-0.5,1},{-0.549434,0.077698,-1.114224,-0.170031},{0.856973,-0.861450,-0.903027,0.652994} }
+# Select the row of the settings array to select the is you want. Settings has 13 'rows' numbered 0 to 12
+selrow=12
+c0x = settings[selrow,0]: c0y = settings[selrow,1]: c1x = settings[selrow,2]: c1y = settings[selrow,3]
+# this page if rand() is smaller than or greater than weight. Weight is set to 0.5, but you can put a different split instead of the fifty-fifty used here
+weight = 0.5
+zx = 0.5
+zy = 0.5
+# coordinate space we are going to use (there is already a WINDOW x0,y0,x1,y1 command in v2.1.2.beta01 to simplify this)
+xmin = -2: xmax = 2: ymin = -2: ymax = 2
+if selrow=0 then xmin = -3.5: xmax = 3.5
+# Accumulate hits. more points, better definition/shading but slower...
+total_points = 20000*width #20.000.000 points already give nice results
+#waiting anim
+rad = 6
+inc = 2
+angle =0
+inc_angle = 0.524
+font "arial",14,80
+return
+
+ColorSetup:
+#Pre-calculate the color array
+dim Rainbowarr(256,3)
+for i = 0 to 255
+    # calculate r,g,b here
+    gosub rainbow
+    Rainbowarr[i,0] = r
+    Rainbowarr[i,1] = g
+    Rainbowarr[i,2] = b
+next i
+dim Firearr(256,3)
+for i = 0 to 255
+    # calculate r,g,b here
+    gosub fire
+    Firearr[i,0] = r
+    Firearr[i,1] = g
+    Firearr[i,2] = b
+next i
+dim Oceanarr(256,3)
+for i = 0 to 255
+    # calculate r,g,b here
+    gosub ocean
+    Oceanarr[i,0] = r
+    Oceanarr[i,1] = g
+    Oceanarr[i,2] = b
+next i
+dim Sunsetarr(256,3)
+for i = 0 to 255
+    # calculate r,g,b here
+    gosub sunset
+    Sunsetarr[i,0] = r
+    Sunsetarr[i,1] = g
+    Sunsetarr[i,2] = b
+next i
+dim CustomPalettearr(256,3)
+for i = 0 to 255
+    # calculate r,g,b here
+    gosub CustomPalette
+    CustomPalettearr[i,0] = r
+    CustomPalettearr[i,1] = g
+    CustomPalettearr[i,2] = b
+next i
+return
+
+# Let the iteration settle down (calculate zx,zy, but do not plot them)
+WarmUp:
+for i = 1 to 100
+    gosub NextStep
+next i
+return
+
+#Different color swatches to try: Rainbow, Fire, Ocean, Sunset and CustomPalette
+rainbow:
+    h = i * 6 / 256
+    sector = int(h)
+    f = h - sector
+
+    if sector = 0 then r=255:g=int(255*f):b=0
+    if sector = 1 then r=int(255*(1-f)):g=255:b=0
+    if sector = 2 then r=0:g=255:b=int(255*f)
+    if sector = 3 then r=0:g=int(255*(1-f)):b=255
+    if sector = 4 then r=int(255*f):g=0:b=255
+    if sector = 5 then r=255:g=0:b=int(255*(1-f))
+
+    color rgb(r,g,b)
+return
+
+fire:
+    if i < 64 then
+        r = i * 4
+        g = 0
+        b = 0
+    else 
+    	if i < 128 then
+        	r = 255
+        	g = (i-64) * 4
+        	b = 0
+        else 
+        	if i < 192 then
+        		r = 255
+        		g = 255
+        		b = (i-128) * 4
+		    else
+		        r = 255
+        		g = 255
+        		b = 255
+        	endif
+       endif 		
+    endif
+
+    color rgb(r,g,b)
+return
+
+ocean:
+    if i < 64 then
+        r = 0
+        g = i
+        b = 80 + i * 2
+    else 
+    	if i < 128 then
+        	r = 0
+        	g = 64 + (i-64) * 2
+        	b = 208
+    	else 
+    		if i < 192 then
+        		r = (i-128) * 2
+        		g = 192 + int((i-128) * 63/64)
+        		b = 255
+    		else
+        		r = 128 + (i-192) * 2
+        		g = 255
+        		b = 255
+        	endif
+       endif 		
+    endif
+    color rgb(r,g,b)
+return
+
+sunset:
+    if i < 64 then
+        r = int(i * 2)
+        g = 0
+        b = int(i * 2)
+    else 
+    	if i < 128 then
+        	r = 128 + int((i-64) * 2)
+       	 	g = int((i-64) * 1.5)
+        	b = 128 - int((i-64) * 2)
+    	else 
+    		if i < 192 then
+        		r = 255
+        		g = 96 + int((i-128) * 2)
+        		b = 0
+            else
+		        r = 255
+        		g = 224 + int((i-192) * 0.5)
+        		b = int((i-192) * 2)
+        	endif
+       endif
+    endif    		
+    color rgb(r,g,b)
+return
+
+CustomPalette:
+    if i < 51 then
+        t = i / 51
+        r = 0
+        g = 0
+        b = int(255*t)
+    else 
+    	if i < 102 then
+        	t = (i-51) / 51
+        	r = 0
+        	g = int(255*t)
+        	b = 255
+		else 
+			if i < 153 then
+        		t = (i-102) / 51
+        		r = int(255*t)
+        		g = 255
+        		b = int(255*(1-t))
+			else 
+				if i < 204 then
+        			t = (i-153) / 51
+        			r = 255
+        			g = int(255*(1-t))
+        			b = 0
+    			else
+        			t = (i-204) / 51
+        			r = 255
+        			g = int(255*t)
+        			b = int(255*t)
+    			end if
+    		end if
+    	end if
+    end if
+    color rgb(r,g,b)
+return

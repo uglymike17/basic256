@@ -105,6 +105,7 @@ void EditSyntaxHighlighter::initKeywords() {
 			<< "cos"								//cos
 			<< "count"								//count
 			<< "countx"								//countx
+			<< "cross"								//cross
 			<< "currentdir"							//currentdir
 			<< "day"								//day
 			<< "dbclose"							//dbclose
@@ -121,6 +122,7 @@ void EditSyntaxHighlighter::initKeywords() {
 			<< "degrees"							//degrees
 			<< "dim"								//dim
 			<< "dir"								//dir
+			<< "dot"								//dot
 			<< "do"									//do
 			<< "editvisible"						//editvisible
 			<< "ellipse"                            //ellipse
@@ -147,6 +149,7 @@ void EditSyntaxHighlighter::initKeywords() {
 			<< "font"								//font
 			<< "for"								//for
 			<< "for[ \t]*each"
+			<< "framerate"							//framerate
 			<< "freedb"								//freedb
 			<< "freedbset"							//freedbset
 			<< "freefile"							//freefile
@@ -223,6 +226,11 @@ void EditSyntaxHighlighter::initKeywords() {
 			<< "maintoolbarvisible"
 			<< "map"
 			<< "maximize"
+			<< "mat[ \t]*add"						//matadd or mat add
+			<< "mat[ \t]*inv"						//matinv or mat inv
+			<< "mat[ \t]*mul"						//matmul or mat mul
+			<< "mat[ \t]*sub"						//matsub or mat sub
+			<< "mat[ \t]*trn"						//mattrn or mat trn
 			<< "md5"								//md5
 			<< "mid"								//mid
 			<< "midx"								//midx
@@ -242,6 +250,8 @@ void EditSyntaxHighlighter::initKeywords() {
 			<< "netread"							//netread
 			<< "netwrite"							//netwrite
 			<< "next"								//next
+			<< "noise"								//noise
+			<< "norm"								//norm
 			<< "not"								//not
 			<< "offerror"							//offerror
 			<< "onerror"							//onerror
@@ -364,6 +374,7 @@ void EditSyntaxHighlighter::initKeywords() {
 			<< "typeof"								//typeof
 			<< "unassign"							//unassign
 			<< "unload"                             //unload
+			<< "unit"								//unit
 			<< "unserialize"						//unserialize
 			<< "until"								//until
 			<< "upper"								//upper
@@ -379,6 +390,7 @@ void EditSyntaxHighlighter::initKeywords() {
 			<< "wavstop"							//wavstop
 			<< "wavwait"							//wavwait
 			<< "while"								//while
+			<< "window"								//window
 			<< "write"								//write
 			<< "writebyte"							//writebyte
 			<< "writeline"							//writeline

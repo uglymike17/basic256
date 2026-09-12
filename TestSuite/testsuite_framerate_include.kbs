@@ -1,0 +1,171 @@
+# testsuite_framerate_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20260911	m.vilain	original coding
+
+currentsuite = "framerate"
+
+# FRAMERATE caps the rate of the loop it is written in by waiting until the
+# next frame's DEADLINE, so time already spent drawing comes out of the wait
+# instead of being added to it.  That is the property worth testing, and it is
+# tested below by running the same loop twice, once with extra work in it.
+#
+# These are timing assertions, so the bounds are deliberately lop-sided: a
+# result that is too EARLY is always a bug, while one that is too LATE can just
+# be a busy machine.  Lower bounds are therefore tight, and they are what these
+# tests are really for; the upper bounds only catch a blunder of the order of
+# confusing seconds with milliseconds, and are set far enough out to leave a
+# slow machine alone.  They have to be: the macOS CI runners take about 80ms to
+# deliver a 15ms PAUSE and about 200ms to deliver a 50ms frame, so anything
+# expressed as a small multiple of the time asked for fails there on a build
+# with nothing wrong with it.  Where an upper bound does have to be tight, it
+# is written against a measurement taken on the same machine moments earlier
+# rather than against a constant.
+#
+# fps is used as an ordinary variable throughout on purpose - the statement is
+# FRAMERATE precisely so that fps stays free for programs to use.
+
+###################################################
+# framerate 0 turns the cap off
+###################################################
+
+framerate 0
+t0 = msec
+for i = 1 to 200
+	framerate 0
+next i
+call boolean("framerate 0 does not block", msec - t0 < 100)
+
+###################################################
+# the cap never runs faster than asked
+###################################################
+
+fps = 50
+frames = 20
+budget = frames * 1000 / fps			# 400 ms
+
+framerate 0
+framerate fps							# prime the deadline, does not wait
+t0 = msec
+for i = 1 to frames
+	framerate fps
+next i
+idle = msec - t0
+
+call boolean("20 frames at 50fps are not delivered early (" + idle + "ms)", idle >= budget - 5)
+call boolean("20 frames at 50fps are not absurdly late (" + idle + "ms)", idle < budget * 10)
+
+###################################################
+# work inside the loop comes out of the wait
+###################################################
+
+work = 15								# ms per frame, inside the 20ms budget
+
+# What the work alone costs on THIS machine.  PAUSE only promises to wait at
+# least as long as it was asked to, and a loaded or virtualised runner can
+# stretch a 15ms one past the whole 20ms frame -- the macOS runners do.  The
+# bound below is therefore written against the work as measured right here
+# rather than against the 15ms it asked for, so that this goes on testing
+# FRAMERATE instead of quietly testing the host's sleep accuracy.
+framerate 0
+t0 = msec
+for i = 1 to frames
+	pause work / 1000
+next i
+alone = msec - t0
+
+framerate 0
+framerate fps
+t0 = msec
+for i = 1 to frames
+	pause work / 1000
+	framerate fps
+next i
+busy = msec - t0
+
+# Absorbing the work means the loop costs whichever is the GREATER of the frame
+# budget and the work itself, never the two added together, so the test is
+# whether busy came out nearer the greater of them than their sum.  Half the
+# smaller of the two is allowed on top of the greater, and that slack is taken
+# from the measurements rather than being a fixed number of milliseconds
+# because it has to cover jitter, which scales with them: where a machine's
+# sleeps wander, a frame whose work happens to come in under the budget is
+# still padded out to the deadline, so the total sits above the greater of the
+# two even when every frame was absorbed properly.  A limiter that slept for a
+# fixed time would come out at idle + alone and so miss the bound by half the
+# smaller again, which is never less than 150ms however slowly the host sleeps.
+# The measurements are printed with the result because a timing test that fails
+# on a machine you cannot see is no use without them.
+bigger = idle
+smaller = alone
+if alone > bigger then
+	bigger = alone
+	smaller = idle
+end if
+call boolean("work inside the frame is absorbed, not added (busy " + busy + ", idle " + idle + ", alone " + alone + ")", busy <= bigger + smaller / 2)
+call boolean("the busy loop is still not delivered early (" + busy + "ms)", busy >= budget - 5)
+
+###################################################
+# one slow frame resyncs rather than catching up
+###################################################
+
+fps = 20
+period = 50								# ms
+
+framerate 0
+framerate fps
+pause 0.25								# blow the budget by five whole frames
+
+# Both frames are timed before anything is printed.  A deadline is an absolute
+# moment, so a PRINT in between would be taken out of the wait that follows it
+# and could make a whole frame look like no frame at all.
+t0 = msec
+framerate fps
+first = msec - t0
+
+t0 = msec
+framerate fps
+back = msec - t0
+
+# Carrying the deficit forward instead of resyncing would show up as a burst of
+# frames delivered at once, so it is the lower bound that does the work here:
+# the frame after the overrun has to be a whole frame.  There is no matching
+# upper bound worth writing.  The obvious one -- that it did not sit out two
+# periods -- needs a machine that delivers a 50ms frame in about 50ms, and the
+# macOS runners take nearly 200ms over the first frame after a stall while
+# delivering frames in a running loop to the millisecond, so a bound loose
+# enough for them could not tell one period from two anywhere.  What is left is
+# the blunder-level check the rest of this section settles for.
+call boolean("the frame after an overrun does not wait (" + first + "ms)", first < period / 2)
+call boolean("the frame after that is back on budget (" + back + "ms)", back >= period * 0.8)
+call boolean("and that frame is not absurdly late either (" + back + "ms)", back < period * 10)
+
+###################################################
+# PAUSE never returns early
+###################################################
+
+# PAUSE now waits until an absolute deadline, so the total of n of them can
+# only ever come out at or above n times the requested time.  The -1 on each
+# bound is MSEC resolution, not slack: both reads truncate to whole
+# milliseconds, so a perfectly timed run can read one millisecond short.
+
+t0 = msec
+for i = 1 to 50
+	pause 0.020
+next i
+total = msec - t0
+call boolean("50 x pause .020 is never short (" + total + "ms)", total >= 1000 - 1)
+call boolean("50 x pause .020 is not absurdly long (" + total + "ms)", total < 1000 * 10)
+
+# .029 seconds is 28.999999999999996 milliseconds in binary floating point.
+# Converting a PAUSE to a whole number of milliseconds therefore rounded this
+# one DOWN to 28 and returned early every time; going straight to the clock's
+# own resolution is what removes that.
+t0 = msec
+for i = 1 to 50
+	pause 0.029
+next i
+total = msec - t0
+call boolean("50 x pause .029 does not round down to 28ms each (" + total + "ms)", total >= 1450 - 1)
+call boolean("50 x pause .029 is not absurdly long (" + total + "ms)", total < 1450 * 10)

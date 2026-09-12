@@ -12,16 +12,36 @@
   <img src="BitBot_Hello.png" height="192" alt="BitBot, the BASIC256 mascot: a friendly white and green robot with a smiling screen for a face, headphones, a green cape and 256 on its chest, waving hello">
 </p>
 
-This project is the actively maintained continuation of the original BASIC256, bringing the educational environment to Windows, Linux, macOS and the Web while preserving compatibility with existing BASIC256 programs. Its homepage is at https://basic256.org. It also has an extensive documentation site, https://doc.basic256.org, accessible from the application's Help → Online Help menu, and a third site, https://run.basic256.org, lets you run it in a browser.  
+This project is the actively maintained continuation of the original BASIC256, bringing the educational and hobbyist environment to Windows, Linux, macOS and the Web while preserving backward compatibility with existing BASIC256 programs. Its homepage is at https://basic256.org. It also has an extensive documentation site, https://doc.basic256.org, accessible from the application's Help → Online Help menu, and a third site, https://run.basic256.org, lets you run it in a browser.  
 
 ## Why use BASIC256?
 
-- Designed specifically for beginners  
+- Designed specifically for beginners and hobbyists  
 - Immediate graphics and sound  
 - Cross-platform  
 - Lots of example programs  
 - Simple BASIC syntax  
-- Used for education and hobby programming  
+- Free and open source (GPL3)  
+
+## What's new in BASIC256 2.2.0
+
+- A classic BASIC command WINDOW to set the logical coordinates of the canvas.
+- All drawing primitives (CIRCLE, LINE, RECT,..) have been adapted to handle the new WINDOW command, as have the location-based ones (PIXEL, MOUSEX/Y, CLICKX/Y). They now also accept fractional coordinates, so a circle at 100.5,100.5 sits half a pixel right of and below one at 100,100.
+- A new command NOISE to generate OpenSimplex noise (follow-up to Perlin noise).
+- For more advanced use, matrix calculations can now be performed with the MAT command (MAT MUL, MAT ADD, MAT SUB, MAT INV, MAT TRN) and vector calculations can be done with DOT and CROSS products, NORM (vector length) and UNIT (unit vector). As there are no real matrix or vector primitives, arrays are used to represent these.
+- A new command FRAMERATE to hold a drawing loop to a steady number of frames a second. BASIC256 runs on everything from an RPi to an M5, so a program written on one machine should keep its speed on another. FRAMERATE 30 in the loop waits until the next frame is due rather than for a fixed time, so the drawing time comes out of the wait instead of being added to it and the rate is the one asked for whatever the scene costs.
+- On the more educational side, there is now a turtle.kbs as a module to simulate turtle graphics. The turtle commands are well documented on the documentation site.
+- An array or map literal may now be written over several lines instead of a single continuous line and a remark may be put inside the outer mustaches, so the rows of a table can be documented.
+- Programs run 20-25% faster than 2.1.1, and none run slower.
+- Arrays use about half the memory they used to, and the statements that act on a whole array at once -- DIM, REDIM, MAT statements -- are three to five times faster.
+- PAUSE is now accurate to about a millisecond on every platform, waits for any length up to a day, and can be cut short by the Stop button.
+- New and updated Example files are included, also in the WASM version.
+- Bug fixes: on Windows a running program's graphics no longer stall for seconds at a time until the mouse is moved, and SPRITEPOLY now places the polygon where it was drawn and leaves room for the pen width. Although mod and % correctly returned the modulo function, MOD was not recognized. This is now fixed.
+
+## What's new in BASIC256 2.1.1
+
+- 2x speed-up for arithmetic-heavy loops (fractals, physics,..)
+- WASM code persistence so your coding session doesn't just disappear when doing a browser refresh or restart.
 
 ## What's new in BASIC256 2.1
 
@@ -30,10 +50,6 @@ This project is the actively maintained continuation of the original BASIC256, b
 - Command line: fullscreen mode, graphics only, text only and silent running  
 - IDE: View-Theme settings for Dark themes / Updated examples / New standard library  
 - Updated documentation based on Docusaurus
-
-## What's new in BASIC256 2.1.1
-- 2x speed-up for arithmetic-heavy loops (fractals, physics,..)
-- WASM code persistence so your coding session doesn't just disappear when doing a browser refresh or restart.
 
 ## Try it in your browser
 
@@ -153,8 +169,8 @@ Grab the latest build for your platform from the [Releases page](https://github.
 | :--- | :---: | :--- |
 | Windows (.zip) | ✅ | Extract anywhere you like. The full TestSuite runs without issue. |
 | Windows (installer .exe) | ✅ | SmartScreen will initially block it as it comes from an unknown source — "More info" → "Run anyway" fixes this. A signed version might come later thanks to [SignPath's open-source program](https://signpath.io/solutions/open-source-community); this depends on GitHub stars and the success of the project. |
-| Linux x86 (tarball / AppImage) | ✅ | Both are quite large as they include all prerequisite software. A .deb package (which would be much smaller, listing its prerequisites in metadata instead of bundling them) does not exist yet. |
-| Raspberry Pi (tarball / AppImage) | ✅ | Same remark as Linux x86 regarding .deb. Speech does not work out of the box: Debian 13 ("Trixie") does not ship speech-dispatcher, so it must be installed manually. |
+| Linux x86 (tarball / AppImage) | ✅ | Both are quite large as they include all prerequisite software. There is also a .deb package, which is much smaller because it lists its prerequisites in metadata instead of bundling them: BASIC256 2.1.1 is in Debian 14 "Forky" main and in Debian Unstable "sid" main. |
+| Raspberry Pi (tarball / AppImage) | ✅ | Same remark as Linux x86 regarding size; BASIC256 2.1.1 is in Raspbian Testing main. Speech does not work out of the box on Raspbian "Trixie", which does not ship speech-dispatcher, so it must be installed manually. |
 | macOS (Apple Silicon) | ⚠️ | Needs **macOS 15 (Sequoia) or newer**. Builds as a Homebrew-based app. Having no developer license, I can only apply ad-hoc signing — see below. |
 | macOS (Intel) | ⚠️ | Needs **macOS 15 (Sequoia) or newer**. Same Homebrew-based app and the same ad-hoc signing caveat, built separately for x86_64 Macs. These are two single-architecture downloads, not one universal binary, so pick the one matching your Mac. |
 | Web (WASM) | 🧪 v1 | Works, with a few known gaps — see below. |
@@ -291,12 +307,14 @@ Unfortunately, development of the SourceForge BASIC-256 apparently stopped after
 
 ### This continuation
 
-This GitHub repository ([uglymike17/basic256](https://github.com/uglymike17/basic256)) is my attempt to restart BASIC256. It takes the v2.0.99.10.2 branch as its starting point, with the aim of modernizing the codebase into a v2.1 — with a focus on portability, maintainability and education.
+This GitHub repository ([uglymike17/basic256](https://github.com/uglymike17/basic256)) is my attempt to restart BASIC256. It takes the v2.0.99.10.2 branch as its starting point, with the aim of modernizing the codebase — with a focus on portability, maintainability, speed and education.  
+BASIC256 v2.1.0 was basically v2.0 but updated for the modern age and for new architectures.  
+BASIC256 v2.2.0 adds new commands and a big speedup over v2.1.0.
 
 ## Roadmap
 
-Development continues with an emphasis on educational value while preserving compatibility.  
-- Package manager (Debian)  
+Development continues with an emphasis on educational value while preserving backward compatibility.  
+- Packaging for more distributions (BASIC256 is already in Debian and Raspbian)  
 - More standard modules  (like a BTK2-like graphical module)  
 - More/Better/Updated examples  
 - Education tutorials  
@@ -304,7 +322,7 @@ Development continues with an emphasis on educational value while preserving com
 
 ## Vision
 
-BASIC-256 should remain one of the easiest programming languages for beginners, while becoming one of the easiest educational environments to build, maintain and deploy on modern platforms — Windows, Linux, macOS and the Web.
+BASIC-256 should remain one of the easiest programming languages for beginners and hobbyists, while becoming one of the easiest educational environments to build, maintain and deploy on modern platforms — Windows, Linux, macOS and the Web.
 
 ## Contributing
 
@@ -317,6 +335,7 @@ Ways to help
 - Test releases  
 - Improve tutorials  
 - Submit pull requests  
+- Join the [Discord](https://discord.gg/8QaSGYAQ9R) community  
 
 Bug reports and feature requests go to [Issues](https://github.com/uglymike17/basic256/issues); questions, ideas and showing off what you made belong in [Discussions](https://github.com/uglymike17/basic256/discussions).
 

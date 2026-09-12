@@ -478,6 +478,39 @@ QString Error::getErrorMessage(char **symtable) {
 		case ERROR_NOTAVAILABLE:
 			errormessage = tr("Feature not available on this platform");
 			break;
+		case ERROR_WINDOWSIZE:
+			errormessage = tr("WINDOW needs a width and a height that are not zero");
+			break;
+		case ERROR_MATNOTMATRIX:
+			errormessage = tr("MAT needs an array for %VARNAME%, not a single value");
+			break;
+		case ERROR_MATDIM:
+			errormessage = tr("MAT needs both matrices to have the same number of rows and the same number of columns");
+			break;
+		case ERROR_MATMULDIM:
+			errormessage = tr("MAT MUL needs the first matrix to have as many columns as the second has rows");
+			break;
+		case ERROR_MATNOTSQUARE:
+			errormessage = tr("MAT INV needs a square matrix");
+			break;
+		case ERROR_MATSINGULAR:
+			errormessage = tr("MAT INV can not invert a singular matrix");
+			break;
+		case ERROR_VECNOTVECTOR:
+			errormessage = tr("DOT, CROSS, NORM and UNIT need an array, not a single value");
+			break;
+		case ERROR_VECDIM:
+			errormessage = tr("DOT and CROSS need both vectors to have the same number of elements");
+			break;
+		case ERROR_CROSSDIM:
+			errormessage = tr("CROSS needs vectors of two or three elements");
+			break;
+		case ERROR_VECELEMENT:
+			errormessage = tr("the vector has an element that has not been given a value");
+			break;
+		case ERROR_VECZERO:
+			errormessage = tr("UNIT can not make a unit vector from a vector of length zero");
+			break;
 
 
 

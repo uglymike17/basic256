@@ -26,19 +26,33 @@
 #else
 #include <time.h>
 #endif
-#include <atomic>   // new
+#include <chrono>
+#include <condition_variable>
+#include <mutex>
 
 class Sleeper
 {
 public:
 	Sleeper();
+
+	// All three block until the deadline, or until wake() is called from
+	// another thread, whichever comes first. They return true when the full
+	// time was slept and false when wake() cut it short.
+	bool sleepUntil(std::chrono::steady_clock::time_point finish);
 	bool sleepMS(long int ms);
+	bool sleepSeconds(double s);
+
+	// Uninterruptable fixed-length sleep - still used where a caller wants a
+	// short unconditional settling delay (see BasicMediaPlayer).
 	void sleepRQM(long int ms);
-	void sleepSeconds(double s);
+
 	void wake();
-	
+	void clearWake();
+
 private:
-	std::atomic<bool> wakesleeper;
+	std::mutex sleepmutex;
+	std::condition_variable sleepcond;
+	bool wakesleeper;
 
 };
 

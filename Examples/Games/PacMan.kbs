@@ -28,8 +28,6 @@ board$ [12,0]="H*HHH*H*HHH*HHH*H*HHH*H       "
 board$ [13,0]="H*HHH*H*HHH*HHH*H*HHH*H       "
 board$ [14,0]="H*********************H       "
 board$ [15,0]="HHHHHHHHHHHHHHHHHHHHHHH       "
-# 50 FPS Timing Constant (1000ms / 50 frames = 20ms per frame)
-frameTime = 1000 / 50
 # Global Running Score initialization (persists across all lives)
 Score = 0
 # Put the playfield board into a 2D array (Columns 0 to 22 only, leaving right side for UI)
@@ -113,7 +111,7 @@ for life = 3 to 0 step- 1
 	# Action gameplay loop
 	do
 		# Start 50 FPS timing check
-		frameStart = msec
+		framerate 90
 		gosub packman
 		gosub monsters
 		# Update and draw score + lives counters on right sidebar
@@ -140,10 +138,6 @@ for life = 3 to 0 step- 1
 			refresh
 			end
 		end if
-		# Enforce 50 FPS rate limit
-		while (msec - frameStart) < frameTime
-			# Wait remaining frame time
-		end while
 	until dead = true
 next life
 monsters:

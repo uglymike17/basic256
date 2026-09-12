@@ -83,6 +83,15 @@ int linenumber;
 int column;
 char *lexingfilename;
 
+// How deeply we are nested inside the mustaches of a list or list-of-lists
+// literal.  While it is above zero a newline is not the end of a statement and
+// a remark is not a statement of its own, so the lexer swallows both and a
+// literal may be written over as many lines as it needs to read well, with its
+// rows annotated.  linenumber is bumped by hand for a swallowed newline because
+// the parser - which normally does it in the programnewline action - never sees
+// the token.
+int bracedepth = 0;
+
 #define MAX_INCLUDE_DEPTH 10
 YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
 int include_linenumber[MAX_INCLUDE_DEPTH];
@@ -163,6 +172,7 @@ continuewhile [Cc][Oo][Nn][Tt][Ii][Nn][Uu][Ee][ \t]*[Ww][Hh][Ii][Ll][Ee]
 cos [Cc][Oo][Ss]
 count [Cc][Oo][Uu][Nn][Tt]
 countx [Cc][Oo][Uu][Nn][Tt][Xx]
+cross [Cc][Rr][Oo][Ss][Ss]
 currentdir [Cc][Uu][Rr][Rr][Ee][Nn][Tt][Dd][Ii][Rr]
 cyan [Cc][Yy][Aa][Nn]
 dark [Dd][Aa][Rr][Kk]
@@ -181,6 +191,7 @@ debuginfo [Dd][Ee][Bb][Uu][Gg][Ii][Nn][Ff][Oo]
 degrees [Dd][Ee][Gg][Rr][Ee][Ee][Ss]
 dim [Dd][Ii][Mm]
 dir [Dd][Ii][Rr]
+dot [Dd][Oo][Tt]
 do [Dd][Oo]
 editvisible [Ee][Dd][Ii][Tt][Vv][Ii][Ss][Ii][Bb][Ll][Ee]
 ellipse [Ee][Ll][Ll][Ii][Pp][Ss][Ee]
@@ -316,6 +327,7 @@ fill [Ff][Ii][Ll][Ll]
 floor [Ff][Ll][Oo][Oo][Rr]
 font [Ff][Oo][Nn][Tt]
 for [Ff][Oo][Rr]
+framerate [Ff][Rr][Aa][Mm][Ee][Rr][Aa][Tt][Ee]
 foreach [Ff][Oo][Rr][ \t]*[Ee][Aa][Cc][Hh]
 freedb [Ff][Rr][Ee][Ee][Dd][Bb]
 freedbset [Ff][Rr][Ee][Ee][Dd][Bb][Ss][Ee][Tt]
@@ -397,6 +409,11 @@ ltrim [Ll][Tt][Rr][Ii][Mm]
 maintoolbarvisible [Mm][Aa][Ii][Nn][Tt][Oo][Oo][Ll][Bb][Aa][Rr][Vv][Ii][Ss][Ii][Bb][Ll][Ee]
 map [Mm][Aa][Pp]
 maximize [Mm][Aa][Xx][Ii][Mm][Ii][Zz][Ee]
+matadd [Mm][Aa][Tt][ \t]*[Aa][Dd][Dd]
+matinv [Mm][Aa][Tt][ \t]*[Ii][Nn][Vv]
+matmul [Mm][Aa][Tt][ \t]*[Mm][Uu][Ll]
+matsub [Mm][Aa][Tt][ \t]*[Ss][Uu][Bb]
+mattrn [Mm][Aa][Tt][ \t]*[Tt][Rr][Nn]
 md5 [Mm][Dd][5]
 mid [Mm][Ii][Dd]
 midx [Mm][Ii][Dd][Xx]
@@ -419,7 +436,9 @@ netdata [Nn][Ee][Tt][Dd][Aa][Tt][Aa]
 netlisten [Nn][Ee][Tt][Ll][Ii][Ss][Tt][Ee][Nn]
 netread [Nn][Ee][Tt][Rr][Ee][Aa][Dd]
 netwrite [Nn][Ee][Tt][Ww][Rr][Ii][Tt][Ee]
+noise [Nn][Oo][Ii][Ss][Ee]
 next [Nn][Ee][Xx][Tt]
+norm [Nn][Oo][Rr][Mm]
 not [Nn][Oo][Tt]
 offerror [Oo][Ff][Ff][Ee][Rr][Rr][Oo][Rr]
 onerror [Oo][Nn][Ee][Rr][Rr][Oo][Rr]
@@ -560,6 +579,7 @@ type_string [Tt][Yy][Pp][Ee][_][Ss][Tt][Rr][Ii][Nn][Gg]
 type_unassigned [Tt][Yy][Pp][Ee][_][Uu][Nn][Aa][Ss][Ss][Ii][Gg][Nn][Ee][Dd]
 typeof [Tt][Yy][Pp][Ee][Oo][Ff]
 unassign [Uu][Nn][Aa][Ss][Ss][Ii][Gg][Nn]
+unit [Uu][Nn][Ii][Tt]
 unload [Uu][Nn][Ll][Oo][Aa][Dd]
 unserialize [Uu][Nn][Ss][Ee][Rr][Ii][Aa][Ll][Ii][Zz][Ee]
 until [Uu][Nn][Tt][Ii][Ll]
@@ -591,6 +611,7 @@ wavstate [Ww][Aa][Vv][Ss][Tt][Aa][Tt][Ee]
 wavstop [Ww][Aa][Vv][Ss][Tt][Oo][Pp]
 wavwait [Ww][Aa][Vv][Ww][Aa][Ii][Tt]
 while [Ww][Hh][Ii][Ll][Ee]
+window [Ww][Ii][Nn][Dd][Oo][Ww]
 white [Ww][Hh][Ii][Tt][Ee]
 write [Ww][Rr][Ii][Tt][Ee]
 writebyte [Ww][Rr][Ii][Tt][Ee][Bb][Yy][Tt][Ee]
@@ -881,6 +902,8 @@ zfill [Zz][Ff][Ii][Ll][Ll]
 {netaddress}				{ count(); return B256NETADDRESS; }
 {netdata}					{ count(); return B256NETDATA; }
 {netread}					{ count(); return B256NETREAD; }
+{noise}						{ count(); return B256NOISE; }
+{norm}						{ count(); return B256NORM; }
 {openfiledialog}			{ count(); return B256OPENFILEDIALOG; }
 {orange}					{ count(); return B256ORANGE; }
 {ostype_android}			{ count(); return B256OSTYPE_ANDROID; }
@@ -953,6 +976,7 @@ zfill [Zz][Ff][Ii][Ll][Ll]
 {type_string}				{ count(); return B256TYPE_STRING; }
 {type_unassigned}			{ count(); return B256TYPE_UNASSIGNED; }
 {typeof}					{ count(); return B256TYPEOF; }
+{unit}						{ count(); return B256UNIT; }
 {unserialize}				{ count(); return B256UNSERIALIZE; }
 {upper}						{ count(); return B256UPPER; }
 {variablewatch}				{ count(); return B256VARIABLEWATCH; }
@@ -1051,12 +1075,14 @@ zfill [Zz][Ff][Ii][Ll][Ll]
 {fastgraphics}":"			{ count(); unputcolon(); return B256FASTGRAPHICS; }
 {font}						{ count(); return B256FONT; }
 {for}						{ count(); return B256FOR; }
+{framerate}					{ count(); return B256FRAMERATE; }
 {foreach}						{ count(); return B256FOREACH; }
 {function}					{ count(); return B256FUNCTION; }
 {global}					{ count(); return B256GLOBAL; }
 {gosub}						{ count(); return B256GOSUB; }
 {goto}						{ count(); return B256GOTO; }
 {graphsize}					{ count(); return B256GRAPHSIZE; }
+{window}					{ count(); return B256WINDOW; }
 {graphvisible}				{ count(); return B256GRAPHVISIBLE; }
 {graphtoolbarvisible}		{ count(); return B256GRAPHTOOLBARVISIBLE; }
 {if}						{ count(); return B256IF; }
@@ -1083,6 +1109,11 @@ zfill [Zz][Ff][Ii][Ll][Ll]
 {maintoolbarvisible}		{ count(); return B256MAINTOOLBARVISIBLE; }
 {map}						{ count(); return B256MAP; }
 {maximize}					{ count(); return B256MAXIMIZE; }
+{matadd}					{ count(); return B256MATADD; }
+{matinv}					{ count(); return B256MATINV; }
+{matmul}					{ count(); return B256MATMUL; }
+{matsub}					{ count(); return B256MATSUB; }
+{mattrn}					{ count(); return B256MATTRN; }
 {netclose}					{ count(); return B256NETCLOSE; }
 {netclose}":"				{ count(); unputcolon(); return B256NETCLOSE; }
 {netconnect}				{ count(); return B256NETCONNECT; }
@@ -1120,8 +1151,8 @@ zfill [Zz][Ff][Ii][Ll][Ll]
 {refresh}					{ count(); return B256REFRESH; }
 {refresh}":"				{ count(); unputcolon(); return B256REFRESH; }
 {regexminimal}				{ count(); return B256REGEXMINIMAL; }
-{remalt}					{ count(); return B256REM; }
-{rem}						{ count(); return B256REM; }
+{remalt}					{ count(); if (bracedepth==0) return B256REM; }
+{rem}						{ count(); if (bracedepth==0) return B256REM; }
 {reset}						{ count(); return B256RESET; }
 {reset}":"					{ count(); unputcolon(); return B256RESET; }
 {return}					{ count(); return B256RETURN; }
@@ -1198,6 +1229,8 @@ zfill [Zz][Ff][Ii][Ll][Ll]
 {not}						{ count(); return B256NOT; }
 {or}						{ count(); return B256OR; }
 {xor}						{ count(); return B256XOR; }
+{dot}						{ count(); return B256DOT; }
+{cross}						{ count(); return B256CROSS; }
 ">="						{ count(); return B256GTE; }
 "<="						{ count(); return B256LTE; }
 "<>"						{ count(); return B256NE; }
@@ -1210,7 +1243,7 @@ zfill [Zz][Ff][Ii][Ll][Ll]
 "*"							{ count(); return '*'; }
 "*="						{ count(); return B256MULEQUAL; }
 "\\"						{ count(); return B256INTDIV; }
-mod							{ count(); return B256MOD; }
+{mod}						{ count(); return B256MOD; }
 "|"							{ count(); return B256BINARYOR; }
 "&"							{ count(); return B256AMP; }
 "&="						{ count(); return B256AMPEQUAL; }
@@ -1227,8 +1260,8 @@ mod							{ count(); return B256MOD; }
 ":"							{ count(); return ':'; }
 "("							{ count(); return '('; }
 ")"							{ count(); return ')'; }
-"{"							{ count(); return '{'; }
-"}"							{ count(); return '}'; }
+"{"							{ count(); bracedepth++; return '{'; }
+"}"							{ count(); if (bracedepth>0) bracedepth--; return '}'; }
 "["							{ count(); return '['; }
 "]"							{ count(); return ']'; }
 "<<"						{ count(); return B256BITSHIFTL; }
@@ -1270,7 +1303,17 @@ mod							{ count(); return B256MOD; }
 }
 
 
-"\n"	{ return '\n'; }
+"\n"	{
+	if (bracedepth>0) {
+		// inside the mustaches of a literal - the statement carries on onto the
+		// next line.  Count the line so that everything reported from here on
+		// still points at the right one, and go back for the next token.
+		linenumber++;
+		column = 0;
+	} else {
+		return '\n';
+	}
+}
 
 {whitespace}	{
 	/* eat the whitespace at the begining of a token - but count */
@@ -1480,6 +1523,7 @@ int basicParse(char *code) {
 	numincludes=0;
 	linenumber = 1;
 	column = 0;
+	bracedepth = 0;
 	errorcode = COMPERR_NONE;
 	functionDefSymbol = -1;
 	subroutineDefSymbol = -1;

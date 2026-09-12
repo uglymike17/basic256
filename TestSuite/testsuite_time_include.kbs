@@ -16,5 +16,9 @@ call q("Is this the correct date and time " + year + "-" + right(month+101,2) + 
 m = msec
 pause 1.000
 m = msec -m
-call npercent("programming running time msec", m, 1000, .10)
+# PAUSE waits until a deadline, so it must never come back EARLY; coming back
+# late only ever means the machine was busy.  The old +/-10% check had 100ms of
+# slack either way and so could not see a pause that was short.
+call boolean("pause 1.000 is not short", m >= 999)
+call boolean("pause 1.000 is not long", m < 1100)
 

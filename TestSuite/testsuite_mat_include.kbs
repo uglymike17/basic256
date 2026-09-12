@@ -1,0 +1,554 @@
+# testsuite_mat_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20260902	m.vilain	original coding
+
+currentsuite = "mat"
+
+# MAT reads a BASIC-256 array as a matrix of rows by columns: dim a(2,3) is
+# two rows of three columns. Everything below relies on that one reading.
+
+###################################################
+# MAT ADD
+###################################################
+
+dim a(2,2)
+a[0,0] = 1 : a[0,1] = 2
+a[1,0] = 3 : a[1,1] = 4
+dim b(2,2)
+b[0,0] = 10 : b[0,1] = 20
+b[1,0] = 30 : b[1,1] = 40
+
+mat add c = a + b
+call n("2x2 add rows", c[?,], 2)
+call n("2x2 add columns", c[,?], 2)
+call n("2x2 add [0,0]", c[0,0], 11)
+call n("2x2 add [0,1]", c[0,1], 22)
+call n("2x2 add [1,0]", c[1,0], 33)
+call n("2x2 add [1,1]", c[1,1], 44)
+call n("adding whole numbers gives a whole number", typeof(c[0,0]), TYPE_INT)
+
+# the destination did not exist before that statement; it also works when it
+# already holds something of the wrong shape, or is not an array at all
+c = "not an array any more"
+mat add c = a + b
+call n("destination that held a string", c[1,1], 44)
+dim c(5,7) fill 0
+mat add c = a + b
+call n("destination redimensioned from 5x7", c[?,], 2)
+call n("destination redimensioned from 5x7 value", c[1,0], 33)
+
+# a single number instead of a second matrix
+mat add d = a + 100
+call n("add a number [0,0]", d[0,0], 101)
+call n("add a number [1,1]", d[1,1], 104)
+s = 0.5
+mat add d = a + s
+call n("add the value of a variable", d[1,0], 3.5)
+mat add d = a + 2 * 5
+call n("add the value of an expression", d[0,1], 12)
+
+###################################################
+# MAT SUB
+###################################################
+
+mat sub c = b - a
+call n("2x2 subtract [0,0]", c[0,0], 9)
+call n("2x2 subtract [0,1]", c[0,1], 18)
+call n("2x2 subtract [1,0]", c[1,0], 27)
+call n("2x2 subtract [1,1]", c[1,1], 36)
+mat sub d = a - 1
+call n("subtract a number", d[1,1], 3)
+
+###################################################
+# MAT MUL
+###################################################
+
+dim e(2,2)
+e[0,0] = 5 : e[0,1] = 6
+e[1,0] = 7 : e[1,1] = 8
+mat mul c = a * e
+call n("2x2 multiply [0,0]", c[0,0], 19)
+call n("2x2 multiply [0,1]", c[0,1], 22)
+call n("2x2 multiply [1,0]", c[1,0], 43)
+call n("2x2 multiply [1,1]", c[1,1], 50)
+
+# a 2x3 by a 3x2 gives a 2x2, and a 3x2 by a 2x3 gives a 3x3
+dim f(2,3)
+f[0,0] = 1 : f[0,1] = 2 : f[0,2] = 3
+f[1,0] = 4 : f[1,1] = 5 : f[1,2] = 6
+dim g(3,2)
+g[0,0] = 7 : g[0,1] = 8
+g[1,0] = 9 : g[1,1] = 10
+g[2,0] = 11 : g[2,1] = 12
+mat mul c = f * g
+call n("2x3 by 3x2 rows", c[?,], 2)
+call n("2x3 by 3x2 columns", c[,?], 2)
+call n("2x3 by 3x2 [0,0]", c[0,0], 58)
+call n("2x3 by 3x2 [0,1]", c[0,1], 64)
+call n("2x3 by 3x2 [1,0]", c[1,0], 139)
+call n("2x3 by 3x2 [1,1]", c[1,1], 154)
+mat mul c = g * f
+call n("3x2 by 2x3 rows", c[?,], 3)
+call n("3x2 by 2x3 columns", c[,?], 3)
+call n("3x2 by 2x3 [0,0]", c[0,0], 39)
+call n("3x2 by 2x3 [2,2]", c[2,2], 105)
+
+# a vector is a matrix with one column
+dim v(2,1)
+v[0,0] = 5
+v[1,0] = 6
+mat mul c = a * v
+call n("matrix by column vector rows", c[?,], 2)
+call n("matrix by column vector columns", c[,?], 1)
+call n("matrix by column vector [0,0]", c[0,0], 17)
+call n("matrix by column vector [1,0]", c[1,0], 39)
+
+# by a single number, which scales every element
+mat mul c = a * 3
+call n("multiply by a number [0,0]", c[0,0], 3)
+call n("multiply by a number [1,1]", c[1,1], 12)
+mat mul c = a * 0.5
+call n("multiply by a fraction", c[1,0], 1.5)
+
+###################################################
+# MAT TRN
+###################################################
+
+mat trn c = a
+call n("transpose of a square matrix [0,1]", c[0,1], 3)
+call n("transpose of a square matrix [1,0]", c[1,0], 2)
+
+dim p(3,2)
+p[0,0] = 1 : p[0,1] = 2
+p[1,0] = 3 : p[1,1] = 4
+p[2,0] = 5 : p[2,1] = 6
+mat trn t = p
+call n("transpose of 3x2 gives rows", t[?,], 2)
+call n("transpose of 3x2 gives columns", t[,?], 3)
+call n("transpose 3x2 [0,0]", t[0,0], 1)
+call n("transpose 3x2 [0,1]", t[0,1], 3)
+call n("transpose 3x2 [0,2]", t[0,2], 5)
+call n("transpose 3x2 [1,0]", t[1,0], 2)
+call n("transpose 3x2 [1,1]", t[1,1], 4)
+call n("transpose 3x2 [1,2]", t[1,2], 6)
+
+###################################################
+# MAT INV
+###################################################
+
+mat inv iv = a
+call nclose("inverse of a 2x2 [0,0]", iv[0,0], -2)
+call nclose("inverse of a 2x2 [0,1]", iv[0,1], 1)
+call nclose("inverse of a 2x2 [1,0]", iv[1,0], 1.5)
+call nclose("inverse of a 2x2 [1,1]", iv[1,1], -0.5)
+
+dim h(3,3)
+h[0,0] = 2 : h[0,1] = -1 : h[0,2] = 0
+h[1,0] = -1 : h[1,1] = 2 : h[1,2] = -1
+h[2,0] = 0 : h[2,1] = -1 : h[2,2] = 2
+mat inv hi = h
+call nclose("inverse of a 3x3 [0,0]", hi[0,0], 0.75)
+call nclose("inverse of a 3x3 [0,1]", hi[0,1], 0.5)
+call nclose("inverse of a 3x3 [0,2]", hi[0,2], 0.25)
+call nclose("inverse of a 3x3 [1,1]", hi[1,1], 1)
+call nclose("inverse of a 3x3 [2,2]", hi[2,2], 0.75)
+# and it really is the inverse
+mat mul ident = h * hi
+call nclose("matrix times its inverse [0,0]", ident[0,0], 1)
+call nclose("matrix times its inverse [0,1]", ident[0,1], 0)
+call nclose("matrix times its inverse [1,1]", ident[1,1], 1)
+call nclose("matrix times its inverse [2,0]", ident[2,0], 0)
+
+# pivoting: the first pivot is zero, so this only works if rows are exchanged
+dim piv(3,3)
+piv[0,0] = 0 : piv[0,1] = 1 : piv[0,2] = 2
+piv[1,0] = 1 : piv[1,1] = 0 : piv[1,2] = 3
+piv[2,0] = 4 : piv[2,1] = -3 : piv[2,2] = 8
+mat inv pivi = piv
+mat mul ident = piv * pivi
+call nclose("zero first pivot [0,0]", ident[0,0], 1)
+call nclose("zero first pivot [1,1]", ident[1,1], 1)
+call nclose("zero first pivot [2,2]", ident[2,2], 1)
+call nclose("zero first pivot [0,2]", ident[0,2], 0)
+
+###################################################
+# the destination may be one of the sources
+###################################################
+
+dim k(2,2)
+k[0,0] = 1 : k[0,1] = 2
+k[1,0] = 3 : k[1,1] = 4
+mat add k = k + k
+call n("destination is both sources [0,0]", k[0,0], 2)
+call n("destination is both sources [1,1]", k[1,1], 8)
+mat sub k = k - a
+call n("destination is the left source [0,1]", k[0,1], 2)
+call n("destination is the left source [1,1]", k[1,1], 4)
+
+k[0,0] = 1 : k[0,1] = 2
+k[1,0] = 3 : k[1,1] = 4
+mat add k = a + k
+call n("destination is the right source", k[1,0], 6)
+
+k[0,0] = 1 : k[0,1] = 2
+k[1,0] = 3 : k[1,1] = 4
+mat mul k = k * k
+call n("multiply into the source [0,0]", k[0,0], 7)
+call n("multiply into the source [0,1]", k[0,1], 10)
+call n("multiply into the source [1,0]", k[1,0], 15)
+call n("multiply into the source [1,1]", k[1,1], 22)
+
+# transpose onto itself, where the shape changes under the statement
+dim q(3,2)
+q[0,0] = 1 : q[0,1] = 2
+q[1,0] = 3 : q[1,1] = 4
+q[2,0] = 5 : q[2,1] = 6
+mat trn q = q
+call n("transpose onto itself rows", q[?,], 2)
+call n("transpose onto itself columns", q[,?], 3)
+call n("transpose onto itself [0,2]", q[0,2], 5)
+call n("transpose onto itself [1,0]", q[1,0], 2)
+
+k[0,0] = 1 : k[0,1] = 2
+k[1,0] = 3 : k[1,1] = 4
+mat inv k = k
+call nclose("invert onto itself [0,0]", k[0,0], -2)
+call nclose("invert onto itself [1,0]", k[1,0], 1.5)
+
+# scaling by a variable the destination itself is about to become
+scale = 3
+mat mul scale = a * scale
+call n("destination is the scalar variable [0,0]", scale[0,0], 3)
+call n("destination is the scalar variable [1,1]", scale[1,1], 12)
+
+###################################################
+# floating point values
+###################################################
+
+dim fa(2,2)
+fa[0,0] = 0.5 : fa[0,1] = 1.25
+fa[1,0] = -2.5 : fa[1,1] = 3.75
+dim fb(2,2)
+fb[0,0] = 0.25 : fb[0,1] = 0.75
+fb[1,0] = 1.5 : fb[1,1] = -0.25
+mat add fc = fa + fb
+call nclose("float add [0,0]", fc[0,0], 0.75)
+call nclose("float add [1,0]", fc[1,0], -1)
+call n("a float anywhere gives a float answer", typeof(fc[0,1]), TYPE_FLOAT)
+mat sub fc = fa - fb
+call nclose("float subtract [1,1]", fc[1,1], 4)
+mat mul fc = fa * fb
+call nclose("float multiply [0,0]", fc[0,0], 2)
+call nclose("float multiply [0,1]", fc[0,1], 0.0625)
+call nclose("float multiply [1,0]", fc[1,0], 5)
+call nclose("float multiply [1,1]", fc[1,1], -2.8125)
+# mixing whole numbers and fractions promotes, exactly as "a + b" does
+mat add fc = a + fb
+call nclose("mixed add", fc[0,0], 1.25)
+call n("mixed add gives a float", typeof(fc[0,0]), TYPE_FLOAT)
+
+###################################################
+# a 200 particle simulation, physics done entirely with MAT
+###################################################
+
+NP = 200
+dim Position(NP,2)
+dim Velocity(NP,2)
+dim Acceleration(NP,2)
+for i = 0 to NP-1
+   Position[i,0] = i
+   Position[i,1] = i * 2
+   Velocity[i,0] = 1
+   Velocity[i,1] = -1
+   Acceleration[i,0] = 0.5
+   Acceleration[i,1] = 0.25
+next i
+for f = 1 to 10
+   mat add Velocity = Velocity + Acceleration
+   mat add Position = Position + Velocity
+next f
+call n("200 particles keep their rows", Position[?,], 200)
+call n("200 particles keep their columns", Position[,?], 2)
+call nclose("particle 0 x", Position[0,0], 37.5)
+call nclose("particle 0 y", Position[0,1], 3.75)
+call nclose("particle 199 x", Position[199,0], 236.5)
+call nclose("particle 199 y", Position[199,1], 401.75)
+call nclose("particle 199 dx", Velocity[199,0], 6)
+call nclose("particle 199 dy", Velocity[199,1], 1.5)
+
+# one transformation matrix turns all 200 velocity vectors a quarter turn
+dim Spin(2,2)
+Spin[0,0] = 0 : Spin[0,1] = 1
+Spin[1,0] = -1 : Spin[1,1] = 0
+mat mul Velocity = Velocity * Spin
+call nclose("rotated dx of particle 0", Velocity[0,0], -1.5)
+call nclose("rotated dy of particle 0", Velocity[0,1], 6)
+call nclose("rotated dx of particle 199", Velocity[199,0], -1.5)
+call nclose("rotated dy of particle 199", Velocity[199,1], 6)
+
+###################################################
+# errors
+###################################################
+
+dim wide(2,3) fill 2
+
+try
+   mat add bad = a + wide
+   call boolean("mismatched dimensions should have raised an error", false)
+catch
+   call n("MAT ADD with mismatched dimensions", lasterror, 132)
+end try
+
+try
+   mat sub bad = a - wide
+   call boolean("mismatched dimensions should have raised an error", false)
+catch
+   call n("MAT SUB with mismatched dimensions", lasterror, 132)
+end try
+
+try
+   mat mul bad = wide * wide
+   call boolean("bad multiply dimensions should have raised an error", false)
+catch
+   call n("MAT MUL with dimensions that do not meet", lasterror, 133)
+end try
+
+try
+   mat inv bad = wide
+   call boolean("inverting a non-square should have raised an error", false)
+catch
+   call n("MAT INV of a matrix that is not square", lasterror, 134)
+end try
+
+dim sing(2,2)
+sing[0,0] = 1 : sing[0,1] = 2
+sing[1,0] = 2 : sing[1,1] = 4
+try
+   mat inv bad = sing
+   call boolean("inverting a singular matrix should have raised an error", false)
+catch
+   call n("MAT INV of a singular matrix", lasterror, 135)
+end try
+
+dim zero(2,2) fill 0
+try
+   mat inv bad = zero
+   call boolean("inverting a matrix of zeroes should have raised an error", false)
+catch
+   call n("MAT INV of a matrix of zeroes", lasterror, 135)
+end try
+
+notamatrix = 7
+try
+   mat trn bad = notamatrix
+   call boolean("a single value as a source should have raised an error", false)
+catch
+   call n("MAT TRN of something that is not a matrix", lasterror, 131)
+end try
+
+try
+   mat add bad = notamatrix + a
+   call boolean("a single value as the left source should have raised an error", false)
+catch
+   call n("MAT ADD from something that is not a matrix", lasterror, 131)
+end try
+
+###################################################
+# the brackets form of a whole array, and MAT inside a function
+###################################################
+
+mat add c = a[] + b[]
+call n("sources written with empty brackets", c[1,1], 44)
+
+function matproduct(ref(x), ref(y))
+   mat mul z = x * y
+   return z[0,0]
+end function
+call n("MAT on arrays passed to a function", matproduct(a[], e[]), 19)
+
+###################################################
+# DOT, CROSS, NORM and UNIT - vector arithmetic
+#
+# These read an array as a plain list of elements in the order they are
+# stored, so a row, a column, and anything MAT TRN hands back all work and
+# only the number of elements has to agree.
+###################################################
+
+vr = {1,2,3}
+vs = {4,5,6}
+
+call n("dot product of two rows", vr dot vs, 32)
+call n("dot product of whole numbers is a whole number", typeof(vr dot vs), TYPE_INT)
+call n("dot product is the same both ways round", vs dot vr, 32)
+call nclose("dot product with a fraction", {1,2} dot {0.5,0.25}, 1.0)
+call n("a fraction anywhere makes the answer a float", typeof({1,2} dot {0.5,0.25}), TYPE_FLOAT)
+call n("dot product of a vector with itself", vr dot vr, 14)
+
+# a column from MAT TRN dotted with the row it came from
+mat trn vc = vr
+call n("transposed source is a column", vc[?,], 3)
+call n("transposed source has one column", vc[,?], 1)
+call n("a column dotted with a row", vc dot vr, 14)
+
+###################################################
+# CROSS in three dimensions
+###################################################
+
+vx = vr cross vs
+call n("cross product [0,0]", vx[0,0], -3)
+call n("cross product [0,1]", vx[0,1], 6)
+call n("cross product [0,2]", vx[0,2], -3)
+call n("cross product of whole numbers is whole", typeof(vx[0,0]), TYPE_INT)
+call n("cross product of a row is a row", vx[?,], 1)
+call n("cross product of a row has three columns", vx[,?], 3)
+
+# the answer takes the shape of the left hand vector
+vy = vc cross vr
+call n("cross product of a column is a column", vy[?,], 3)
+call n("cross product of a column has one column", vy[,?], 1)
+
+# the standard basis, which is the definition of the thing
+vi = {1,0,0}
+vj = {0,1,0}
+vk = vi cross vj
+call n("i cross j is k [0,0]", vk[0,0], 0)
+call n("i cross j is k [0,1]", vk[0,1], 0)
+call n("i cross j is k [0,2]", vk[0,2], 1)
+
+# anticommutative - b cross a is the negative of a cross b
+vz = vs cross vr
+call n("cross product the other way round negates [0,0]", vz[0,0], 3)
+call n("cross product the other way round negates [0,1]", vz[0,1], -6)
+call n("cross product the other way round negates [0,2]", vz[0,2], 3)
+
+# a cross product is at right angles to both of the vectors that made it
+call n("cross product is perpendicular to the first", vx dot vr, 0)
+call n("cross product is perpendicular to the second", vx dot vs, 0)
+
+###################################################
+# CROSS in two dimensions gives the single number
+###################################################
+
+call n("two dimensional cross product", {3,4} cross {5,6}, -2)
+call n("two dimensional cross product is a whole number", typeof({3,4} cross {5,6}), TYPE_INT)
+call n("two dimensional cross product of parallel vectors", {2,4} cross {1,2}, 0)
+call n("two dimensional cross product the other way round", {5,6} cross {3,4}, 2)
+
+###################################################
+# NORM - the length of a vector
+###################################################
+
+call nclose("length of a 3-4-5 triangle", norm({3,4}), 5)
+call n("a length is always a float", typeof(norm({3,4})), TYPE_FLOAT)
+call nclose("length in three dimensions", norm({2,3,6}), 7)
+call nclose("length of a unit vector along an axis", norm({0,1,0}), 1)
+call nclose("length of the zero vector", norm({0,0,0}), 0)
+call nclose("length of a column", norm(vc), sqr(14))
+call nclose("length is the square root of the dot product", norm(vr), sqr(vr dot vr))
+
+###################################################
+# UNIT - the same vector scaled to length one
+###################################################
+
+vu = unit({3,4})
+call nclose("unit vector [0,0]", vu[0,0], 0.6)
+call nclose("unit vector [0,1]", vu[0,1], 0.8)
+call n("a unit vector is always float", typeof(vu[0,0]), TYPE_FLOAT)
+call nclose("a unit vector has length one", norm(unit(vr)), 1)
+call n("unit keeps the shape of a row", vu[?,], 1)
+call n("unit keeps the number of columns", vu[,?], 2)
+
+vw = unit(vc)
+call n("unit keeps the shape of a column", vw[?,], 3)
+call n("unit of a column has one column", vw[,?], 1)
+call nclose("unit points the same way", unit({3,4}) dot unit({6,8}), 1)
+
+###################################################
+# how the operators sit next to each other
+###################################################
+
+# CROSS binds tighter than DOT, so both triple products come out right
+call n("scalar triple product a dot b cross a", vr dot vs cross vr, 0)
+call n("scalar triple product a cross b dot a", vr cross vs dot vr, 0)
+call n("the triple product of the basis vectors", vi dot vj cross {0,0,1}, 1)
+
+# DOT binds tighter than a comparison
+call boolean("a dot product compares without brackets", vr dot vs = 32)
+
+# and FOREACH walks a UNIT straight out of the expression
+foreachtotal = 0
+foreach foreachone in unit({3,4})
+   foreachtotal = foreachtotal + foreachone
+next foreachone
+call nclose("FOREACH over a unit vector", foreachtotal, 1.4)
+
+###################################################
+# things that are not vectors, or are the wrong size
+###################################################
+
+notavector = 7
+
+try
+   badvector = {1,2} dot {1,2,3}
+   call boolean("a dot product of different lengths should have raised an error", false)
+catch
+   call n("DOT with different numbers of elements", lasterror, 137)
+end try
+
+try
+   badvector = {1,2,3} cross {1,2}
+   call boolean("a cross product of different lengths should have raised an error", false)
+catch
+   call n("CROSS with different numbers of elements", lasterror, 137)
+end try
+
+try
+   badvector = {1,2,3,4} cross {5,6,7,8}
+   call boolean("a cross product of four elements should have raised an error", false)
+catch
+   call n("CROSS of anything but two or three elements", lasterror, 138)
+end try
+
+try
+   badvector = notavector dot {1,2}
+   call boolean("a single value as a vector should have raised an error", false)
+catch
+   call n("DOT of something that is not an array", lasterror, 136)
+end try
+
+try
+   badvector = norm(notavector)
+   call boolean("NORM of a single value should have raised an error", false)
+catch
+   call n("NORM of something that is not an array", lasterror, 136)
+end try
+
+try
+   badvector = unit({0,0,0})
+   call boolean("UNIT of the zero vector should have raised an error", false)
+catch
+   call n("UNIT of a vector with no length", lasterror, 140)
+end try
+
+try
+   raggedvector = {{1,2,3},{4,5}}
+   badvector = raggedvector dot raggedvector
+   call boolean("an element with no value should have raised an error", false)
+catch
+   call n("DOT where an element has never been given a value", lasterror, 139)
+end try
+
+###################################################
+# vectors held in variables, passed to functions, and in brackets form
+###################################################
+
+call n("the brackets form of a whole array", vr[] dot vs[], 32)
+
+function vectorangle(ref(p), ref(r))
+   # the cosine of the angle between two vectors
+   return (p dot r) / (norm(p) * norm(r))
+end function
+call nclose("DOT and NORM on arrays passed to a function", vectorangle(vi[], vi[]), 1)
+call nclose("perpendicular vectors have a cosine of zero", vectorangle(vi[], vj[]), 0)

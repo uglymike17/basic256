@@ -1,0 +1,262 @@
+#************************************************************************************************
+#            Verlet integration for colliding balls of different mass Balls                
+#************************************************************************************************
+# Particle system with gravity, bounce, a bit of friction and Balls of different mass/size
+# Balls collide and bounce of each other according to their mass
+# Verlet integration has no explicit velocity defined. Velocity is derived from previous position
+# Added the possibility to grab a ball and move it, displacing the other balls
+# Optimized via an Array-Linked Uniform Spatial Grid Context
+#************************************************************************************************
+# Globals to be used in the subroutines
+#************************************************************************************************
+global height, width, pos_x, pos_y, old_pos_x, old_pos_y
+global StartRad, Max_inc, rad, inv_mass, bounce, gravity, friction
+global r, g, b, Balls, Ball, grab, grabr, grabinvm, Ball_lock, iter
+
+# Spatial Partitioning Uniform Grid Globals
+global Cell_Size, Cols, Rows, Total_Cells
+global GridHead, GridNext
+
+# Initialisations
+#************************************************************************************************
+call ScreenSetup()              # dimension & color
+call WorldParameters()          # gravity, friction/drag, elasticity
+call CreateBalls()              # location, old location, color, radius and derived mass
+call GridSetup()                # initialize uniform spatial layout properties
+dim Ball_lock(Balls) fill 0     # if 1 then skip integration (Ball is currently held by mouse)
+
+# mousedrag initialisation
+grab  = -1
+grabr = 15
+
+# Drawing loop
+#************************************************************************************************
+while true
+    call mousedrag(mousex, mousey, mouseb)
+    call UpdateBalls()
+    call DrawBalls()
+end while
+
+# Subroutines begin here
+#************************************************************************************************
+subroutine ScreenSetup()
+    fastgraphics
+    width = 800: height = 800
+    graphsize width, height
+    color black
+    rect 0,0,width,height
+    refresh
+    editvisible 0
+    outputvisible 0
+end subroutine
+
+
+subroutine WorldParameters()
+    bounce = 0.3
+    gravity = 0.5
+    friction = 0.999
+end subroutine
+
+subroutine CreateBalls()
+    # Feel free to test with 300+ balls now! It will run smoothly.
+    Balls = 300
+    dim Ball(Balls,9)
+    StartRad =4
+    Max_inc = 20
+    # Indices
+    pos_x = 0 : pos_y = 1: old_pos_x = 2 : old_pos_y = 3: r = 4 : g = 5 : b = 6: rad = 7 : inv_mass = 8
+    for i = 0 to Balls-1
+        Ball[i,pos_x] = rand*width
+        Ball[i,pos_y] = rand*height/2
+        Ball[i,old_pos_x] = Ball[i,pos_x] - (rand*5 - 2.5)
+        Ball[i,old_pos_y] = Ball[i,pos_y] - (rand*5 - 2.5)
+        Ball[i,r] = 50 + (rand*155)
+        Ball[i,g] = 50 + (rand*155)
+        Ball[i,b] = 50 + (rand*155)
+        Ball[i,rad] = StartRad + rand*Max_inc
+        # Store inverse mass (1/mass) where mass = rad^2. if inv_mass = 0 then Ball is immovable
+        Ball[i,inv_mass] = 1 / (Ball[i,rad] * Ball[i,rad])
+    next i
+end subroutine
+
+subroutine GridSetup()
+    # Cell size should be roughly twice the size of your largest ball (2 * (StartRad+Max_inc))
+    Cell_Size = StartRad+Max_inc*2
+    Cols = ceil(width / Cell_Size)
+    Rows = ceil(height / Cell_Size)
+    Total_Cells = Cols * Rows
+    
+    # Head element pointer index array mapping every discrete grid coordinate box
+    dim GridHead(Total_Cells)
+    # Next element pointer index linking ball items packed inside the exact same box
+    dim GridNext(Balls)
+end subroutine
+
+subroutine UpdateBalls()
+    # Update Positions (Integration)
+    for i = 0 to Balls-1
+        if Ball_lock[i] = 0 then
+            vx = (Ball[i,pos_x] - Ball[i,old_pos_x]) * friction
+            vy = (Ball[i,pos_y] - Ball[i,old_pos_y]) * friction
+            Ball[i,old_pos_x] = Ball[i,pos_x]
+            Ball[i,old_pos_y] = Ball[i,pos_y]
+            Ball[i,pos_x] = Ball[i,pos_x] + vx
+            Ball[i,pos_y] = Ball[i,pos_y] + vy + gravity
+        endif
+    next i
+    # Collision Passes (using Spatial Grid checks inside the iteration)
+    for iter = 1 to 6       
+        # Clear Grid Arrays (-1 represents an empty terminal link point)
+        dim GridHead(Total_Cells) fill -1
+        dim GridNext[Balls] fill -1
+        # Insert all active balls into their spatial Grid slot
+        for i = 0 to Balls - 1
+            cx = floor(Ball[i,pos_x] / Cell_Size)
+            cy = floor(Ball[i,pos_y] / Cell_Size)            
+            # Boundary security clamping
+            if cx < 0 then cx = 0
+            if cx >= Cols then cx = Cols - 1
+            if cy < 0 then cy = 0
+            if cy >= Rows then cy = Rows - 1            
+            cellIdx = cx + (cy * Cols)           
+            # Chain link assignment: assign head index to next, overwrite head tracking
+            GridNext[i] = GridHead[cellIdx]
+            GridHead[cellIdx] = i
+        next i
+        # See which balls MIGHT be touching (are in the same 'area')
+        for y = 0 to Rows - 1
+            for x = 0 to Cols - 1
+                currentCell = x + (y * Cols)                
+                # A: Internal processing checks within the exact same spatial grid box
+                i = GridHead[currentCell]
+                while i <> -1
+                    j = GridNext[i]
+                    while j <> -1
+                        call ResolveCollision(i, j)
+                        j = GridNext[j]
+                    end while
+                    i = GridNext[i]
+                end while
+                # B: Neighborhood search lookups checking only 4 directional target neighbors
+                # Checks: Right (1,0), Down-Left (-1,1), Down (0,1), Down-Right (1,1)
+                for n = 1 to 4
+                    nx = x : ny = y
+                    if n = 1 then: nx = x + 1 : end if
+                    if n = 2 then: nx = x - 1 : ny = y + 1 : end if
+                    if n = 3 then: ny = y + 1 : end if
+                    if n = 4 then: nx = x + 1 : ny = y + 1 : end if
+                    if nx >= 0 and nx < Cols and ny >= 0 and ny < Rows then
+                        neighborCell = nx + (ny * Cols)                        
+                        i = GridHead[currentCell]
+                        while i <> -1
+                            j = GridHead[neighborCell]
+                            while j <> -1
+                                call ResolveCollision(i, j)
+                                j = GridNext[j]
+                            end while
+                            i = GridNext[i]
+                        end while
+                    end if
+                next n                
+            next x
+        next y
+        # Check collision with sides
+        for i = 0 to Balls-1
+            vx = Ball[i,pos_x] - Ball[i,old_pos_x]
+            vy = Ball[i,pos_y] - Ball[i,old_pos_y]
+
+            if Ball[i,pos_x] > width - Ball[i,rad] then
+                Ball[i,pos_x] = width - Ball[i,rad]
+                Ball[i,old_pos_x] = Ball[i,pos_x] + vx * bounce
+            else
+                if Ball[i,pos_x] < Ball[i,rad] then
+                    Ball[i,pos_x] = Ball[i,rad]
+                    Ball[i,old_pos_x] = Ball[i,pos_x] + vx * bounce
+                endif
+            endif
+
+            if Ball[i,pos_y] > height - Ball[i,rad] then
+                Ball[i,pos_y] = height - Ball[i,rad]
+                Ball[i,old_pos_y] = Ball[i,pos_y] + vy * bounce
+            else
+                if Ball[i,pos_y] < Ball[i,rad] then
+                    Ball[i,pos_y] = Ball[i,rad]
+                    Ball[i,old_pos_y] = Ball[i,pos_y] + vy * bounce
+                endif
+            endif
+        next i
+    next iter
+end subroutine
+
+# Actual Ball-to-Ball Collision solution
+subroutine ResolveCollision(i, j)
+    dx = Ball[i,pos_x] - Ball[j,pos_x]
+    dy = Ball[i,pos_y] - Ball[j,pos_y]
+    distance = sqr(dx * dx + dy * dy)
+    SumRad = Ball[i,rad] + Ball[j,rad]
+
+    if (distance < SumRad) and (distance > 0) then
+        nx = dx / distance
+        ny = dy / distance
+        overlap = SumRad - distance
+
+        w1 = Ball[i,inv_mass]
+        w2 = Ball[j,inv_mass]
+        wsum = w1 + w2
+
+        if wsum > 0 then
+            push = overlap / wsum
+            Ball[i,pos_x] = Ball[i,pos_x] + nx * push * w1
+            Ball[i,pos_y] = Ball[i,pos_y] + ny * push * w1
+            Ball[j,pos_x] = Ball[j,pos_x] - nx * push * w2
+            Ball[j,pos_y] = Ball[j,pos_y] - ny * push * w2
+        end if
+    end if
+end subroutine
+
+subroutine DrawBalls()
+    color black
+    rect 0, 0, width, height
+    for i = 0 to Balls-1
+        color rgb(Ball[i,r], Ball[i,g], Ball[i,b])
+        circle (Ball[i,pos_x], Ball[i,pos_y], Ball[i,rad])
+    next i
+    refresh
+end subroutine
+
+subroutine mousedrag(mx, my, mb)
+   if mx < 0 then return
+   if mb & 1 then
+      if grab = -1 then
+         best = -1 : bestd = 1000000000
+         for i = 0 to Balls - 1
+            if Ball_lock[i] = 0 then
+               thr = grabr
+               if Ball[i,rad] > thr then thr = Ball[i,rad]
+               dx = Ball[i,pos_x] - mx : dy = Ball[i,pos_y] - my
+               dd = dx * dx + dy * dy
+               if dd < thr * thr then
+                  if dd < bestd then bestd = dd : best = i
+               end if
+            end if
+         next i
+         if best >= 0 then
+            grab = best
+            grabinvm = Ball[grab,inv_mass]
+            Ball_lock[grab] = 1
+            Ball[grab,inv_mass] = 0
+            Ball[grab,pos_x] = mx : Ball[grab,pos_y] = my
+            Ball[grab,old_pos_x] = mx : Ball[grab,old_pos_y] = my
+         end if
+      else
+         Ball[grab,old_pos_x] = Ball[grab,pos_x] : Ball[grab,old_pos_y] = Ball[grab,pos_y]
+         Ball[grab,pos_x] = mx : Ball[grab,pos_y] = my
+      end if
+   else
+      if grab >= 0 then
+         Ball_lock[grab] = 0
+         Ball[grab,inv_mass] = grabinvm
+         grab = -1
+      end if
+   end if
+end subroutine

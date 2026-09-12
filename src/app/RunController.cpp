@@ -234,6 +234,7 @@ extern "C" EMSCRIPTEN_KEEPALIVE void basic256SayFinished()
 RunController::RunController() {
 	sound = NULL;
 	speech = NULL;
+	guiHeartbeat = NULL;
 	i = new Interpreter(mainwin->locale, graphwin->graphics, basicKeyboard);
 
 	replacewin = NULL;
@@ -457,6 +458,7 @@ RunController::startDebug() {
 		//if graphiscs window is hidden, then the main window will have the focus, which is ok
 		varwin->clear();
 		if (replacewin) replacewin->close();
+		startGuiHeartbeat();
 		i->start();
 	}
 }
@@ -515,6 +517,7 @@ RunController::startRun() {
 		//if graphiscs window is hidden, then the main window will have the focus, which is ok
 		varwin->clear();
 		if (replacewin) replacewin->close();
+		startGuiHeartbeat();
 		i->start();
 	 }
 }
@@ -564,6 +567,33 @@ void RunController::outputError(QString text) {
 	mymutex->unlock();
 }
 
+// REFRESH (and every drawing statement outside FASTGRAPHICS) parks the
+// interpreter thread in waitForGraphics() on waitCond, and only goutputReady()
+// below can release it. Delivering that queued signal relies on the GUI thread
+// waking for a posted event, which on Windows QEventDispatcherWin32 gates
+// behind a compare-and-swap: if its wake-up message is ever consumed without
+// the flag being cleared, posted events stop waking the loop entirely and the
+// interpreter hangs until some real input message arrives -- the "animation
+// freezes until you move the mouse" bug. The browser build never sees this; it
+// runs the identical handshake on a different dispatcher.
+//
+// A bare timer with no connected slot is enough: the timer message itself
+// wakes the dispatcher, which then drains the posted-event queue. Worst-case
+// stall drops from indefinite to one tick.
+void
+RunController::startGuiHeartbeat() {
+	if (!guiHeartbeat) {
+		guiHeartbeat = new QTimer(this);
+		guiHeartbeat->setTimerType(Qt::PreciseTimer);
+	}
+	guiHeartbeat->start(16);
+}
+
+void
+RunController::stopGuiHeartbeat() {
+	if (guiHeartbeat) guiHeartbeat->stop();
+}
+
 void
 RunController::goutputReady() {
 	mymutex->lock();
@@ -598,6 +628,11 @@ void RunController::stopRun() {
 		//mainwin->setRunState(RUNSTATESTOPPING);
 
 		i->setStatus(R_STOPPING);//no more ops
+
+		// Cut short a PAUSE or a FRAMERATE wait. The status flag above is only
+		// read between opcodes, so a program parked inside a long PAUSE would
+		// otherwise ignore Stop until the sleep ran out on its own.
+		i->wakeSleeper();
 		
 		// wait for speech to stop
 #ifdef Q_OS_WASM
@@ -640,6 +675,7 @@ void RunController::stopRun() {
 
 void RunController::stopRunFinalized(bool ok) {
 	// event when the interperter actually finishes the run
+	stopGuiHeartbeat();
 	//qDebug() << "in RunController::stopRunFinalized(" << ok << ")";
 	if(sound){
 		delete sound;

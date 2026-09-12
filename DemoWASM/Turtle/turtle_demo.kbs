@@ -1,0 +1,123 @@
+# turtle_demo.kbs -- a tour of the turtle module.
+#
+# Draws five figures, each built from nothing but t_ commands and the
+# language's own color and penwidth. Run it and read it side by side: every
+# figure below is short enough to take in at a glance.
+#
+# The module lives in the Modules folder that ships with BASIC-256, so the
+# bare name works wherever this program is saved. The include has to come
+# before the first t_ call, and on a line the program actually runs through,
+# because it sets the turtle's state up. It does not place the turtle -- the
+# first t_ call does that -- which is why the graphsize below can come after
+# it and the turtle still starts in the middle of the canvas it draws on.
+
+include "turtle.kbs"
+
+graphsize 640, 560
+clg white
+font "Helvetica", 13, 50
+
+# --- 1. a square -------------------------------------------------------------
+# The whole of turtle graphics in four lines: go, turn, repeat. The turn is
+# 360 / 4, which is the rule every closed figure here follows.
+
+color black
+call t_penup()
+call t_goto(60, 110)
+call t_setheading(0)
+call t_pendown()
+for n = 1 to 4
+   call t_forward(70)
+   call t_right(90)
+next n
+text 60, 125, "square: forward 70, right 90"
+
+# --- 2. a hexagon ------------------------------------------------------------
+# The same loop with different numbers. Six sides, so the turn is 360 / 6.
+
+color blue
+call t_penup()
+call t_goto(300, 110)
+call t_setheading(0)
+call t_pendown()
+for n = 1 to 6
+   call t_forward(45)
+   call t_right(60)
+next n
+text 300, 125, "hexagon: 360 / 6 = 60"
+
+# --- 3. a five-pointed star --------------------------------------------------
+# Turning further than a corner makes the path cross itself. 144 is
+# 360 * 2 / 5: the turtle goes round twice before the figure closes.
+
+color red
+call t_penup()
+call t_goto(470, 60)
+call t_setheading(90)
+call t_pendown()
+for n = 1 to 5
+   call t_forward(120)
+   call t_right(144)
+next n
+text 452, 152, "star: turn 144, not 72"
+
+# --- 4. a spiral -------------------------------------------------------------
+# Grow the step a little on every turn and the polygon opens out. Nothing
+# here knows it is drawing a spiral -- it is the same go/turn loop again.
+# (seg, not step: step is a reserved word, it belongs to FOR.)
+
+color green
+call t_penup()
+call t_goto(130, 350)
+call t_setheading(0)
+call t_pendown()
+seg = 2
+for n = 1 to 60
+   call t_forward(seg)
+   call t_right(24)
+   seg = seg + 0.5
+next n
+text 45, 470, "spiral: the step grows on every turn"
+
+# --- 5. a recursive tree -----------------------------------------------------
+# This is what the readback functions are for. Every branch has to put the
+# turtle back where it found it before the next one starts, and t_x(), t_y()
+# and t_getheading() are how a program remembers where that was.
+
+color darkorange
+call t_penup()
+call t_goto(470, 540)
+call t_setheading(0)
+call t_pendown()
+penwidth 2
+call tree(70, 7)
+penwidth 1
+text 330, 300, "tree: each branch restores the turtle"
+
+end
+
+# tree(len, depth) -- draw a branch of length len, then two smaller branches
+# from its tip. Leaves the turtle exactly where it started, facing the way it
+# was, so the caller can carry on as though nothing had happened.
+subroutine tree(len, depth)
+   if depth > 0 then
+      # remember the base of this branch
+      bx = t_x()
+      by = t_y()
+      bh = t_getheading()
+
+      call t_forward(len)
+
+      call t_right(25)
+      call tree(len * 0.72, depth - 1)
+      call t_left(50)
+      call tree(len * 0.72, depth - 1)
+      call t_right(25)
+
+      # back to the base, without drawing over the branch
+      call t_penup()
+      call t_goto(bx, by)
+      call t_setheading(bh)
+      call t_pendown()
+   endif
+end subroutine

@@ -1,0 +1,244 @@
+# turtle.kbs -- turtle graphics for BASIC-256.
+#
+# Pull the turtle into a program with a single line:
+#
+#     include "turtle.kbs"
+#
+# The IDE ships this file in its Modules folder and searches there, so the
+# bare name works from any program, wherever that program is saved.
+#
+# Only the turtle itself lives here. Everything else stays with the language's
+# own graphics commands, and they apply to what the turtle draws exactly as
+# they do to anything else: color sets the pen colour, penwidth its width,
+# clg clears the canvas. To drop a circle or a label where the turtle is
+# standing, feed it t_x() and t_y().
+#
+#     include "turtle.kbs"
+#     color red
+#     for n = 1 to 4
+#        call t_forward(100)
+#        call t_right(90)
+#     next n
+#     circle t_x(), t_y(), 5
+#
+# --- conventions -------------------------------------------------------------
+#
+# Angles are in DEGREES, measured clockwise from north, which is what turtle
+# graphics has always used. The language's own sin and cos take radians, so
+# the conversion is done here with the built-in radians() -- if you are
+# holding an angle in radians already, pass degrees(a).
+#
+#       0 = north / up          90 = east / right
+#     180 = south / down       270 = west / left
+#
+# Screen y grows DOWNWARD in BASIC-256, so north is -y and a right turn is
+# clockwise on screen. The moves below account for that; nothing outside this
+# file needs to think about it.
+#
+# The turtle starts in the middle of the graphics window, facing north, with
+# its pen down. Nothing draws the turtle itself -- it leaves a trail, it is
+# not a cursor.
+#
+# --- when the turtle is placed -----------------------------------------------
+#
+# On the first t_ command the program issues, not when this file is included.
+# That is deliberate: the starting point is the middle of the graphics window,
+# and graphsize almost always comes AFTER the include, so a turtle placed at
+# include time would centre itself on the window size it is about to stop
+# having. Placing it on first use means graphsize can come in either order and
+# the turtle still starts in the middle of the canvas you actually draw on.
+#
+# If you resize the window later, after the turtle has already moved, call
+# t_reset() to re-centre it on the new size.
+
+# --- state -------------------------------------------------------------------
+# Kept in globals rather than threaded through every call. They are spelled
+# t_state_* so they cannot collide with the t_x() and t_y() readback functions
+# below: in BASIC-256 a function name and a variable name share one namespace,
+# so a global named t_x would make the function t_x() unreachable.
+#
+# t_state_ready is 0 until the turtle has been placed, and is set to 0 below
+# rather than left to take that value by default. An unassigned variable does
+# read as 0, but reading one is exactly what the 'Runtime Handling of variable
+# not assigned' setting warns about, so every turtle program used to open with
+# two warnings before it had drawn anything -- that one, and a conversion
+# warning for the empty string it reads as being compared against 0.
+#
+# The other four are written by t_reset() before anything can read them, so
+# they need no line of their own.
+#
+# The assignment runs where the INCLUDE sits, which does not place the turtle
+# any earlier -- that is still done by the first t_ command, for the reason
+# given above. It does mean the INCLUDE wants to be somewhere the program
+# actually reaches: written after an END it never runs and the two warnings
+# come back, though the turtle itself works either way.
+
+global t_state_x, t_state_y, t_state_h, t_state_pen, t_state_ready
+t_state_ready = 0
+
+# t_ensure() -- place the turtle if it has not been placed yet. Every command
+# below starts with this, so the first one to run finds a turtle on the canvas.
+# Not meant to be called from a program; call t_reset() instead.
+subroutine t_ensure()
+   if t_state_ready = 0 then
+      call t_reset()
+   endif
+end subroutine
+
+# --- placing the turtle ------------------------------------------------------
+
+# t_reset() -- back to the defaults: centred on the graphics window as it is
+# now, facing north, pen down. Draws nothing on its way, whatever the pen was
+# doing. Also the way to re-centre the turtle after a graphsize.
+subroutine t_reset()
+   t_state_x = graphwidth / 2
+   t_state_y = graphheight / 2
+   t_state_h = 0
+   t_state_pen = 1
+   t_state_ready = 1
+end subroutine
+
+# t_goto(x, y) -- put the turtle at x,y. Draws a line there if the pen is
+# down, so t_penup first to move without a trail. The heading is untouched:
+# the turtle is carried to the new spot, not turned toward it.
+subroutine t_goto(x, y)
+   call t_ensure()
+   if t_state_pen then line t_state_x, t_state_y, x, y
+   t_state_x = x
+   t_state_y = y
+end subroutine
+
+# t_home() -- back to the middle of the graphics window, drawing if the pen
+# is down. Heading and pen are left as they are; t_reset() is the one that
+# puts everything back.
+subroutine t_home()
+   call t_ensure()
+   call t_goto(graphwidth / 2, graphheight / 2)
+end subroutine
+
+# --- moving ------------------------------------------------------------------
+
+# t_forward(d) -- d pixels along the current heading, drawing if the pen is
+# down. A negative d backs up, so this is t_backward's twin.
+subroutine t_forward(d)
+   call t_ensure()
+   nx = t_state_x + d * sin(radians(t_state_h))
+   ny = t_state_y - d * cos(radians(t_state_h))
+   if t_state_pen then line t_state_x, t_state_y, nx, ny
+   t_state_x = nx
+   t_state_y = ny
+end subroutine
+
+# t_backward(d) -- d pixels opposite the current heading. The turtle reverses;
+# it does not turn round, so the heading is unchanged.
+subroutine t_backward(d)
+   call t_forward(-d)
+end subroutine
+
+# --- turning -----------------------------------------------------------------
+# Headings are folded back into 0 <= h < 360 as they change, so they stay
+# readable in the debugger and t_getheading() never hands back 3600.
+
+# t_right(a) -- turn a degrees clockwise, without moving.
+subroutine t_right(a)
+   call t_ensure()
+   t_state_h = t_state_h + a
+   t_state_h = t_state_h - 360 * floor(t_state_h / 360)
+end subroutine
+
+# t_left(a) -- turn a degrees anticlockwise, without moving.
+subroutine t_left(a)
+   call t_right(-a)
+end subroutine
+
+# t_setheading(a) -- face a degrees clockwise from north, whatever the turtle
+# was facing before. The absolute counterpart to t_right and t_left.
+subroutine t_setheading(a)
+   call t_ensure()
+   t_state_h = a - 360 * floor(a / 360)
+end subroutine
+
+# --- the pen -----------------------------------------------------------------
+# Only whether the pen draws lives here. What it draws with -- colour, width --
+# is the language's own color and penwidth, and applies to the turtle's lines
+# the moment you set it.
+
+# t_pendown() -- the turtle leaves a trail from here on.
+subroutine t_pendown()
+   call t_ensure()
+   t_state_pen = 1
+end subroutine
+
+# t_penup() -- the turtle moves without drawing from here on.
+subroutine t_penup()
+   call t_ensure()
+   t_state_pen = 0
+end subroutine
+
+# --- reading the turtle back -------------------------------------------------
+# So a program can do arithmetic against the turtle, mix turtle drawing with
+# ordinary coordinate drawing, or put the turtle back where it found it.
+
+# t_x() -- the turtle's x position.
+function t_x()
+   call t_ensure()
+   return t_state_x
+end function
+
+# t_y() -- the turtle's y position.
+function t_y()
+   call t_ensure()
+   return t_state_y
+end function
+
+# t_getheading() -- the heading in degrees, 0 <= h < 360, clockwise from north.
+# Named getheading rather than heading so it cannot be confused with
+# t_setheading, which is the one that moves the turtle.
+function t_getheading()
+   call t_ensure()
+   return t_state_h
+end function
+
+# t_getpen() -- 1 if the pen is down, 0 if it is up. Handy for leaving the pen
+# as you found it:  p = t_getpen() ... if p then call t_pendown()
+function t_getpen()
+   call t_ensure()
+   return t_state_pen
+end function
+
+# --- short aliases -----------------------------------------------------------
+# Typing relief for the commands that turn up over and over in a drawing.
+# They are plain forwarders, so anything true of the long name is true of the
+# short one. Note these names become unavailable as variables in any program
+# that includes this file -- t_r and t_l especially are the shape of name a
+# program might otherwise have used for a radius or a length.
+
+# t_fw(d) -- t_forward.
+subroutine t_fw(d)
+   call t_forward(d)
+end subroutine
+
+# t_bw(d) -- t_backward.
+subroutine t_bw(d)
+   call t_backward(d)
+end subroutine
+
+# t_r(a) -- t_right.
+subroutine t_r(a)
+   call t_right(a)
+end subroutine
+
+# t_l(a) -- t_left.
+subroutine t_l(a)
+   call t_left(a)
+end subroutine
+
+# t_pd() -- t_pendown.
+subroutine t_pd()
+   call t_pendown()
+end subroutine
+
+# t_pu() -- t_penup.
+subroutine t_pu()
+   call t_penup()
+end subroutine

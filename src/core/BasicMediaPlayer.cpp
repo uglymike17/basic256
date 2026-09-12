@@ -98,6 +98,12 @@ void BasicMediaPlayer::wait() {
 	waitForSeekable(500);
 	// wait for the media file to complete
 	if (state()==QMediaPlayer::PlayingState) {
+		// Drop a stop signal left standing by an earlier play. Sleeper keeps an
+		// unconsumed wake() so that a Stop arriving just before a sleep begins
+		// is not lost -- which is what the interpreter needs for PAUSE -- but
+		// here the signal only means "that play was stopped" and an old one
+		// must not cut this wait short.
+		mediasleeper->clearWake();
 		mediasleeper->sleepMS(QMediaPlayer::duration()-QMediaPlayer::position());
 	}
 	setPosition(0);

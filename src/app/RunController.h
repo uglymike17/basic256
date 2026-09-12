@@ -30,6 +30,7 @@ class QTextToSpeech;
 #endif
 #include <QThread>
 #include <QLocale>
+class QTimer;   // guiHeartbeat below is only ever a pointer
 
 #include "BasicEdit.h"
 #include "BasicOutput.h"
@@ -106,6 +107,11 @@ class RunController : public QObject
   QLocale *locale;
   BasicEdit *currentEditor;
   QTextToSpeech *speech;
+  // Keeps the Windows GUI event loop ticking while a program runs -- see
+  // startGuiHeartbeat() for why the refresh handshake needs it.
+  QTimer *guiHeartbeat;
+  void startGuiHeartbeat();
+  void stopGuiHeartbeat();
 };
 
 

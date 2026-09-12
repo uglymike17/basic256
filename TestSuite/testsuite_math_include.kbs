@@ -125,3 +125,19 @@ for t=10 to 1 step -.00001
 next t
 print " " + total
 call n("EPSILON - For Backwards INT", total, 55)
+
+###################################################
+# the remainder operator, in both spellings and every capitalisation
+###################################################
+
+call n("mod", 7 mod 3, 1)
+call n("MOD in capitals", 7 MOD 3, 1)
+call n("Mod capitalised", 7 Mod 3, 1)
+call n("the percent form", 7 % 3, 1)
+call n("mod of a larger divisor", 17 mod 5, 2)
+call n("mod of a negative", -7 MOD 3, -1)
+call n("mod that divides exactly", 9 MOD 3, 0)
+
+# a word beginning with mod is still a name of its own
+modulus = 99
+call n("a variable whose name starts with mod", modulus, 99)

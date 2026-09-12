@@ -38,9 +38,6 @@
 	#define VAR_DOCK_DEFAULT_W 400
 	#define VAR_DOCK_DEFAULT_H 400
 
-	// time between sleep interrupt checks
-	#define SLEEP_GRANULE 500L
-
 	// command line states that define how the GUI is laid-out and reacts
 	#define GUISTATENORMAL 0
 	#define GUISTATERUN 1		// -r / --run : All three IDE windows shown

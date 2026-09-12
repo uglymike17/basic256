@@ -1,0 +1,141 @@
+#************************************************************************************************
+#*              Verlet integration for colliding balls of equal size and mass                   *
+#************************************************************************************************
+# Simple particle system with just particle balls, gravity, bounce and a bit of friction
+# Balls now collide and bounce off each other.
+# Verlet integration has no explicit velocity defined. Velocity is derived from previous position
+#************************************************************************************************
+# Definitions
+#************************************************************************************************
+#Globals to be used in the subroutines
+global height, width, pos_x, pos_y, old_pos_x, old_pos_y
+global radius, bounce, gravity, friction
+global r,g,b, Balls, Ball
+# Initialisation
+#************************************************************************************************
+call ScreenSetup()		#dimension & color
+call WorldParameters()	#gravity, friction/drag, elasticity
+call CreateBalls()		#location, old location, color (no velocity in verlet integration!!!
+
+# Drawing loop
+#************************************************************************************************
+while true
+	call UpdateBalls()
+	call DrawBalls()
+end while
+
+#here begin the subroutines
+#************************************************************************************************
+subroutine ScreenSetup()
+	fastgraphics
+	width = 1000: height = 1000
+	graphsize width, height
+	color black
+	rect 0, 0, width, height
+	editvisible 0
+	outputvisible 0
+	refresh
+end subroutine
+
+subroutine WorldParameters()
+	bounce = 0.5
+	gravity = 0.5
+	friction = 0.9999
+	# All balls have the same radius and mass
+	radius = 15
+end subroutine
+
+subroutine CreateBalls()
+	Balls = 200
+	dim Ball(Balls, 7)
+	#give particle indices a name
+	pos_x = 0: pos_y = 1: old_pos_x = 2: old_pos_y = 3: r= 4: g= 5: b= 6
+	for i = 0 to Balls - 1
+		# Initial position
+		Ball[i,pos_x] = rand * width
+		Ball[i,pos_y] = rand * height / 2
+		# Previous position determines initial velocity
+		Ball[i,old_pos_x] = Ball[i,pos_x] - (rand * 10 - 5)
+		Ball[i,old_pos_y] = Ball[i,pos_y] - (rand * 10 - 5)
+		# Random colour
+		Ball[i,r] = 50 + (rand*155)
+		Ball[i,g] = 50 + (rand*155)
+		Ball[i,b] = 50 + (rand*155)
+	next i
+end subroutine
+
+subroutine UpdateBalls()
+	# Here is the actual Verlet integration. With collisions in the mix, the max number of balls for a real-time animation decreases dramatically
+	for i = 0 to Balls - 1
+		vx = (Ball[i,pos_x] - Ball[i,old_pos_x]) * friction
+		vy = (Ball[i,pos_y] - Ball[i,old_pos_y]) * friction
+		Ball[i,old_pos_x] = Ball[i,pos_x]
+		Ball[i,old_pos_y] = Ball[i,pos_y]
+		Ball[i,pos_x] = Ball[i,pos_x] + vx
+		Ball[i,pos_y] = Ball[i,pos_y] + vy + gravity
+	next i
+	#---------------------------------------------------------------------------------------------
+	# Multiple collision passes are needed as one collision can create another one with a neighbouring ball.
+	#---------------------------------------------------------------------------------------------
+	for iter = 1 to 3
+		# Ball-ball collisions
+		for i = 0 to Balls - 1
+			for j = i + 1 to Balls - 1
+				dx = Ball[i,pos_x] - Ball[j,pos_x]
+				dy = Ball[i,pos_y] - Ball[j,pos_y]
+				distance = sqr(dx * dx + dy * dy)
+				# Both balls have the same radius
+				if (distance < radius * 2) and (distance > 0) then
+					nx = dx / distance
+					ny = dy / distance
+					overlap = radius * 2 - distance
+					# Equal masses& radii: each ball moves half of the overlap
+					push = overlap / 2
+					Ball[i,pos_x] = Ball[i,pos_x] + nx * push
+					Ball[i,pos_y] = Ball[i,pos_y] + ny * push
+					Ball[j,pos_x] = Ball[j,pos_x] - nx * push
+					Ball[j,pos_y] = Ball[j,pos_y] - ny * push
+				endif
+			next j
+		next i
+
+		# Boundary constraints
+		for i = 0 to Balls - 1
+			# Current velocity after collision correction
+			vx = Ball[i,pos_x] - Ball[i,old_pos_x]
+			vy = Ball[i,pos_y] - Ball[i,old_pos_y]
+
+			# Left and right walls
+			if Ball[i,pos_x] > width - radius then
+				Ball[i,pos_x] = width - radius
+				Ball[i,old_pos_x] = Ball[i,pos_x] + vx * bounce
+			else
+				if Ball[i,pos_x] < radius then
+					Ball[i,pos_x] = radius
+					Ball[i,old_pos_x] = Ball[i,pos_x] + vx * bounce
+				endif
+			endif
+
+			# Top and bottom walls
+			if Ball[i,pos_y] > height - radius then
+				Ball[i,pos_y] = height - radius
+				Ball[i,old_pos_y] = Ball[i,pos_y] + vy * bounce
+			else
+				if Ball[i,pos_y] < radius then
+					Ball[i,pos_y] = radius
+					Ball[i,old_pos_y] = Ball[i,pos_y] + vy * bounce
+				endif
+			endif
+		next i
+	next iter
+end subroutine
+
+subroutine DrawBalls()
+	color black
+	rect 0, 0, width, height
+	for i = 0 to Balls - 1
+		color rgb(Ball[i,r], Ball[i,g], Ball[i,b])
+		circle Ball[i,pos_x], Ball[i,pos_y], radius
+	next i
+	refresh
+end subroutine

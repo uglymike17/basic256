@@ -57,8 +57,7 @@ void DataElement::init() {
 	// initialize dataelement common stuff
 	e=0;
 	type = T_UNASSIGNED;
-	arr = NULL;
-	map = NULL;
+	arr = NULL;		// arr and map share their storage - one clear does both
 }
 
 DataElement::DataElement() {
@@ -127,7 +126,7 @@ void DataElement::copy(DataElement *source) {
 					arr->ydim = source->arr->ydim;
 					arr->data.resize(i);
 					while(i-- > 0) {
-						arr->data[i] = new DataElement(source->arr->data[i]);
+						arr->data[i].copy(&source->arr->data[i]);
 					}
 				}
 				break;
@@ -153,6 +152,31 @@ fprintf(stderr,"de copy map source len %d\n",source->map->data.size());
 	}
 }
 
+void DataElement::stealFrom(DataElement *source) {
+	// take the source's contents whole - no allocation, no deep copy - and
+	// leave it holding nothing
+	clear();
+	if (!source) return;
+	type = source->type;
+	level = source->level;
+	intval = source->intval;		// the union: covers floatval too
+	arr = source->arr;				// the union: covers map too
+	if (source->type == T_STRING) {
+		stringval.swap(source->stringval);
+	}
+	source->type = T_UNASSIGNED;
+	source->arr = NULL;
+}
+
+void DataElement::swapWith(DataElement *other) {
+	if (!other) return;
+	const int t = type;			type = other->type;			other->type = t;
+	const int l = level;		level = other->level;		other->level = l;
+	const qint64 v = intval;	intval = other->intval;		other->intval = v;
+	DataElementArray *a = arr;	arr = other->arr;			other->arr = a;
+	stringval.swap(other->stringval);
+}
+
 void DataElement::clear() {
 	//fprintf(stderr, "DataElement clear %s\n", debug().toStdString().c_str());
 	switch (type){
@@ -161,12 +185,9 @@ void DataElement::clear() {
 		//	break;
 		case T_ARRAY:
 			if (arr) {
-				int i = arr->xdim * arr->ydim;
-				while(i-- > 0) {
-					if (arr->data[i]) delete arr->data[i];
-					arr->data[i] = NULL;
-				}
-				arr->data.clear();
+				// the vector destroys the elements, and each element's own
+				// destructor releases whatever it holds - a nested array or
+				// map included
 				delete(arr);
 				arr = NULL;
 			}
@@ -225,11 +246,11 @@ void DataElement::arrayDim(const int xdim, const int ydim, const bool redim) {
 				// if array data is dim or redim without a dim then create a new one (clear the old)
 				clear();
 				arr = new DataElementArray;
-				arr->data.resize(size, NULL);
+				arr->data.resize(size);
 				type = T_ARRAY;
 			}else{
 				// redim - resize the vector
-				arr->data.resize(size, NULL);
+				arr->data.resize(size);
 			}
 
 			arr->xdim = xdim;
@@ -270,15 +291,16 @@ DataElement* DataElement::arrayGetData(const int x, const int y) {
 	// get data from array elements from map (using x, y)
 	// if there is an error return an unassigned value
 	// DO NOT DELETE ****** COPY OF THE DATAELEMENT INTERNAL STORAGE
-	DataElement *d;
 	if (type == T_ARRAY) {
 		if (x >=0 && x < arr->xdim && y >=0 && y < arr->ydim) {
 			const int i = x * arr->ydim + y;
-			if (arr->data[i]) {
-				return arr->data[i];
-			} else {
-				e = ERROR_VARNOTASSIGNED;
-			}
+			// The element is always there now, so this always hands back a
+			// pointer.  It reads as unassigned exactly when it holds nothing,
+			// which is what the null pointer used to mean, and the callers
+			// that care already test the type they get back.  Raising
+			// ERROR_VARNOTASSIGNED here instead would report elements that
+			// UNASSIGN cleared, which the old storage kept quiet about.
+			return &arr->data[i];
 		} else {
 			e = ERROR_ARRAYINDEX;
 		}
@@ -294,8 +316,7 @@ void DataElement::arraySetData(const int x, const int y, DataElement *d) {
 	if (type == T_ARRAY) {
 		if (x >=0 && x < arr->xdim && y >=0 && y < arr->ydim) {
 			const int i = x * arr->ydim + y;
-			if (!arr->data[i]) arr->data[i] = new DataElement();
-			arr->data[i]->copy(d);
+			arr->data[i].copy(d);
 		} else {
 			e = ERROR_ARRAYINDEX;
 		}
@@ -308,9 +329,7 @@ void DataElement::arrayUnassign(const int x, const int y) {
 	if (type == T_ARRAY) {
 		if (x >=0 && x < arr->xdim && y >=0 && y < arr->ydim) {
 			const int i = x * arr->ydim + y;
-			if (arr->data[i])  {
-				arr->data[i]->clear();
-			}
+			arr->data[i].clear();
 		} else {
 			e = ERROR_ARRAYINDEX;
 		}

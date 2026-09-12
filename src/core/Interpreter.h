@@ -29,6 +29,7 @@
 #include <QTime>
 #include <QElapsedTimer>
 #include <QRegularExpression>
+#include <QTransform>
 #include <cmath>
 #include "GraphicsBuffer.h"
 #include "BasicKeyboard.h"
@@ -170,8 +171,8 @@ struct forframe {
     qint64 intEnd;
     qint64 intStep;
     DataElement* foreach_de;		// copy of data used for the foreach
-    std::vector<DataElement*>::iterator arrayIter;
-    std::vector<DataElement*>::iterator arrayIterEnd;
+    std::vector<DataElement>::iterator arrayIter;
+    std::vector<DataElement>::iterator arrayIterEnd;
     std::map<std::string, DataElement*>::iterator mapIter;
     std::map<std::string, DataElement*>::iterator mapIterEnd;
 };
@@ -203,6 +204,7 @@ class Interpreter : public QThread
 		bool isStopped();
 		bool isStopping();
 		void setStatus(run_status);
+		void wakeSleeper();				// cut a PAUSE/FRAMERATE wait short (called from the GUI thread on Stop)
 		void setInputString(QString);	// used to return string vlues from runcontroller (into inputString)
 		void cleanup();
 		void run();
@@ -309,9 +311,15 @@ class Interpreter : public QThread
 		// returns to runLoop() between opcodes
 		volatile run_status status;
 		bool fastgraphics;
+		// FRAMERATE - the deadline the next FRAMERATE statement waits for, and
+		// whether one has been set yet. Cleared at the start of every run and by
+		// FRAMERATE 0.
+		std::chrono::steady_clock::time_point frameDeadline;
+		bool frameRateSet;
 		QString inputString;        // input string from user
 		int inputType;				// data type to convert the input into
 		double double_random_max;
+		int64_t noiseSeed;			// seeds NOISE, set alongside srand by SEED
 		int currentLine;
 		void clearsprites();
 		void update_sprite_screen();
@@ -327,6 +335,11 @@ class Interpreter : public QThread
 		void watchvariable(bool, int, int, int);
 		void watchvariable(bool, int, QString);
 		void watchdecurse(bool);
+
+		// MAT ADD/SUB/MUL/TRN/INV - matrix arithmetic straight over the array
+		// storage.  See the block comment above it in Interpreter.cpp for how
+		// an array is read as a matrix and what the element arithmetic does.
+		void matStatement(int, int, DataElement *, int, DataElement *, int);
 		
 		void runLoop();
 
@@ -358,6 +371,17 @@ class Interpreter : public QThread
 		bool CompositionModeClear;
 		bool PenColorIsClear;
 		bool drawingOnScreen;
+
+		// WINDOW: a logical coordinate space mapped onto whatever surface is being
+		// drawn to. windowTransform maps window units to that surface's pixels;
+		// windowInverse maps back, for PIXEL and the mouse functions. Both stay
+		// identity and unused while windowActive is false, so a program that never
+		// says WINDOW behaves exactly as it always did.
+		bool windowActive;
+		double winX1, winY1, winX2, winY2;
+		QTransform windowTransform;
+		QTransform windowInverse;
+		void updateWindowTransform(int w, int h);
 
 		QFont font;
 		QString defaultfontfamily;

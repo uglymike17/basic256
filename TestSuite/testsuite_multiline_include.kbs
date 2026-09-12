@@ -1,0 +1,131 @@
+# testsuite_multiline_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20260905	m.vilain	original coding
+
+currentsuite = "multiline"
+
+# A list or list-of-lists literal may be written over as many lines as it needs
+# to read well - inside the mustaches a newline is not the end of a statement
+# and a remark is not a statement of its own.
+
+###################################################
+# one dimensional
+###################################################
+
+ml = {1,
+      2,
+      3}
+call s("1d literal over three lines","1.2.3",implode(ml,'.'))
+
+###################################################
+# two dimensional
+###################################################
+
+g = {{1,2,3},
+     {4,5,6}}
+call n("2d literal over two lines rows",g[?,],2)
+call n("2d literal over two lines columns",g[,?],3)
+call n("2d literal over two lines [0,2]",g[0,2],3)
+call n("2d literal over two lines [1,0]",g[1,0],4)
+
+# the mustaches may sit on lines of their own, with blank lines between rows
+h = {
+   {1,2},
+
+   {3,4}
+}
+call n("2d literal with the mustaches on their own lines rows",h[?,],2)
+call n("2d literal with the mustaches on their own lines columns",h[,?],2)
+call n("2d literal with the mustaches on their own lines [1,1]",h[1,1],4)
+
+# a ragged literal is still rectangular at its longest row
+r = {{1,2,3},
+     {4,5}}
+call n("ragged multi-line literal rows",r[?,],2)
+call n("ragged multi-line literal columns",r[,?],3)
+call boolean("ragged multi-line literal leaves the short row unassigned",not assigned(r[1,2]))
+
+###################################################
+# remarks inside the mustaches
+###################################################
+
+# a remark at the end of a row, written with a hash
+rh = {{1,2},		# the top row
+      {3,4}}		# and the bottom one
+call n("hash remark after a row rows",rh[?,],2)
+call n("hash remark after a row [0,1]",rh[0,1],2)
+call n("hash remark after a row [1,1]",rh[1,1],4)
+
+# and written with REM
+rr = {{5,6},		rem the top row
+      {7,8}}		rem and the bottom one
+call n("rem remark after a row rows",rr[?,],2)
+call n("rem remark after a row [1,0]",rr[1,0],7)
+
+# a line that is nothing but a remark, and a remark on the opening mustache
+rw = {			# a grid of the first six whole numbers
+   # the first row
+   {1,2,3},
+   # the second row
+   {4,5,6}
+}
+call n("remark on a line of its own rows",rw[?,],2)
+call n("remark on a line of its own columns",rw[,?],3)
+call n("remark on a line of its own [1,2]",rw[1,2],6)
+
+# remarks in a one dimensional literal and in a map literal
+rl = {1,		# one
+      2,		# two
+      3}		# three
+call s("remarks in a 1d literal","1.2.3",implode(rl,'.'))
+
+rm = {"one"->1,		# the first
+      "two"->2}		# the second
+call n("remarks in a map literal",rm["two"],2)
+
+# a remark still ends a line outside the mustaches, and the literal after one
+# on the same line is unaffected
+q = {1,2,3} : rem this remark is outside
+call s("literal followed by a remark","1.2.3",implode(q,'.'))
+
+###################################################
+# the other places a literal may appear
+###################################################
+
+dim d2[] = {{9,8},
+            {7,6}}
+call n("dim var[] = multi-line literal",d2[1,0],7)
+
+mp = {"one"->1,
+      "two"->2}
+call n("map literal over two lines",mp["two"],2)
+
+###################################################
+# line numbering
+###################################################
+
+# The parser normally counts a line in its programnewline action, which never
+# runs for a newline the lexer swallowed - so the lexer counts those itself.
+# If it ever stopped doing so, every error reported after a multi-line literal
+# would name the wrong line.  The two throws below are 11 lines apart.
+try
+   throwerror 9999
+catch
+   errorlineone = lasterrorline
+end try
+ml = {1,		# remarks and blank lines inside the mustaches
+      2,
+
+      # must be counted too
+      3,
+      4}
+try
+   throwerror 9999
+catch
+   call n("line counter kept in step over a multi-line literal",lasterrorline-errorlineone,11)
+end try
+
+# and a literal still works on a single line, exactly as it always did
+call s("single line literal still works","7.8.9",implode({7,8,9},'.'))

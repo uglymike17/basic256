@@ -52,6 +52,7 @@
 #include "Interpreter.h"
 #include "MediaPath.h"
 #include "md5.h"
+#include "opensimplex.h"
 #include "Settings.h"
 #include "Sound.h"
 #include "Constants.h"
@@ -103,6 +104,11 @@ extern "C" {
 Interpreter::Interpreter(QLocale *applocale, GraphicsBuffer *appgraphics, BasicKeyboard *appbasicKeyboard) {
 	//yydebug = 1;
 	fastgraphics = false;
+	frameRateSet = false;
+	windowActive = false;
+	winX1 = winY1 = winX2 = winY2 = 0.0;
+	windowTransform.reset();
+	windowInverse.reset();
 	status = R_STOPPED;
 	printing = false;
 	sleeper = new Sleeper();
@@ -202,6 +208,7 @@ QString Interpreter::opname(int op) {
 	case OP_CONCATENATE : return QString("OP_CONCATENATE");
 	case OP_CONFIRM : return QString("OP_CONFIRM");
 	case OP_COS : return QString("OP_COS");
+	case OP_CROSS : return QString("OP_CROSS");
 	case OP_COUNT : return QString("OP_COUNT");
 	case OP_COUNTX : return QString("OP_COUNTX");
 	case OP_CURRENTDIR : return QString("OP_CURRENTDIR");
@@ -224,6 +231,7 @@ QString Interpreter::opname(int op) {
 	case OP_DIM : return QString("OP_DIM");
 	case OP_DIR : return QString("OP_DIR");
 	case OP_DIV : return QString("OP_DIV");
+	case OP_DOT : return QString("OP_DOT");
 	case OP_EDITVISIBLE : return QString("OP_EDITVISIBLE");
 	case OP_ELLIPSE : return QString("OP_ELLIPSE");
 	case OP_END : return QString("OP_END");
@@ -311,6 +319,12 @@ QString Interpreter::opname(int op) {
 	case OP_MAINTOOLBARVISIBLE : return QString("OP_MAINTOOLBARVISIBLE");
 	case OP_MAP_DIM : return QString("OP_MAP_DIM");
 	case OP_MAXIMIZE : return QString("OP_MAXIMIZE");
+	case OP_MATADD : return QString("OP_MATADD");
+	case OP_MATINV : return QString("OP_MATINV");
+	case OP_MATMUL : return QString("OP_MATMUL");
+	case OP_MATSUB : return QString("OP_MATSUB");
+	case OP_MATTRN : return QString("OP_MATTRN");
+	case OP_WINDOW : return QString("OP_WINDOW");
 	case OP_MD5 : return QString("OP_MD5");
 	case OP_MID : return QString("OP_MID");
 	case OP_MIDX : return QString("OP_MIDX");
@@ -370,6 +384,8 @@ QString Interpreter::opname(int op) {
 	case OP_PUSHSTRING : return QString("OP_PUSHSTRING");
 	case OP_PUTSLICE : return QString("OP_PUTSLICE");
 	case OP_RADIANS : return QString("OP_RADIANS");
+	case OP_NOISE : return QString("OP_NOISE");
+	case OP_NORM : return QString("OP_NORM");
 	case OP_RAND : return QString("OP_RAND");
 	case OP_READ : return QString("OP_READ");
 	case OP_READBYTE : return QString("OP_READBYTE");
@@ -463,6 +479,8 @@ QString Interpreter::opname(int op) {
 	case OP_TRIM : return QString("OP_TRIM");
 	case OP_TYPEOF : return QString("OP_TYPEOF");
 	case OP_UNLOAD : return QString("OP_UNLOAD");
+	case OP_UNIT : return QString("OP_UNIT");
+	case OP_FRAMERATE : return QString("OP_FRAMERATE");
 	case OP_UNSERIALIZE : return QString("OP_UNSERIALIZE");
 	case OP_UPPER : return QString("OP_UPPER");
 	case OP_VARIABLECOPY : return QString("OP_VARIABLECOPY");
@@ -559,6 +577,15 @@ bool Interpreter::isStopping() {
 	return (status == R_STOPPED || status == R_STOPPING);
 }
 
+void Interpreter::wakeSleeper() {
+	// Called from the GUI thread when the user presses Stop. The interpreter
+	// thread may be parked in a PAUSE or a FRAMERATE wait, neither of which
+	// the status flag alone can reach -- the run loop only looks at the status
+	// between opcodes, so without this a PAUSE 60 would ignore Stop for a
+	// minute.
+	sleeper->wake();
+}
+
 void Interpreter::setStatus(run_status s) {
 	status = s;
 }
@@ -613,6 +640,384 @@ void Interpreter::watchdecurse(bool doit) {
 	// send an event to the variable watch window to remove a function's variables
 	if (doit) {
 		emit(varWinDropLevel(variables->getrecurse()));
+	}
+}
+
+// ---------------------------------------------------------------------------
+// MAT - matrix arithmetic over BASIC-256 arrays
+//
+// An array is read as rows by columns, the way DIM writes it: DIM a(200,2) is
+// 200 rows of 2 columns, arrayRows() gives the rows and arrayCols() the
+// columns, and element (r,c) sits at arr->data[r*ydim+c].  Every MAT statement
+// uses that one reading, so a matrix of particle positions is 200 rows of an x
+// and a y.
+//
+// Element arithmetic follows the rules an ordinary "a + b" follows: two whole
+// numbers give a whole number unless the answer leaves the 32-bit range
+// BASIC-256 promotes at, and anything else is worked out in floating point.
+// Integer matrices therefore give exactly the answers a textbook does.
+//
+// The loops below run over the array's own storage, so nothing goes back
+// through the interpreter for an element, and an operation that can be done
+// element by element writes its answer straight into the DataElements the
+// destination already holds.  MAT ADD Position = Position + Velocity over 200
+// particles therefore allocates nothing at all, and is still correct when the
+// destination is one of the operands.  Only the operations whose answer
+// depends on more than one element of a source - MUL between two matrices,
+// TRN onto itself, and INV - build a working copy first.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+	// one number taken out of a matrix element, kept whole while it can be
+	struct MatNum {
+		bool isint;
+		qint64 i;
+		double d;
+		double f() const {
+			return isint ? (double) i : d;
+		}
+	};
+
+	inline MatNum matInt(qint64 v) {
+		MatNum n;
+		n.isint = true;
+		n.i = v;
+		n.d = 0.0;
+		return n;
+	}
+
+	inline MatNum matFloat(double v) {
+		MatNum n;
+		n.isint = false;
+		n.i = 0;
+		n.d = v;
+		return n;
+	}
+
+	// the three below mirror OP_ADD, OP_SUB and OP_MUL exactly, including where
+	// each of them gives up on whole numbers and promotes to floating point
+	inline MatNum matNumAdd(const MatNum &a, const MatNum &b) {
+		if (a.isint && b.isint) {
+			qint64 v = a.i + b.i;
+			if (v>=INT_MIN && v<=INT_MAX) return matInt(v);
+		}
+		return matFloat(a.f() + b.f());
+	}
+
+	inline MatNum matNumSub(const MatNum &a, const MatNum &b) {
+		if (a.isint && b.isint) {
+			qint64 v = a.i - b.i;
+			if (v>=INT_MIN && v<=INT_MAX) return matInt(v);
+		}
+		return matFloat(a.f() - b.f());
+	}
+
+	inline MatNum matNumMul(const MatNum &a, const MatNum &b) {
+		if (a.isint && b.isint) {
+			if (a.i==0 || b.i==0) return matInt(0);
+			if (llabs(a.i) <= INT64_MAX / llabs(b.i)) {
+				qint64 v = a.i * b.i;
+				if (v>=INT_MIN && v<=INT_MAX) return matInt(v);
+			}
+		}
+		return matFloat(a.f() * b.f());
+	}
+
+	// write one element, reusing the DataElement that is already there
+	inline void matPut(DataElement *e, const MatNum &v) {
+		e->clear();
+		if (v.isint) {
+			e->type = T_INT;
+			e->intval = v.i;
+		} else {
+			e->type = T_FLOAT;
+			e->floatval = v.d;
+		}
+	}
+
+	MatNum matGet(DataElement *m, int k, int varnum, int arraybase, Convert *convert) {
+		// read element k of a matrix storage vector.  An element that has never
+		// been given a value is an error naming the variable and the element,
+		// just as reading it with an index would be; a string element converts
+		// the way it would anywhere else, warning and all.
+		DataElement *e = &m->arr->data[k];
+		if (e && e->type==T_INT) return matInt(e->intval);
+		if (e && e->type==T_FLOAT) return matFloat(e->floatval);
+		if (!e || e->type==T_UNASSIGNED) {
+			error->q(ERROR_VARNOTASSIGNED, varnum, k / m->arr->ydim + arraybase, k % m->arr->ydim + arraybase);
+			return matInt(0);
+		}
+		if (e->type==T_ARRAY || e->type==T_MAP) {
+			error->q(ERROR_NUMBEREXPR, varnum, k / m->arr->ydim + arraybase, k % m->arr->ydim + arraybase);
+			return matInt(0);
+		}
+		return matFloat(convert->getFloat(e));
+	}
+
+	bool matSource(DataElement *e, int varnum) {
+		// a MAT source has to be an array - say which variable is not one
+		if (DataElement::getType(e)==T_ARRAY) return true;
+		error->q(DataElement::getType(e)==T_UNASSIGNED ? ERROR_VARNOTASSIGNED : ERROR_MATNOTMATRIX, varnum);
+		return false;
+	}
+
+	bool matDestination(DataElement *dest, int rows, int cols) {
+		// give the destination the shape of the answer.  When it already has
+		// that shape - which is what a simulation loop finds every frame after
+		// the first - nothing is allocated and nothing is thrown away.
+		if (DataElement::getType(dest)!=T_ARRAY || dest->arr->xdim!=rows || dest->arr->ydim!=cols) {
+			dest->arrayDim(rows, cols, false);
+			if (DataElement::getError()) {
+				error->q(DataElement::getError(true));
+				return false;
+			}
+		}
+		// the elements exist as soon as the array does - nothing to allocate
+		return true;
+	}
+
+	// DOT, CROSS, NORM and UNIT read a vector the way MAT reads a matrix -
+	// through MatNum, so whole numbers stay whole - but their operands are
+	// values on the stack rather than named variables, so an element that
+	// will not do has to name itself by position instead of by variable name.
+	MatNum vecGet(DataElement *v, int k, Convert *convert) {
+		DataElement *e = &v->arr->data[k];
+		if (e->type==T_INT) return matInt(e->intval);
+		if (e->type==T_FLOAT) return matFloat(e->floatval);
+		if (e->type==T_UNASSIGNED) {
+			error->q(ERROR_VECELEMENT, QString("element %1").arg(k));
+			return matInt(0);
+		}
+		if (e->type==T_ARRAY || e->type==T_MAP) {
+			error->q(ERROR_NUMBEREXPR, QString("element %1").arg(k));
+			return matInt(0);
+		}
+		return matFloat(convert->getFloat(e));
+	}
+
+	// a vector operand is any array - a row, a column, or for that matter a
+	// whole matrix, which is read as its elements in the order they are
+	// stored.  What matters to DOT and CROSS is how many elements there are,
+	// not what shape they are held in, so MAT TRN output works as it stands.
+	bool vecOperand(DataElement *e) {
+		if (DataElement::getType(e)==T_ARRAY) return true;
+		// an unassigned variable has already reported itself from OP_VAR_GET,
+		// and Error keeps the first error of an operation, so saying this as
+		// well costs nothing and covers the case where that one is a warning
+		error->q(ERROR_VECNOTVECTOR);
+		return false;
+	}
+
+	inline int vecSize(DataElement *e) {
+		return e->arr->xdim * e->arr->ydim;
+	}
+
+	// read a whole vector out into MatNums.  Both operands are always read
+	// before anything is pushed, because a push may reuse the very stack slot
+	// an operand is still being read from.
+	bool vecRead(DataElement *v, std::vector<MatNum> &out, Convert *convert) {
+		const int n = vecSize(v);
+		out.resize(n);
+		for (int k=0; k<n; k++) out[k] = vecGet(v, k, convert);
+		return !error->pending();
+	}
+}
+
+void Interpreter::matStatement(int opcode, int destvar, DataElement *left, int leftvar, DataElement *right, int rightvar) {
+	// left is the source matrix and right the second operand - another matrix,
+	// a single number, or NULL for the one operand statements.  All three of
+	// the variables involved may be the same variable.
+
+	if (!matSource(left, leftvar)) return;
+	const int arows = left->arr->xdim;
+	const int acols = left->arr->ydim;
+	const int asize = arows * acols;
+	DataElement *dest = variables->getData(destvar);			// DONT RELEASE
+
+	switch (opcode) {
+
+		case OP_MATTRN: {
+			// element (c,r) of the answer is element (r,c) of the source, so
+			// unlike the element by element statements this can not be written
+			// over its own source unless a copy is taken first
+			if (dest==left) {
+				std::vector<MatNum> t(asize);
+				for (int k=0; k<asize; k++) t[k] = matGet(left, k, leftvar, arraybase, convert);
+				if (error->pending()) return;
+				if (!matDestination(dest, acols, arows)) return;
+				for (int r=0; r<arows; r++) {
+					for (int c=0; c<acols; c++) {
+						matPut(&dest->arr->data[c*arows+r], t[r*acols+c]);
+					}
+				}
+			} else {
+				if (!matDestination(dest, acols, arows)) return;
+				for (int r=0; r<arows; r++) {
+					for (int c=0; c<acols; c++) {
+						matPut(&dest->arr->data[c*arows+r], matGet(left, r*acols+c, leftvar, arraybase, convert));
+					}
+				}
+			}
+		}
+		break;
+
+		case OP_MATINV: {
+			// Gauss-Jordan elimination with partial pivoting on [ a | I ].
+			// Worked out in floating point throughout - an inverse is not a
+			// whole number matrix except by accident.
+			if (arows!=acols) {
+				error->q(ERROR_MATNOTSQUARE, leftvar);
+				return;
+			}
+			const int n = arows;
+			const int w = 2 * n;
+			std::vector<double> m((size_t)n * w, 0.0);
+			double biggest = 0.0;
+			for (int r=0; r<n; r++) {
+				for (int c=0; c<n; c++) {
+					const double v = matGet(left, r*n+c, leftvar, arraybase, convert).f();
+					m[(size_t)r*w+c] = v;
+					if (fabs(v) > biggest) biggest = fabs(v);
+				}
+				m[(size_t)r*w+n+r] = 1.0;
+			}
+			if (error->pending()) return;
+			// how small a pivot has to be before the matrix counts as singular,
+			// measured against the size of the numbers in the matrix itself so
+			// that a matrix of large values is not condemned for a pivot that
+			// is small only next to them
+			const double tol = (biggest>0.0 ? biggest : 1.0) * n * std::numeric_limits<double>::epsilon();
+			for (int col=0; col<n; col++) {
+				int piv = col;
+				for (int r=col+1; r<n; r++) {
+					if (fabs(m[(size_t)r*w+col]) > fabs(m[(size_t)piv*w+col])) piv = r;
+				}
+				if (fabs(m[(size_t)piv*w+col]) <= tol) {
+					error->q(ERROR_MATSINGULAR, leftvar);
+					return;
+				}
+				if (piv!=col) {
+					for (int c=col; c<w; c++) std::swap(m[(size_t)piv*w+c], m[(size_t)col*w+c]);
+				}
+				const double p = m[(size_t)col*w+col];
+				for (int c=col; c<w; c++) m[(size_t)col*w+c] /= p;
+				for (int r=0; r<n; r++) {
+					if (r==col) continue;
+					const double f = m[(size_t)r*w+col];
+					if (f==0.0) continue;
+					for (int c=col; c<w; c++) m[(size_t)r*w+c] -= f * m[(size_t)col*w+c];
+				}
+			}
+			if (!matDestination(dest, n, n)) return;
+			for (int r=0; r<n; r++) {
+				for (int c=0; c<n; c++) {
+					matPut(&dest->arr->data[r*n+c], matFloat(m[(size_t)r*w+n+c]));
+				}
+			}
+		}
+		break;
+
+		default: {
+			// ADD, SUB and MUL.  A second matrix and a single number are two
+			// different operations for MUL and the same shape of loop for the
+			// other two, so the operand is sorted out first.
+			if (DataElement::getType(right)!=T_ARRAY) {
+				// a single number - read out before the destination is touched,
+				// because the destination may be the very variable holding it
+				if (DataElement::getType(right)==T_UNASSIGNED) {
+					error->q(ERROR_VARNOTASSIGNED, rightvar);
+					return;
+				}
+				if (DataElement::getType(right)==T_MAP) {
+					error->q(ERROR_NUMBEREXPR, rightvar);
+					return;
+				}
+				const MatNum s = (right->type==T_INT) ? matInt(right->intval) :
+								 (right->type==T_FLOAT) ? matFloat(right->floatval) :
+								 matFloat(convert->getFloat(right));
+				if (!matDestination(dest, arows, acols)) return;
+				for (int k=0; k<asize; k++) {
+					const MatNum a = matGet(left, k, leftvar, arraybase, convert);
+					MatNum v = (opcode==OP_MATADD) ? matNumAdd(a, s) :
+							   (opcode==OP_MATSUB) ? matNumSub(a, s) : matNumMul(a, s);
+					if (!v.isint && std::isinf(v.d)) {
+						error->q(ERROR_INFINITY);
+						v = matFloat(0.0);
+					}
+					matPut(&dest->arr->data[k], v);
+				}
+				return;
+			}
+
+			const int brows = right->arr->xdim;
+			const int bcols = right->arr->ydim;
+
+			if (opcode==OP_MATMUL) {
+				// the textbook product: the answer has a row for every row of
+				// the first matrix and a column for every column of the second,
+				// which only works out when the first has as many columns as
+				// the second has rows
+				if (acols!=brows) {
+					error->q(ERROR_MATMULDIM, leftvar);
+					return;
+				}
+				// every element of the answer draws on a whole row and a whole
+				// column, so both sources are copied out before the destination
+				// - which may be either of them - is written
+				const int bsize = brows * bcols;
+				const int csize = arows * bcols;
+				std::vector<MatNum> a(asize), b(bsize);
+				for (int k=0; k<asize; k++) a[k] = matGet(left, k, leftvar, arraybase, convert);
+				for (int k=0; k<bsize; k++) b[k] = matGet(right, k, rightvar, arraybase, convert);
+				if (error->pending()) return;
+				std::vector<MatNum> c(csize, matInt(0));
+				// a row of the answer at a time, walking a row of each source
+				// forwards - the order the storage is already in
+				for (int r=0; r<arows; r++) {
+					const size_t crow = (size_t)r * bcols;
+					for (int k=0; k<acols; k++) {
+						const MatNum &aik = a[(size_t)r*acols+k];
+						if (aik.isint && aik.i==0) continue;
+						const size_t brow = (size_t)k * bcols;
+						for (int col=0; col<bcols; col++) {
+							c[crow+col] = matNumAdd(c[crow+col], matNumMul(aik, b[brow+col]));
+						}
+					}
+				}
+				if (!matDestination(dest, arows, bcols)) return;
+				bool infinite = false;
+				for (int k=0; k<csize; k++) {
+					if (!c[k].isint && std::isinf(c[k].d)) {
+						infinite = true;
+						c[k] = matFloat(0.0);
+					}
+					matPut(&dest->arr->data[k], c[k]);
+				}
+				if (infinite) error->q(ERROR_INFINITY);
+				return;
+			}
+
+			// ADD and SUB element by element - element k of the answer needs
+			// only element k of each source, so this is safe to write straight
+			// into a destination that is one of them
+			if (arows!=brows || acols!=bcols) {
+				error->q(ERROR_MATDIM, leftvar);
+				return;
+			}
+			if (!matDestination(dest, arows, acols)) return;
+			for (int k=0; k<asize; k++) {
+				const MatNum a = matGet(left, k, leftvar, arraybase, convert);
+				const MatNum b = matGet(right, k, rightvar, arraybase, convert);
+				MatNum v = (opcode==OP_MATADD) ? matNumAdd(a, b) : matNumSub(a, b);
+				if (!v.isint && std::isinf(v.d)) {
+					error->q(ERROR_INFINITY);
+					v = matFloat(0.0);
+				}
+				matPut(&dest->arr->data[k], v);
+			}
+		}
+		break;
 	}
 }
 
@@ -873,6 +1278,14 @@ Interpreter::initialize() {
 	CompositionModeClear = false;
 	PenColorIsClear = false;
 	fastgraphics = false;
+	frameRateSet = false;
+	// drop a stop signal left standing by the previous run so it cannot
+	// shorten this run's first PAUSE
+	sleeper->clearWake();
+	windowActive = false;
+	winX1 = winY1 = winX2 = winY2 = 0.0;
+	windowTransform.reset();
+	windowInverse.reset();
 
 	nsprites = 0;
 	printing = false;
@@ -1090,6 +1503,7 @@ Interpreter::run() {
 	//link sound system to error mechanism
 	sound->error = &error;
 	srand(time(NULL)+QTime::currentTime().msec()*911L); rand(); rand(); 	// initialize the random number generator for this thread
+	noiseSeed = (int64_t)time(NULL) ^ ((int64_t)QTime::currentTime().msec() * 911L);	// and the noise field, so an unseeded run differs like RAND does
 	runtimer.start(); // used by MSEC function
 	runLoop();			// run the opcodes
 	debugMode = 0;
@@ -1342,6 +1756,25 @@ void Interpreter::waitForGraphics() {
 	mymutex->unlock();
 }
 
+// Build the window-units -> surface-pixels map for a surface w x h. A window
+// runs from (winX1,winY1) at the surface's top-left corner to (winX2,winY2) at
+// its bottom-right, so the sign of winX2-winX1 and winY2-winY1 chooses which
+// way each axis runs: WINDOW -1,-1,1,1 puts y=-1 at the top (screen order) and
+// WINDOW -1,1,1,-1 puts y=1 at the top (maths order).
+void Interpreter::updateWindowTransform(int w, int h) {
+	if (!windowActive || w <= 0 || h <= 0) {
+		windowTransform.reset();
+		windowInverse.reset();
+		return;
+	}
+	double sx = (double) w / (winX2 - winX1);
+	double sy = (double) h / (winY2 - winY1);
+	// QTransform(m11, m12, m21, m22, dx, dy) maps
+	//   x' = m11*x + m21*y + dx,  y' = m12*x + m22*y + dy
+	windowTransform = QTransform(sx, 0.0, 0.0, sy, -sx * winX1, -sy * winY1);
+	windowInverse = windowTransform.inverted();
+}
+
 bool Interpreter::setPainterTo(QPaintDevice *destination) {
 	drawingOnScreen = (destination == graphics->image);
 	if(painter->isActive()) painter->end();
@@ -1357,7 +1790,23 @@ bool Interpreter::setPainterTo(QPaintDevice *destination) {
 		// resource (drawingOnScreen==false) is unaffected and still works normally.
 		return true;
 	}
-	return (painter->begin(destination));
+	if (!painter->begin(destination)) return false;
+	// The window maps onto whichever surface we just started painting on, so
+	// WINDOW composes with SETGRAPH: the same window spans a 200x200 image
+	// resource and the full graphics canvas alike.
+	updateWindowTransform(destination->width(), destination->height());
+	if (windowActive) {
+		painter->setWorldTransform(windowTransform);
+		// PENWIDTH and FONT stay in surface pixels, so a line does not grow
+		// thicker just because the window makes a unit large. A cosmetic pen is
+		// measured in device space whatever the world transform says.
+		drawingpen.setCosmetic(true);
+		painter_pen_need_update = true;
+	} else if (drawingpen.isCosmetic()) {
+		drawingpen.setCosmetic(false);
+		painter_pen_need_update = true;
+	}
+	return true;
 }
 
 void Interpreter::setGraph(QString id){
@@ -1549,7 +1998,7 @@ nextop:
 								temp->arrayIter = d->arr->data.begin();
 								temp->arrayIterEnd = d->arr->data.end();
 								// set variable to first element
-								variables->setData(temp->forVarnum, *temp->arrayIter);
+								variables->setData(temp->forVarnum, &*temp->arrayIter);
 								watchvariable(debugMode, temp->forVarnum);
 								// add new forframe to the forframe stack
 								temp->next = forstack;
@@ -1773,9 +2222,11 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_ARR_SET: {
 					// assign a value to an array element
 					// assumes that arrays are always two dimensional (if 1d then one row [0,i]) )
-					DataElement *e = stack->popDE();			// RELEASE
-					DataElement *col = stack->popDE();			// RELEASE
-					DataElement *row = stack->popDE();			// RELEASE
+					// borrowed: the stack keeps these, and nothing here pushes
+					// before the last read of them
+					DataElement *e = stack->popDEborrow();			// DO NOT RELEASE
+					DataElement *col = stack->popDEborrow();		// DO NOT RELEASE
+					DataElement *row = stack->popDEborrow();		// DO NOT RELEASE
 					DataElement *vdata = variables->getData(i);			// DONT RELEASE
 					switch (DataElement::getType(vdata)) {
 						case T_ARRAY:
@@ -1800,17 +2251,16 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						default:
 							error->q(ERROR_ARRAYORMAPEXPR);
 					}
-					delete e;
-					delete col;
-					delete row;
 				}
 				break;
 
 
 				case OP_ARR_GET: {
 					// get a value from an array and push it to the stack
-					DataElement *col = stack->popDE();			// RELEASE
-					DataElement *row = stack->popDE();			// RELEASE
+					// borrowed: both are read into r and c, and into the map key,
+					// before anything is pushed over them
+					DataElement *col = stack->popDEborrow();		// DO NOT RELEASE
+					DataElement *row = stack->popDEborrow();		// DO NOT RELEASE
 					DataElement *vdata = variables->getData(i);			// DONT RELEASE
 					switch (DataElement::getType(vdata)) {
 						case T_ARRAY:
@@ -1838,8 +2288,6 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 							error->q(ERROR_ARRAYORMAPEXPR);
 							stack->pushBool(false);
 					}
-					delete col;
-					delete row;
 				}
 				break;
 
@@ -1861,11 +2309,10 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 				case OP_VAR_SET: {
 					// assign a value to a variable
-					DataElement *e = stack->popDE();			// RELEASE
+					DataElement *e = stack->popDEborrow();		// DO NOT RELEASE
 					variables->setData(i,e);
 					if (DataElement::getError()) {error->q(DataElement::getError(true),i);}
 					watchvariable(debugMode, i);
-					delete e;
 				}
 				break;
 
@@ -1920,11 +2367,24 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 								// a stack that grows on demand. Harmless once; unbounded for a
 								// fill inside a loop, which a zero-filling bare DIM now makes
 								// commonplace.
+								// Mode 1 overwrites everything, so it has no reason to read
+								// the element first.  It used to read one anyway, which set
+								// DataElement's not-assigned flag for every element of a
+								// fresh array; nothing consumed it, and it only stayed
+								// invisible because allocating the replacement element ran
+								// a constructor, and the constructor clears that flag.
+								// Elements are no longer allocated one at a time, so the
+								// read has to go - and mode 0, which does need to know
+								// whether the element is set, clears the flag it raises.
 								for(int row = 0; row<rows; row++) {
 									for (int col = 0; col<columns; col++) {
-										DataElement *temp = edest->arrayGetData(row, col);			// DONT RELEASE
-										if (mode||DataElement::getType(temp)==T_UNASSIGNED) {
+										if (mode) {
 											edest->arraySetData(row, col, e);
+										} else {
+											DataElement *temp = edest->arrayGetData(row, col);			// DONT RELEASE
+											const bool unassigned = (DataElement::getType(temp)==T_UNASSIGNED);
+											if (unassigned) DataElement::getError(true);	// "not assigned" is the answer here, not an error
+											if (unassigned) edest->arraySetData(row, col, e);
 										}
 									}
 								}
@@ -2017,6 +2477,53 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_VAR_UN: {
 					variables->unassign(i);
 					watchvariable(debugMode, i);
+				}
+				break;
+
+				case OP_MATADD:
+				case OP_MATSUB:
+				case OP_MATMUL: {
+					// MAT ADD/SUB/MUL destination = source op operand.  The stack
+					// holds a reference to the source matrix and then the operand,
+					// which is a reference too when it was written as a plain
+					// variable name - see matRightOperand() in basicParse.y - and
+					// an ordinary value otherwise.  Only the run time can tell
+					// whether a name holds a matrix or a single number.
+					DataElement *right = stack->popDE();			// RELEASE
+					DataElement *left = stack->popDE();			// RELEASE
+					int leftvar = -1;
+					int rightvar = -1;
+					DataElement *leftdata = left;
+					DataElement *rightdata = right;
+					if (DataElement::getType(left)==T_REF) {
+						leftvar = left->intval;
+						leftdata = variables->get(left->intval, left->level)->data;		// DONT RELEASE
+					}
+					if (DataElement::getType(right)==T_REF) {
+						rightvar = right->intval;
+						rightdata = variables->get(right->intval, right->level)->data;	// DONT RELEASE
+					}
+					matStatement(opcode, i, leftdata, leftvar, rightdata, rightvar);
+					watchvariable(debugMode, i);
+					delete left;
+					delete right;
+				}
+				break;
+
+				case OP_MATTRN:
+				case OP_MATINV: {
+					// MAT TRN/INV destination = source - one operand, always a
+					// reference to the source matrix
+					DataElement *left = stack->popDE();			// RELEASE
+					int leftvar = -1;
+					DataElement *leftdata = left;
+					if (DataElement::getType(left)==T_REF) {
+						leftvar = left->intval;
+						leftdata = variables->get(left->intval, left->level)->data;		// DONT RELEASE
+					}
+					matStatement(opcode, i, leftdata, leftvar, NULL, -1);
+					watchvariable(debugMode, i);
+					delete left;
 				}
 				break;
 
@@ -2860,6 +3367,22 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				}
 				break;
 
+				case OP_NOISE: {
+					// NOISE(x) walks a line through the two dimensional field and
+					// NOISE(x,y) samples it directly - the grammar pushes 1 or 2 to
+					// say which form was written.
+					int dims = stack->popInt();
+					if (dims == 2) {
+						double y = stack->popDouble();
+						double x = stack->popDouble();
+						stack->pushDouble(OpenSimplex2::noise2(noiseSeed, x, y));
+					} else {
+						double x = stack->popDouble();
+						stack->pushDouble(OpenSimplex2::noise1(noiseSeed, x));
+					}
+				}
+				break;
+
 				case OP_RAND: {
 					double r = ((double) rand() * (double) RAND_MAX + (double) rand()) / double_random_max;
 					stack->pushDouble(r);
@@ -2869,6 +3392,9 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_SEED: {
 					unsigned int seed = stack->popLong();
 					srand(seed);
+					// one SEED covers both generators, so a program that seeds gets
+					// the same RAND sequence and the same NOISE field every run
+					noiseSeed = (int64_t) seed;
 				}
 				break;
 
@@ -2876,6 +3402,40 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					double val = stack->popDouble();
 					if (val > 0) {
 						sleeper->sleepSeconds(val);
+					}
+				}
+				break;
+
+				case OP_FRAMERATE: {
+					// Cap the rate of the loop this statement sits in. Unlike PAUSE,
+					// which sleeps for a fixed time ON TOP of the drawing and so
+					// yields 1/(draw + delay), this waits UNTIL the next frame's
+					// deadline and so absorbs however long the drawing took.
+					double target = stack->popDouble();
+					if (!(target > 0)) {
+						// FRAMERATE 0 turns the cap off and forgets the deadline, so a
+						// later FRAMERATE n starts timing from that point
+						frameRateSet = false;
+						break;
+					}
+					double secs = 1.0 / target;
+					if (secs > 3600.0) secs = 3600.0;	// a frame longer than an hour is not a frame rate
+					std::chrono::steady_clock::duration period =
+						std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+							std::chrono::duration<double>(secs));
+					std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+					if (!frameRateSet || now > frameDeadline + period) {
+						// First frame, or a frame so slow we are already a whole frame
+						// past due. Resync instead of carrying the deficit forward --
+						// catching up would run a burst of zero-length frames and make
+						// one slow frame look like a stutter that spreads.
+						frameDeadline = now + period;
+						frameRateSet = true;
+					} else {
+						// A deadline already past returns at once, which is how a small
+						// overrun is clawed back over the following frames.
+						sleeper->sleepUntil(frameDeadline);
+						frameDeadline += period;
 					}
 				}
 				break;
@@ -3626,62 +4186,56 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_EQUAL:{
-					DataElement *two = stack->popDE();			// RELEASE
-					DataElement *one = stack->popDE();			// RELEASE
+					// borrowed: both are read by compare() before anything is pushed
+					DataElement *two = stack->popDEborrow();		// DO NOT RELEASE
+					DataElement *one = stack->popDEborrow();		// DO NOT RELEASE
 					int ans = convert->compare(one,two);
 					stack->pushBool(ans==0);
-					delete one;
-					delete two;
 				}
 				break;
 
 				case OP_NEQUAL:{
-					DataElement *two = stack->popDE();			// RELEASE
-					DataElement *one = stack->popDE();			// RELEASE
+					// borrowed: both are read by compare() before anything is pushed
+					DataElement *two = stack->popDEborrow();		// DO NOT RELEASE
+					DataElement *one = stack->popDEborrow();		// DO NOT RELEASE
 					int ans = convert->compare(one,two);
 					stack->pushBool(ans!=0);
-					delete one;
-					delete two;
 				}
 				break;
 
 				case OP_GT:{
-					DataElement *two = stack->popDE();			// RELEASE
-					DataElement *one = stack->popDE();			// RELEASE
+					// borrowed: both are read by compare() before anything is pushed
+					DataElement *two = stack->popDEborrow();		// DO NOT RELEASE
+					DataElement *one = stack->popDEborrow();		// DO NOT RELEASE
 					int ans = convert->compare(one,two);
 					stack->pushBool(ans==1);
-					delete one;
-					delete two;
 				}
 				break;
 
 				case OP_LTE:{
-					DataElement *two = stack->popDE();			// RELEASE
-					DataElement *one = stack->popDE();			// RELEASE
+					// borrowed: both are read by compare() before anything is pushed
+					DataElement *two = stack->popDEborrow();		// DO NOT RELEASE
+					DataElement *one = stack->popDEborrow();		// DO NOT RELEASE
 					int ans = convert->compare(one,two);
 					stack->pushBool(ans!=1);
-					delete one;
-					delete two;
 				}
 				break;
 
 				case OP_LT:{
-					DataElement *two = stack->popDE();			// RELEASE
-					DataElement *one = stack->popDE();			// RELEASE
+					// borrowed: both are read by compare() before anything is pushed
+					DataElement *two = stack->popDEborrow();		// DO NOT RELEASE
+					DataElement *one = stack->popDEborrow();		// DO NOT RELEASE
 					int ans = convert->compare(one,two);
 					stack->pushBool(ans==-1);
-					delete one;
-					delete two;
 				}
 				break;
 
 				case OP_GTE:{
-					DataElement *two = stack->popDE();			// RELEASE
-					DataElement *one = stack->popDE();			// RELEASE
+					// borrowed: both are read by compare() before anything is pushed
+					DataElement *two = stack->popDEborrow();		// DO NOT RELEASE
+					DataElement *one = stack->popDEborrow();		// DO NOT RELEASE
 					int ans = convert->compare(one,two);
 					stack->pushBool(ans!=-1);
-					delete one;
-					delete two;
 				}
 				break;
 
@@ -4301,8 +4855,19 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_PIXEL: {
-					int y = stack->popInt();
-					int x = stack->popInt();
+					double yd = stack->popDouble();
+					double xd = stack->popDouble();
+					int x, y;
+					if (windowActive) {
+						// PIXEL is the read-side inverse of PLOT, so it speaks
+						// window units and lands on the nearest whole pixel
+						QPointF p = windowTransform.map(QPointF(xd, yd));
+						x = qRound(p.x());
+						y = qRound(p.y());
+					} else {
+						x = (int) xd;
+						y = (int) yd;
+					}
 					if(drawingOnScreen || drawto.isEmpty()){
 						QRgb rgb = graphics->image->pixel(x,y);
 						stack->pushInt((int) rgb);
@@ -4402,10 +4967,10 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_LINE: {
-					int y1val = stack->popInt();
-					int x1val = stack->popInt();
-					int y0val = stack->popInt();
-					int x0val = stack->popInt();
+					double y1val = stack->popDouble();
+					double x1val = stack->popDouble();
+					double y0val = stack->popDouble();
+					double x0val = stack->popDouble();
 
 					//update painter's attributes only if needed (only pen)
 					if(painter_pen_need_update){
@@ -4421,7 +4986,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					}
 					//end painter update
 
-					painter->drawLine(x0val, y0val, x1val, y1val);
+					painter->drawLine(QLineF(x0val, y0val, x1val, y1val));
 
 					if (!fastgraphics && drawingOnScreen) waitForGraphics();
 				}
@@ -4431,17 +4996,20 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_ROUNDEDRECT:{
 					double y_rad = stack->popDouble();
 					double x_rad = stack->popDouble();
-					int y1val = stack->popInt();
-					int x1val = stack->popInt();
-					int y0val = stack->popInt();
-					int x0val = stack->popInt();
+					double y1val = stack->popDouble();
+					double x1val = stack->popDouble();
+					double y0val = stack->popDouble();
+					double x0val = stack->popDouble();
 
+					// the +1 makes a negative size include its starting pixel --
+					// a pixel convention, so it only applies without a window
+					double edge = windowActive ? 0.0 : 1.0;
 					if(x1val<0) {
-						x0val+=x1val+1;
+						x0val+=x1val+edge;
 						x1val*=-1;
 					}
 					if(y1val<0) {
-						y0val+=y1val+1;
+						y0val+=y1val+edge;
 						y1val*=-1;
 					}
 
@@ -4463,17 +5031,20 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					}
 					//end painter update
 
-					if (x1val > 1 && y1val > 1) {
-						painter->drawRoundedRect(x0val, y0val, x1val-1, y1val-1, x_rad, y_rad);
+					if (windowActive) {
+						// as OP_RECT: no pixel fudging in window units
+						painter->drawRoundedRect(QRectF(x0val, y0val, x1val, y1val), x_rad, y_rad);
+					} else if (x1val > 1 && y1val > 1) {
+						painter->drawRoundedRect(QRectF(x0val, y0val, x1val-1, y1val-1), x_rad, y_rad);
 					} else if (x1val==1 && y1val==1) {
 						// rect 1x1 is actually a point
-						painter->drawPoint(x0val, y0val);
+						painter->drawPoint(QPointF(x0val, y0val));
 					} else if (x1val==1 && y1val!=0) {
 						// rect 1xn is actually a line
-						painter->drawLine(x0val, y0val, x0val, y0val+y1val);
+						painter->drawLine(QLineF(x0val, y0val, x0val, y0val+y1val));
 					} else if (x1val!=0 && y1val==1) {
 						// rect nx1 is actually a line
-						painter->drawLine(x0val, y0val, x0val + x1val, y0val);
+						painter->drawLine(QLineF(x0val, y0val, x0val + x1val, y0val));
 					}
 
 					if (!fastgraphics && drawingOnScreen) waitForGraphics();
@@ -4481,17 +5052,20 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_RECT: {
-					int y1val = stack->popInt();
-					int x1val = stack->popInt();
-					int y0val = stack->popInt();
-					int x0val = stack->popInt();
+					double y1val = stack->popDouble();
+					double x1val = stack->popDouble();
+					double y0val = stack->popDouble();
+					double x0val = stack->popDouble();
 
+					// the +1 makes a negative size include its starting pixel --
+					// a pixel convention, so it only applies without a window
+					double edge = windowActive ? 0.0 : 1.0;
 					if(x1val<0) {
-						x0val+=x1val+1;
+						x0val+=x1val+edge;
 						x1val*=-1;
 					}
 					if(y1val<0) {
-						y0val+=y1val+1;
+						y0val+=y1val+edge;
 						y1val*=-1;
 					}
 
@@ -4513,17 +5087,22 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					}
 					//end painter update
 
-					if (x1val > 1 && y1val > 1) {
-						painter->drawRect(x0val, y0val, x1val-1, y1val-1);
+					if (windowActive) {
+						// in window units a size of 1 is not "one pixel wide", so
+						// neither the -1 nor the degenerate 1xN cases below apply:
+						// the rectangle is simply the rectangle asked for
+						painter->drawRect(QRectF(x0val, y0val, x1val, y1val));
+					} else if (x1val > 1 && y1val > 1) {
+						painter->drawRect(QRectF(x0val, y0val, x1val-1, y1val-1));
 					} else if (x1val==1 && y1val==1) {
 						// rect 1x1 is actually a point
-						painter->drawPoint(x0val, y0val);
+						painter->drawPoint(QPointF(x0val, y0val));
 					} else if (x1val==1 && y1val!=0) {
 						// rect 1xn is actually a line
-						painter->drawLine(x0val, y0val, x0val, y0val+y1val);
+						painter->drawLine(QLineF(x0val, y0val, x0val, y0val+y1val));
 					} else if (x1val!=0 && y1val==1) {
 						// rect nx1 is actually a line
-						painter->drawLine(x0val, y0val, x0val + x1val, y0val);
+						painter->drawLine(QLineF(x0val, y0val, x0val + x1val, y0val));
 					}
 
 					if (!fastgraphics && drawingOnScreen) waitForGraphics();
@@ -4574,8 +5153,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					QPolygonF *poly = convert->getPolygonF(e);
 					double rotate = stack->popDouble();
 					double scale = stack->popDouble();
-					int y = stack->popInt();
-					int x = stack->popInt();
+					double y = stack->popDouble();
+					double x = stack->popDouble();
 					
 					if (poly) {
 						// scale, rotate, and position the points
@@ -4620,9 +5199,9 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 
 				case OP_CIRCLE: {
-					int rval = stack->popInt();
-					int yval = stack->popInt();
-					int xval = stack->popInt();
+					double rval = stack->popDouble();
+					double yval = stack->popDouble();
+					double xval = stack->popDouble();
 
 					//update painter's attributes only if needed (pen and brush)
 					if(painter_pen_need_update){
@@ -4642,17 +5221,17 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					}
 					//end painter update
 
-					painter->drawEllipse(xval - rval, yval - rval, 2 * rval, 2 * rval);
+					painter->drawEllipse(QRectF(xval - rval, yval - rval, 2 * rval, 2 * rval));
 
 					if (!fastgraphics && drawingOnScreen) waitForGraphics();
 				}
 				break;
 
 				case OP_ELLIPSE: {
-					int hval = stack->popInt();
-					int wval = stack->popInt();
-					int yval = stack->popInt();
-					int xval = stack->popInt();
+					double hval = stack->popDouble();
+					double wval = stack->popDouble();
+					double yval = stack->popDouble();
+					double xval = stack->popDouble();
 
 					//update painter's attributes only if needed (pen and brush)
 					if(painter_pen_need_update){
@@ -4672,7 +5251,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					}
 					//end painter update
 
-					painter->drawEllipse(xval, yval, wval, hval);
+					painter->drawEllipse(QRectF(xval, yval, wval, hval));
 
 					if (!fastgraphics && drawingOnScreen) waitForGraphics();
 				}
@@ -4686,8 +5265,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 					double rotate = stack->popDouble();
 					double scale = stack->popDouble();
-					double y = stack->popInt();
-					double x = stack->popInt();
+					double y = stack->popDouble();
+					double x = stack->popDouble();
 
 					QImage i;
 					if(QFileInfo(file).exists()){
@@ -4717,7 +5296,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 							}
 							//end update painter
 
-							painter->drawImage((int)(x - .5 * i.width()), (int)(y - .5 * i.height()), i);
+							painter->drawImage(QPointF(x - .5 * i.width(), y - .5 * i.height()), i);
 						}
 						if (!fastgraphics && drawingOnScreen) waitForGraphics();
 					}
@@ -4726,8 +5305,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 				case OP_TEXT: {
 					QString txt = stack->popQString();
-					int y0val = stack->popInt();
-					int x0val = stack->popInt();
+					double y0val = stack->popDouble();
+					double x0val = stack->popDouble();
 
 					//update painter's attributes only if needed (only pen)
 					if(painter_pen_need_update){
@@ -4747,7 +5326,19 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						painter->setFont(font);
 						painter_font_need_update=false;
 					}
-					painter->drawText(x0val, y0val+(QFontMetrics(painter->font()).ascent()), txt);
+					if (windowActive && painter->isActive()) {
+						// FONT is in surface pixels, so place the anchor through
+						// the window and then draw with the transform off --
+						// otherwise the glyphs stretch with the window instead of
+						// staying the size FONT asked for
+						QPointF p = windowTransform.map(QPointF(x0val, y0val));
+						painter->save();
+						painter->resetTransform();
+						painter->drawText(QPointF(p.x(), p.y()+(QFontMetrics(painter->font()).ascent())), txt);
+						painter->restore();
+					} else {
+						painter->drawText(QPointF(x0val, y0val+(QFontMetrics(painter->font()).ascent())), txt);
+					}
 
 					if (!fastgraphics && drawingOnScreen) waitForGraphics();
 				}
@@ -4757,10 +5348,10 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_TEXTBOX: {
 					int flags = stack->popInt();
 					QString txt = stack->popQString();
-					int h = stack->popInt();
-					int w = stack->popInt();
-					int y = stack->popInt();
-					int x = stack->popInt();
+					double h = stack->popDouble();
+					double w = stack->popDouble();
+					double y = stack->popDouble();
+					double x = stack->popDouble();
 
 					if(h<0){
 						y+=h;
@@ -4789,7 +5380,17 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						painter->setFont(font);
 						painter_font_need_update=false;
 					}
-					painter->drawText(x, y, w, h, flags|Qt::TextWordWrap|Qt::TextExpandTabs, txt);
+					if (windowActive && painter->isActive()) {
+						// as OP_TEXT: the box is placed by the window, the text
+						// inside it is laid out at its FONT size in pixels
+						QRectF r = windowTransform.mapRect(QRectF(x, y, w, h));
+						painter->save();
+						painter->resetTransform();
+						painter->drawText(r, flags|Qt::TextWordWrap|Qt::TextExpandTabs, txt);
+						painter->restore();
+					} else {
+						painter->drawText(QRectF(x, y, w, h), flags|Qt::TextWordWrap|Qt::TextExpandTabs, txt);
+					}
 
 					if (!fastgraphics && drawingOnScreen) waitForGraphics();
 				}
@@ -4797,7 +5398,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 				case OP_TEXTBOXHEIGHT:
 				case OP_TEXTBOXWIDTH: {
-					int w = stack->popInt();
+					double w = stack->popDouble();
 					QString txt = stack->popQString();
 
 					if(w<0) w=-w;
@@ -4813,8 +5414,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 						painter->setFont(font);
 						painter_font_need_update=false;
 					}
-					QRect boundingRect;
-					painter->drawText(-1, -1, w, 0, Qt::TextWordWrap, txt, &boundingRect);
+					QRectF boundingRect;
+					painter->drawText(QRectF(-1, -1, w, 0), Qt::TextWordWrap, txt, &boundingRect);
 					if(opcode==OP_TEXTBOXHEIGHT){
 						stack->pushInt(boundingRect.height());
 					}else{
@@ -4889,8 +5490,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_PLOT: {
-					int oneval = stack->popInt();
-					int twoval = stack->popInt();
+					double oneval = stack->popDouble();
+					double twoval = stack->popDouble();
 
 					//update painter's attributes only if needed (only pen)
 					if(painter_pen_need_update){
@@ -4906,9 +5507,44 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					}
 					//end painter update
 
-					painter->drawPoint(twoval, oneval);
+					painter->drawPoint(QPointF(twoval, oneval));
 
 					if (!fastgraphics && drawingOnScreen) waitForGraphics();
+				}
+				break;
+
+				case OP_WINDOW: {
+					// WINDOW x1,y1,x2,y2 gives the drawing surface a logical
+					// coordinate space: (x1,y1) is its top-left corner and
+					// (x2,y2) its bottom-right, so the argument order picks
+					// which way each axis runs. WINDOW on its own goes back to
+					// surface pixels.
+					int arg = stack->popInt();
+					bool ok = true;
+					if (arg == 0) {
+						windowActive = false;
+					} else {
+						double y2 = stack->popDouble();
+						double x2 = stack->popDouble();
+						double y1 = stack->popDouble();
+						double x1 = stack->popDouble();
+						if (x1 == x2 || y1 == y2) {
+							// a zero-width or zero-height window would divide by
+							// zero in updateWindowTransform()
+							error->q(ERROR_WINDOWSIZE);
+							ok = false;
+						} else {
+							winX1 = x1; winY1 = y1; winX2 = x2; winY2 = y2;
+							windowActive = true;
+						}
+					}
+					if (ok && painter->isActive()) {
+						// rebuild the painter on the same surface so the new
+						// transform (or its removal) takes effect; this covers
+						// the screen canvas, an image resource and the printer
+						// without having to know which one we are on
+						setPainterTo(painter->device());
+					}
 				}
 				break;
 
@@ -5176,12 +5812,22 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_MOUSEX: {
-					stack->pushInt((int) graphics->mouseX);
+					// -1 is the "pointer is not on the canvas" marker and is
+					// passed through unmapped so existing tests for it still work
+					if (windowActive && graphics->mouseX >= 0) {
+						stack->pushDouble(windowInverse.map(QPointF(graphics->mouseX, graphics->mouseY)).x());
+					} else {
+						stack->pushInt((int) graphics->mouseX);
+					}
 				}
 				break;
 
 				case OP_MOUSEY: {
-					stack->pushInt((int) graphics->mouseY);
+					if (windowActive && graphics->mouseY >= 0) {
+						stack->pushDouble(windowInverse.map(QPointF(graphics->mouseX, graphics->mouseY)).y());
+					} else {
+						stack->pushInt((int) graphics->mouseY);
+					}
 				}
 				break;
 
@@ -5198,12 +5844,20 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 				case OP_CLICKX: {
-					stack->pushInt((int) graphics->clickX);
+					if (windowActive) {
+						stack->pushDouble(windowInverse.map(QPointF(graphics->clickX, graphics->clickY)).x());
+					} else {
+						stack->pushInt((int) graphics->clickX);
+					}
 				}
 				break;
 
 				case OP_CLICKY: {
-					stack->pushInt((int) graphics->clickY);
+					if (windowActive) {
+						stack->pushDouble(windowInverse.map(QPointF(graphics->clickX, graphics->clickY)).y());
+					} else {
+						stack->pushInt((int) graphics->clickY);
+					}
 				}
 				break;
 
@@ -5241,24 +5895,35 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					DataElement *e = stack->popDE();			// RELEASE
 					QPolygonF *poly = convert->getPolygonF(e);
 					if (poly) {
-						// now move points to the top left (if they are not there)
+						// Move the polygon to the top left corner of the sprite and
+						// leave a margin for the pen.  drawPolygon centres the stroke
+						// on the path, so half of it falls outside the polygon's own
+						// bounds - without the margin a wide pen is clipped on every
+						// edge.  The caller cannot make room instead, because any
+						// margin it adds is taken back out by the move to the corner.
 						QRectF bound = poly->boundingRect();
-						if (bound.top() !=0 || bound.left() !=0) {
+						qreal margin = drawingpen.width() / 2.0;
+						qreal dx = margin - bound.left();
+						qreal dy = margin - bound.top();
+						if (dx != 0 || dy != 0) {
 							for(int j=0;j<poly->size();j++) {
 								QPointF pt = poly->at(j);
-								pt.setX(pt.x()-bound.top());
-								pt.setY(pt.y()-bound.left());
+								pt.setX(pt.x()+dx);
+								pt.setY(pt.y()+dy);
 								poly->replace(j, pt);
 							}
 							bound = poly->boundingRect();
 						}
+						// the image is the polygon plus the margin on both sides
+						int spritewidth = (int) ceil(bound.width() + drawingpen.width());
+						int spriteheight = (int) ceil(bound.height() + drawingpen.width());
 						//
 						// now build sprite
 						int n = stack->popInt(); // sprite number
 						if(n >= 0 && n < nsprites) {
 							// free old, draw, and capture sprite
 							sprite_prepare_for_new_content(n);
-							sprites[n].image = new QImage(bound.right(),bound.bottom(),QImage::Format_ARGB32_Premultiplied);
+							sprites[n].image = new QImage(spritewidth,spriteheight,QImage::Format_ARGB32_Premultiplied);
 							if(!sprites[n].image->isNull()){
 								sprites[n].image->fill(Qt::transparent);
 								if (!CompositionModeClear) {
@@ -5268,7 +5933,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 									p->drawPolygon(*poly);
 									p->end();
 									delete p;
-									sprites[n].position.setRect(-(bound.right()/2),-(bound.bottom()/2),bound.right(),bound.bottom());
+									sprites[n].position.setRect(-(spritewidth/2),-(spriteheight/2),spritewidth,spriteheight);
 								}
 							}
 						} else {
@@ -6656,22 +7321,22 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_ARC:
 				case OP_CHORD:
 				case OP_PIE: {
-					int yval, xval, hval, wval;
+					double yval, xval, hval, wval;
 					int arg = stack->popInt(); // number of arguments
 					double angwval = stack->popDouble();
 					double startval = stack->popDouble();
 
 					if(arg==5){
-						int rval = stack->popInt();
-						yval = stack->popInt() - rval;
-						xval = stack->popInt() - rval;
+						double rval = stack->popDouble();
+						yval = stack->popDouble() - rval;
+						xval = stack->popDouble() - rval;
 						hval = rval * 2;
 						wval = rval * 2;
 					}else{
-						hval = stack->popInt();
-						wval = stack->popInt();
-						yval = stack->popInt();
-						xval = stack->popInt();
+						hval = stack->popDouble();
+						wval = stack->popDouble();
+						yval = stack->popDouble();
+						xval = stack->popDouble();
 					}
 
 					// degrees * 16
@@ -6716,13 +7381,13 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					}
 
 					if(opcode==OP_ARC) {
-						painter->drawArc(xval, yval, wval, hval, s, aw);
+						painter->drawArc(QRectF(xval, yval, wval, hval), s, aw);
 					}
 					if(opcode==OP_CHORD) {
-						painter->drawChord(xval, yval, wval, hval, s, aw);
+						painter->drawChord(QRectF(xval, yval, wval, hval), s, aw);
 					}
 					if(opcode==OP_PIE) {
-						painter->drawPie(xval, yval, wval, hval, s, aw);
+						painter->drawPie(QRectF(xval, yval, wval, hval), s, aw);
 					}
 
 					if (!fastgraphics && drawingOnScreen) waitForGraphics();
@@ -7878,6 +8543,184 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				break;
 
 
+				case OP_DOT: {
+					// the dot product of two vectors.  Any two arrays holding
+					// the same number of elements will do - a row, a column or
+					// the output of MAT TRN - because what is multiplied is
+					// element by element in the order they are stored.
+					DataElement *b = stack->popDEborrow();		// DO NOT RELEASE
+					DataElement *a = stack->popDEborrow();		// DO NOT RELEASE
+					if (!vecOperand(a) || !vecOperand(b)) {
+						stack->pushLong(0);
+						break;
+					}
+					const int n = vecSize(a);
+					if (vecSize(b)!=n) {
+						error->q(ERROR_VECDIM);
+						stack->pushLong(0);
+						break;
+					}
+					// whole numbers in give a whole number out, the way the
+					// MAT statements work, until one will not fit
+					MatNum sum = matInt(0);
+					for (int k=0; k<n; k++) {
+						sum = matNumAdd(sum, matNumMul(vecGet(a, k, convert), vecGet(b, k, convert)));
+					}
+					if (error->pending()) {
+						stack->pushLong(0);
+						break;
+					}
+					if (!sum.isint && std::isinf(sum.d)) {
+						error->q(ERROR_INFINITY);
+						sum = matFloat(0.0);
+					}
+					if (sum.isint) stack->pushLong(sum.i); else stack->pushDouble(sum.d);
+				}
+				break;
+
+				case OP_CROSS: {
+					// the cross product.  Three elements each gives the vector
+					// product, shaped like the left operand; two elements each
+					// gives the single number that is the z of the three
+					// dimensional answer - a torque, a winding direction, or
+					// which side of a line a point falls, which is what a two
+					// dimensional program actually wants.
+					DataElement *b = stack->popDEborrow();		// DO NOT RELEASE
+					DataElement *a = stack->popDEborrow();		// DO NOT RELEASE
+					if (!vecOperand(a) || !vecOperand(b)) {
+						stack->pushLong(0);
+						break;
+					}
+					const int n = vecSize(a);
+					if (vecSize(b)!=n) {
+						error->q(ERROR_VECDIM);
+						stack->pushLong(0);
+						break;
+					}
+					if (n!=2 && n!=3) {
+						error->q(ERROR_CROSSDIM);
+						stack->pushLong(0);
+						break;
+					}
+					// both operands are read out in full, and the shape of the
+					// answer noted, before anything is pushed - a push may move
+					// the stack out from under the borrowed elements
+					std::vector<MatNum> x, y;
+					if (!vecRead(a, x, convert) || !vecRead(b, y, convert)) {
+						stack->pushLong(0);
+						break;
+					}
+					const int rows = a->arr->xdim;
+					const int cols = a->arr->ydim;
+
+					if (n==2) {
+						MatNum z = matNumSub(matNumMul(x[0], y[1]), matNumMul(x[1], y[0]));
+						if (!z.isint && std::isinf(z.d)) {
+							error->q(ERROR_INFINITY);
+							z = matFloat(0.0);
+						}
+						if (z.isint) stack->pushLong(z.i); else stack->pushDouble(z.d);
+						break;
+					}
+
+					MatNum c[3] = {
+						matNumSub(matNumMul(x[1], y[2]), matNumMul(x[2], y[1])),
+						matNumSub(matNumMul(x[2], y[0]), matNumMul(x[0], y[2])),
+						matNumSub(matNumMul(x[0], y[1]), matNumMul(x[1], y[0]))
+					};
+					bool infinite = false;
+					for (int k=0; k<3; k++) {
+						if (!c[k].isint && std::isinf(c[k].d)) {
+							infinite = true;
+							c[k] = matFloat(0.0);
+						}
+					}
+					// built straight into the slot it is pushed onto, so the
+					// answer is never copied
+					stack->pushUnassigned();
+					DataElement *r = stack->peekDE(0);			// DONT RELEASE
+					r->arrayDim(rows, cols, false);
+					if (DataElement::getError()) {
+						error->q(DataElement::getError(true));
+						break;
+					}
+					for (int k=0; k<3; k++) matPut(&r->arr->data[k], c[k]);
+					if (infinite) error->q(ERROR_INFINITY);
+				}
+				break;
+
+				case OP_NORM: {
+					// the length of a vector.  Always a float - a square root
+					// is not a whole number except by accident.
+					DataElement *v = stack->popDEborrow();		// DO NOT RELEASE
+					if (!vecOperand(v)) {
+						stack->pushLong(0);
+						break;
+					}
+					const int n = vecSize(v);
+					double sum = 0.0;
+					for (int k=0; k<n; k++) {
+						const double e = vecGet(v, k, convert).f();
+						sum += e * e;
+					}
+					if (error->pending()) {
+						stack->pushLong(0);
+						break;
+					}
+					const double len = sqrt(sum);
+					if (std::isinf(len)) {
+						error->q(ERROR_INFINITY);
+						stack->pushDouble(0.0);
+						break;
+					}
+					stack->pushDouble(len);
+				}
+				break;
+
+				case OP_UNIT: {
+					// the same vector scaled to length one, in the shape it
+					// came in.  Every element is a float, for the same reason
+					// NORM is.
+					DataElement *v = stack->popDEborrow();		// DO NOT RELEASE
+					if (!vecOperand(v)) {
+						stack->pushLong(0);
+						break;
+					}
+					const int n = vecSize(v);
+					std::vector<double> e(n);
+					double sum = 0.0;
+					for (int k=0; k<n; k++) {
+						e[k] = vecGet(v, k, convert).f();
+						sum += e[k] * e[k];
+					}
+					if (error->pending()) {
+						stack->pushLong(0);
+						break;
+					}
+					const double len = sqrt(sum);
+					if (len==0.0) {
+						error->q(ERROR_VECZERO);
+						stack->pushLong(0);
+						break;
+					}
+					if (std::isinf(len)) {
+						error->q(ERROR_INFINITY);
+						stack->pushLong(0);
+						break;
+					}
+					const int rows = v->arr->xdim;
+					const int cols = v->arr->ydim;
+					stack->pushUnassigned();
+					DataElement *r = stack->peekDE(0);			// DONT RELEASE
+					r->arrayDim(rows, cols, false);
+					if (DataElement::getError()) {
+						error->q(DataElement::getError(true));
+						break;
+					}
+					for (int k=0; k<n; k++) matPut(&r->arr->data[k], matFloat(e[k] / len));
+				}
+				break;
+
 				case OP_LIST2MAP: {
 					// pop a list of values off of stack and push
 					// it back on as a single DataElement with the data as a map
@@ -8016,7 +8859,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 								temp->arrayIter++;
 								if (temp->arrayIter != temp->arrayIterEnd) {
 									// set variable to this element
-									variables->setData(temp->forVarnum, *temp->arrayIter);
+									variables->setData(temp->forVarnum, &*temp->arrayIter);
 									watchvariable(debugMode, temp->forVarnum);
 									// loop again
 									op = temp->forAddr;

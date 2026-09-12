@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(basic256 VERSION 2.1.1 LANGUAGES C CXX)
+project(basic256 VERSION 2.2.0 LANGUAGES C CXX)
 
 # Force C++17 standard 
 set(CMAKE_CXX_STANDARD 17)
@@ -63,6 +63,7 @@ set(SOURCES_CORE
     src/core/GraphicsBuffer.cpp
     src/core/Interpreter.cpp
     src/core/md5.cpp
+    src/core/opensimplex.cpp
     src/core/MediaPath.cpp
     src/core/Sleeper.cpp
     src/core/Sound.cpp
@@ -88,6 +89,7 @@ set(HEADERS_CORE
     src/core/GraphicsBuffer.h
     src/core/Interpreter.h
     src/core/md5.h
+    src/core/opensimplex.h
     src/core/MediaPath.h
     src/core/Sleeper.h
     src/core/Sound.h
@@ -306,6 +308,11 @@ target_link_libraries(basic256core
         Qt${QT_VERSION_MAJOR}::Network
         Qt${QT_VERSION_MAJOR}::Multimedia
 )
+if(WIN32)
+    # winmm -- timeBeginPeriod/timeEndPeriod, used by Sleeper to hold the
+    # system timer at 1ms while a PAUSE or a FRAMERATE wait is in progress.
+    target_link_libraries(basic256core PUBLIC winmm)
+endif()
 if(BASIC256_ENABLE_SQL)
     target_link_libraries(basic256core PUBLIC Qt${QT_VERSION_MAJOR}::Sql)
 endif()
@@ -385,8 +392,14 @@ if(EMSCRIPTEN)
     target_link_options(basic256 PRIVATE
         "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/Modules@/Modules")
 
+    # The embed above takes the whole Modules directory, so a change to any file
+    # in it has to force a relink.  Naming one module here meant editing any other
+    # -- turtle.kbs, say -- left the previously embedded copy in the binary with
+    # nothing to say so.  The glob is re-run whenever cmake reconfigures, so a
+    # module added later is covered without this list being touched again.
+    file(GLOB BASIC256_WASM_MODULES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/Modules/*.kbs")
     set_target_properties(basic256 PROPERTIES
-        LINK_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/wasm-deploy/idbfs.js;${CMAKE_CURRENT_SOURCE_DIR}/Modules/math.kbs")
+        LINK_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/wasm-deploy/idbfs.js;${BASIC256_WASM_MODULES}")
 endif()
 
 if(DEFINED ENV{GITHUB_HEAD_REF} AND NOT "$ENV{GITHUB_HEAD_REF}" STREQUAL "")
@@ -410,14 +423,14 @@ endif()
 # the "2.1.Alpha04Qt6" version string. Anything that doesn't look like a
 # version branch (main, a detached-HEAD SHA, git not found, ...) shows the
 # name below: main is the branch the public builds come from, and it now
-# carries released 2.1.1, so it reads as the release and no longer as a
+# carries released 2.2.0, so it reads as the release and no longer as a
 # beta. Spelled out rather than written as "${PROJECT_VERSION}", which
-# happens to hold the same 2.1.1: build_installer_Windows.ps1 recovers this
+# happens to hold the same 2.2.0: build_installer_Windows.ps1 recovers this
 # value by regex over the file, so it has to be a literal string here or the
 # installer would be labelled with the unexpanded variable name.
 # That script parses this exact set() line so the installer label cannot
 # drift from the About box; keep the two in lockstep.
-set(BASIC256_MAIN_DISPLAY_VERSION "2.1.1")
+set(BASIC256_MAIN_DISPLAY_VERSION "2.2.0")
 if(BASIC256_BUILD_BRANCH MATCHES "^[vV][0-9]")
     string(REGEX REPLACE "^[vV]" "" BASIC256_BUILD_VERSION "${BASIC256_BUILD_BRANCH}")
 else()

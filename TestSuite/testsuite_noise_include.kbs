@@ -1,0 +1,157 @@
+# testsuite_noise_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20260907	m.vilain	original coding
+
+currentsuite = "noise"
+
+# NOISE is OpenSimplex2 - a smooth, seeded, repeatable field, unlike RAND which
+# is a fresh unrelated value every call.  These assertions are all on the
+# PROPERTIES of the field rather than on particular values: the exact bits a
+# float lands on may differ between compilers and platforms, so asserting
+# constants here would fail in CI for reasons that are not bugs.
+
+###################################################
+# repeatability
+###################################################
+
+seed 42
+a1 = noise(3.75)
+b1 = noise(1.5, 2.5)
+seed 42
+call boolean("same seed repeats the 1d field", noise(3.75) = a1)
+call boolean("same seed repeats the 2d field", noise(1.5, 2.5) = b1)
+
+# and it repeats within a run without reseeding - a field, not a sequence
+call boolean("1d value does not change on a second read", noise(3.75) = a1)
+call boolean("2d value does not change on a second read", noise(1.5, 2.5) = b1)
+
+seed 43
+call boolean("a different seed gives a different 1d value", noise(3.75) <> a1)
+call boolean("a different seed gives a different 2d value", noise(1.5, 2.5) <> b1)
+
+###################################################
+# range
+###################################################
+
+# the field is bounded by -1..1.  It approaches the ends without reaching them,
+# so a short sample will not span the whole range - do not expect it to.
+seed 7
+lo = 2 : hi = -2
+for i = 0 to 60
+   for j = 0 to 60
+      v = noise(i*0.137, j*0.137)
+      if v < lo then lo = v
+      if v > hi then hi = v
+   next j
+next i
+call boolean("2d field stays at or above -1", lo >= -1)
+call boolean("2d field stays at or below 1", hi <= 1)
+call boolean("2d field actually uses the negative half", lo < -0.5)
+call boolean("2d field actually uses the positive half", hi > 0.5)
+
+lo = 2 : hi = -2
+for i = 0 to 4000
+   v = noise(i*0.0137)
+   if v < lo then lo = v
+   if v > hi then hi = v
+next i
+call boolean("1d field stays at or above -1", lo >= -1)
+call boolean("1d field stays at or below 1", hi <= 1)
+call boolean("1d field actually uses the negative half", lo < -0.5)
+call boolean("1d field actually uses the positive half", hi > 0.5)
+
+###################################################
+# smoothness
+###################################################
+
+# The point of noise over rand: neighbouring samples are related.  Over a step
+# of 0.001 nothing may jump far.  A step of 0 must give no change at all.
+seed 11
+biggest = 0
+for i = 0 to 3000
+   d = abs(noise(i*0.001) - noise((i+1)*0.001))
+   if d > biggest then biggest = d
+next i
+call boolean("1d field is continuous over a small step", biggest < 0.05)
+
+biggest = 0
+for i = 0 to 3000
+   d = abs(noise(i*0.001, 3.5) - noise((i+1)*0.001, 3.5))
+   if d > biggest then biggest = d
+next i
+call boolean("2d field is continuous over a small step", biggest < 0.05)
+
+call nclose("no step means no change", noise(2.5) - noise(2.5), 0)
+
+# far apart samples are not related - if they were, the field would be a ramp
+seed 11
+spread = 0
+for i = 0 to 40
+   d = abs(noise(i*7.3) - noise((i+1)*7.3))
+   if d > spread then spread = d
+next i
+call boolean("distant samples are unrelated", spread > 0.2)
+
+###################################################
+# the two forms are different fields
+###################################################
+
+# noise(x) is not noise(x,0) - one dimensional noise walks a line that is
+# rotated off the lattice axes, because sampling straight along an axis crosses
+# the simplex grid at a repeating angle and the regularity shows.
+seed 5
+call boolean("noise(x) is not noise(x,0)", noise(3.75) <> noise(3.75, 0))
+
+# the 2d field varies in both directions
+seed 5
+call boolean("2d field varies with x", noise(1.5, 2.5) <> noise(4.5, 2.5))
+call boolean("2d field varies with y", noise(1.5, 2.5) <> noise(1.5, 6.5))
+
+###################################################
+# it is a field, not a random sequence
+###################################################
+
+# RAND gives a different value every call; NOISE gives the same value for the
+# same coordinate however many other coordinates were read in between.
+seed 3
+first = noise(9.125, 4.25)
+for i = 0 to 100
+   junk = noise(i*1.7, i*2.3)
+next i
+call boolean("reading elsewhere does not disturb a point", noise(9.125, 4.25) = first)
+
+# negative and large coordinates work
+seed 3
+n1 = noise(-5.5)
+n2 = noise(-5.5, -7.25)
+call boolean("negative 1d coordinate is in range", n1 >= -1 and n1 <= 1)
+call boolean("negative 2d coordinate is in range", n2 >= -1 and n2 <= 1)
+n3 = noise(100000.5, 100000.5)
+call boolean("large 2d coordinate is in range", n3 >= -1 and n3 <= 1)
+
+# a whole number coordinate is not a special case
+seed 3
+call boolean("whole number coordinates give a real value", noise(4, 6) >= -1 and noise(4, 6) <= 1)
+
+###################################################
+# fractal brownian motion, the documented recipe
+###################################################
+
+# Layering octaves is how a program gets detail out of single octave noise -
+# this is the recipe given in the documentation, asserted here so that the
+# documentation cannot drift away from what the language does.
+seed 21
+total = 0 : amplitude = 1 : frequency = 1 : maxvalue = 0
+for octave = 1 to 4
+   total = total + noise(3.5 * frequency) * amplitude
+   maxvalue = maxvalue + amplitude
+   amplitude = amplitude * 0.5
+   frequency = frequency * 2
+next octave
+fbm = total / maxvalue
+call boolean("four octave fbm stays in range", fbm >= -1 and fbm <= 1)
+
+seed 21
+call nclose("fbm is repeatable", fbm, (noise(3.5) + noise(7)*0.5 + noise(14)*0.25 + noise(28)*0.125) / 1.875)

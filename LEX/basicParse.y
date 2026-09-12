@@ -200,6 +200,23 @@
 		wordOffset += wlen;
 	}
 
+	// where the code for the right hand operand of a MAT statement starts -
+	// set once the left operand's reference has been emitted, read by
+	// matRightOperand() below.  MAT statements never nest, so one is enough.
+	unsigned int matoperandstart = 0;
+
+	void matRightOperand() {
+		// The right hand operand of MAT ADD/SUB/MUL is compiled as an ordinary
+		// expression, because only the run time knows whether the name in it
+		// holds a matrix or a single number.  A lone variable compiles to
+		// OP_VAR_GET, which would copy the whole array onto the stack; rewrite
+		// that one case to OP_VAR_REF so the operation is handed the variable
+		// itself and can tell a matrix from a scalar without copying either.
+		if (wordOffset == matoperandstart + 2 && wordCode[matoperandstart] == OP_VAR_GET) {
+			wordCode[matoperandstart] = OP_VAR_REF;
+		}
+	}
+
 	void clearIfTable() {
 		int j;
 		for (j = 0; j < IFTABLESIZE; j++) {
@@ -448,6 +465,7 @@
 %token B256COS
 %token B256COUNT
 %token B256COUNTX
+%token B256CROSS
 %token B256CURRENTDIR
 %token B256CYAN
 %token B256DARKBLUE
@@ -475,6 +493,7 @@
 %token B256DIR
 %token B256DIVEQUAL
 %token B256DO
+%token B256DOT
 %token B256EDITVISIBLE
 %token B256ELLIPSE
 %token B256ELSE
@@ -610,6 +629,7 @@
 %token B256FONT
 %token B256FOR
 %token B256FOREACH
+%token B256FRAMERATE
 %token B256FREEDB
 %token B256FREEDBSET
 %token B256FREEFILE
@@ -691,6 +711,11 @@
 %token B256MAINTOOLBARVISIBLE
 %token B256MAP
 %token B256MAXIMIZE
+%token B256MATADD
+%token B256MATINV
+%token B256MATMUL
+%token B256MATSUB
+%token B256MATTRN
 %token B256MD5
 %token B256MID
 %token B256MIDX
@@ -716,6 +741,8 @@
 %token B256NETREAD
 %token B256NETWRITE
 %token B256NEXT
+%token B256NOISE
+%token B256NORM
 %token B256NOT
 %token B256OFFERROR
 %token B256ONERROR
@@ -859,6 +886,7 @@
 %token B256TYPE_STRING
 %token B256TYPE_UNASSIGNED
 %token B256UNASSIGN
+%token B256UNIT
 %token B256UNLOAD
 %token B256UNSERIALIZE
 %token B256UNTIL
@@ -890,6 +918,7 @@
 %token B256WAVSTOP
 %token B256WAVWAIT
 %token B256WHILE
+%token B256WINDOW
 %token B256WHITE
 %token B256WRITE
 %token B256WRITEBYTE
@@ -922,6 +951,12 @@
 %left B256AND
 %nonassoc B256NOT B256ADD1 B256SUB1
 %left '<' B256LTE '>' B256GTE '=' B256NE
+/* the vector products bind tighter than a comparison, so a DOT b = 0 asks
+   whether the dot product is zero, and CROSS binds tighter than DOT, so the
+   triple products a DOT b CROSS c and a CROSS b DOT c both read the way a
+   mathematician writes them */
+%left B256DOT
+%left B256CROSS
 %left B256BINARYOR B256AMP
 %left B256BITSHIFTL B256BITSHIFTR
 %left '-' '+'
@@ -936,8 +971,17 @@
 
 %%
 
+/* Left recursion, not right: bison reduces each line as it is read, so the
+   parser stack stays a constant depth instead of holding the whole program at
+   once.  Written the other way round, every source line sat on the stack until
+   EOF -- two slots each -- so a program hit bison's default YYMAXDEPTH of
+   10000 at line 5000 and stopped with a "syntax error" pointing at whatever
+   line the parser had reached, which is nothing to do with the real problem.
+   TestSuite/testsuite.kbs expands to a little over 5000 lines and was already
+   sitting on that ceiling.  The order the actions run in is unchanged: a line
+   is still reduced, and its code still emitted, as soon as it is complete. */
 program:
-	programline programnewline program
+	program programnewline programline
 	| programline
 	;
 
@@ -1256,6 +1300,16 @@ expr_multi:
 	}
 	| expr '*' expr {
 		addOp(OP_MUL);
+	}
+	/* the vector products.  Both operands are whole arrays on the stack and
+	   the result is a number for DOT, and for CROSS either an array (three
+	   element vectors) or a number (two element ones), so they live here
+	   among the operators whose type depends on what they are given. */
+	| expr B256DOT expr {
+		addOp(OP_DOT);
+	}
+	| expr B256CROSS expr {
+		addOp(OP_CROSS);
 	}	;
 
 /* ###########################################
@@ -1907,7 +1961,10 @@ expr_numeric:
 	| B256SQR '(' expr ')' { addOp(OP_SQR); }
 	| B256EXP '(' expr ')' { addOp(OP_EXP); }
 	| B256ABS '(' expr ')' { addOp(OP_ABS); }
+	| B256NORM '(' expr ')' { addOp(OP_NORM); }	/* length of a vector */
 	| B256RAND args_none { addOp(OP_RAND); }
+	| B256NOISE '(' expr ')' { addIntOp(OP_PUSHINT, 1); addOp(OP_NOISE); }
+	| B256NOISE '(' args_ee ')' { addIntOp(OP_PUSHINT, 2); addOp(OP_NOISE); }
 				| B256PI args_none { addFloatOp(OP_PUSHFLOAT, 3.14159265358979323846); }
 	| B256BOOLEOF args_none {
 		addIntOp(OP_PUSHINT, 0);
@@ -2372,6 +2429,12 @@ expr_dataelement:
 	| B256UNSERIALIZE '(' expr ')'{
 		addOp(OP_UNSERIALIZE);
 	}
+	/* UNIT gives back a vector of the same shape as the one it is given, so
+	   it belongs here with the other expressions that are whole arrays -
+	   which also lets FOREACH walk one without a variable in between */
+	| B256UNIT '(' expr ')'{
+		addOp(OP_UNIT);
+	}
 	
 	| B256EXPLODE args_ee {
 		addIntOp(OP_PUSHINT, 0);	// case sensitive flag
@@ -2440,12 +2503,14 @@ statement:
 	| fastgraphicsstmt
 	| fontstmt
 	| forstmt
+	| frameratestmt
 	| foreachstmt
 	| functionstmt
 	| globalstmt
 	| gosubstmt
 	| gotostmt
 	| graphsizestmt
+	| windowstmt
 	| graphvisiblestmt
 	| graphtoolbarvisiblestmt
 	| ifstmt
@@ -2470,6 +2535,7 @@ statement:
 	| maintoolbarvisiblestmt
 	| mapstmt
 	| maximizestmt
+	| matstmt
 	| netclosestmt
 	| netconnectstmt
 	| netlistenstmt
@@ -2880,6 +2946,41 @@ mapstmt: 	B256MAP functionvariables {
 				numargs=0;	// clear the list for next function
 			}
 
+/* MAT - matrix arithmetic on arrays.  Every form is
+   "MAT op destination = source op operand", where the destination and the
+   left hand source are always array variables and so are passed by variable
+   number, and the right hand operand is an expression that may turn out at
+   run time to be either a matrix or a single number. */
+
+matsource:
+			variable_a {
+				// the left hand source is always a matrix - push a reference to
+				// it rather than its value, so no copy of the array is made
+				addIntOp(OP_VAR_REF, varnumber[--nvarnumber]);
+				matoperandstart = wordOffset;
+			}
+			;
+
+matstmt:	B256MATADD variable_a '=' matsource '+' expr {
+				matRightOperand();
+				addIntOp(OP_MATADD, varnumber[--nvarnumber]);
+			}
+			| B256MATSUB variable_a '=' matsource '-' expr {
+				matRightOperand();
+				addIntOp(OP_MATSUB, varnumber[--nvarnumber]);
+			}
+			| B256MATMUL variable_a '=' matsource '*' expr {
+				matRightOperand();
+				addIntOp(OP_MATMUL, varnumber[--nvarnumber]);
+			}
+			| B256MATTRN variable_a '=' matsource {
+				addIntOp(OP_MATTRN, varnumber[--nvarnumber]);
+			}
+			| B256MATINV variable_a '=' matsource {
+				addIntOp(OP_MATINV, varnumber[--nvarnumber]);
+			}
+			;
+
 dimstmt: 	B256DIM array_element {
 				// No FILL clause: zero-fill by default (0, or "" for a $ name).
 				int v = varnumber[--nvarnumber];
@@ -2973,6 +3074,11 @@ pausestmt:	B256PAUSE expr {
 			}
 			;
 
+frameratestmt:	B256FRAMERATE expr {
+				addOp(OP_FRAMERATE);
+			}
+			;
+
 throwerrorstmt:
 			B256THROWERROR expr {
 				addOp(OP_THROWERROR);
@@ -3010,6 +3116,17 @@ graphsizestmt:
 			}
 			| B256GRAPHSIZE args_eee {
 					addOp(OP_GRAPHSIZE);
+			}
+			;
+
+windowstmt:
+			B256WINDOW args_eeee {
+				addIntOp(OP_PUSHINT, 4); // number of arguments
+				addOp(OP_WINDOW);
+			}
+			| B256WINDOW args_none {
+				addIntOp(OP_PUSHINT, 0); // no arguments - back to surface pixels
+				addOp(OP_WINDOW);
 			}
 			;
 
