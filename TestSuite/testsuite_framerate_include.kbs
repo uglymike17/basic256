@@ -13,9 +13,15 @@ currentsuite = "framerate"
 #
 # These are timing assertions, so the bounds are deliberately lop-sided: a
 # result that is too EARLY is always a bug, while one that is too LATE can just
-# be a busy machine.  Lower bounds are therefore tight and upper bounds loose,
-# and the "absorbs work" test compares two measurements taken back to back
-# rather than either one against a constant.
+# be a busy machine.  Lower bounds are therefore tight, and they are what these
+# tests are really for; the upper bounds only catch a blunder of the order of
+# confusing seconds with milliseconds, and are set far enough out to leave a
+# slow machine alone.  They have to be: the macOS CI runners take about 80ms to
+# deliver a 15ms PAUSE and about 200ms to deliver a 50ms frame, so anything
+# expressed as a small multiple of the time asked for fails there on a build
+# with nothing wrong with it.  Where an upper bound does have to be tight, it
+# is written against a measurement taken on the same machine moments earlier
+# rather than against a constant.
 #
 # fps is used as an ordinary variable throughout on purpose - the statement is
 # FRAMERATE precisely so that fps stays free for programs to use.
@@ -48,7 +54,7 @@ next i
 idle = msec - t0
 
 call boolean("20 frames at 50fps are not delivered early (" + idle + "ms)", idle >= budget - 5)
-call boolean("20 frames at 50fps are not absurdly late (" + idle + "ms)", idle < budget * 3)
+call boolean("20 frames at 50fps are not absurdly late (" + idle + "ms)", idle < budget * 10)
 
 ###################################################
 # work inside the loop comes out of the wait
@@ -97,6 +103,19 @@ call boolean("the busy loop is still not delivered early (" + busy + "ms)", busy
 fps = 20
 period = 50								# ms
 
+# What one uninterrupted frame of this loop costs on THIS machine.  The last
+# test below asks whether the frame after an overrun waited one period or two,
+# and a machine that takes 200ms to deliver a 50ms frame would answer "two" to
+# any bound written as a multiple of the 50ms asked for.  Four frames are timed
+# rather than one so that a single slow wakeup cannot skew the reference.
+framerate 0
+framerate fps							# prime the deadline, does not wait
+t0 = msec
+for i = 1 to 4
+	framerate fps
+next i
+normal = (msec - t0) / 4
+
 framerate 0
 framerate fps
 pause 0.25								# blow the budget by five whole frames
@@ -109,7 +128,7 @@ t0 = msec
 framerate fps
 back = msec - t0
 call boolean("the frame after that is back on budget (" + back + "ms)", back >= period * 0.8)
-call boolean("and it is not running a burst to catch up (" + back + "ms)", back < period * 2)
+call boolean("and it is not running a burst to catch up (" + back + "ms against a " + normal + "ms frame)", back < normal * 2)
 
 ###################################################
 # PAUSE never returns early
@@ -126,7 +145,7 @@ for i = 1 to 50
 next i
 total = msec - t0
 call boolean("50 x pause .020 is never short (" + total + "ms)", total >= 1000 - 1)
-call boolean("50 x pause .020 is not absurdly long (" + total + "ms)", total < 1000 * 3)
+call boolean("50 x pause .020 is not absurdly long (" + total + "ms)", total < 1000 * 10)
 
 # .029 seconds is 28.999999999999996 milliseconds in binary floating point.
 # Converting a PAUSE to a whole number of milliseconds therefore rounded this
@@ -138,4 +157,4 @@ for i = 1 to 50
 next i
 total = msec - t0
 call boolean("50 x pause .029 does not round down to 28ms each (" + total + "ms)", total >= 1450 - 1)
-call boolean("50 x pause .029 is not absurdly long (" + total + "ms)", total < 1450 * 3)
+call boolean("50 x pause .029 is not absurdly long (" + total + "ms)", total < 1450 * 10)
