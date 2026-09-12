@@ -13,6 +13,7 @@ gosub CreateConnections
 #Main  drawing routine
 #*********************
 while true
+	framerate 100
 	gosub UpdateParticles
 	gosub Updateconnections
 	refresh

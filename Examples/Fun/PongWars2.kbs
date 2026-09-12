@@ -15,6 +15,7 @@ font "Arial",14,100
 #*******************************
 while true
 	clg
+	framerate 100
 	call drawSquares()
 	call drawScore(leftScore,rightScore)
 	call drawBalls()
@@ -23,7 +24,6 @@ while true
 	call updateBalls()
 	call addRandomness()
 	refresh
-#	pause 0.02
 end while
 
 # Subroutines
