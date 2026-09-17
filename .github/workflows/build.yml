@@ -16,7 +16,14 @@ on:
     # triggers nothing at all.
   pull_request:
   release:
-    types: [created]
+    # `published`, NOT `created`. GitHub only sends `created` for a release
+    # that was published without ever being saved as a draft -- so v2.1.0 and
+    # v2.1.1 (published straight away) built and uploaded themselves, while
+    # v2.2.0 was saved as a draft first and this workflow never ran for it at
+    # all. Every 2.2.0 asset then had to be attached by hand, straight from
+    # the run's artifacts page, which is how they arrived double-wrapped.
+    # `published` fires in both cases.
+    types: [published]
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -234,17 +241,51 @@ jobs:
     # ---------------------------
     # Upload Artifacts Step
     # ---------------------------
-    # Linux / macOS — single artifact, unchanged
-    - name: Upload artifacts (non-Windows)
-      if: runner.os != 'Windows'
+    # One deliverable per artifact. Everything a single upload-artifact step
+    # matches is packed into ONE archive named after `name:`, so the old
+    # combined step (*.tar.gz + *.zip + *.AppImage in one) handed Linux and
+    # Raspberry Pi users a single download holding both the tarball and the
+    # AppImage. Split, each is fetchable on its own.
+    #
+    # Note the layer that is NOT removable: upload-artifact always delivers a
+    # zip, so a run's artifacts page necessarily wraps whatever it is given --
+    # a pre-zipped macOS bundle arrives as a zip inside a zip, and the
+    # installer as a zipped .exe. That is an artifacts-page property only. The
+    # release job below unpacks these and publishes the inner files, so the
+    # release page carries a bare .exe, a bare .tar.gz and a bare .AppImage.
+    - name: Upload macOS bundle
+      if: runner.os == 'macOS'
       uses: actions/upload-artifact@v5
       with:
         name: ${{ matrix.artifact_name }}
-        if-no-files-found: ignore
-        path: |
-          ${{ github.workspace }}/*.tar.gz
-          ${{ github.workspace }}/*.zip
-          ${{ github.workspace }}/*.AppImage
+        if-no-files-found: error
+        # Pre-zipped by package_macos.sh with `ditto`, and it has to stay that
+        # way: the .app is a tree of symlinks with executable bits, and only
+        # ditto preserves them. Letting upload-artifact zip the raw bundle
+        # would produce a .app that will not launch.
+        path: ${{ github.workspace }}/*.zip
+
+    - name: Upload Linux tarball
+      if: runner.os == 'Linux'
+      uses: actions/upload-artifact@v5
+      with:
+        # "-tarball", not "-tar.gz". download-artifact unpacks each artifact
+        # into a DIRECTORY named after it, so an artifact named "-tar.gz"
+        # produces a directory the release job's `**/*.tar.gz` glob matches
+        # alongside the file inside it. action-gh-release happens to drop
+        # non-files, but naming a directory after a file extension is asking
+        # for the next tool in the chain to be less forgiving.
+        name: ${{ matrix.artifact_name }}-tarball
+        if-no-files-found: error
+        path: ${{ github.workspace }}/*.tar.gz
+
+    - name: Upload Linux AppImage
+      if: runner.os == 'Linux'
+      uses: actions/upload-artifact@v5
+      with:
+        name: ${{ matrix.artifact_name }}-AppImage
+        if-no-files-found: error
+        path: ${{ github.workspace }}/*.AppImage
 
     # Windows portable — the dist/ zip only
     - name: Upload Windows portable
@@ -252,7 +293,7 @@ jobs:
       uses: actions/upload-artifact@v5
       with:
         name: ${{ matrix.artifact_name }}
-        if-no-files-found: ignore
+        if-no-files-found: error
         path: ${{ github.workspace }}/*.zip
 
     # Windows installer — the .exe as its own artifact. Matched by name, not
@@ -264,7 +305,7 @@ jobs:
       uses: actions/upload-artifact@v5
       with:
         name: ${{ matrix.artifact_name }}-Installer
-        if-no-files-found: ignore
+        if-no-files-found: error
         path: ${{ github.workspace }}/BASIC256-*.exe
 
   flagsoff-dress-rehearsal:
@@ -388,7 +429,12 @@ jobs:
 
   release:
     name: Publish Release
-    needs: build
+    # `wasm` as well as `build`. It used to be `build` alone, while the
+    # download step below takes *every* artifact in the run -- so whether the
+    # WASM site was there at all came down to which job finished first. It
+    # never won that race, which is why BASIC256-WASM.zip was the one asset
+    # attached by hand on both 2.1.1 and 2.2.0.
+    needs: [ build, wasm ]
     if: github.event_name == 'release'
     runs-on: ubuntu-22.04
     permissions:
@@ -396,6 +442,35 @@ jobs:
     steps:
     - name: Download artifacts
       uses: actions/download-artifact@v4.3.0
+
+    # download-artifact unpacks, so every artifact's zip wrapper is gone by
+    # here and what gets published below is the deliverable itself: a bare
+    # .exe, a bare .tar.gz, a bare .AppImage, one .zip per macOS bundle.
+    #
+    # The WASM site is the exception -- it is a directory of loose files, so
+    # there is no inner archive to republish and the globs below would find
+    # nothing. Zip it here. `.` rather than the directory name keeps the site
+    # at the root of the archive (and carries .nojekyll, which a bare `zip -r`
+    # of a named directory would still take but nest one level down). It goes
+    # in dist/ so the `**/*.zip` glob below matches it once, and not also as a
+    # sibling of the unpacked BASIC256-WASM/ directory.
+    - name: Package the WASM site
+      run: |
+        mkdir -p dist
+        cd BASIC256-WASM
+        zip -qr ../dist/BASIC256-WASM.zip .
+
+    # Fails the release rather than publishing a mis-shaped asset. The site
+    # must sit at the root of the archive -- index.html one directory down is
+    # a bundle that does nothing when unpacked and served.
+    - name: Verify the release assets
+      run: |
+        if ! unzip -l dist/BASIC256-WASM.zip | grep -qE ' index[.]html$'; then
+          echo "::error::index.html is not at the root of BASIC256-WASM.zip"
+          exit 1
+        fi
+        ls -l */*.tar.gz */*.AppImage */*.zip */BASIC256-*.exe
+
     - name: Upload to GitHub Release
       uses: softprops/action-gh-release@v2
       with:
