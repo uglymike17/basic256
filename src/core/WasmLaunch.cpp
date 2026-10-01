@@ -109,15 +109,16 @@ QByteArray queryString() {
 // keep them to a shape that cannot walk out of the resource prefix.
 //
 // The examples are grouped into subdirectories, so a name may carry a category
-// ("Games/hangman"). Segments are still restricted to [A-Za-z0-9_-], which is
+// ("Games/hangman"). Segments are still restricted to [A-Za-z0-9 _-], which is
 // what keeps this safe: '.' appears nowhere except the optional ".kbs" suffix,
 // so ".." cannot be spelled at all, and a leading '/' or any backslash fails to
-// match. The extension is matched case-insensitively to agree with
-// resolveExampleName() -- otherwise ".KBS" would be rejected here before the
-// forgiving lookup ever ran.
+// match. Spaces are allowed because some example files have them in their
+// names ("verlet rope part 5_collision.kbs"). The extension is matched
+// case-insensitively to agree with resolveExampleName() -- otherwise ".KBS"
+// would be rejected here before the forgiving lookup ever ran.
 bool isSafeExampleName(const QString &name) {
     static const QRegularExpression rx(
-        "^[A-Za-z0-9_\\-]+(/[A-Za-z0-9_\\-]+)*(\\.kbs)?$",
+        "^[A-Za-z0-9 _\\-]+(/[A-Za-z0-9 _\\-]+)*(\\.kbs)?$",
         QRegularExpression::CaseInsensitiveOption);
     return rx.match(name).hasMatch();
 }
