@@ -1,4 +1,4 @@
-name: Build BASIC-256_2.3.0.Beta01 CMake
+name: Build and test BASIC-256 CMake
 on:
   push:
     branches: [ main, v2.3.0.Beta01 ]
