@@ -78,6 +78,7 @@ class BasicGraph : public QWidget, public ViewWidgetIFace
   QTransform gtransforminverted;
   void setTrasformationMaps();
   void resizeWindowToFitContent();
+  QPoint screenToGraph(const QPoint &);
 };
 
 

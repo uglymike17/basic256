@@ -105,12 +105,20 @@ void BasicGraph::resize(int width, int height, qreal scale) {
 
 void BasicGraph::setTrasformationMaps() {
     if(gscale<0.0){
-        gtransform = QTransform().translate(-(gwidth-1)*gscale*gzoom, -(gheight-1)*gscale*gzoom);
+        // a negative scale turns the image round; shift it by the full size so pixel 0 lands on the far edge
+        gtransform = QTransform().translate(-gwidth*gscale*gzoom, -gheight*gscale*gzoom);
         gtransform.scale(gscale*gzoom,gscale*gzoom);
     }else{
         gtransform = QTransform::fromScale(gscale*gzoom,gscale*gzoom);
     }
     gtransforminverted=gtransform.inverted();
+}
+
+QPoint BasicGraph::screenToGraph(const QPoint &pos) {
+    // map the centre of the screen pixel and round down, so every screen pixel
+    // of a scaled or zoomed graphics pixel reports that same graphics pixel
+    QPointF p = gtransforminverted.map(QPointF(pos) + QPointF(0.5, 0.5));
+    return QPoint(static_cast<int>(std::floor(p.x())), static_cast<int>(std::floor(p.y())));
 }
 
 void BasicGraph::resizeWindowToFitContent() {
@@ -201,7 +209,7 @@ void BasicGraph::leaveEvent(QEvent *) {
 
 void BasicGraph::mouseMoveEvent(QMouseEvent *e) {
 	static int c = Qt::ArrowCursor;
-    QPoint p = gtransforminverted.map(e->pos());
+    QPoint p = screenToGraph(e->pos());
     int x = p.x();
     int y = p.y();
 
@@ -239,8 +247,9 @@ void BasicGraph::mouseReleaseEvent(QMouseEvent *e) {
 }
 
 void BasicGraph::mousePressEvent(QMouseEvent *e) {
-    if (e->x() >= 0 && e->x() < gwidth && e->y() >= 0 && e->y() < gheight) {
-        QPoint p = gtransforminverted.map(e->pos());
+    // test the graphics pixel, not the screen pixel, or a scaled window only takes clicks in its top-left corner
+    QPoint p = screenToGraph(e->pos());
+    if (p.x() >= 0 && p.x() < gwidth && p.y() >= 0 && p.y() < gheight) {
         graphics->clickX = graphics->mouseX = p.x();
         graphics->clickY = graphics->mouseY = p.y();
 		graphics->clickB = e->button();
@@ -354,9 +363,10 @@ void BasicGraph::updateScreenImage(){
 }
 
 void BasicGraph::mouseDoubleClickEvent(QMouseEvent * e){
-    if (e->x() >= 0 && e->x() < gwidth && e->y() >= 0 && e->y() < gheight) {
-        graphics->clickX = graphics->mouseX = e->x();
-        graphics->clickY = graphics->mouseY = e->y();
+    QPoint p = screenToGraph(e->pos());
+    if (p.x() >= 0 && p.x() < gwidth && p.y() >= 0 && p.y() < gheight) {
+        graphics->clickX = graphics->mouseX = p.x();
+        graphics->clickY = graphics->mouseY = p.y();
         graphics->clickB = e->button() | MOUSEBUTTON_DOUBLECLICK; //set doubleclick flag
         graphics->mouseB = e->buttons();
     }
