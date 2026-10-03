@@ -14,6 +14,7 @@
  ;   2020-09-05   j.m.reneau         Updated to Qt 5.15.0
  ;   2026-06-18   m. vilain          Updated to Qt 5.15.2, _Win64_Install
  ;   2026-06-24   m. vilain          Add dist/Examples/TestSuite uninstall; VC++ redist check
+ ;   2026-10-03   m. vilain          Ask to close a running BASIC256; build date from makensis
 
  ;   On Windows use notepad or notepad++.
 
@@ -24,7 +25,8 @@
  !ifndef VERSION
      !define VERSION "2.1.Alpha04Qt6"
  !endif
- !define VERSIONDATE "2026-06-28"
+ ; the date makensis is run, so every build carries its own
+ !define /date VERSIONDATE "%Y-%m-%d"
  !define SDK_BIN "$%QT_DIR%\bin"
  !define SDK_LIB "$%QT_DIR%\lib"
  !define SDK_PLUGINS "$%QT_DIR%\plugins"
@@ -82,6 +84,35 @@
  	 ${NSD_FreeImage} $customImageHandle
  FunctionEnd
 
+ ; Windows will not let a running program's .exe be replaced or deleted, so
+ ; a BASIC256 still open from the install folder made the copy stop with a
+ ; bare "Error opening file for writing".  Opening the exe for writing fails
+ ; the same way while it runs; checking that up front lets the page ask the
+ ; user to close it.  Retry checks again, Cancel stays on the page.
+ !macro CheckNotRunning
+     ${If} ${FileExists} "$INSTDIR\basic256.exe"
+         ${Do}
+             ClearErrors
+             FileOpen $0 "$INSTDIR\basic256.exe" a
+             ${IfNot} ${Errors}
+                 FileClose $0
+                 ${Break}
+             ${EndIf}
+             ${If} ${Cmd} `MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "BASIC256 is running from $INSTDIR.$\n$\nClose every BASIC256 window, then click Retry." /SD IDCANCEL IDCANCEL`
+                 Abort
+             ${EndIf}
+         ${Loop}
+     ${EndIf}
+ !macroend
+
+ Function directoryLeave
+     !insertmacro CheckNotRunning
+ FunctionEnd
+
+ Function un.confirmLeave
+     !insertmacro CheckNotRunning
+ FunctionEnd
+
 
  ;   The name of the installer
  Name "BASIC256 ${VERSION} (${VERSIONDATE})"
@@ -109,10 +140,10 @@
  Page license
  LicenseData "license.txt"
  Page components
- Page directory
+ Page directory "" "" directoryLeave
  Page instfiles
 
- UninstPage uninstConfirm
+ UninstPage uninstConfirm "" "" un.confirmLeave
  UninstPage instfiles
 
  ;---------------------------------
