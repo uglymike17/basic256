@@ -85,25 +85,18 @@ next i
 busy = msec - t0
 
 # Absorbing the work means the loop costs whichever is the GREATER of the frame
-# budget and the work itself, never the two added together, so the test is
-# whether busy came out nearer the greater of them than their sum.  Half the
-# smaller of the two is allowed on top of the greater, and that slack is taken
-# from the measurements rather than being a fixed number of milliseconds
-# because it has to cover jitter, which scales with them: where a machine's
-# sleeps wander, a frame whose work happens to come in under the budget is
-# still padded out to the deadline, so the total sits above the greater of the
-# two even when every frame was absorbed properly.  A limiter that slept for a
-# fixed time would come out at idle + alone and so miss the bound by half the
-# smaller again, which is never less than 150ms however slowly the host sleeps.
+# budget and the work itself, never the two added together, so the bound is
+# their sum: a limiter that slept a fixed time after the work instead of
+# waiting to a deadline comes out at idle + alone, and anything that absorbs
+# the work comes in under it.  The bound used to sit tighter, at the greater
+# plus half the smaller, but the macOS runners stretch a 15ms PAUSE to over
+# 60ms and wander by hundreds of milliseconds between one measurement and the
+# next, and they failed that bound on builds with nothing wrong with them
+# (busy 1856 against 1681 allowed, where the sum was 2094).  The sum is the
+# one line that separates the two behaviours however slowly the host sleeps.
 # The measurements are printed with the result because a timing test that fails
 # on a machine you cannot see is no use without them.
-bigger = idle
-smaller = alone
-if alone > bigger then
-	bigger = alone
-	smaller = idle
-end if
-call boolean("work inside the frame is absorbed, not added (busy " + busy + ", idle " + idle + ", alone " + alone + ")", busy <= bigger + smaller / 2)
+call boolean("work inside the frame is absorbed, not added (busy " + busy + ", idle " + idle + ", alone " + alone + ")", busy < idle + alone)
 call boolean("the busy loop is still not delivered early (" + busy + "ms)", busy >= budget - 5)
 
 ###################################################
