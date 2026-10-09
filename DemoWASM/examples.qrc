@@ -11,6 +11,11 @@
         <file>Demo/Life_GUI.kbs</file>
         <file>Demo/Quiverbloom.kbs</file>
         <file>Demo/SlimeMoldSimulation_GUI.kbs</file>
+        <file>FallingSand/falling_sand_part0.kbs</file>
+        <file>FallingSand/falling_sand_part1.kbs</file>
+        <file>FallingSand/falling_sand_part2.kbs</file>
+        <file>FallingSand/falling_sand_part3.kbs</file>
+        <file>FallingSand/falling_sand_part4.kbs</file>
         <file>FractalsChaosAttractors/BarnsleyFern.kbs</file>
         <file>FractalsChaosAttractors/CloudySky.kbs</file>
         <file>FractalsChaosAttractors/JuliaMoerman.kbs</file>

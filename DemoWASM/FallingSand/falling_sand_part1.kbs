@@ -1,0 +1,136 @@
+# Part 1 of Falling Sand
+#************************************************************************ 
+# The idea is to have a simple environment with just static rock and sand 
+# created where you click/hold the mouse down.
+# In part 2, we'll let you select to create sand or paint rock obstacles
+# In part 3, we'll add water and air (water does not form heaps, air erases) 
+# In part 4, we'll add multicolored sand.
+#************************************************************************
+# Standard screen boilerplate
+gosub ScreenSetup
+# Falling Sand lives in a big matrix with each cell having a value relating to its material
+gosub Variables
+# Here, we create the initial screen with  predefined walls, a floor and obstacles
+gosub InitialScreen
+
+#drawing routine
+while true
+	if mouseb = 1 then gosub AddSand # if left button is down, create some sand particle but do not overide rock with sand
+	gosub ShowWorld
+	refresh
+end while
+
+
+Addsand:
+# a few grains per frame around the mouse pointer
+for k = 1 to 4
+   x = int(mousex + rand*5 - 2)
+   y = int(mousey + rand*5 - 2)
+   if x < 2 then x = 2
+   if x > width-3 then x = width-3
+   if y < 0 then y = 0
+   if y > height-3 then y = height-3
+   if world[x,y] = air then
+      world[x,y] = sand
+      color orange
+      plot x,y
+      if y < TopRow then TopRow = y
+   endif
+next k
+return
+
+ShowWorld:
+# we go bottom up, otherwise, we'll run into particles we just moved down. we skip floor and walls
+for j = height - 3 to TopRow step -1
+	for i = 2 to width - 3
+		if world[i,j]=sand then gosub MoveSand
+	next i
+next j
+return
+
+MoveSand:
+newindex = -1
+# 1. cell below = air
+if world[i,j+1] = air then
+	newindex = i
+else
+	# cell below left is air	
+   if world[i-1,j+1] = air then newindex = i-1
+   #call below right = air
+   if world[i+1,j+1] = air then
+      # check if newindex has changed
+      if newindex = -1 then
+         #if not so right was occupied
+         newindex = i+1
+      else
+      	 #if both left nd right cells free randomize roll direction
+         if rand < 0.5 then newindex = i+1
+      endif
+   endif
+endif
+# if sand cannot move do nothing
+if newindex = -1 then return
+# if sand moved, empty cell and move to new position
+world[i,j] = air
+world[newindex,j+1] = sand
+color black
+plot i,j
+color orange
+plot newindex,j+1
+return
+
+ScreenSetup:
+fastgraphics
+width = 256
+height = 256
+graphsize width, height,2
+clg black
+refresh
+return
+
+Variables:
+dim world(width,height)
+air = 0		# gets color black (higher contrast than white)
+rock = 1	# gets color gray
+sand = 2	# gets color orange
+TopRow = height -2 # highest row that  holds sand -  nothing above it is scanned
+return
+
+InitialScreen:
+#Draw the static scene: rock at bottom and sides + obstacle
+#rock at bottom
+for i = 0 to width - 1
+	world[i,height-1]=1
+	world[i,height-2]=1
+next i
+#rock at both sides
+for i = 0 to height-1
+	world[0,i]=1
+	world[width-1,i]=1
+	world[1,i]=1
+	world[width-2,i]=1
+next i
+#horizontal obstacle
+for i = 50 to 100
+	world[i,100]=1
+next i	
+#sloping obstacle
+for i = 150 to 200
+	world[i,i]=1
+	world[i,i+1]=1
+	world[i,i+2]=1
+next i	
+for i = 0 to 8
+  for j = 100 to 108
+  	world[i,j]=1
+  next j
+next i    
+#draw the initial static scene
+color grey
+for i = width-1 to 0 step -1
+	for j = height -1 to 0 step -1
+      if world[i,j] = 1 then plot i,j
+	next j
+next i
+refresh
+return

@@ -1,0 +1,284 @@
+# Part 4 of Falling Sand
+#******************************************************************************
+# The idea is to have a environment where you either sprinkle multicolored
+# Sand or Water by holding the mouse down. You can also 'paint' Rock and Air
+# by holding the mouse down and slowly moving. The Air 'brush' act as an erasor
+#******************************************************************************
+# Standard screen boilerplate
+gosub ScreenSetup
+# Falling Sand lives in a big matrix with each cell having a value relating to its material
+gosub Variables
+# Here, we create the initial screen with predefined walls, a floor and obstacles
+gosub InitialScreen
+#drawing routine
+while true
+	if mouseb = 1 then
+		if mousey < 33 then
+			# in the material selector, so select correct material
+			newmat = sw_material
+			if mousex < width/2 then
+				# ten sand swatches, 13 pixels wide each
+				if mousex > 3 then sw_material = sand0 + int(mousex/13)
+			else
+				begin case
+					case mousex < width/3*2
+						sw_material = rock
+					case mousex < width/6*5
+						sw_material = water
+					else
+						sw_material = air
+				end case
+			endif
+			gosub Selector
+		else
+			# not in the material selector, so on the canvas
+			if sw_material >= sand0 then
+				gosub Sprinkle		# any sand color, or water
+			else
+				gosub Paint		# rock or air (eraser)
+			endif
+		endif
+	endif
+	gosub UpdateWorld
+	refresh
+end while
+
+Sprinkle:
+# create a few particles of sand or water per frame around the mouse, never on rock
+if sw_material = water then
+	color cyan
+else
+	color colorrange[sw_material-sand0]
+endif
+for k = 1 to 4
+	x = int(mousex + rand*5 - 2)
+	y = int(mousey + rand*5 - 2)
+	if x < 2 then x = 2
+	if x > width-3 then x = width-3
+	if y < 34 then y = 34
+	if y > height-3 then y = height-3
+	if world[x,y] <> rock then
+		world[x,y] = sw_material
+		plot x,y
+		if y < topRow then topRow = y
+	endif
+next k
+return
+
+Paint:
+# a 3x3 block of rock or air, overwriting whatever is there (except the frame)
+if sw_material = rock then
+	color gray
+else
+	color black
+endif
+for dx = -1 to 1
+	for dy = -1 to 1
+		x = int(mousex) + dx
+		y = int(mousey) + dy
+		if x > 1 and x < width-2 and y > 33 and y < height-2 then
+			if world[x,y] <> sw_material then
+				world[x,y] = sw_material
+				plot x,y
+			endif
+		endif
+	next dy
+next dx
+return
+
+UpdateWorld:
+# we go bottom up, otherwise, we'll run into particles we just moved down.
+# Water can also move sideways within the row; if it moves in the scan
+# direction we skip the cell it landed in, so it can't move twice.
+for j = height-3 to topRow step -1
+	# randomly slect to go from left to right or from right to left
+	if rand > 0.5 then
+		a = width-3 : b = 2 : stap = -1
+	else
+		a = 2 : b = width-3 : stap = 1
+	endif
+	# b is one past the last column, so the loop stops there
+	for i = a to b step stap
+		c = world[i,j]
+		if c > rock then		# only sand (2 - 11) and water (12) move
+			if c = water then
+				gosub MoveWater
+			else
+				gosub MoveSand
+			endif
+		endif
+	next i
+next j
+return
+
+MoveSand:
+# Sand falls (or slides diagonally) through air OR water, swapping places with it.
+# c holds this grain's sand value, so its color travels with it.
+nextj = j+1
+cellbelow = world[i,nextj]
+if cellbelow = air or cellbelow = water then
+	nexti = i
+else
+	nexti = -1
+	cellbelowleft = world[i-1,nextj]
+	if cellbelowleft = air or cellbelowleft = water then nexti = i-1
+	cellbelowright = world[i+1,nextj]
+	if cellbelowright = air or cellbelowright = water then
+		# nexti still at -1 means cellbelowleft rock or sand, so go right
+		if nexti = -1 then
+			nexti = i+1
+		else
+			# both cellbelowleft and cellbelowright free, so flip coin
+			if rand < 0.5 then nexti = i+1
+		endif
+	endif
+	if nexti = -1 then return #no empty cell found
+endif
+oldmaterial = world[nexti,nextj]
+world[nexti,nextj] = c
+world[i,j] = oldmaterial
+color colorrange[c-sand0]
+plot nexti,nextj
+if oldmaterial = water then
+	color cyan
+else
+	color black
+endif
+plot i,j
+return
+
+MoveWater:
+# water goes 1. down, 2. diagonally down, 3. slides sideways - always into air only
+nextj = j+1
+if world[i,nextj] = air then
+	nexti = i
+else
+	nexti = -1
+	if world[i-1,nextj] = air then nexti = i-1
+	if world[i+1,nextj] = air then
+		if nexti = -1 then
+			nexti = i+1
+		else
+			if rand < 0.5 then nexti = i+1
+		endif
+	endif
+	if nexti = -1 then 	  #cells below, below left and below right occupied, so slide
+		nextj = j
+		if world[i-1,j] = air then nexti = i-1
+		if world[i+1,j] = air then
+			if nexti = -1 then
+				nexti = i+1
+			else
+				if rand < 0.5 then nexti = i+1
+			endif
+		endif
+		if nexti = -1 then return
+	endif
+endif
+world[nexti,nextj] = water
+world[i,j] = air
+color black
+plot i,j
+color cyan
+plot nexti,nextj
+# moved sideways in the scan direction: skip that cell for the rest of this frame
+if nextj = j and nexti = i + stap then i = i + stap
+return
+
+ScreenSetup:
+fastgraphics
+width = 256
+height = 256
+graphsize width, height,2
+clg white
+for i = 0 to 9
+	color hsv(i*30+10,80,80)
+	rect floor(i*13),0, 13,33
+next i
+color grey
+rect width/2,0, width/6,33
+color cyan
+rect width/3*2,0, width/6,33
+color white
+rect width/6*5,0, width/6,33
+font "arial",6,30
+color black,clear
+rect 0,0,width,33
+text 40,3,"click to select"
+text 168,3,"click to select"
+refresh
+return
+
+Variables:
+dim world(width,height)
+dim colorrange(10)
+air = 0		# gets color black
+rock = 1	# gets a color gray
+sand0 = 2	# sand0..sand9 (2..11) each get their own sand color
+sand9 = 11
+water = 12	# gets color cyan
+sw_material = air	#default
+for i = 0 to 9
+	colorrange[i] = hsv(i*30+10,80,80)
+next i
+topRow = height-2	# highest row holding sand/water; nothing above it is scanned
+return
+
+InitialScreen:
+#Draw the static scene: rock at bottom and sides + obstacle
+#rock at bottom
+for i = 0 to width - 1
+	world[i,height-1]=rock
+	world[i,height-2]=rock
+next i
+#rock at both sides
+for i = 33 to height-1
+	world[0,i]=rock
+	world[width-1,i]=rock
+	world[1,i]=rock
+	world[width-2,i]=rock
+next i
+#horizontal obstacle
+for i = 50 to 100
+	world[i,100]=rock
+next i
+#sloping obstacle
+for i = 150 to 200
+	world[i,i]=rock
+	world[i,i+1]=rock
+	world[i,i+2]=rock
+next i
+for i = 0 to 8
+	for j = 100 to 108
+		world[i,j]=rock
+	next j
+next i
+#draw the static scene once. After this only changed cells are drawn
+color black
+rect 0,33, width,height-33
+color gray
+for j = 33 to height-1
+	for i = 0 to width-1
+		if world[i,j] = rock then plot i,j
+	next i
+next j
+gosub Selector
+refresh
+return
+
+Selector:
+# selected material in white (Air in red), the others in black
+font "arial",10,30
+color black
+if sw_material >= sand0 and sw_material <= sand9 then color white
+text 50,10,"Sand"
+color black
+if sw_material = rock then color white
+text 135,10,"Rock"
+color black
+if sw_material = water then color white
+text 175,10,"Water"
+color black
+if sw_material = air then color red
+text 225,10,"Air"
+return

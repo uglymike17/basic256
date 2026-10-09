@@ -1,0 +1,76 @@
+# Part 0 of Falling Sand
+#************************************************************************ 
+# The idea is to show a simple environment with just some static rocks.
+# In part 1, we'll let you create sand by holding the mouse button down.
+# In part 2, we'll let you select to create sand or paint rock obstacles
+# In part 3, we'll add water and air (water does not form heaps, air erases) 
+# In part 4, we'll add multicolored sand.
+#************************************************************************
+# Standard screen boilerplate
+gosub ScreenSetup
+# Falling Sand lives in a big matrix with each cell having a value relating to its material
+gosub Variables
+# Here, we create the initial screen with  predefined walls, a floor and obstacles
+gosub InitialScreen
+
+end	# nothing to see yet, just the initial startscreen
+
+ScreenSetup:
+fastgraphics
+width = 256
+height = 256
+graphsize width, height,2
+clg white
+refresh
+return
+
+Variables:
+dim world(width,height)
+air = 0		#the air is black (better contrast)
+rock = 1	# gets color gray
+return
+
+InitialScreen:
+#Draw the static scene: rock at bottom and sides + obstacle
+#rock at bottom
+for i = 0 to width - 1
+	world[i,height-1]=1
+	world[i,height-2]=1
+next i
+#rock at both sides
+for i = 0 to height-1
+	world[0,i]=1
+	world[width-1,i]=1
+	world[1,i]=1
+	world[width-2,i]=1
+next i
+#horizontal obstacle
+for i = 50 to 100
+	world[i,100]=1
+next i	
+#sloping obstacle
+for i = 150 to 200
+	world[i,i]=1
+	world[i,i+1]=1
+	world[i,i+2]=1
+next i	
+#left side bump
+for i = 0 to 8
+  for j = 100 to 108
+  	world[i,j]=1
+  next j
+next i    
+#draw the initial static scene
+for i = width-1 to 0 step -1
+	for j = height -1 to 0 step -1
+			begin case
+			case world[i,j]=1 #rock
+				color gray
+			else			  # air
+				color black
+		end case
+		plot i,j
+	next j
+next i
+refresh
+return
