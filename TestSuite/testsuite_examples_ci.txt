@@ -1,0 +1,79 @@
+# testsuite_examples_ci.txt for BASIC256
+#
+# The programs in Examples/Original_Examples that CI runs one at a time with
+# `basic256 -s`. Paths are relative to Examples/Original_Examples, one per
+# line; blank lines and lines starting with # are ignored. The runners are
+# .github/scripts/run_examples.sh and .github/scripts/run_examples.ps1.
+#
+# An example passes when it ends on its own inside the time limit, exits with
+# code 0 and prints no ERROR. That proves it still compiles and runs to the
+# end on the current interpreter; whether a drawing LOOKS right is left to
+# testsuite_examples.kbs, the version a person runs from the IDE.
+#
+# Every example that can do that is listed here. The rest are left out for
+# one of these reasons:
+#   needs the keyboard, the mouse or INPUT:  15puzzle, cards_deal5, collision,
+#       collision3, mousedoodle, paddle, pie_chart, ping, quotations,
+#       solar_system, story, teamdatabase, tictactoe, tictactoe_comp,
+#       sprites/spritetest3, testing/2darraytest, testing/2dstrarraytest,
+#       testing/input_numeric_test, testing/input_string_test,
+#       testing/KalRGB, testing/test_dountil, testing/testchr
+#   runs until it is stopped:  ballanim, mandelbrot, moving_squares, ring_01,
+#       rotating3dcube, sliceanimation, snowflakes, sqrt,
+#       imgload/animatedhelp, sprites/spriteslice, sprites/spritetest2,
+#       testing/testtime
+#   plays sound (the CI machines have no audio):  dice/dice,
+#       sound/wavplaystop, sprites/breakout
+#   uses the network:  everything in networking/
+#   stops on an error on purpose:  errortrapping, imgload/imgload,
+#       testing/uaarray
+#   broken on the current interpreter:  testing/global_array_test (CALL
+#       without brackets), testing/test_slice (old PUTSLICE form),
+#       testing/testimagesave (IMGSAVE to GIF is not supported)
+
+arc_example.kbs
+arrays.kbs
+ballaccel.kbs
+card_suites.kbs
+checkerboard.kbs
+chord_example.kbs
+databasefoo.kbs
+db_quote.kbs
+function_factorial.kbs
+function_randint.kbs
+hangman.kbs
+hello.kbs
+plot.kbs
+plot2.kbs
+poly.kbs
+polytest.kbs
+rainbow.kbs
+stamp.kbs
+stamp_flower.kbs
+subroutine_global.kbs
+subroutine_squares.kbs
+trig.kbs
+uniformRV.kbs
+imgload/rotate.kbs
+sprites/bounce.kbs
+sprites/spritetest1.kbs
+testing/arraylistassign.kbs
+testing/beautifytest.kbs
+testing/binaryfileio.kbs
+testing/counttest.kbs
+testing/explodetest.kbs
+testing/fontdemo.kbs
+testing/instrtest.kbs
+testing/random_one.kbs
+testing/readbinary_test.kbs
+testing/replacetest.kbs
+testing/tes_oo.kbs
+testing/test_logicalops.kbs
+testing/test_multiline_if.kbs
+testing/test_while_loops.kbs
+testing/testlineio.kbs
+testing/testmath.kbs
+testing/testmodulo.kbs
+testing/testplusplus.kbs
+testing/testplusplus2.kbs
+testing/testtextfont.kbs

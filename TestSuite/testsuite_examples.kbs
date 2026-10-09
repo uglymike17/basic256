@@ -1,0 +1,193 @@
+# testsuite_examples for BASIC256
+#
+# Opens every program in Examples/Original_Examples, one at a time, in its own
+# BASIC-256 window, so a person can check by eye that each one still works.
+# After each example is closed it asks whether it worked, and at the end it
+# lists every example that did not.
+#
+# testsuite_examples_ci.txt is the CI version: the examples that can run with
+# nobody watching, each started with `basic256 -s` by
+# .github/scripts/run_examples.sh and run_examples.ps1.
+#
+# Left out here as well as from CI:
+#   networking/netserver.kbs and netclient.kbs only work as a pair running at
+#       the same time, and SYSTEM waits for one program to finish before the
+#       next can start - run netserver first, then netclient, by hand
+#   testing/global_array_test.kbs, testing/test_slice.kbs and
+#       testing/testimagesave.kbs no longer run on the current interpreter
+#       (CALL without brackets, an old PUTSLICE form, IMGSAVE to GIF)
+#
+# Modification History
+# date		programmer	description
+# 20261004	m.vilain	original coding
+
+include "testsuite_common_include.kbs"
+
+currentsuite = "examples"
+
+###################################################
+call section("Original Examples")
+###################################################
+
+print "Each example opens in a BASIC-256 window of its own and starts running."
+print "Read what to look for, try it, then close that window."
+print "You are then asked whether it worked."
+print
+print "Before you start, check the preferences of THIS window:"
+print "On the 'Advanced' tab"
+print "  'Allow SYSTEM statement' must be allow, or you are asked about every example"
+print
+call different("Allow SYSTEM Statement", getSetting("SYSTEM","Allow/System"),0)
+
+# Each entry is "path|what to look for", the path relative to
+# Examples/Original_Examples.
+dim examples(1)
+examples = {
+	"15puzzle.kbs|A 4x4 sliding puzzle. Click a tile next to the gap and it slides into it.",
+	"arc_example.kbs|Arcs drawn in several colours.",
+	"arrays.kbs|The array is printed, with 42 in elements 0, 3 and 5.",
+	"ballaccel.kbs|A ball bounces lower and lower, as if under gravity, then the program ends.",
+	"ballanim.kbs|A ball bounces around the window until you stop the program.",
+	"card_suites.kbs|The four card suits (diamond, heart, club, spade) are drawn.",
+	"cards_deal5.kbs|Five cards are dealt face down. Click a card to turn it over.",
+	"checkerboard.kbs|A black and white checkerboard pattern.",
+	"chord_example.kbs|Chords (arcs closed by a straight line) drawn in several colours.",
+	"collision.kbs|Two balls bounce off the walls and off each other. Enter ends it.",
+	"collision3.kbs|Three balls bounce off the walls and off each other. Enter ends it.",
+	"databasefoo.kbs|A database table is made and its rows are printed.",
+	"db_quote.kbs|A quotation is read from a small database and printed.",
+	"dice/dice.kbs|Two dice roll with a rattling sound, then the total is printed.",
+	"errortrapping.kbs|Prints 1, a trapped error, 2, a trapped error and Runs Anyway, then 3, then STOPS with Division by zero on line 12. That stop is on purpose.",
+	"function_factorial.kbs|Factorials from 1! to 20! are printed.",
+	"function_randint.kbs|100 random numbers from 0 to 5 are printed.",
+	"hangman.kbs|A hangman: gallows, head, body, arms, legs and RIP are drawn.",
+	"hello.kbs|Prints Hello World.",
+	"imgload/animatedhelp.kbs|A help picture moves around over a bitmap until you stop the program.",
+	"imgload/imgload.kbs|A bitmap and ten help pictures are drawn, then it STOPS with an error about crap.gif. That stop is on purpose.",
+	"imgload/rotate.kbs|A bitmap and fifty help pictures, each rotated and scaled.",
+	"mandelbrot.kbs|The Mandelbrot set is drawn in a large graphics window. Stop the program when it is done.",
+	"mousedoodle.kbs|Draw with the mouse: left button in black, right button in changing colours.",
+	"moving_squares.kbs|Moving squares animate until you stop the program.",
+	"networking/netgethomepage.kbs|Needs the internet. Connects to a web site and prints the page it sends back.",
+	"networking/netgetmany.kbs|Needs the internet. Connects to five web sites at once and prints what each sends back.",
+	"networking/netgoogle.kbs|Needs the internet. Prints connected, written and the reply from www.google.com.",
+	"paddle.kbs|Move the paddle with the J and K keys.",
+	"pie_chart.kbs|A pie chart in a rectangle. Press Enter in the text output for a second one in a circle.",
+	"ping.kbs|A ping game: move the paddle with J and K to hit the ball.",
+	"plot.kbs|Diagonal and vertical lines made of single points.",
+	"plot2.kbs|A yellow diagonal line made of single points.",
+	"poly.kbs|A polygon is drawn.",
+	"polytest.kbs|Several polygons, drawn from arrays and from lists.",
+	"quotations.kbs|A menu: view a random quote, list them, add one. 0 quits.",
+	"rainbow.kbs|A rainbow-coloured pattern is drawn.",
+	"ring_01.kbs|A ring pattern animates until you stop the program.",
+	"rotating3dcube.kbs|A 3D wire cube. Move the mouse over the graphics window to rotate it.",
+	"sliceanimation.kbs|A shape is cut out of the screen and moved around until you stop the program.",
+	"snowflakes.kbs|Snowflakes are drawn one after another until you stop the program.",
+	"solar_system.kbs|The eight planets circle the sun. The space bar stops it.",
+	"sound/wavplaystop.kbs|A sound plays, pauses, carries on and stops, with its state printed. A WARNING that WAVPLAY is obsolete is expected.",
+	"sprites/bounce.kbs|A ball sprite bounces. Move the mouse to steer the paddle under it.",
+	"sprites/breakout.kbs|Breakout, with sounds: steer the paddle with the mouse to knock out the blocks.",
+	"sprites/spriteslice.kbs|Shapes are captured into sprites that move around until you stop the program.",
+	"sprites/spritetest1.kbs|Three sprites move across the window.",
+	"sprites/spritetest2.kbs|A crowd of sprites jitters until you stop the program.",
+	"sprites/spritetest3.kbs|Move a sprite with the mouse; it rotates and changes size.",
+	"sqrt.kbs|The square root of 56224 is worked out geometrically, step by step.",
+	"stamp.kbs|A shape is stamped many times, moved, rotated and scaled.",
+	"stamp_flower.kbs|A flower is drawn by stamping one shape round in a circle.",
+	"story.kbs|Asks for a name and some words, then prints a wacky story using them.",
+	"subroutine_global.kbs|Shows the global variables changed inside changeroo and the local ones left alone.",
+	"subroutine_squares.kbs|100 random coloured squares.",
+	"teamdatabase.kbs|A menu to create the tables, add and list teams and players. 0 exits.",
+	"testing/2darraytest.kbs|Arrays are printed, resized, and filled from numbers you type.",
+	"testing/2dstrarraytest.kbs|String arrays are printed, resized, and filled from words you type.",
+	"testing/KalRGB.kbs|A kaleidoscope of colours. Q stops it.",
+	"testing/arraylistassign.kbs|Arrays assigned from lists of different lengths are printed.",
+	"testing/beautifytest.kbs|Prints not zero and similar lines 100 times.",
+	"testing/binaryfileio.kbs|A binary file is written, read back, and read again from position 10.",
+	"testing/counttest.kbs|Counts of letters and words in a sentence.",
+	"testing/explodetest.kbs|A sentence is split up into words in several ways.",
+	"testing/fontdemo.kbs|Text drawn in five different fonts.",
+	"testing/input_numeric_test.kbs|Type numbers and each one is printed back. A number over 100 stops it.",
+	"testing/input_string_test.kbs|Type words and each one is printed back. stop stops it.",
+	"testing/instrtest.kbs|Positions of words found in a sentence.",
+	"testing/random_one.kbs|One million random numbers; badkount must be 0.",
+	"testing/readbinary_test.kbs|The bytes 0 to 255 are written to a file and read back.",
+	"testing/replacetest.kbs|yellow is replaced by blue in a sentence, and similar.",
+	"testing/tes_oo.kbs|Sums showing the order of operations; each result matches the value given.",
+	"testing/test_dountil.kbs|The mouse button state is printed over and over. The centre mouse button stops it.",
+	"testing/test_logicalops.kbs|Comparisons and logical operations are printed.",
+	"testing/test_multiline_if.kbs|Prints i is one, j is one and similar.",
+	"testing/test_while_loops.kbs|Nested while loops count up and print.",
+	"testing/testchr.kbs|The alphabet is printed, then press any key and it is described.",
+	"testing/testlineio.kbs|Eight lines are written to a file, then read back and printed.",
+	"testing/testmath.kbs|Maths and comparison checks; it must end with failed = 0.",
+	"testing/testmodulo.kbs|Modulo sums; each result matches the value given.",
+	"testing/testplusplus.kbs|++, --, +=, -=, *= and /= on variables; each result matches the value given.",
+	"testing/testplusplus2.kbs|The same shortcuts on array elements; each result matches the value given.",
+	"testing/testtextfont.kbs|foo and bar written 1000 times in random sizes and colours.",
+	"testing/testtime.kbs|The date and time are printed over and over until you stop the program.",
+	"testing/uaarray.kbs|STOPS on line 17 with Array or Map Expression Expected. That error, and no crash, is what it tests.",
+	"tictactoe.kbs|Two players take turns clicking cells of a noughts and crosses board.",
+	"tictactoe_comp.kbs|Noughts and crosses: type c or h for each player, then play against the computer.",
+	"trig.kbs|A sine wave made of points.",
+	"uniformRV.kbs|A bar chart of one million random numbers; the bars are all about the same height." }
+
+# Where to find basic256 itself, relative to this TestSuite folder: next to
+# it in an installed or unzipped copy, or in build/ in a source tree.
+function findbasic256()
+	if ostype = ostype_windows then
+		dim places = {"../basic256.exe", "../build/Release/basic256.exe", "../build/basic256.exe"}
+	else
+		if ostype = ostype_macintosh then
+			dim places = {"../basic256.app/Contents/MacOS/basic256", "../build/basic256.app/Contents/MacOS/basic256"}
+		else
+			dim places = {"../basic256", "../build/basic256"}
+		end if
+	end if
+	for i = 0 to places[?]-1
+		if exists(places[i]) then return currentdir + "/" + places[i]
+	next i
+	print "basic256 was not found next to the TestSuite folder."
+	input "Type the full path of the basic256 program: ", typed
+	return typed
+end function
+
+exe = findbasic256()
+root = currentdir + "/../Examples/Original_Examples/"
+if not exists(root) then
+	print "The Examples/Original_Examples folder was not found next to the TestSuite folder."
+	end
+end if
+print "Using " + exe
+print
+
+input "Start at example number (1 to " + examples[?] + ", Enter for 1): ", typed
+start = 1
+if typed <> "" then start = int(typed)
+
+dq = chr(34)
+failed = ""
+failedcount = 0
+for e = start - 1 to examples[?] - 1
+	parts = explode(examples[e], "|")
+	print
+	print (e + 1) + " of " + examples[?] + ": " + parts[0]
+	print "   " + parts[1]
+	system dq + exe + dq + " -r " + dq + root + parts[0] + dq
+	if yn(parts[0] + " worked?") then
+		print "pass"
+	else
+		print "fail"
+		failed = failed + "   " + (e + 1) + " " + parts[0] + chr(10)
+		failedcount = failedcount + 1
+	end if
+next e
+
+print
+if failedcount = 0 then
+	print "Every example worked."
+else
+	print failedcount + " examples did not work:"
+	print failed;
+end if

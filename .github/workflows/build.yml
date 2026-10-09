@@ -102,6 +102,14 @@ jobs:
       run: |
         bash .github/scripts/run_testsuite.sh build/basic256
 
+    # Each original example listed in TestSuite/testsuite_examples_ci.txt runs
+    # in its own basic256 -s process, so this takes minutes, not seconds.
+    - name: Run original examples (Linux x86_64)
+      if: matrix.os == 'ubuntu-22.04'
+      timeout-minutes: 20
+      run: |
+        bash .github/scripts/run_examples.sh build/basic256
+
     # -----------------------------------------------------------------
     # Raspberry Pi ARM64 Native Build Flow
     # -----------------------------------------------------------------
@@ -118,6 +126,12 @@ jobs:
       timeout-minutes: 5
       run: |
         bash .github/scripts/run_testsuite.sh build/basic256
+
+    - name: Run original examples (Linux ARM64)
+      if: matrix.os == 'ubuntu-24.04-arm'
+      timeout-minutes: 20
+      run: |
+        bash .github/scripts/run_examples.sh build/basic256
 
     # ---------------------------
     # Windows Build
@@ -139,6 +153,13 @@ jobs:
       timeout-minutes: 5
       run:
         ./.github/scripts/run_testsuite.ps1 -Basic256Exe build\Release\basic256.exe
+
+    - name: Run original examples (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      timeout-minutes: 20
+      run:
+        ./.github/scripts/run_examples.ps1 -Basic256Exe build\Release\basic256.exe
 
     # ---------------------------
     # MacOS Build
@@ -162,6 +183,13 @@ jobs:
       timeout-minutes: 5
       run: |
         bash .github/scripts/run_testsuite.sh build/basic256.app/Contents/MacOS/basic256
+
+    - name: Run original examples (macOS)
+      if: runner.os == 'macOS'
+      shell: bash
+      timeout-minutes: 20
+      run: |
+        bash .github/scripts/run_examples.sh build/basic256.app/Contents/MacOS/basic256
 
 
     # ---------------------------
