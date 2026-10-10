@@ -4,6 +4,8 @@
 # by clicking/holding the mouse down. You can also 'paint' Rock and Air
 # with the Air 'brush' acting as an erasor. Rock stays where it's painted
 # In part 4, we'll add multicolored sand.
+# In part 5, we'll add earth, plant, wood, fire and smoke.
+# In part 6, we'll add sand and water emitters and a drain.
 #************************************************************************
 # Standard screen boilerplate
 gosub ScreenSetup

@@ -4,6 +4,8 @@
 # or create sand where you click/hold the mouse down.
 # In part 3, we'll add water and air (water does not form heaps, air erases)
 # In part 4, we'll add multicolored sand.
+# In part 5, we'll add earth, plant, wood, fire and smoke.
+# In part 6, we'll add sand and water emitters and a drain.
 #************************************************************************
 # Standard screen boilerplate
 gosub ScreenSetup

@@ -1,0 +1,465 @@
+# Part 5 of Falling Sand
+#******************************************************************************
+# The idea is to have a environment where you either sprinkle Sand or Earth or
+# Water by holding the mouse down.
+# Plant sprinkles small 3x3 green clumps that remain where created.
+# You can 'paint' Rock, Wood or Air (the eraser) in 3x3 blocks.
+# Part 5 also adds Fire and Smoke.
+# Fire is a single pixel at the mouse. It spreads through Wood and Plant
+# (plant catches fast, wood slowly) and gives off rising Smoke while it burns,
+# and goes out (turns into smoke) when it touches Water.
+# The material selector has been moved to the right of the canvas to make 
+# room for these additions.
+#******************************************************************************
+# Standard screen boilerplate
+gosub ScreenSetup
+# Falling Sand lives in a big matrix with each cell having a value relating to its material
+gosub Variables
+# Here, we create the initial screen with predefined walls, a floor and one obstacle. (the idea to create your 'static' environment and play with it) 
+gosub InitialScreen
+#drawing routine
+while true
+	if mouseb = 1 then
+		mx = int(mousex)
+		my = int(mousey)
+		if mx >= Selstart then
+			# in the material selector, so select correct material
+			k = int(my / SelHeight)
+			if k >= 0 and k <= 7 then
+				if buttonmat[k] <> sw_material then
+					sw_material = buttonmat[k]
+					gosub Selector
+				endif
+			endif
+		else
+			# not in the material selector, so on the canvas
+			if mx >= 0 then
+				begin case
+					case sw_material = sand or sw_material = earth or sw_material = water	#normal falling material
+						gosub Sprinkle
+					case sw_material = plant	# non-falling material
+						gosub PlantClump
+					case sw_material = fireA	# rising material
+						gosub PlaceFire
+					else
+						gosub Paint		# fixed rock, wood or air (eraser)
+				end case
+			endif
+		endif
+	endif
+	gosub UpdateWorld
+	refresh
+end while
+
+Sprinkle:
+# create a few particles of sand, earth or water per frame around the mouse, only into air
+color col[sw_material]
+for k = 1 to 4
+	x = int(mx + rand*5 - 2)
+	y = int(my + rand*5 - 2)
+	if x < 2 then x = 2
+	if x > Selstart-3 then x = Selstart-3
+	if y < 1 then y = 1
+	if y > height-3 then y = height-3
+	if world[x,y] = air then
+		world[x,y] = sw_material
+		plot x,y
+		if y < topRow then topRow = y
+	endif
+next k
+return
+
+Paint:
+# a 3x3 block of rock, wood or air, overwriting whatever is there (except the frame)
+color col[sw_material]
+for dx = -1 to 1
+	for dy = -1 to 1
+		x = mx + dx
+		y = my + dy
+		if x > 1 and x < Selstart-2 and y > 0 and y < height-2 then
+			if world[x,y] <> sw_material then
+				world[x,y] = sw_material
+				plot x,y
+			endif
+		endif
+	next dy
+next dx
+return
+
+PlantClump:
+# one 3x3 clump of plant per frame, near the mouse, only into air.
+px = mx + int(rand*7) - 3
+py = my + int(rand*7) - 3
+color col[plant]
+for dx = -1 to 1
+	for dy = -1 to 1
+		x = px + dx
+		y = py + dy
+		if x > 1 and x < Selstart-2 and y > 0 and y < height-2 then
+			if world[x,y] = air then
+				world[x,y] = plant
+				plot x,y
+			endif
+		endif
+	next dy
+next dx
+return
+
+PlaceFire:
+# a single fire pixel at the mouse; it can ignite air, wood or plant
+if mx > 1 and mx < Selstart-2 and my > 0 and my < height-2 then
+	t = world[mx,my]
+	if t = air or t = wood or t = plant then
+		world[mx,my] = nextFire		# becomes the active tag when the frame starts
+		color red
+		plot mx,my
+		if my < topRow then topRow = my
+	endif
+endif
+return
+
+UpdateWorld:
+# Fire and smoke use two alternating values Only cells holding the 'current'
+# value will be treated. Anything they create or move gets the 'next' value.
+# That stops rising smoke and spreading fire from being processed twice in one
+# frame, whichever direction they go.
+t = curFire : curFire = nextFire : nextFire = t
+t = curSmoke : curSmoke = nextSmoke : nextSmoke = t
+# Bottom up. Rows height-2 and height-1 are floor, columns 0,1 and Selstart-2,Selstart-1 are walls.
+startTop = topRow
+seenTop = height-2
+for j = height-3 to topRow step -1
+	# randomly go left to right or right to left
+	if rand > 0.5 then
+		a = Selstart-3 : b = 1 : stap = -1
+	else
+		a = 2 : b = Selstart-2 : stap = 1
+	endif
+	# b is one past the last column, so the loop stops there
+	i = a
+	while i <> b
+		c = world[i,j]
+		if c > plant then		# air, rock, wood and plant never act
+			seenTop = j
+			begin case
+				case c <= earth
+					gosub MoveSand
+				case c = water
+					gosub MoveWater
+				case c = curFire
+					gosub DoFire
+				case c = curSmoke
+					gosub DoSmoke
+			end case
+		endif
+		i = i + stap
+	end while
+next j
+# shrink the scanned area again, unless something was created above it this frame
+if topRow >= startTop then topRow = seenTop
+return
+
+MoveSand:
+# Sand falls (or slides diagonally) through air, water or smoke, swapping places.
+# c holds this grain's value, so its color travels with it.
+nextj = j+1
+t = world[i,nextj]
+if t = air or t = water or t >= smokeA then
+	#sand falls thru air and water
+	nexti = i
+else
+	nexti = -1
+	cellbelowleft = world[i-1,nextj]
+	if cellbelowleft = air or cellbelowleft = water or cellbelowleft >= smokeA then nexti = i-1
+	cellbelowright = world[i+1,nextj]
+	if cellbelowright = air or cellbelowright = water or cellbelowright >= smokeA then
+		# nexti still at -1 means cellbelowleft rock or sand, so go right
+		if nexti = -1 then
+			nexti = i+1
+		else
+			# both cellbelowleft and cellbelowright free, so flip coin
+			if rand < 0.5 then nexti = i+1
+		endif
+	endif
+	if nexti = -1 then return #no empty cell found
+endif
+oldmaterial = world[nexti,nextj]
+world[nexti,nextj] = c
+world[i,j] = oldmaterial
+color col[c]
+plot nexti,nextj
+color col[oldmaterial]
+plot i,j
+return
+
+MoveWater:
+# water goes 1. down, 2. diagonally down, 3. sideways - always into air only
+nextj = j+1
+if world[i,nextj] = air then
+	nexti = i
+else
+	nexti = -1
+	if world[i-1,nextj] = air then nexti = i-1
+	if world[i+1,nextj] = air then
+		if nexti = -1 then
+			nexti = i+1
+		else
+			if rand < 0.5 then nexti = i+1
+		endif
+	endif
+	if nexti = -1 then	#cells below, below left and below right occupied, so slide
+		nextj = j
+		if world[i-1,j] = air then nexti = i-1
+		if world[i+1,j] = air then
+			if nexti = -1 then
+				nexti = i+1
+			else
+				if rand < 0.5 then nexti = i+1
+			endif
+		endif
+		if nexti = -1 then return
+	endif
+endif
+world[nexti,nextj] = water
+world[i,j] = air
+color col[air]
+plot i,j
+color col[water]
+plot nexti,nextj
+# moved sideways in the scan direction: skip that cell for the rest of this frame
+if nextj = j and nexti = i + stap then i = i + stap
+return
+
+DoFire:
+# look at the 4 neighbours: ignite fuel, notice water
+fuel = 0
+wet = 0
+nx = i : ny = j-1 : gosub FireNeighbour
+nx = i : ny = j+1 : gosub FireNeighbour
+nx = i-1 : ny = j : gosub FireNeighbour
+nx = i+1 : ny = j : gosub FireNeighbour
+if wet = 1 then
+	# doused: turns into a puff of smoke/steam
+	world[i,j] = nextSmoke
+	color col[smokeA]
+	plot i,j
+	return
+endif
+if fuel = 1 then
+	# still burning: give off smoke above, and only rarely burn out
+	if world[i,j-1] = air then
+		if rand < 0.3 then
+			world[i,j-1] = nextSmoke
+			color col[smokeA]
+			plot i,j-1
+			if j-1 < topRow then topRow = j-1
+		endif
+	endif
+	burnout = 0.03
+else
+	# nothing left to burn next to it: dies out quickly
+	burnout = 0.15
+endif
+if rand < burnout then
+	world[i,j] = nextSmoke
+	color col[smokeA]
+	plot i,j
+	return
+endif
+world[i,j] = nextFire
+# flicker
+if rand < 0.5 then
+	color red
+else
+	color darkorange
+endif
+plot i,j
+return
+
+FireNeighbour:
+n = world[nx,ny]
+if n = wood or n = plant then
+	fuel = 1
+	if n = plant then
+		p = 0.3		# plant catches fire easily
+	else
+		p = 0.04	# wood smoulders slowly
+	endif
+	if rand < p then
+		world[nx,ny] = nextFire
+		color red
+		plot nx,ny
+		if ny < topRow then topRow = ny
+	endif
+else
+	if n = water then wet = 1
+endif
+return
+
+DoSmoke:
+# smoke rises through air, drifting a little, and slowly fades away
+if j = 0 then
+	world[i,j] = air
+	color col[air]
+	plot i,j
+	return
+endif
+if rand < 0.02 then
+	world[i,j] = air
+	color col[air]
+	plot i,j
+	return
+endif
+nextj = j-1
+nexti = i
+r = rand
+if r < 0.25 then nexti = i-1
+if r > 0.75 then nexti = i+1
+if world[nexti,nextj] <> air then
+	nexti = i
+	if world[i,nextj] <> air then
+		# blocked above: drift sideways
+		nextj = j
+		nexti = i-1
+		if r > 0.5 then nexti = i+1
+		if world[nexti,j] <> air then
+			world[i,j] = nextSmoke		# stays put this frame
+			return
+		endif
+	endif
+endif
+world[nexti,nextj] = nextSmoke
+world[i,j] = air
+color col[air]
+plot i,j
+color col[smokeA]
+plot nexti,nextj
+if nextj < topRow then topRow = nextj
+return
+
+ScreenSetup:
+fastgraphics
+Selstart = 256			# Start of the selector column
+Selwidth = 80			# width of the selector panel on the right
+width = Selstart + Selwidth
+height = 256
+graphsize width, height,2
+editvisible 1
+outputvisible 1
+clg black
+refresh
+return
+
+Variables:
+dim world(width,height)
+air = 0
+rock = 1
+wood = 2
+plant = 3
+sand = 4
+earth = 5
+water = 6
+# for fire and smoke, we use 2 values as both rise. This allows us
+# to recognise if a smoke or fire particle is 'new' (leave) or 'old' (handle)
+fireA = 7		# fire and smoke each have two tags, see UpdateWorld
+fireB = 8
+smokeA = 9		# smoke must stay the highest values (MoveSand tests t >= smokeA)
+smokeB = 10
+curFire = fireA : nextFire = fireB
+curSmoke = smokeA : nextSmoke = smokeB
+# one color per material value
+dim col(11)
+col[air] = black
+col[rock] = gray
+col[wood] = rgb(140,80,30)
+col[plant] = green
+col[sand] = yellow
+col[earth] = orange
+col[water] = cyan
+col[fireA] = red
+col[fireB] = red
+col[smokeA] = rgb(100,100,100)
+col[smokeB] = rgb(100,100,100)
+# selector buttons, top to bottom
+SelHeight = height / 8
+dim buttonmat(8)
+buttonmat[0] = sand
+buttonmat[1] = earth
+buttonmat[2] = water
+buttonmat[3] = plant
+buttonmat[4] = wood
+buttonmat[5] = rock
+buttonmat[6] = fireA
+buttonmat[7] = air
+sw_material = sand	#default
+topRow = height-2	# highest row holding anything that moves; nothing above it is scanned
+return
+
+InitialScreen:
+#Draw the static scene: rock at bottom and sides + obstacle
+#rock at bottom
+for i = 0 to Selstart - 1
+	world[i,height-1]=rock
+	world[i,height-2]=rock
+next i
+#rock at both sides
+for i = 0 to height-1
+	world[0,i]=rock
+	world[Selstart-1,i]=rock
+	world[1,i]=rock
+	world[Selstart-2,i]=rock
+next i
+for i = 0 to 20
+	for j = 100 to 108
+		world[i,j]=rock
+	next j
+next i
+#draw the static scene once. After this only changed cells are drawn
+color gray
+for j = 0 to height-1
+	for i = 0 to Selstart-1
+		if world[i,j] = rock then plot i,j
+	next i
+next j
+gosub Selector
+refresh
+return
+
+Selector:
+# stacked buttons in the material's own color; the selected one gets a white frame (anti-aliasing gave a nasty effect when overwriting text)
+font "arial",10,50
+for material = 0 to 7
+	m = buttonmat[material]
+	color black, col[m]
+	rect Selstart, material*SelHeight, Selwidth, SelHeight
+	begin case
+		case material = 0
+			lab$ = "Sand"
+		case material = 1
+			lab$ = "Earth"
+		case material = 2
+			lab$ = "Water"
+		case material = 3
+			lab$ = "Plant"
+		case material = 4
+			lab$ = "Wood"
+		case material = 5
+			lab$ = "Rock"
+		case material = 6
+			lab$ = "Fire"
+		else
+			lab$ = "Air"
+	end case
+	if m = wood or m = air or m = fireA then
+		color white
+	else
+		color black
+	endif
+	text Selstart+10, material*SelHeight+8, lab$
+	if m = sw_material then
+		color white, clear
+		rect Selstart+2, material*SelHeight+2, Selwidth-4, SelHeight-4
+		rect Selstart+3, material*SelHeight+3, Selwidth-6, SelHeight-6
+	endif
+next material
+return

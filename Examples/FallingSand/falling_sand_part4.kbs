@@ -3,6 +3,8 @@
 # The idea is to have a environment where you either sprinkle multicolored
 # Sand or Water by holding the mouse down. You can also 'paint' Rock and Air
 # by holding the mouse down and slowly moving. The Air 'brush' act as an erasor
+# In part 5, we'll add earth, plant, wood, fire and smoke.
+# In part 6, we'll add sand and water emitters and a drain.
 #******************************************************************************
 # Standard screen boilerplate
 gosub ScreenSetup
@@ -117,6 +119,7 @@ MoveSand:
 nextj = j+1
 cellbelow = world[i,nextj]
 if cellbelow = air or cellbelow = water then
+	#sand falls thru air and water
 	nexti = i
 else
 	nexti = -1
@@ -192,7 +195,7 @@ height = 256
 graphsize width, height,2
 editvisible 1
 outputvisible 1
-clg white
+clg black
 for i = 0 to 9
 	color hsv(i*30+10,80,80)
 	rect floor(i*13),0, 13,33
@@ -213,7 +216,7 @@ return
 
 Variables:
 dim world(width,height)
-dim colorrange(10)
+dim colorrange(10)	#Different sand colors
 air = 0		# gets color black
 rock = 1	# gets a color gray
 sand0 = 2	# sand0..sand9 (2..11) each get their own sand color

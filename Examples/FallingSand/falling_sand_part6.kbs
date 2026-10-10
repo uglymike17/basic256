@@ -1,0 +1,630 @@
+# Part 6 of Falling Sand
+#******************************************************************************
+# The idea is to have a environment where you either sprinkle Sand or Earth or 
+# Water by holding the mouse down.
+# Plant sprinkles small 3x3 green clumps that stay where they land.
+# 'Paint' Rock, Wood or Air (the eraser) in 3x3 blocks.
+# Fire is a single pixel at the mouse. It spreads through Wood and Plant
+# (plant catches fast, wood slowly), gives off rising Smoke while it burns,
+# and goes out (to smoke) when it touches Water.
+# Part 6 adds Emitters and one Drain.
+# Water and Sand emitters are 5x5 blocks placed with one click; they stick
+# where they are and keep emitting from their bottom edge.
+# The Drain is a single 5x2 slab placed with one click. It falls until it lands
+# on something solid, swallowing sand and water on the way, and then keeps
+# swallowing any sand or water that touches its top or sides. Only one drain
+# can exist; erase it with Air to place it somewhere else.
+# The material selector has been moved to the right of the canvas to make 
+# room for these additions.
+#******************************************************************************
+# Standard screen boilerplate
+gosub ScreenSetup
+# Falling Sand lives in a big matrix with each cell having a value relating to its material
+gosub Variables
+# Here, we create the initial screen with predefined walls, a floor and one obstacle. (the idea to create your 'static' environment and play with it) 
+gosub InitialScreen
+#drawing routine
+while true
+	# 'pressed' is 1 only in the frame the button goes down (for one-click tools)
+	pressed = 0
+	if mouseb = 1 and prevb <> 1 then pressed = 1
+	prevb = mouseb
+	if mouseb = 1 then
+		mx = int(mousex)
+		my = int(mousey)
+		if mx >= Selstart then
+			# in the material selector, so select correct material/tool
+			k = int(my / SelHeight)
+			if k >= 0 and k <= 10 then
+				if buttonmat[k] <> sw_material then
+					sw_material = buttonmat[k]
+					gosub Selector
+				endif
+			endif
+		else
+			# not in the material selector, so on the canvas
+			if mx >= 0 then
+				begin case
+					case sw_material = sand or sw_material = earth or sw_material = water
+						gosub Sprinkle
+					case sw_material = plant
+						gosub PlantClump
+					case sw_material = fireA
+						gosub PlaceFire
+					case sw_material = waterSrc or sw_material = sandSrc
+						if pressed = 1 then gosub PlaceEmitter
+					case sw_material = drain
+						if pressed = 1 then gosub PlaceDrain
+					else
+						gosub Paint		# rock, wood or air (eraser)
+				end case
+			endif
+		endif
+	endif
+	gosub UpdateEmitters
+	gosub UpdateDrain
+	gosub UpdateWorld
+	refresh
+end while
+
+Sprinkle:
+# a few particles of sand, earth or water per frame around the mouse, only into air
+color col[sw_material]
+for k = 1 to 4
+	x = int(mx + rand*5 - 2)
+	y = int(my + rand*5 - 2)
+	if x < 2 then x = 2
+	if x > Selstart-3 then x = Selstart-3
+	if y < 1 then y = 1
+	if y > height-3 then y = height-3
+	if world[x,y] = air then
+		world[x,y] = sw_material
+		plot x,y
+		if y < topRow then topRow = y
+	endif
+next k
+return
+
+Paint:
+# a 3x3 block of rock, wood or air, overwriting whatever is there (except the frame)
+color col[sw_material]
+for dx = -1 to 1
+	for dy = -1 to 1
+		x = mx + dx
+		y = my + dy
+		if x > 1 and x < Selstart-2 and y > 0 and y < height-2 then
+			if world[x,y] <> sw_material then
+				world[x,y] = sw_material
+				plot x,y
+			endif
+		endif
+	next dy
+next dx
+return
+
+PlantClump:
+# one 3x3 clump of plant per frame, near the mouse, only into air.
+# Plant doesn't fall, so it never needs scanning.
+px = mx + int(rand*7) - 3
+py = my + int(rand*7) - 3
+color col[plant]
+for dx = -1 to 1
+	for dy = -1 to 1
+		x = px + dx
+		y = py + dy
+		if x > 1 and x < Selstart-2 and y > 0 and y < height-2 then
+			if world[x,y] = air then
+				world[x,y] = plant
+				plot x,y
+			endif
+		endif
+	next dy
+next dx
+return
+
+PlaceFire:
+# a single fire pixel at the mouse; it can ignite air, wood or plant
+if mx > 1 and mx < Selstart-2 and my > 0 and my < height-2 then
+	t = world[mx,my]
+	if t = air or t = wood or t = plant then
+		world[mx,my] = nextFire		# becomes the active tag when the frame starts
+		color red
+		plot mx,my
+		if my < topRow then topRow = my
+	endif
+endif
+return
+
+PlaceEmitter:
+# a 5x5 water or sand emitter centred on the mouse, remembered in a list
+if nEm >= maxEm then return
+ex = mx - 2
+ey = my - 2
+if ex < 2 then ex = 2
+if ex > Selstart-7 then ex = Selstart-7
+if ey < 1 then ey = 1
+if ey > height-8 then ey = height-8		# leave a row below it to emit into
+color col[sw_material]
+for x = ex to ex+4
+	for y = ey to ey+4
+		world[x,y] = sw_material
+		plot x,y
+	next y
+next x
+emx[nEm] = ex
+emy[nEm] = ey
+emt[nEm] = sw_material
+nEm = nEm + 1
+return
+
+PlaceDrain:
+# the single 5x2 drain, centred on the mouse; it falls from there
+if drainOn = 1 then return
+ddx = mx - 2
+ddy = my
+if ddx < 2 then ddx = 2
+if ddx > Selstart-7 then ddx = Selstart-7
+if ddy < 1 then ddy = 1
+if ddy > height-4 then ddy = height-4
+color col[drain]
+for x = ddx to ddx+4
+	for y = ddy to ddy+1
+		world[x,y] = drain
+		plot x,y
+	next y
+next x
+drainOn = 1
+return
+
+UpdateEmitters:
+# every emitter drops two particles per frame from a random spot along its
+# bottom edge. A column only emits while its bottom cell is still emitter,
+# so an emitter that was partly erased or painted over emits less (or not at all).
+if nEm = 0 then return
+for e = 0 to nEm-1
+	ey = emy[e] + 5
+	for k = 1 to 2
+		x = emx[e] + int(rand*5)
+		if world[x,ey-1] = emt[e] and world[x,ey] = air then
+			if emt[e] = waterSrc then
+				m = water
+			else
+				m = sand + int(rand*2)		# yellow or orange
+			endif
+			world[x,ey] = m
+			color col[m]
+			plot x,ey
+			if ey < topRow then topRow = ey
+		endif
+	next k
+next e
+return
+
+UpdateDrain:
+if drainOn = 0 then return
+# if part of the drain was erased or painted over, remove the rest
+ok = 1
+for x = ddx to ddx+4
+	if world[x,ddy] <> drain or world[x,ddy+1] <> drain then ok = 0
+next x
+if ok = 0 then
+	color col[air]
+	for x = ddx to ddx+4
+		for y = ddy to ddy+1
+			if world[x,y] = drain then
+				world[x,y] = air
+				plot x,y
+			endif
+		next y
+	next x
+	drainOn = 0
+	return
+endif
+# falling: it may move into air, smoke, sand or water (swallowing them)
+by = ddy + 2
+canfall = 1
+for x = ddx to ddx+4
+	t = world[x,by]
+	if t <> air and t <> water and t <> sand and t <> earth and t < smokeA then canfall = 0
+next x
+if canfall = 1 then
+	for x = ddx to ddx+4
+		world[x,ddy] = air
+		color col[air]
+		plot x,ddy
+		world[x,by] = drain
+		color col[drain]
+		plot x,by
+	next x
+	ddy = ddy + 1
+	return
+endif
+# resting: swallow sand and water touching its top or its sides
+y = ddy-1
+for x = ddx to ddx+4
+	gosub Swallow
+next x
+for y = ddy to ddy+1
+	x = ddx-1 : gosub Swallow
+	x = ddx+5 : gosub Swallow
+next y
+return
+
+Swallow:
+t = world[x,y]
+if t = water or t = sand or t = earth then
+	world[x,y] = air
+	color col[air]
+	plot x,y
+endif
+return
+
+UpdateWorld:
+# Fire and smoke use two alternating values ("tags"). Only cells holding the
+# current tag act this frame; anything they create or move gets the next tag.
+# That stops rising smoke and spreading fire from being processed twice in one
+# frame, whichever direction they go.
+t = curFire : curFire = nextFire : nextFire = t
+t = curSmoke : curSmoke = nextSmoke : nextSmoke = t
+# Bottom up. Rows height-2 and height-1 are floor, columns 0,1 and Selstart-2,Selstart-1 are walls.
+startTop = topRow
+seenTop = height-2
+for j = height-3 to topRow step -1
+	# randomly go left to right or right to left
+	if rand > 0.5 then
+		a = Selstart-3 : b = 1 : stap = -1
+	else
+		a = 2 : b = Selstart-2 : stap = 1
+	endif
+	# b is one past the last column, so the loop stops there
+	i = a
+	while i <> b
+		c = world[i,j]
+		if c > drain then		# air, rock, wood, plant, emitters and drain never act here
+			seenTop = j
+			begin case
+				case c <= earth
+					gosub MoveSand
+				case c = water
+					gosub MoveWater
+				case c = curFire
+					gosub DoFire
+				case c = curSmoke
+					gosub DoSmoke
+			end case
+		endif
+		i = i + stap
+	end while
+next j
+# shrink the scanned area again, unless something was created above it this frame
+if topRow >= startTop then topRow = seenTop
+return
+
+MoveSand:
+# Sand falls (or slides diagonally) through air, water or smoke, swapping places.
+# c holds this grain's value, so its color travels with it.
+nextj = j+1
+t = world[i,nextj]
+if t = air or t = water or t >= smokeA then
+	nexti = i
+else
+	nexti = -1
+	t = world[i-1,nextj]
+	if t = air or t = water or t >= smokeA then nexti = i-1
+	t = world[i+1,nextj]
+	if t = air or t = water or t >= smokeA then
+		if nexti = -1 then
+			nexti = i+1
+		else
+			# both diagonals free, so flip a coin
+			if rand < 0.5 then nexti = i+1
+		endif
+	endif
+	if nexti = -1 then return
+endif
+oldmaterial = world[nexti,nextj]
+world[nexti,nextj] = c
+world[i,j] = oldmaterial
+color col[c]
+plot nexti,nextj
+color col[oldmaterial]
+plot i,j
+return
+
+MoveWater:
+# water goes 1. down, 2. diagonally down, 3. sideways - always into air only
+nextj = j+1
+if world[i,nextj] = air then
+	nexti = i
+else
+	nexti = -1
+	if world[i-1,nextj] = air then nexti = i-1
+	if world[i+1,nextj] = air then
+		if nexti = -1 then
+			nexti = i+1
+		else
+			if rand < 0.5 then nexti = i+1
+		endif
+	endif
+	if nexti = -1 then
+		nextj = j
+		if world[i-1,j] = air then nexti = i-1
+		if world[i+1,j] = air then
+			if nexti = -1 then
+				nexti = i+1
+			else
+				if rand < 0.5 then nexti = i+1
+			endif
+		endif
+		if nexti = -1 then return
+	endif
+endif
+world[nexti,nextj] = water
+world[i,j] = air
+color col[air]
+plot i,j
+color col[water]
+plot nexti,nextj
+# moved sideways in the scan direction: skip that cell for the rest of this frame
+if nextj = j and nexti = i + stap then i = i + stap
+return
+
+DoFire:
+# look at the 4 neighbours: ignite fuel, notice water
+fuel = 0
+wet = 0
+nx = i : ny = j-1 : gosub FireNeighbour
+nx = i : ny = j+1 : gosub FireNeighbour
+nx = i-1 : ny = j : gosub FireNeighbour
+nx = i+1 : ny = j : gosub FireNeighbour
+if wet = 1 then
+	# doused: turns into a puff of smoke/steam
+	world[i,j] = nextSmoke
+	color col[smokeA]
+	plot i,j
+	return
+endif
+if fuel = 1 then
+	# still burning: give off smoke above, and only rarely burn out
+	if world[i,j-1] = air then
+		if rand < 0.3 then
+			world[i,j-1] = nextSmoke
+			color col[smokeA]
+			plot i,j-1
+			if j-1 < topRow then topRow = j-1
+		endif
+	endif
+	burnout = 0.03
+else
+	# nothing left to burn next to it: dies out quickly
+	burnout = 0.15
+endif
+if rand < burnout then
+	world[i,j] = nextSmoke
+	color col[smokeA]
+	plot i,j
+	return
+endif
+world[i,j] = nextFire
+# flicker
+if rand < 0.5 then
+	color red
+else
+	color darkorange
+endif
+plot i,j
+return
+
+FireNeighbour:
+n = world[nx,ny]
+if n = wood or n = plant then
+	fuel = 1
+	if n = plant then
+		p = 0.3		# plant catches fire easily
+	else
+		p = 0.04	# wood smoulders slowly
+	endif
+	if rand < p then
+		world[nx,ny] = nextFire
+		color red
+		plot nx,ny
+		if ny < topRow then topRow = ny
+	endif
+else
+	if n = water then wet = 1
+endif
+return
+
+DoSmoke:
+# smoke rises through air, drifting a little, and slowly fades away
+if j = 0 then
+	world[i,j] = air
+	color col[air]
+	plot i,j
+	return
+endif
+if rand < 0.02 then
+	world[i,j] = air
+	color col[air]
+	plot i,j
+	return
+endif
+nextj = j-1
+nexti = i
+r = rand
+if r < 0.25 then nexti = i-1
+if r > 0.75 then nexti = i+1
+if world[nexti,nextj] <> air then
+	nexti = i
+	if world[i,nextj] <> air then
+		# blocked above: drift sideways
+		nextj = j
+		nexti = i-1
+		if r > 0.5 then nexti = i+1
+		if world[nexti,j] <> air then
+			world[i,j] = nextSmoke		# stays put this frame
+			return
+		endif
+	endif
+endif
+world[nexti,nextj] = nextSmoke
+world[i,j] = air
+color col[air]
+plot i,j
+color col[smokeA]
+plot nexti,nextj
+if nextj < topRow then topRow = nextj
+return
+
+ScreenSetup:
+fastgraphics
+Selstart = 256			# width of the paintable canvas
+Selwidth = 80			# width of the selector panel on the right
+width = Selstart + Selwidth
+height = 256
+graphsize width, height,2
+editvisible 1
+outputvisible 1
+clg black
+refresh
+return
+
+Variables:
+dim world(width,height)
+# static materials first: everything up to and including drain is skipped by the scan
+air = 0
+rock = 1
+wood = 2
+plant = 3
+waterSrc = 4	# water emitter
+sandSrc = 5		# sand emitter
+drain = 6		# the drain moves, but UpdateDrain handles it as one slab
+# moving materials
+sand = 7
+earth = 8
+water = 9
+fireA = 10		# fire and smoke each have two tags, see UpdateWorld
+fireB = 11
+smokeA = 12		# smoke must stay the highest values (MoveSand tests t >= smokeA)
+smokeB = 13
+curFire = fireA : nextFire = fireB
+curSmoke = smokeA : nextSmoke = smokeB
+# one color per material value
+dim col(14)
+col[air] = black
+col[rock] = gray
+col[wood] = rgb(140,80,30)
+col[plant] = green
+col[waterSrc] = rgb(0,90,170)
+col[sandSrc] = rgb(170,120,0)
+col[drain] = rgb(200,200,200)
+col[sand] = yellow
+col[earth] = orange
+col[water] = cyan
+col[fireA] = red
+col[fireB] = red
+col[smokeA] = rgb(100,100,100)
+col[smokeB] = rgb(100,100,100)
+# selector buttons, top to bottom
+SelHeight = int(height / 11)
+dim buttonmat(11)
+buttonmat[0] = sand
+buttonmat[1] = earth
+buttonmat[2] = water
+buttonmat[3] = plant
+buttonmat[4] = wood
+buttonmat[5] = rock
+buttonmat[6] = fireA
+buttonmat[7] = air
+buttonmat[8] = waterSrc
+buttonmat[9] = sandSrc
+buttonmat[10] = drain
+sw_material = sand	#default
+prevb = 0
+# emitters: top-left corner and type of each one
+maxEm = 50
+dim emx(maxEm)
+dim emy(maxEm)
+dim emt(maxEm)
+nEm = 0
+# the single drain: top-left corner, and whether it exists
+drainOn = 0
+ddx = 0
+ddy = 0
+topRow = height-2	# highest row holding anything that moves; nothing above it is scanned
+return
+
+InitialScreen:
+#Draw the static scene: rock at bottom and sides + obstacle
+#rock at bottom
+for i = 0 to Selstart - 1
+	world[i,height-1]=rock
+	world[i,height-2]=rock
+next i
+#rock at both sides
+for i = 0 to height-1
+	world[0,i]=rock
+	world[Selstart-1,i]=rock
+	world[1,i]=rock
+	world[Selstart-2,i]=rock
+next i
+for i = 0 to 20
+	for j = 100 to 108
+		world[i,j]=rock
+	next j
+next i
+#draw the static scene once. After this only changed cells are drawn
+color gray
+for j = 0 to height-1
+	for i = 0 to Selstart-1
+		if world[i,j] = rock then plot i,j
+	next i
+next j
+gosub Selector
+refresh
+return
+
+Selector:
+# stacked buttons in the material's own color; the selected one gets a white frame
+font "arial",9,50
+for material = 0 to 10
+	m = buttonmat[material]
+	color black, col[m]
+	rect Selstart, material*SelHeight, Selwidth, SelHeight
+	begin case
+		case material = 0
+			lab$ = "Sand"
+		case material = 1
+			lab$ = "Earth"
+		case material = 2
+			lab$ = "Water"
+		case material = 3
+			lab$ = "Plant"
+		case material = 4
+			lab$ = "Wood"
+		case material = 5
+			lab$ = "Rock"
+		case material = 6
+			lab$ = "Fire"
+		case material = 7
+			lab$ = "Air"
+		case material = 8
+			lab$ = "Water src"
+		case material = 9
+			lab$ = "Sand src"
+		else
+			lab$ = "Drain"
+	end case
+	if m = wood or m = air or m = fireA or m = waterSrc or m = sandSrc then
+		color white
+	else
+		color black
+	endif
+	text Selstart+10, material*SelHeight+5, lab$
+	if m = sw_material then
+		color white, clear
+		rect Selstart+2, material*SelHeight+2, Selwidth-4, SelHeight-4
+		rect Selstart+3, material*SelHeight+3, Selwidth-6, SelHeight-6
+	endif
+next material
+return
