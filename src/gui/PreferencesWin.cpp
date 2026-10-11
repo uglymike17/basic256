@@ -201,10 +201,13 @@ PreferencesWin::PreferencesWin (QWidget * parent, bool showAdvanced)
 		usertablayout->addWidget(varnotassignedcombo,r,2,1,2);
 	}
 	//
+#ifndef Q_OS_WASM
+	// The browser build has no overwrite: every save is a fresh download.
 	r++;
-	saveonruncheckbox = new QCheckBox(tr("Automatically save program when it is successfully run"),this);
-	saveonruncheckbox->setChecked(settings.value(SETTINGSIDESAVEONRUN, SETTINGSIDESAVEONRUNDEFAULT).toBool());
-	usertablayout->addWidget(saveonruncheckbox,r,2,1,2);
+	warnoverwritecheckbox = new QCheckBox(tr("Warn when overwriting an existing file"),this);
+	warnoverwritecheckbox->setChecked(settings.value(SETTINGSIDEWARNOVERWRITE, SETTINGSIDEWARNOVERWRITEDEFAULT).toBool());
+	usertablayout->addWidget(warnoverwritecheckbox,r,2,1,2);
+#endif
 	//
 	// decimal digits slider
 	r++;
@@ -599,7 +602,9 @@ void PreferencesWin::clickSaveButton() {
 
 		// *******************************************************************************************
 		// user settings
-		settings.setValue(SETTINGSIDESAVEONRUN, saveonruncheckbox->isChecked());
+#ifndef Q_OS_WASM
+		settings.setValue(SETTINGSIDEWARNOVERWRITE, warnoverwritecheckbox->isChecked());
+#endif
 		if (typeconvcombo->currentIndex()!=-1) {
 			settings.setValue(SETTINGSTYPECONV, typeconvcombo->itemData(typeconvcombo->currentIndex()));
 		}

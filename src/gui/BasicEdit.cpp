@@ -219,12 +219,16 @@ void BasicEdit::saveFile(bool overwrite) {
 	if (filename == "") {
         emit(setCurrentEditorTab(this)); //activate editor window
         filename = QFileDialog::getSaveFileName(this, tr("Save file as"), title+".kbs", tr("BASIC-256 File ") + "(*.kbs);;" + tr("Any File ")  + "(*.*)");
+		// the save dialog has already asked about replacing an existing file
+		overwrite = true;
 	}
 
 	if (filename != "") {
 		QRegularExpression rx("\\.[^\\/]*$");
 		if (!filename.contains(rx)) {
 			filename += ".kbs";
+			// nobody has asked about this name yet, whatever the setting says
+			overwrite = false;
 		}
 		if (!overwrite && QFile::exists(filename)) {
 			// Async (RULE 2): QMessageBox::warning()'s exec() never returns
@@ -286,7 +290,8 @@ void BasicEdit::saveAllStep(int s) {
 }
 
 void BasicEdit::saveProgram() {
-    saveFile(false);
+    SETTINGS;
+    saveFile(!settings.value(SETTINGSIDEWARNOVERWRITE, SETTINGSIDEWARNOVERWRITEDEFAULT).toBool());
 }
 
 void
@@ -300,7 +305,8 @@ BasicEdit::saveAsProgram() {
     QString tempfilename = QFileDialog::getSaveFileName(this, tr("Save file as"), ".", tr("BASIC-256 File ")+ "(*.kbs);;" + tr("Any File ")+ "(*.*)");
     if (tempfilename != "") {
         filename = tempfilename;
-        saveFile(false);
+        // the save dialog has already asked about replacing an existing file
+        saveFile(true);
     }
 #endif
 }

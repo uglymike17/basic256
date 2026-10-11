@@ -506,12 +506,6 @@ RunController::startRun() {
 			stopRunFinalized(false);
 			return;
 		}
-		// if successful compile see if we need to save it
-		SETTINGS;
-		if(settings.value(SETTINGSIDESAVEONRUN, SETTINGSIDESAVEONRUNDEFAULT).toBool()) {
-			currentEditor->saveFile(true);
-		}
-		//
 		// now setup and start the run
 		sound = new SoundSystem();
 #ifdef BASIC256_ENABLE_TTS

@@ -77,8 +77,8 @@
     #define SETTINGSVARVISIBLEDEFAULT false
     
 	// other IDE preferences
-	#define SETTINGSIDESAVEONRUN "IDE/SaveOnRun"
-	#define SETTINGSIDESAVEONRUNDEFAULT false
+	#define SETTINGSIDEWARNOVERWRITE "IDE/WarnOverwrite"
+	#define SETTINGSIDEWARNOVERWRITEDEFAULT true
 
     // startup
     #define SETTINGSWINDOWSRESTORE "Startup/Restore"

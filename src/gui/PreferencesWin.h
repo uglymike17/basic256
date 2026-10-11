@@ -111,7 +111,9 @@ private:
 	// user tab
 	QWidget * usertabwidget;
 	QGridLayout * usertablayout;
-	QCheckBox *saveonruncheckbox;
+#ifndef Q_OS_WASM
+	QCheckBox *warnoverwritecheckbox;
+#endif
 	QLabel *typeconvlabel;
 	QComboBox *typeconvcombo;
 	QLabel *varnotassignedlabel;
