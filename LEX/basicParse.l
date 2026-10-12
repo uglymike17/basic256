@@ -147,6 +147,7 @@ and [Aa][Nn][Dd]
 arc [Aa][Rr][Cc]
 asc [Aa][Ss][Cc]
 ascending [Aa][Ss][Cc][Ee][Nn][Dd][Ii][Nn][Gg]
+arrayadd [Aa][Rr][Rr][Aa][Yy][Aa][Dd][Dd]
 arraybase [Aa][Rr][Rr][Aa][Yy][ \t]*[Bb][Aa][Ss][Ee]
 asin [Aa][Ss][Ii][Nn]
 assigned [Aa][Ss][Ss][Ii][Gg][Nn][Ee][Dd]
@@ -705,6 +706,7 @@ zfill [Zz][Ff][Ii][Ll][Ll]
 {abs}						{ count(); return B256ABS; }
 {acos}						{ count(); return B256ACOS; }
 {arc}						{ count(); return B256ARC; }
+{arrayadd}					{ count(); return B256ARRAYADD; }
 {arraybase}					{ count(); return B256ARRAYBASE; }
 {asc}						{ count(); return B256ASC; }
 {ascending}					{ count(); return B256ASCENDING; }

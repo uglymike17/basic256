@@ -4,6 +4,7 @@
 	* The Windows installer and uninstaller notice when BASIC256 is still running from the folder they are working on and ask for it to be closed, with Retry and Cancel, instead of stopping with an error about basic256.exe. The installer's title shows the date it was built.
 	* New Falling Sand programs showing gradual build-up of the final program
 	* Preferences has a new box, "Warn when overwriting an existing file", ticked by default. Untick it and Save writes the program back to its own file without asking first. Save As and the first Save of a new program still warn when the file chosen already exists, and they now ask only once rather than twice. The box is not in the browser version, where every save is a new download. The "Automatically save program when it is successfully run" option has gone.
+	* New ARRAYADD statement, which adds to the end of an array. arrayadd points, x, y adds the row x, y to a two dimensional array, which keeps its rows; the number of values has to match its columns (error 14 otherwise). A single value lengthens a one dimensional array, as in arrayadd names, "Bob". An array can be given instead of the values -- arrayadd points, {x, y} -- and a two dimensional one adds all of its rows. A variable with nothing in it yet becomes an array, so a table can be built up in a loop without a DIM. Adding to a map or a single value is error 84. Note that this makes arrayadd a reserved word.
 
 2026-09-17 M. Vilain <uglymike17@gmail.com>
 	* The project has now moved to v2.3.0 as it has some backward compability breaking changes

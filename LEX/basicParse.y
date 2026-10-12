@@ -544,6 +544,7 @@
 %token B256AMPEQUAL
 %token B256AND
 %token B256ARC
+%token B256ARRAYADD
 %token B256ARRAYBASE
 %token B256ASC
 %token B256ASCENDING
@@ -2611,6 +2612,7 @@ expr_dataelement:
 statement:
 	alertstmt
 	| arcstmt
+	| arrayaddstmt
 	| arraybasestmt
 	| begincasestmt
 	| callstmt
@@ -4608,6 +4610,15 @@ outputtoolbarvisiblestmt:
 maximizestmt:
 			B256MAXIMIZE expr {
 				addOp(OP_MAXIMIZE);
+			}
+			;
+
+// ARRAYADD array, value [, value ...]
+// The values are pushed in order and then how many there were.
+arrayaddstmt:
+			B256ARRAYADD variable_a ',' listitems {
+				addIntOp(OP_PUSHINT, listlen);
+				addIntOp(OP_ARRAYADD, varnumber[--nvarnumber]);
 			}
 			;
 

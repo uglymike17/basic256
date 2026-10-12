@@ -91,6 +91,7 @@ QString Interpreter::opname(int op) {
 	case OP_AND : return QString("OP_AND");
 	case OP_ARC : return QString("OP_ARC");
 	case OP_ARRAY2STACK : return QString("OP_ARRAY2STACK");
+	case OP_ARRAYADD : return QString("OP_ARRAYADD");
 	case OP_ARRAYFILL : return QString("OP_ARRAYFILL");
 	case OP_ARRAYLISTASSIGN : return QString("OP_ARRAYLISTASSIGN");
 	case OP_ARR_ASSIGNED : return QString("OP_ARR_ASSIGNED");
@@ -2268,6 +2269,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 
 				// Arrays: the work is done in Interpreter_arrays.cpp
 				case OP_SORT:
+				case OP_ARRAYADD:
 					execArrayOp(opcode, i);
 				break;
 

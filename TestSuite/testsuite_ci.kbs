@@ -142,6 +142,11 @@ call section("SORT")
 include "testsuite_sort_include.kbs"
 
 ###################################################
+call section("ARRAYADD")
+###################################################
+include "testsuite_arrayadd_include.kbs"
+
+###################################################
 call section("Map")
 ###################################################
 include "testsuite_map_include.kbs"

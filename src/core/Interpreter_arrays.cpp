@@ -147,5 +147,61 @@ void Interpreter::execArrayOp(int opcode, int i) {
 		}
 		break;
 
+		case OP_ARRAYADD: {
+			// ARRAYADD array, value [, value ...]
+			// The values are added to the end of the array as one new row.
+			// A single value added to a one row array (every 1D array)
+			// lengthens that row instead, so a list grows one element at a
+			// time.  One array given on its own stands for its elements: a
+			// 1D array is a row of values, and each row of a 2D array is
+			// added in turn.  An unassigned variable becomes an array of the
+			// rows added, and every other array keeps its columns, which the
+			// new rows have to match.
+			const int n = stack->popInt();
+			std::vector<DataElement> values(n);
+			for (int k = n - 1; k >= 0; k--) values[k].stealFrom(stack->popDEborrow());
+			DataElement *a = variables->getData(i);			// DONT RELEASE
+
+			DataElement *source = (n == 1 && values[0].type == T_ARRAY) ? &values[0] : NULL;
+			const int addRows = source ? source->arrayRows() : 1;
+			const int addCols = source ? source->arrayCols() : n;
+
+			int rows = 0;
+			int cols = addCols;
+			if (DataElement::getType(a) == T_ARRAY) {
+				rows = a->arrayRows();
+				cols = a->arrayCols();
+			} else if (DataElement::getType(a) != T_UNASSIGNED) {
+				// A map or a single value: trappable, unlike ERROR_NOTARRAY
+				error->q(ERROR_EXPECTEDARRAY);
+				break;
+			}
+
+			// where the new values go: after the last element of a one row
+			// array being given one value, otherwise in new rows at the end
+			const bool lengthen = (rows == 1 && addRows == 1 && addCols == 1);
+			if (lengthen) {
+				a->arrayDim(1, cols + 1, true);
+			} else {
+				if (addCols != cols) {
+					error->q(ERROR_ARRAYNITEMS, i);
+					break;
+				}
+				a->arrayDim(rows + addRows, cols, true);
+			}
+			if (DataElement::getError()) {
+				error->q(DataElement::getError(true), i);
+				break;
+			}
+
+			std::vector<DataElement> &data = a->arr->data;
+			const int start = lengthen ? cols : rows * cols;
+			for (int k = 0; k < addRows * addCols; k++) {
+				data[start + k].stealFrom(source ? &source->arr->data[k] : &values[k]);
+			}
+			watchvariable(debugMode, i);
+		}
+		break;
+
 	}
 }

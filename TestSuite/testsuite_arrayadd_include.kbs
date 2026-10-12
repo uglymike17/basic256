@@ -1,0 +1,180 @@
+# testsuite_arrayadd_include section for BASIC256
+
+# Modification History
+# date		programmer	description
+# 20261012	m.vilain	original coding
+
+currentsuite = "arrayadd"
+
+wasbase = getarraybase
+arraybase 0
+
+# an array as text: rows separated by ";" and elements by ","
+function arrayaddshow(x)
+	r = ""
+	for row = 0 to x[?,] - 1
+		if row > 0 then r = r + ";"
+		for col = 0 to x[,?] - 1
+			if col > 0 then r = r + ","
+			r = r + x[row, col]
+		next col
+	next row
+	return r
+end function
+
+###################################################
+# adding rows to a 2D array
+###################################################
+
+dim p(2, 2)
+p[0,0] = 1 : p[0,1] = 2
+p[1,0] = 3 : p[1,1] = 4
+arrayadd p, 5, 6
+call n("arrayadd row count", p[?,], 3)
+call n("arrayadd column count", p[,?], 2)
+call s("arrayadd values as a row", arrayaddshow(p), "1,2;3,4;5,6")
+
+arrayadd p, {7, 8}
+call s("arrayadd list as a row", arrayaddshow(p), "1,2;3,4;5,6;7,8")
+
+v = {9, 10}
+arrayadd p, v
+call s("arrayadd 1D array as a row", arrayaddshow(p), "1,2;3,4;5,6;7,8;9,10")
+call s("arrayadd leaves the added array alone", implode(v, ","), "9,10")
+
+q = {{11, 12}, {13, 14}}
+arrayadd p, q
+call n("arrayadd 2D array row count", p[?,], 7)
+call s("arrayadd 2D array adds every row", arrayaddshow(p), "1,2;3,4;5,6;7,8;9,10;11,12;13,14")
+
+t = {{1, 2}, {3, 4}}
+arrayadd t, t
+call s("arrayadd an array to itself", arrayaddshow(t), "1,2;3,4;1,2;3,4")
+
+arrayadd p[], 15, 16
+call s("arrayadd written a[]", p[7,0] + "," + p[7,1], "15,16")
+
+ArrayAdd p, 17, 18
+call s("arrayadd in mixed case", p[8,0] + "," + p[8,1], "17,18")
+
+dim m(1, 3)
+m[0,0] = "x" : m[0,1] = 2.5 : m[0,2] = 3
+arrayadd m, "y", -1, 0.5
+call s("arrayadd strings and numbers in a row", arrayaddshow(m), "x,2.5,3;y,-1,0.5")
+
+# a single column array with more than one row is a table, not a list
+dim c(2, 1)
+c[0,0] = "a" : c[1,0] = "b"
+arrayadd c, "c"
+call n("arrayadd single column rows", c[?,], 3)
+call s("arrayadd single column", arrayaddshow(c), "a;b;c")
+
+###################################################
+# building an array from nothing
+###################################################
+
+function arrayaddtable()
+	arrayadd built, 10, 20
+	arrayadd built, 30, 40
+	arrayadd built, 50, 60
+	return built
+end function
+
+b = arrayaddtable()
+call n("arrayadd new table rows", b[?,], 3)
+call n("arrayadd new table columns", b[,?], 2)
+call s("arrayadd new table", arrayaddshow(b), "10,20;30,40;50,60")
+
+function arrayaddlist()
+	arrayadd names, "ann"
+	arrayadd names, "bob"
+	arrayadd names, "cy"
+	return names
+end function
+
+b = arrayaddlist()
+call n("arrayadd new list length", b[?], 3)
+call n("arrayadd new list rows", b[?,], 1)
+call s("arrayadd new list", implode(b, ","), "ann,bob,cy")
+
+###################################################
+# lengthening a 1D array
+###################################################
+
+a = {1, 2, 3}
+arrayadd a, 4
+call n("arrayadd 1D length", a[?], 4)
+call s("arrayadd 1D value", implode(a, ","), "1,2,3,4")
+
+arrayadd a, {5}
+call s("arrayadd 1D one element array", implode(a, ","), "1,2,3,4,5")
+
+# two or more values are always a row, even on a 1D array of that length
+a = {1, 2}
+arrayadd a, 3, 4
+call s("arrayadd two values to a two element list", arrayaddshow(a), "1,2;3,4")
+
+###################################################
+# arrays passed to a subroutine by reference
+###################################################
+
+subroutine arrayaddsub(x, y, z)
+	arrayadd x, y, z
+end subroutine
+
+d = {{1, 2}}
+call arrayaddsub(ref(d), 3, 4)
+call s("arrayadd array passed by reference", arrayaddshow(d), "1,2;3,4")
+
+###################################################
+# errors
+###################################################
+
+dim e(2, 2) fill 0
+try
+	arrayadd e, 1, 2, 3
+	call boolean("arrayadd with too many values should have raised an error", false)
+catch
+	call n("arrayadd too many values", lasterror, 14)
+end try
+
+try
+	arrayadd e, 1
+	call boolean("arrayadd with too few values should have raised an error", false)
+catch
+	call n("arrayadd too few values", lasterror, 14)
+end try
+call n("arrayadd error leaves the array alone", e[?,], 2)
+
+try
+	arrayadd e, {{1, 2, 3}}
+	call boolean("arrayadd of a wider 2D array should have raised an error", false)
+catch
+	call n("arrayadd wider 2D array", lasterror, 14)
+end try
+
+a = {1, 2, 3}
+try
+	arrayadd a, 4, 5
+	call boolean("arrayadd of two values to a three element list should have raised an error", false)
+catch
+	call n("arrayadd row to a list of a different length", lasterror, 14)
+end try
+
+mp = {"b"->2, "a"->1}
+try
+	arrayadd mp, 3
+	call boolean("arrayadd to a map should have raised an error", false)
+catch
+	call n("arrayadd to a map", lasterror, 84)
+end try
+
+x = 5
+try
+	arrayadd x, 6
+	call boolean("arrayadd to a single value should have raised an error", false)
+catch
+	call n("arrayadd to a single value", lasterror, 84)
+end try
+
+arraybase wasbase
