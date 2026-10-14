@@ -35,6 +35,8 @@ public:
     VariableWin();
     ~VariableWin();
     void clear();
+    // Repaint the list and its column header from EditorTheme.
+    void applyTheme();
 
 public slots:
     void varWinAssign(Variables **, int, int);

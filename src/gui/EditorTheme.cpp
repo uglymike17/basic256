@@ -70,6 +70,10 @@ const EditorTheme &EditorTheme::light() {
 		e.outputText = QColor(Qt::black);
 		e.outputError = QColor(Qt::red);
 
+		e.headerBackground = QColor("#f0f0f0");
+		e.headerText = QColor(Qt::black);
+		e.headerBorder = QColor("#c0c0c0");
+
 		return e;
 	}();
 	return t;
@@ -110,6 +114,10 @@ const EditorTheme &EditorTheme::dark() {
 
 		e.outputText = QColor("#d4d4d4");
 		e.outputError = QColor("#ff6b6b");
+
+		e.headerBackground = QColor("#2b2b2b");
+		e.headerText = QColor("#d4d4d4");
+		e.headerBorder = QColor("#3d3d3d");
 
 		return e;
 	}();

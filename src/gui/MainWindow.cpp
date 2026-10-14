@@ -1332,6 +1332,7 @@ void MainWindow::applyEditorTheme() {
         }
     }
     outwin->applyTheme();
+    varwin->applyTheme();
     waitCond->wakeAll();
     mymutex->unlock();
 }

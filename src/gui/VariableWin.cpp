@@ -17,6 +17,7 @@
 #include "VariableWin.h"
 #include "DataElement.h"
 #include "MainWindow.h"
+#include "EditorTheme.h"
 
 extern MainWindow * mainwin;
 
@@ -40,10 +41,27 @@ VariableWin::VariableWin () {
     tr_referenceType = tr("Type: Reference");
     tr_mapType = tr("Type: Map");
     tr_unknownType = tr("?");
+    applyTheme();
 }
 
 VariableWin::~VariableWin() {
     delete(convert);
+}
+
+void VariableWin::applyTheme() {
+    // Painted from EditorTheme like the Edit and Text Output panes, so that
+    // View/Theme reaches this window too. The header is styled as well: left
+    // to the OS it stays light under Dark (or dark under Light) and clashes.
+    const EditorTheme &theme = EditorTheme::current();
+    setStyleSheet(theme.paneStyleSheet("QTreeWidget") +
+        "QHeaderView::section {"
+        "  background-color:" + theme.headerBackground.name() + ";"
+        "  color:" + theme.headerText.name() + ";"
+        "  border: none;"
+        "  border-right: 1px solid " + theme.headerBorder.name() + ";"
+        "  border-bottom: 1px solid " + theme.headerBorder.name() + ";"
+        "  padding: 2px 4px;"
+        "}");
 }
 
 void VariableWin::setTypeAndValue(QTreeWidgetItem *r, DataElement *d) {

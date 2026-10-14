@@ -64,6 +64,11 @@ struct EditorTheme {
 	QColor outputText;
 	QColor outputError;
 
+	// column header of the Variable Watch window
+	QColor headerBackground;
+	QColor headerText;
+	QColor headerBorder;
+
 	// Stylesheet for a QPlainTextEdit/QTextEdit painted in this theme. A
 	// stylesheet is used rather than setPalette() because some styles ignore
 	// the palette under a dark colour scheme.
