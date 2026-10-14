@@ -8,132 +8,93 @@ set -euo pipefail
 # Previously chained with && (set -e made this fatal on ANY repo failure,
 # including this unrelated one -- caused a real, confirmed CI failure).
 sudo apt-get update || true
+
+# Non-Qt build/runtime dependencies only. Qt itself comes from aqtinstall
+# below, as on Linux x86: the runner's own Qt packages are Ubuntu 24.04's
+# Qt 6.4, older than the 6.5 that View/Theme needs to follow the desktop's
+# light or dark setting (Follow System was greyed out on the Pi). The libxcb-*
+# set is Qt's documented runtime dependency list for the xcb platform plugin.
 sudo apt-get install -y \
-build-essential cmake flex bison \
+build-essential cmake flex bison patchelf \
+libgl1-mesa-dev libegl1 libx11-dev libxext-dev libxrender-dev libxi-dev \
+libfontconfig1 libxkbcommon0 libxkbcommon-x11-0 libxcb-cursor0 \
+libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
+libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 \
+libcups2 libpulse-dev \
 flite libflite1 \
 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-alsa \
 gstreamer1.0-libav gstreamer1.0-pipewire pipewire pipewire-pulse \
 libpipewire-0.3-0 libpipewire-0.3-dev libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 \
-libasound2-dev espeak-ng libespeak-ng-dev libspeechd-dev speech-dispatcher \
-qt6-base-dev qt6-base-dev-tools qt6-tools-dev qt6-tools-dev-tools qt6-l10n-tools \
-qt6-multimedia-dev qt6-serialport-dev qt6-speech-dev qt6-declarative-dev \
-libqt6sql6-sqlite \
-qt6-speech-flite-plugin qt6-speech-speechd-plugin \
-libgl1-mesa-dev libx11-dev patchelf
+libasound2-dev espeak-ng libespeak-ng-dev libspeechd-dev speech-dispatcher
 
-# NOTE: qt6-speech-dev only ships headers/cmake config, not the runtime
-# plugin .so -- the actual TTS backends are split into their own packages
-# (qt6-speech-flite-plugin, qt6-speech-speechd-plugin). Without these,
-# QT_PLUGIN_DIR/texttospeech doesn't even exist and
-# QTextToSpeech::availableEngines() is empty at runtime.
+# Official Qt for arm64 Linux via aqtinstall (host linux_arm64, available
+# from Qt 6.7). Same version and modules as build_Linux_x86.sh.
+python3 -m pip install aqtinstall
+aqt install-qt linux_arm64 desktop 6.11.1 linux_gcc_arm64 -m qtmultimedia qtserialport qtspeech
 
-# NOTE: qt6-declarative-dev is required even though this project doesn't use
-# QML directly -- Qt6TextToSpeech's CMake config (Qt6TextToSpeechConfig.cmake)
-# depends on the Qt6QmlIntegration package, which qt6-declarative-dev
-# provides. Without it, find_package(Qt6 ... TextToSpeech) fails with
-# "Qt6TextToSpeech_FOUND is FALSE" even though the .cmake file exists on disk.
-
-# --- Diagnostics: locate the actual texttospeech plugin package on this runner ---
-echo "=== dpkg -L qt6-speech-dev (files owned by the dev package) ==="
-dpkg -L qt6-speech-dev 2>&1 || echo "(package not installed or dpkg query failed)"
-echo "=== apt-cache search for speech-related qt6 packages ==="
-apt-cache search qt6 2>/dev/null | grep -i speech || echo "(none found)"
-echo "=== dpkg -l | grep -i speech (all installed speech-related packages) ==="
-dpkg -l | grep -i speech || echo "(none found)"
-echo "=== filesystem search for any texttospeech plugin, anywhere ==="
-sudo find / -iname "*texttospeech*" -not -path "*/proc/*" 2>/dev/null || echo "(none found)"
+# Discover the installed subdir rather than assuming its name (aqt strips
+# host prefixes from the arch when naming it), and export QT_DIR for the
+# packaging steps -- $GITHUB_ENV only takes effect from the next step.
+QT_DIR="$(find "$GITHUB_WORKSPACE/6.11.1" -mindepth 1 -maxdepth 1 -type d | head -n1)"
+export QT_DIR
+echo "QT_DIR=$QT_DIR" >> "$GITHUB_ENV"
+echo "Resolved QT_DIR=$QT_DIR"
 
 # 1. Compile using native ARM64 tools
-        cmake -B build -DCMAKE_BUILD_TYPE=Release
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$QT_DIR"
         cmake --build build --config Release -j$(nproc)
 
         # 2. Create standalone relocatable distribution folder
         mkdir -p Basic256/lib Basic256/plugins
         cp build/basic256 Basic256/
         patchelf --set-rpath '$ORIGIN/lib' Basic256/basic256
-        find Basic256/plugins -name "*.so" | while read f; do
-          patchelf --set-rpath '$ORIGIN/../../lib:$ORIGIN/../lib:$ORIGIN' "$f" || true
-        done
         printf '[Paths]\nPlugins=plugins\n' > Basic256/qt.conf
 
-        # 3. Define plugin dir once, used throughout
-        # NOTE: Qt6 on Debian/Ubuntu multiarch systems -- switched from qt5/ to qt6/.
-        QT_PLUGIN_DIR="/usr/lib/aarch64-linux-gnu/qt6/plugins"
+        # 3. Qt comes from the aqtinstall tree; everything else is the system's
+        QT_PLUGIN_DIR="$QT_DIR/plugins"
         echo "QT_PLUGIN_DIR=$QT_PLUGIN_DIR"
         echo "=== Available Qt plugin directories ==="
         find "$QT_PLUGIN_DIR" -maxdepth 1 -type d | sort
-        QT_LIB_DIR="/usr/lib/aarch64-linux-gnu"
+        SYS_LIB_DIR="/usr/lib/aarch64-linux-gnu"
 
-        # 4. Copy Qt runtime libraries
-        # NOTE: renamed Qt5->Qt6; each made non-fatal (|| true) since this is
-        # an unverified best-effort pass at Qt6's actual lib set on this
-        # runner -- if any are genuinely missing/renamed, the run() output
-        # further down (or a runtime crash) will point at exactly which.
-        cp $QT_LIB_DIR/libQt6Core.so.*          Basic256/lib/ || true
-        cp $QT_LIB_DIR/libQt6Gui.so.*           Basic256/lib/ || true
-        cp $QT_LIB_DIR/libQt6Widgets.so.*       Basic256/lib/ || true
-        cp $QT_LIB_DIR/libQt6Multimedia.so.*    Basic256/lib/ || true
-        cp $QT_LIB_DIR/libQt6SerialPort.so.*    Basic256/lib/ || true
-        cp $QT_LIB_DIR/libQt6TextToSpeech.so.*  Basic256/lib/ || true
-        cp $QT_LIB_DIR/libQt6PrintSupport.so.*  Basic256/lib/ || true
-        cp $QT_LIB_DIR/libQt6Sql.so.*           Basic256/lib/ || true
-        cp $QT_LIB_DIR/libQt6XcbQpa.so.*        Basic256/lib/ || true
-        cp $QT_LIB_DIR/libQt6DBus.so.*          Basic256/lib/ || true
-        cp $QT_LIB_DIR/libQt6Network.so.*       Basic256/lib/ || true
-        cp $QT_LIB_DIR/libssl.so.*              Basic256/lib/ || true
-        cp $QT_LIB_DIR/libcrypto.so.*           Basic256/lib/ || true
-        cp $QT_LIB_DIR/libxcb.so.*              Basic256/lib/ 2>/dev/null || true
-        cp $QT_LIB_DIR/libxcb-*.so.*            Basic256/lib/ 2>/dev/null || true
-        cp $QT_LIB_DIR/libxkbcommon*.so.*       Basic256/lib/ 2>/dev/null || true
+        # 4. Non-Qt libraries the Qt libraries and plugins link against. The Qt
+        # libraries themselves are collected in step 9, once every plugin is in.
+        cp $SYS_LIB_DIR/libssl.so.*              Basic256/lib/ || true
+        cp $SYS_LIB_DIR/libcrypto.so.*           Basic256/lib/ || true
+        cp $SYS_LIB_DIR/libxcb.so.*              Basic256/lib/ 2>/dev/null || true
+        cp $SYS_LIB_DIR/libxcb-*.so.*            Basic256/lib/ 2>/dev/null || true
+        cp $SYS_LIB_DIR/libxkbcommon*.so.*       Basic256/lib/ 2>/dev/null || true
 
         # 5. Platform plugins
         mkdir -p Basic256/plugins/platforms
-        cp $QT_PLUGIN_DIR/platforms/libqxcb.so              Basic256/plugins/platforms/ || true
-        cp $QT_PLUGIN_DIR/platforms/libqwayland-generic.so  Basic256/plugins/platforms/ || true
-        cp $QT_PLUGIN_DIR/platforms/libqwayland-egl.so      Basic256/plugins/platforms/ || true
+        cp $QT_PLUGIN_DIR/platforms/libqxcb.so              Basic256/plugins/platforms/
+        cp $QT_PLUGIN_DIR/platforms/libqwayland*.so         Basic256/plugins/platforms/ 2>/dev/null || true
         cp $QT_PLUGIN_DIR/platforms/libqoffscreen.so        Basic256/plugins/platforms/ || true
 
         # 5b. SQLite driver for DBOPEN. run.sh points Qt at the bundled plugins
         # only, so without this QSQLITE is "not loaded" and every DBOPEN fails.
-        # Debian's driver links the system libsqlite3 rather than carrying its
-        # own, so that is bundled too. Only SQLite: the other drivers pull in
-        # client libraries this package does not ship.
+        # Only SQLite: the other drivers pull in client libraries this package
+        # does not ship.
         mkdir -p Basic256/plugins/sqldrivers
         cp $QT_PLUGIN_DIR/sqldrivers/libqsqlite.so Basic256/plugins/sqldrivers/
-        cp $QT_LIB_DIR/libsqlite3.so.*             Basic256/lib/
-
 
         # 6. Text-to-speech plugins
-        echo "=== texttospeech plugins available on runner ($QT_PLUGIN_DIR/texttospeech) ==="
+        echo "=== texttospeech plugins available ($QT_PLUGIN_DIR/texttospeech) ==="
         ls -la "$QT_PLUGIN_DIR/texttospeech" 2>&1 || echo "(directory does not exist)"
         mkdir -p Basic256/plugins/texttospeech
         cp $QT_PLUGIN_DIR/texttospeech/libqtexttospeech_*.so Basic256/plugins/texttospeech/ || true
         echo "=== texttospeech plugins copied into package ==="
         ls -la Basic256/plugins/texttospeech/ 2>&1 || echo "(directory empty or missing)"
-        echo "=== ldd on each copied texttospeech plugin (checking for missing deps) ==="
-        for so in Basic256/plugins/texttospeech/*.so; do
-          [ -f "$so" ] || continue
-          echo "--- $so ---"
-          ldd "$so" 2>&1 | grep -i "not found" && echo "  ^^^ MISSING DEPENDENCY ABOVE" || echo "  (all dependencies resolved)"
-        done
 
         # 7. espeak-ng and libjpeg runtime libs (outside any if-block)
-        cp $QT_LIB_DIR/libespeak-ng.so.*  Basic256/lib/ || true
-        cp $QT_LIB_DIR/libjpeg.so.*       Basic256/lib/ || true
+        cp $SYS_LIB_DIR/libespeak-ng.so.*  Basic256/lib/ || true
+        cp $SYS_LIB_DIR/libjpeg.so.*       Basic256/lib/ || true
 
-        # 8. Multimedia backend and image format plugins.
-        # NOTE: Qt5's "mediaservice" plugin category does not exist in Qt6 --
-        # Qt6 Multimedia backends live under a "multimedia" plugin dir
-        # instead (exact name/contents not verified on this runner; both are
-        # checked defensively so neither missing one fails the build).
+        # 8. Multimedia backend and image format plugins. Qt 6 keeps its
+        # multimedia backends (FFmpeg, GStreamer) under "multimedia".
         if [ -d $QT_PLUGIN_DIR/multimedia ]; then
           mkdir -p Basic256/plugins/multimedia
           cp $QT_PLUGIN_DIR/multimedia/* Basic256/plugins/multimedia/
-        fi
-
-        if [ -d $QT_PLUGIN_DIR/mediaservice ]; then
-          mkdir -p Basic256/plugins/mediaservice
-          cp $QT_PLUGIN_DIR/mediaservice/* Basic256/plugins/mediaservice/
         fi
 
         if [ -d $QT_PLUGIN_DIR/imageformats ]; then
@@ -141,10 +102,21 @@ sudo find / -iname "*texttospeech*" -not -path "*/proc/*" 2>/dev/null || echo "(
           cp $QT_PLUGIN_DIR/imageformats/* Basic256/plugins/imageformats/
         fi
 
-        if [ -d $QT_PLUGIN_DIR/audio ]; then
-          mkdir -p Basic256/plugins/audio
-          cp $QT_PLUGIN_DIR/audio/* Basic256/plugins/audio/
-        fi
+        # 9. Every library from the Qt tree that the binary or a bundled plugin
+        # needs -- the Qt modules, and whatever Qt ships beside them (FFmpeg for
+        # the multimedia backend, ICU). Followed through ldd and repeated until
+        # nothing new turns up, so the list never has to be kept by hand.
+        while :; do
+          before=$(ls Basic256/lib | wc -l)
+          for f in Basic256/basic256 $(find Basic256/plugins Basic256/lib -name '*.so*' -type f); do
+            LD_LIBRARY_PATH="$QT_DIR/lib" ldd "$f" 2>/dev/null | awk '{print $3}' | grep "^$QT_DIR/lib/" || true
+          done | sort -u | while read -r dep; do
+            [ -e "Basic256/lib/$(basename "$dep")" ] || cp -L "$dep" Basic256/lib/
+          done
+          [ "$(ls Basic256/lib | wc -l)" -eq "$before" ] && break
+        done
+        echo "=== Qt libraries bundled from $QT_DIR/lib ==="
+        ls Basic256/lib | grep -v '^libxcb' || true
 
         cp -r Examples Basic256/
         # the MKDIR test leaves an empty filegatesub behind whenever the

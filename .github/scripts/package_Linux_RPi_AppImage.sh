@@ -10,10 +10,18 @@ set -euo pipefail
 # ── Configuration ─────────────────────────────────────────────────────────────
 ARCH="aarch64"
 QT_LIB="/usr/lib/aarch64-linux-gnu"
-QT_PLUGIN_DIR="${QT_LIB}/qt6/plugins"
+# Qt6 itself comes from aqtinstall (build_Linux_RPi_Trixie.sh exports QT_DIR
+# via $GITHUB_ENV), not from a system apt package -- only non-Qt system libs
+# (gstreamer, glib, etc.) still live under QT_LIB.
+QT_PLUGIN_DIR="${QT_DIR:?QT_DIR not set - build_Linux_RPi_Trixie.sh must run first}/plugins"
 GSTPLUG="${QT_LIB}/gstreamer-1.0"
 APPDIR="$(pwd)/AppDir"
 ARTIFACT_NAME="${ARTIFACT_NAME:-BASIC256-RaspberryPi-ARM64}"
+
+# Qt's official builds carry a sqldrivers plugin for every backend, and
+# linuxdeploy's Qt plugin aborts on any bundled plugin with an unresolved
+# dependency (see package_Linux_x86_AppImage.sh). BASIC256 only uses SQLite.
+find "${QT_PLUGIN_DIR}/sqldrivers" -name '*.so' ! -name 'libqsqlite.so' -delete 2>/dev/null || true
 
 export APPIMAGE_EXTRACT_AND_RUN=1
 
@@ -86,7 +94,9 @@ Plugins = ../plugins
 QTCONF
 
 # ── Qt plugins ────────────────────────────────────────────────────────────────
-for subdir in texttospeech mediaservice audio imageformats platforms; do
+# Qt 6 keeps its multimedia backends under "multimedia"; Qt 5's
+# "mediaservice" and "audio" no longer exist.
+for subdir in texttospeech multimedia imageformats platforms; do
     mkdir -p "${APPDIR}/usr/plugins/${subdir}"
     cp "${QT_PLUGIN_DIR}/${subdir}/"*.so \
        "${APPDIR}/usr/plugins/${subdir}/" 2>/dev/null || true
@@ -100,21 +110,20 @@ cp "${QT_PLUGIN_DIR}/sqldrivers/libqsqlite.so" "${APPDIR}/usr/plugins/sqldrivers
 # On ARM, linuxdeploy-plugin-qt is less reliable for finding all Qt modules,
 # so we bundle them explicitly (mirrors build_Linux_RPi_Trixie.sh).
 cplib() { cp "${QT_LIB}/${1}" "${APPDIR}/usr/lib/" 2>/dev/null || true; }
+cpqt() { cp "${QT_DIR}/lib/${1}" "${APPDIR}/usr/lib/" 2>/dev/null || true; }
 
-# Qt modules
-cplib "libQt6Core.so.*"
-cplib "libQt6Gui.so.*"
-cplib "libQt6Widgets.so.*"
-cplib "libQt6Multimedia.so.*"
-cplib "libQt6SerialPort.so.*"
-cplib "libQt6TextToSpeech.so.*"
-cplib "libQt6PrintSupport.so.*"
-cplib "libQt6Sql.so.*"
-# Debian's SQLite driver links the system libsqlite3 rather than carrying its own
-cplib "libsqlite3.so.*"
-cplib "libQt6XcbQpa.so.*"
-cplib "libQt6DBus.so.*"
-cplib "libQt6Network.so.*"
+# Qt modules, from the aqtinstall tree
+cpqt "libQt6Core.so.*"
+cpqt "libQt6Gui.so.*"
+cpqt "libQt6Widgets.so.*"
+cpqt "libQt6Multimedia.so.*"
+cpqt "libQt6SerialPort.so.*"
+cpqt "libQt6TextToSpeech.so.*"
+cpqt "libQt6PrintSupport.so.*"
+cpqt "libQt6Sql.so.*"
+cpqt "libQt6XcbQpa.so.*"
+cpqt "libQt6DBus.so.*"
+cpqt "libQt6Network.so.*"
 
 # Display / input
 cplib "libxcb.so.*"
@@ -207,20 +216,17 @@ chmod +x "${TOOLS_DIR}/linuxdeploy-${ARCH}.AppImage" \
          "${TOOLS_DIR}/linuxdeploy-plugin-qt-${ARCH}.AppImage"
 
 # ── Deploy Qt dependencies and produce .AppImage ──────────────────────────────
-# Debian/Ubuntu package Qt6's qmake as a plain system binary named "qmake6"
-# (not under an arch-specific qt6/bin dir the way Qt5's qmake was), so just
-# resolve it off PATH rather than constructing a path by hand.
-QMAKE="$(command -v qmake6 || true)"
-if [ -z "${QMAKE}" ]; then
-    echo "ERROR: qmake6 not found on PATH (expected from qt6-base-dev-tools)" >&2
-    exit 1
-fi
-export QMAKE
+export QMAKE="${QT_DIR}/bin/qmake"
 echo "==> Using QMAKE=${QMAKE}"
 export QML_SOURCES_PATHS="."
-export EXTRA_QT_PLUGINS="texttospeech;mediaservice;audio;imageformats"
+export EXTRA_QT_PLUGINS="texttospeech;multimedia;imageformats"
 export VERSION
 VERSION="$(git describe --tags --always 2>/dev/null || echo 'dev')"
+
+# linuxdeploy's own dependency walk knows nothing of $QMAKE, and the aqtinstall
+# Qt is not registered with ldconfig, so point it at the Qt libraries
+# (same as package_Linux_x86_AppImage.sh).
+export LD_LIBRARY_PATH="${QT_DIR}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 
 echo "==> Running linuxdeploy (VERSION=${VERSION})"
 "${TOOLS_DIR}/linuxdeploy-${ARCH}.AppImage" \

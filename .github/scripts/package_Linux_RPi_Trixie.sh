@@ -4,10 +4,12 @@ set -euo pipefail
         cp README.md Basic256/ || true
         cp Basic256-IDE.png Basic256-CLI.png Basic256-Web.png Basic256-Web_GraphicsOnly.png Basic256/ || true
 
-        # ICU libraries - required by Qt5Core at runtime for Unicode/locale support
-        cp /usr/lib/aarch64-linux-gnu/libicuuc.so.*   Basic256/lib/
-        cp /usr/lib/aarch64-linux-gnu/libicudata.so.* Basic256/lib/
-        cp /usr/lib/aarch64-linux-gnu/libicui18n.so.* Basic256/lib/
+        # ICU, for Unicode/locale support. Qt's own ICU, when its build ships
+        # one, was bundled with the Qt libraries in build_Linux_RPi_Trixie.sh;
+        # these are the system's, for anything else that links them.
+        cp /usr/lib/aarch64-linux-gnu/libicuuc.so.*   Basic256/lib/ || true
+        cp /usr/lib/aarch64-linux-gnu/libicudata.so.* Basic256/lib/ || true
+        cp /usr/lib/aarch64-linux-gnu/libicui18n.so.* Basic256/lib/ || true
         cp /usr/lib/aarch64-linux-gnu/libflite.so.* Basic256/lib/ || true
         cp /usr/lib/aarch64-linux-gnu/libflite_cmu_us_kal.so.* Basic256/lib/ || true
         cp /usr/lib/aarch64-linux-gnu/libflite_usenglish.so.* Basic256/lib/ || true
@@ -29,18 +31,6 @@ set -euo pipefail
         cp /usr/lib/aarch64-linux-gnu/libffi.so.*                  Basic256/lib/ || true
         cp /usr/lib/aarch64-linux-gnu/libpcre2-8.so.*              Basic256/lib/ || true
         cp /usr/lib/aarch64-linux-gnu/liborc-0.4.so.*              Basic256/lib/ || true
-
-        QT_PLUGIN_DIR="/usr/lib/aarch64-linux-gnu/qt6/plugins"
-        
-        if [ -d $QT_PLUGIN_DIR/audio ]; then
-          mkdir -p Basic256/plugins/audio
-          cp $QT_PLUGIN_DIR/audio/* Basic256/plugins/audio/
-        fi
-
-        mkdir -p Basic256/plugins/mediaservice
-        if [ -d $QT_PLUGIN_DIR/mediaservice ]; then
-          cp $QT_PLUGIN_DIR/mediaservice/* Basic256/plugins/mediaservice/
-        fi
 
         # GStreamer plugins (audioconvert, autoaudiosink, alsa/pulse)
         GSTPLUG="/usr/lib/aarch64-linux-gnu/gstreamer-1.0"
