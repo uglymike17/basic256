@@ -120,15 +120,17 @@ export GST_PLUGIN_SYSTEM_PATH=""
 export GST_REGISTRY="$DIR/gstreamer-1.0/registry.bin"
 # Qt reads the desktop's colours, light or dark, through a platform theme
 # plugin. It picks the bundled GTK one by itself on GNOME-like desktops but
-# not on others, such as labwc on the Raspberry Pi, so ask for it -- unless
-# the user chose a theme, or the desktop is Qt-based (KDE, LXQt), where Qt's
-# own choice is the right one.
-if [ -z "${QT_QPA_PLATFORMTHEME:-}" ]; then
-    case "${XDG_CURRENT_DESKTOP:-}" in
-        *KDE*|*LXQt*|*LXQT*) ;;
-        *) export QT_QPA_PLATFORMTHEME=gtk3 ;;
-    esac
-fi
+# not on others, such as labwc on the Raspberry Pi, so ask for it. A theme
+# already set is kept only if this package carries its plugin: anything else
+# cannot load here, and Raspberry Pi OS sets qt5ct, a Qt 5 plugin, for every
+# session. Qt-based desktops (KDE, LXQt) are left to Qt's own choice.
+case "${XDG_CURRENT_DESKTOP:-}" in
+    *KDE*|*LXQt*|*LXQT*) ;;
+    *) case "${QT_QPA_PLATFORMTHEME:-}" in
+           gtk3) ;;
+           *) export QT_QPA_PLATFORMTHEME=gtk3 ;;
+       esac ;;
+esac
 exec "$DIR/basic256" "$@"
 EOF
         chmod +x Basic256/run.sh

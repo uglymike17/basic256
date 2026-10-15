@@ -85,15 +85,17 @@ export SPEECHD_MODULE_DIR="${HERE}/usr/lib/speech-dispatcher"
 
 # Qt reads the desktop's colours, light or dark, through a platform theme
 # plugin. It picks the bundled GTK one by itself on GNOME-like desktops but
-# not on others, such as labwc on the Raspberry Pi, so ask for it -- unless
-# the user chose a theme, or the desktop is Qt-based (KDE, LXQt), where Qt's
-# own choice is the right one.
-if [ -z "${QT_QPA_PLATFORMTHEME:-}" ]; then
-    case "${XDG_CURRENT_DESKTOP:-}" in
-        *KDE*|*LXQt*|*LXQT*) ;;
-        *) export QT_QPA_PLATFORMTHEME=gtk3 ;;
-    esac
-fi
+# not on others, such as labwc on the Raspberry Pi, so ask for it. A theme
+# already set is kept only if this package carries its plugin: anything else
+# cannot load here, and Raspberry Pi OS sets qt5ct, a Qt 5 plugin, for every
+# session. Qt-based desktops (KDE, LXQt) are left to Qt's own choice.
+case "${XDG_CURRENT_DESKTOP:-}" in
+    *KDE*|*LXQt*|*LXQT*) ;;
+    *) case "${QT_QPA_PLATFORMTHEME:-}" in
+           gtk3|xdgdesktopportal) ;;
+           *) export QT_QPA_PLATFORMTHEME=gtk3 ;;
+       esac ;;
+esac
 
 exec "${HERE}/usr/bin/basic256" "$@"
 APPRUN
@@ -175,13 +177,10 @@ cplib "libgstvideo-1.0.so.*"
 cplib "libgstpbutils-1.0.so.*"
 cplib "libgstapp-1.0.so.*"
 
-# GLib / GObject (dlopen'd transitively)
-cplib "libglib-2.0.so.*"
-cplib "libgobject-2.0.so.*"
-cplib "libgmodule-2.0.so.*"
-cplib "libgio-2.0.so.*"
-cplib "libffi.so.*"
-cplib "libpcre2-8.so.*"
+# GLib is deliberately not bundled: GTK, which the theme plugin loads, and
+# the GIO modules it pulls in such as gvfs are built against the Pi's own
+# newer GLib and fail against an older one. GLib keeps working for programs
+# built against older versions, so GStreamer is fine with the Pi's.
 cplib "liborc-0.4.so.*"
 
 # Speech-dispatcher output modules
@@ -241,9 +240,21 @@ VERSION="$(git describe --tags --always 2>/dev/null || echo 'dev')"
 export LD_LIBRARY_PATH="${QT_DIR}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 
 echo "==> Running linuxdeploy (VERSION=${VERSION})"
+# GLib must come from the Pi (see above). Qt links it, so linuxdeploy bundles
+# it by itself; keep it out of both passes and remove what the Qt plugin
+# deploys regardless.
+GLIB_EXCLUDES=(--exclude-library 'libglib-2.0.so*' --exclude-library 'libgobject-2.0.so*'
+               --exclude-library 'libgmodule-2.0.so*' --exclude-library 'libgio-2.0.so*'
+               --exclude-library 'libffi.so*' --exclude-library 'libpcre2-8.so*')
+
 "${TOOLS_DIR}/linuxdeploy-${ARCH}.AppImage" \
     --appdir "${APPDIR}"                     \
+    "${GLIB_EXCLUDES[@]}"                    \
     --plugin qt
+
+rm -f "${APPDIR}"/usr/lib/libglib-2.0.so* "${APPDIR}"/usr/lib/libgobject-2.0.so* \
+      "${APPDIR}"/usr/lib/libgmodule-2.0.so* "${APPDIR}"/usr/lib/libgio-2.0.so* \
+      "${APPDIR}"/usr/lib/libffi.so* "${APPDIR}"/usr/lib/libpcre2-8.so*
 
 # GTK platform theme, so the IDE follows the desktop's light or dark theme
 # (AppRun asks for it). Added only after the Qt plugin has deployed: given the
@@ -254,6 +265,7 @@ cp "${QT_PLUGIN_DIR}/platformthemes/libqgtk3.so" "${APPDIR}/usr/plugins/platform
 
 "${TOOLS_DIR}/linuxdeploy-${ARCH}.AppImage" \
     --appdir "${APPDIR}"                     \
+    "${GLIB_EXCLUDES[@]}"                    \
     --output appimage
 
 # ── Rename output ─────────────────────────────────────────────────────────────
@@ -288,6 +300,10 @@ if [ ! -f squashfs-root/usr/plugins/platformthemes/libqgtk3.so ]; then
 fi
 if ls squashfs-root/usr/lib/libgtk-3.so* 1>/dev/null 2>&1; then
     echo "ERROR: GTK was bundled in ${ARTIFACT_NAME}.AppImage; the theme plugin must use the system's" >&2
+    exit 1
+fi
+if ls squashfs-root/usr/lib/libglib-2.0.so* squashfs-root/usr/lib/libgio-2.0.so* 1>/dev/null 2>&1; then
+    echo "ERROR: GLib was bundled in ${ARTIFACT_NAME}.AppImage; it must come from the Pi" >&2
     exit 1
 fi
 echo "==> GTK platform theme verified in ${ARTIFACT_NAME}.AppImage"
