@@ -66,6 +66,15 @@ set -euo pipefail
           echo "ERROR: the SQLite driver has unresolved dependencies (above)"; exit 1
         fi
 
+        # The GTK platform theme is how the IDE follows a dark desktop. GTK
+        # must come from the user's system, never from the package.
+        if [ ! -f Basic256/plugins/platformthemes/libqgtk3.so ]; then
+          echo "ERROR: plugins/platformthemes/libqgtk3.so is missing from the package"; exit 1
+        fi
+        if ls Basic256/lib/libgtk-3.so* 1>/dev/null 2>&1; then
+          echo "ERROR: GTK was bundled; the theme plugin must use the system's"; exit 1
+        fi
+
         # Diagnostics: confirm texttospeech plugins made it into the final
         # package and that their dependencies resolve against the bundled
         # Basic256/lib (this is what the shipped artifact actually sees).
@@ -95,6 +104,17 @@ set -euo pipefail
         export QT_QPA_PLATFORM_PLUGIN_PATH="$DIR/plugins/platforms"
         export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
         export QT_TEXTTOSPEECH_PLUGINS="$DIR/plugins/texttospeech"
+        # Qt reads the desktop's colours, light or dark, through a platform theme
+        # plugin. It picks the bundled GTK one by itself on GNOME-like desktops but
+        # not on others, such as labwc on the Raspberry Pi, so ask for it -- unless
+        # the user chose a theme, or the desktop is Qt-based (KDE, LXQt), where Qt's
+        # own choice is the right one.
+        if [ -z "${QT_QPA_PLATFORMTHEME:-}" ]; then
+            case "${XDG_CURRENT_DESKTOP:-}" in
+                *KDE*|*LXQt*|*LXQT*) ;;
+                *) export QT_QPA_PLATFORMTHEME=gtk3 ;;
+            esac
+        fi
         export PIPEWIRE_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
         export GST_PLUGIN_PATH="$DIR/gstreamer-1.0"
         export GST_REGISTRY="$DIR/gstreamer-1.0/registry.bin"

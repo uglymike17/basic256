@@ -99,6 +99,16 @@ set -euo pipefail
             cp build/basic256 Basic256/
         fi
 
+        # GTK platform theme, so the IDE follows the desktop's light or dark
+        # theme (run.sh asks for it). Copied only after linuxdeployqt has run:
+        # given the plugin, it would bundle GTK itself, and GTK must come from
+        # the user's system. Qt's plugins already look for Qt in ../../lib.
+        mkdir -p Basic256/plugins/platformthemes
+        cp "$QT_PLUGIN_DIR/platformthemes/libqgtk3.so" Basic256/plugins/platformthemes/
+        if ls Basic256/lib/libgtk-3.so* 1>/dev/null 2>&1; then
+          echo "ERROR: GTK was bundled; the theme plugin must use the system's"; exit 1
+        fi
+
         #Launcher script
         cat > Basic256/run.sh << 'EOF'
 #!/bin/sh
@@ -108,6 +118,17 @@ export QT_PLUGIN_PATH="$DIR/plugins"
 export GST_PLUGIN_PATH="$DIR/gstreamer-1.0"
 export GST_PLUGIN_SYSTEM_PATH=""
 export GST_REGISTRY="$DIR/gstreamer-1.0/registry.bin"
+# Qt reads the desktop's colours, light or dark, through a platform theme
+# plugin. It picks the bundled GTK one by itself on GNOME-like desktops but
+# not on others, such as labwc on the Raspberry Pi, so ask for it -- unless
+# the user chose a theme, or the desktop is Qt-based (KDE, LXQt), where Qt's
+# own choice is the right one.
+if [ -z "${QT_QPA_PLATFORMTHEME:-}" ]; then
+    case "${XDG_CURRENT_DESKTOP:-}" in
+        *KDE*|*LXQt*|*LXQT*) ;;
+        *) export QT_QPA_PLATFORMTHEME=gtk3 ;;
+    esac
+fi
 exec "$DIR/basic256" "$@"
 EOF
         chmod +x Basic256/run.sh

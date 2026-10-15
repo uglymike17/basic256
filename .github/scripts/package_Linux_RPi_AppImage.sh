@@ -83,6 +83,18 @@ export GST_REGISTRY="${XDG_CACHE_HOME:-${HOME}/.cache}/basic256/gst-registry.bin
 # speech-dispatcher modules live inside the AppImage on ARM
 export SPEECHD_MODULE_DIR="${HERE}/usr/lib/speech-dispatcher"
 
+# Qt reads the desktop's colours, light or dark, through a platform theme
+# plugin. It picks the bundled GTK one by itself on GNOME-like desktops but
+# not on others, such as labwc on the Raspberry Pi, so ask for it -- unless
+# the user chose a theme, or the desktop is Qt-based (KDE, LXQt), where Qt's
+# own choice is the right one.
+if [ -z "${QT_QPA_PLATFORMTHEME:-}" ]; then
+    case "${XDG_CURRENT_DESKTOP:-}" in
+        *KDE*|*LXQt*|*LXQT*) ;;
+        *) export QT_QPA_PLATFORMTHEME=gtk3 ;;
+    esac
+fi
+
 exec "${HERE}/usr/bin/basic256" "$@"
 APPRUN
 chmod +x "${APPDIR}/AppRun"
@@ -231,7 +243,17 @@ export LD_LIBRARY_PATH="${QT_DIR}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 echo "==> Running linuxdeploy (VERSION=${VERSION})"
 "${TOOLS_DIR}/linuxdeploy-${ARCH}.AppImage" \
     --appdir "${APPDIR}"                     \
-    --plugin qt                              \
+    --plugin qt
+
+# GTK platform theme, so the IDE follows the desktop's light or dark theme
+# (AppRun asks for it). Added only after the Qt plugin has deployed: given the
+# plugin, it would bundle GTK too, and GTK must come from the user's system.
+# Qt's plugins already look for the Qt libraries in ../../lib.
+mkdir -p "${APPDIR}/usr/plugins/platformthemes"
+cp "${QT_PLUGIN_DIR}/platformthemes/libqgtk3.so" "${APPDIR}/usr/plugins/platformthemes/"
+
+"${TOOLS_DIR}/linuxdeploy-${ARCH}.AppImage" \
+    --appdir "${APPDIR}"                     \
     --output appimage
 
 # ── Rename output ─────────────────────────────────────────────────────────────
@@ -260,4 +282,13 @@ if [ ! -f squashfs-root/usr/bin/Modules/math.kbs ]; then
     exit 1
 fi
 echo "==> Examples/ and Modules/math.kbs verified in ${ARTIFACT_NAME}.AppImage"
+if [ ! -f squashfs-root/usr/plugins/platformthemes/libqgtk3.so ]; then
+    echo "ERROR: usr/plugins/platformthemes/libqgtk3.so missing in ${ARTIFACT_NAME}.AppImage" >&2
+    exit 1
+fi
+if ls squashfs-root/usr/lib/libgtk-3.so* 1>/dev/null 2>&1; then
+    echo "ERROR: GTK was bundled in ${ARTIFACT_NAME}.AppImage; the theme plugin must use the system's" >&2
+    exit 1
+fi
+echo "==> GTK platform theme verified in ${ARTIFACT_NAME}.AppImage"
 rm -rf squashfs-root

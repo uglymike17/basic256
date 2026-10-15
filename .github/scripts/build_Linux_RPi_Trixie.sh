@@ -71,6 +71,12 @@ echo "Resolved QT_DIR=$QT_DIR"
         cp $QT_PLUGIN_DIR/platforms/libqwayland*.so         Basic256/plugins/platforms/ 2>/dev/null || true
         cp $QT_PLUGIN_DIR/platforms/libqoffscreen.so        Basic256/plugins/platforms/ || true
 
+        # 5a. GTK platform theme, so the IDE follows the desktop's light or dark
+        # theme (run.sh asks for it). GTK itself is deliberately not bundled:
+        # the plugin uses the system's, which every desktop with a GTK theme has.
+        mkdir -p Basic256/plugins/platformthemes
+        cp $QT_PLUGIN_DIR/platformthemes/libqgtk3.so Basic256/plugins/platformthemes/
+
         # 5b. SQLite driver for DBOPEN. run.sh points Qt at the bundled plugins
         # only, so without this QSQLITE is "not loaded" and every DBOPEN fails.
         # Only SQLite: the other drivers pull in client libraries this package
