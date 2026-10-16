@@ -140,9 +140,6 @@ cplib "libgstreamer-1.0.so.*"
 cplib "libgstbase-1.0.so.*"
 cplib "libgstaudio-1.0.so.*"
 cplib "libgstpbutils-1.0.so.*"
-cplib "libglib-2.0.so.*"
-cplib "libgobject-2.0.so.*"
-cplib "libgio-2.0.so.*"
 
 # ── GStreamer plugins → usr/lib/gstreamer-1.0 ─────────────────────────────────
 echo "==> Copying GStreamer plugins"
@@ -193,9 +190,22 @@ VERSION="$(git describe --tags --always 2>/dev/null || echo 'dev')"
 export LD_LIBRARY_PATH="${QT_DIR}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 
 echo "==> Running linuxdeploy (VERSION=${VERSION})"
+# The libraries GTK is built on must come from the system: GTK, loaded by
+# the theme plugin, uses whichever copy is first on the path, and one older
+# than it was built for stops the plugin loading (Linux Mint 22.3 stayed
+# light). linuxdeploy bundles them by itself, so keep them out of both passes
+# and remove what the Qt plugin deploys regardless. Any distribution new
+# enough for this binary has them at least as new as the build machine's.
+GTK_STACK=('libglib-2.0.so*' 'libgobject-2.0.so*' 'libgio-2.0.so*' 'libgmodule-2.0.so*' 'libgthread-2.0.so*' 'libffi.so*' 'libpcre.so*' 'libpcre2-8.so*' 'libcairo.so*' 'libcairo-gobject.so*' 'libpango-1.0.so*' 'libpangocairo-1.0.so*' 'libpangoft2-1.0.so*' 'libgdk_pixbuf-2.0.so*' 'libpixman-1.so*' 'libthai.so*' 'libdatrie.so*')
+GTK_EXCLUDES=()
+for pat in "${GTK_STACK[@]}"; do GTK_EXCLUDES+=(--exclude-library "${pat}"); done
+
 "${TOOLS_DIR}/linuxdeploy-${ARCH}.AppImage" \
     --appdir "${APPDIR}"                     \
+    "${GTK_EXCLUDES[@]}"                     \
     --plugin qt
+
+for pat in "${GTK_STACK[@]}"; do rm -f "${APPDIR}"/usr/lib/${pat}; done
 
 # GTK platform theme, so the IDE follows the desktop's light or dark theme
 # (AppRun asks for it). Added only after the Qt plugin has deployed: given the
@@ -206,6 +216,7 @@ cp "${QT_PLUGIN_DIR}/platformthemes/libqgtk3.so" "${APPDIR}/usr/plugins/platform
 
 "${TOOLS_DIR}/linuxdeploy-${ARCH}.AppImage" \
     --appdir "${APPDIR}"                     \
+    "${GTK_EXCLUDES[@]}"                     \
     --output appimage
 
 # ── Rename output to expected artifact name ───────────────────────────────────
@@ -242,5 +253,11 @@ if ls squashfs-root/usr/lib/libgtk-3.so* 1>/dev/null 2>&1; then
     echo "ERROR: GTK was bundled in ${ARTIFACT_NAME}.AppImage; the theme plugin must use the system's" >&2
     exit 1
 fi
+for pat in "${GTK_STACK[@]}"; do
+    if ls squashfs-root/usr/lib/${pat} 1>/dev/null 2>&1; then
+        echo "ERROR: ${pat} is bundled in ${ARTIFACT_NAME}.AppImage; it must come from the system" >&2
+        exit 1
+    fi
+done
 echo "==> GTK platform theme verified in ${ARTIFACT_NAME}.AppImage"
 rm -rf squashfs-root

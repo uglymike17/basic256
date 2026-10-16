@@ -56,9 +56,6 @@ set -euo pipefail
         cp $GLIB/libgstbase-1.0.so.*          Basic256/lib/ || true
         cp $GLIB/libgstaudio-1.0.so.*         Basic256/lib/ || true
         cp $GLIB/libgstpbutils-1.0.so.*       Basic256/lib/ || true
-        cp $GLIB/libglib-2.0.so.*             Basic256/lib/ || true
-        cp $GLIB/libgobject-2.0.so.*          Basic256/lib/ || true
-        cp $GLIB/libgio-2.0.so.*              Basic256/lib/ || true
         mkdir -p Basic256/gstreamer-1.0
         GSTPLUG="/usr/lib/x86_64-linux-gnu/gstreamer-1.0"
         for p in libgstautodetect libgstaudioconvert libgstaudioresample \
@@ -108,6 +105,19 @@ set -euo pipefail
         if ls Basic256/lib/libgtk-3.so* 1>/dev/null 2>&1; then
           echo "ERROR: GTK was bundled; the theme plugin must use the system's"; exit 1
         fi
+        # The libraries GTK is built on must come from the system as well:
+        # GTK loads against whichever copy is first on the path, and a copy
+        # older than the one it was built for stops the theme plugin loading
+        # (Linux Mint 22.3 stayed light). linuxdeployqt bundles them by itself,
+        # so remove them. Any distribution new enough for this binary has them
+        # at least as new as the build machine's.
+        GTK_STACK="libglib-2.0.so* libgobject-2.0.so* libgio-2.0.so* libgmodule-2.0.so* libgthread-2.0.so* libffi.so* libpcre.so* libpcre2-8.so* libcairo.so* libcairo-gobject.so* libpango-1.0.so* libpangocairo-1.0.so* libpangoft2-1.0.so* libgdk_pixbuf-2.0.so* libpixman-1.so* libthai.so* libdatrie.so*"
+        for pat in $GTK_STACK; do rm -f Basic256/lib/$pat; done
+        for pat in $GTK_STACK; do
+          if ls Basic256/lib/$pat 1>/dev/null 2>&1; then
+            echo "ERROR: $pat is bundled; it must come from the system"; exit 1
+          fi
+        done
 
         #Launcher script
         cat > Basic256/run.sh << 'EOF'
