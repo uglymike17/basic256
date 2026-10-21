@@ -1068,6 +1068,7 @@
 }
 
 %token <number> B256INTEGER
+%token B256INTEGERTOOLARGE
 %token <floatnum> B256FLOAT
 %token <string> B256STRING
 %token <string> B256HEXCONST
@@ -1930,6 +1931,17 @@ expr_numeric:
         	addIntOp(OP_PUSHINT, (int)$2);
     	else
         	addLongLongOp(OP_PUSHLONG, $2);
+	}
+
+	| B256INTEGERTOOLARGE {
+		// an integer literal past the 64-bit range
+		errorcode = COMPERR_NUMBERTOOLARGE;
+		return -1;
+	}
+
+	| '+' B256INTEGERTOOLARGE %prec B256UNARY {
+		errorcode = COMPERR_NUMBERTOOLARGE;
+		return -1;
 	}
 
 	| '+' B256FLOAT %prec B256UNARY {

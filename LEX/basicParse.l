@@ -655,7 +655,7 @@ zfill [Zz][Ff][Ii][Ll][Ll]
     count();
     errno = 0;
     yylval.number = strtoll(yytext, NULL, 10);
-    if (errno == ERANGE) return B256ERROR_INTEGERRANGE;
+    if (errno == ERANGE) return B256INTEGERTOOLARGE;
     return B256INTEGER;
 }
 {constdecimal}				{ count(); yylval.floatnum = atof(yytext); return B256FLOAT; }
