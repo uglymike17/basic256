@@ -40,6 +40,10 @@ class BasicEdit : public QPlainTextEdit, public ViewWidgetIFace
 		~BasicEdit();
 
         void saveFile(bool);
+		// the bundled Examples/ folder, or "" when there is none (a dev build)
+		static QString examplesDir();
+		// true when file lies inside examplesDir() -- those are never overwritten
+		static bool isInExamples(const QString &file);
 		void findString(QString, bool, bool, bool);
         void replaceString(QString, QString, bool, bool, bool, bool);
 		QString getCurrentWord();
@@ -120,6 +124,7 @@ class BasicEdit : public QPlainTextEdit, public ViewWidgetIFace
         void handleFileChangedOnDisk();
 #ifndef Q_OS_WASM
         void writeFile();
+        void warnExamplesReadOnly();
 #endif
 
 	private slots:

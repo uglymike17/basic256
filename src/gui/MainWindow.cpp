@@ -1921,20 +1921,8 @@ void MainWindow::openExample() {
     dialog->open();
 #else
     // Desktop: browse the bundled Examples/ directory with the normal file
-    // dialog. Inside an AppImage the app runs from an ephemeral squashfs mount,
-    // so the only reliable way to reach the bundled examples is a path resolved
-    // relative to the executable -- probe the layouts the packaging scripts
-    // produce and open the first that exists.
-    const QString appDir = QCoreApplication::applicationDirPath();
-    QString dir;
-    const QStringList candidates = {
-        appDir + "/Examples",                    // Windows/Linux zip & tar.gz, and macOS .app (Examples beside the binary, e.g. Contents/MacOS)
-        appDir + "/../share/basic256/Examples",  // Linux AppImage (binary in usr/bin)
-        appDir + "/../../../Examples",           // macOS .app run from its distribution folder (Examples beside the bundle)
-    };
-    for (const QString &c : std::as_const(candidates)) {
-        if (QDir(c).exists()) { dir = QDir(c).absolutePath(); break; }
-    }
+    // dialog.
+    QString dir = BasicEdit::examplesDir();
     // No bundled Examples found (e.g. a bare dev build) -> let the dialog open
     // wherever the plain Open dialog would.
     if (dir.isEmpty()) dir = QStringLiteral(".");

@@ -25,6 +25,7 @@
 #include <QResizeEvent>
 #include <QPaintEvent>
 #include <QRegularExpression>
+#include <QCoreApplication>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QStatusBar>
 #ifdef BASIC256_ENABLE_PRINTER
@@ -195,6 +196,38 @@ BasicEdit::keyPressEvent(QKeyEvent *e) {
 }
 
 
+QString BasicEdit::examplesDir() {
+	// Inside an AppImage the app runs from an ephemeral squashfs mount, so
+	// the only reliable way to reach the bundled examples is a path resolved
+	// relative to the executable -- probe the layouts the packaging scripts
+	// produce and take the first that exists.
+	const QString appDir = QCoreApplication::applicationDirPath();
+	const QStringList candidates = {
+		appDir + "/Examples",                    // Windows/Linux zip & tar.gz, and macOS .app (Examples beside the binary, e.g. Contents/MacOS)
+		appDir + "/../share/basic256/Examples",  // Linux AppImage (binary in usr/bin)
+		appDir + "/../../../Examples",           // macOS .app run from its distribution folder (Examples beside the bundle)
+	};
+	for (const QString &c : candidates) {
+		if (QDir(c).exists()) return QDir(c).canonicalPath();
+	}
+	return QString();
+}
+
+bool BasicEdit::isInExamples(const QString &file) {
+	const QString dir = examplesDir();
+	if (dir.isEmpty() || file.isEmpty()) return false;
+	// the file itself may not exist yet (a Save As target), so resolve its folder
+	QFileInfo fi(file);
+	QString folder = QFileInfo(fi.absolutePath()).canonicalFilePath();
+	if (folder.isEmpty()) folder = fi.absolutePath();
+#ifdef Q_OS_WIN
+	const Qt::CaseSensitivity cs = Qt::CaseInsensitive;
+#else
+	const Qt::CaseSensitivity cs = Qt::CaseSensitive;
+#endif
+	return folder.compare(dir, cs) == 0 || folder.startsWith(dir + "/", cs);
+}
+
 void BasicEdit::saveFile(bool overwrite) {
 #ifdef Q_OS_WASM
 	// No real filesystem path on WASM, so no getSaveFileName() prompt and
@@ -216,9 +249,20 @@ void BasicEdit::saveFile(bool overwrite) {
 #else
 	// BE SURE TO SET filename PROPERTY FIRST
 	// or set it to '' to prompt for a new file name
+	if (isInExamples(filename)) {
+		// a bundled example is never overwritten -- Save becomes Save As
+		emit(setCurrentEditorTab(this));
+		saveAsProgram();
+		return;
+	}
 	if (filename == "") {
         emit(setCurrentEditorTab(this)); //activate editor window
-        filename = QFileDialog::getSaveFileName(this, tr("Save file as"), title+".kbs", tr("BASIC-256 File ") + "(*.kbs);;" + tr("Any File ")  + "(*.*)");
+        QString chosen = QFileDialog::getSaveFileName(this, tr("Save file as"), title+".kbs", tr("BASIC-256 File ") + "(*.kbs);;" + tr("Any File ")  + "(*.*)");
+		if (isInExamples(chosen)) {
+			warnExamplesReadOnly();
+			return;
+		}
+		filename = chosen;
 		// the save dialog has already asked about replacing an existing file
 		overwrite = true;
 	}
@@ -260,6 +304,12 @@ void BasicEdit::saveFile(bool overwrite) {
 }
 
 #ifndef Q_OS_WASM
+void BasicEdit::warnExamplesReadOnly() {
+	QMessageBox::warning(this, tr("Save File"),
+		tr("Programs in the Examples folder can not be overwritten.") + "\n" +
+		tr("Please save your program in another folder."));
+}
+
 void BasicEdit::writeFile() {
 	// Suspend the on-disk watch for the duration of our own write, or the
 	// watcher reports it back to us as "the file changed outside the editor".
@@ -302,7 +352,17 @@ BasicEdit::saveAsProgram() {
     // clicked (see saveFile()'s Q_OS_WASM branch), so Save As reuses it.
     saveFile(false);
 #else
-    QString tempfilename = QFileDialog::getSaveFileName(this, tr("Save file as"), ".", tr("BASIC-256 File ")+ "(*.kbs);;" + tr("Any File ")+ "(*.*)");
+    // Start where the program came from, its name filled in. An untitled
+    // program starts in the working directory, and so does an example,
+    // because the Examples folder is not written to.
+    QString start = ".";
+    if (isInExamples(filename)) start = QFileInfo(filename).fileName();
+    else if (filename != "") start = filename;
+    QString tempfilename = QFileDialog::getSaveFileName(this, tr("Save file as"), start, tr("BASIC-256 File ")+ "(*.kbs);;" + tr("Any File ")+ "(*.*)");
+    if (isInExamples(tempfilename)) {
+        warnExamplesReadOnly();
+        return;
+    }
     if (tempfilename != "") {
         filename = tempfilename;
         // the save dialog has already asked about replacing an existing file
