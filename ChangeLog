@@ -8,6 +8,7 @@
 	* The Variable Watch window follows View/Theme, as the Edit and Text Output windows do, so choosing Dark turns it dark too, column headings included.
 	* Save As opens in the folder the program was loaded from, with its name already filled in. An example opens in the working directory instead, and programs in the Examples folder are never overwritten: Save on an example asks for a new name, and the Examples folder can not be chosen as the place to save.
 	* A whole number too big for 64 bits, such as 9223372036854775808, is reported as "Number too large" when the program is compiled.
+	* On Windows 10, View/Theme/Follow System turns the whole window dark when Windows is in dark mode -- menus, toolbars, docks and dialogs as well as the Edit, Text Output and Variable Watch windows. While Windows is dark BASIC256 draws itself with the Fusion style, Windows 10's own style having no dark version, and goes back to the usual Windows 10 look as soon as Windows is switched to light. Windows 11 is unchanged.
 
 2026-09-17 M. Vilain <uglymike17@gmail.com>
 	* The project has now moved to v2.3.0 as it has some backward compability breaking changes

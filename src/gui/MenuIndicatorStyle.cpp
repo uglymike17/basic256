@@ -16,14 +16,41 @@
 #include "MenuIndicatorStyle.h"
 
 #include <QAction>
+#include <QApplication>
 #include <QFont>
 #include <QMenu>
 #include <QPainter>
 #include <QPaintDevice>
 #include <QPixmap>
 #include <QPixmapCache>
+#include <QStyleHints>
 #include <QStyleOption>
 #include <QWidget>
+
+MenuIndicatorStyle::MenuIndicatorStyle(const QString &baseKey)
+	: QProxyStyle(baseKey) {
+}
+
+void MenuIndicatorStyle::install() {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+	// The style the platform (or a -style option) chose, recorded before the
+	// first install replaces it. Windows 11 gets "windows11", which draws dark
+	// itself; only Windows 10's "windowsvista" needs standing in for.
+	static const QString nativeKey = QApplication::style()->name();
+	static QString installedKey;
+
+	QString key = nativeKey;
+	if (nativeKey.compare(QLatin1String("windowsvista"), Qt::CaseInsensitive) == 0
+			&& QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark) {
+		key = QStringLiteral("fusion");
+	}
+	if (key == installedKey) return;
+	installedKey = key;
+	QApplication::setStyle(new MenuIndicatorStyle(key));
+#else
+	QApplication::setStyle(new MenuIndicatorStyle);
+#endif
+}
 
 bool MenuIndicatorStyle::menuHasCheckableItem(const QWidget *widget) {
 	const QMenu *menu = qobject_cast<const QMenu *>(widget);
@@ -229,8 +256,10 @@ QIcon MenuIndicatorStyle::indicatorIcon(const QStyleOptionMenuItem &item, const 
 	const int natural = naturalBox(item, widget);
 
 	// The palette key covers a switch between the light and dark colour scheme,
-	// which repaints the menus with different indicator colours.
+	// which repaints the menus with different indicator colours; the style name
+	// covers the swap to Fusion that comes with it on Windows 10 (see install()).
 	const QString key = QStringLiteral("basic256-menuindicator-")
+			+ baseStyle()->name() + QLatin1Char('-')
 			+ QString::number(box) + QLatin1Char('-')
 			+ QString::number(column) + QLatin1Char('-')
 			+ QString::number(natural) + QLatin1Char('-')

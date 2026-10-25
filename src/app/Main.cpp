@@ -37,6 +37,7 @@
 #include <QLoggingCategory>
 #include <QMessageBox>
 #include <QStatusBar>
+#include <QStyleHints>
 #include <QtPlugin>
 #include <QTranslator>
 #include <QMetaType>
@@ -159,9 +160,16 @@ int main(int argc, char *argv[]) {
 
     // Every checkable menu item gets a check box (or a radio button, inside an
     // exclusive group) drawn in its left column, on or off. Wraps whichever
-    // style the platform would have used, so nothing else changes appearance.
-    // Must be set before the first menu is built.
-    QApplication::setStyle(new MenuIndicatorStyle);
+    // style the platform would have used, so nothing else changes appearance --
+    // apart from Windows 10 in dark mode, which gets Fusion so the whole window
+    // can go dark (see MenuIndicatorStyle::install()). Must be set before the
+    // first menu is built, and is re-checked whenever the desktop switches
+    // between light and dark.
+    MenuIndicatorStyle::install();
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+    QObject::connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged,
+                     &qapp, [](Qt::ColorScheme){ MenuIndicatorStyle::install(); });
+#endif
 
 #ifdef Q_OS_WIN
     // Qt 5 reads QApplication::font() from SPI_GETICONTITLELOGFONT (icon

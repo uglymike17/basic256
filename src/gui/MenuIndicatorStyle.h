@@ -45,6 +45,19 @@ class QStyleOptionMenuItem;
 class MenuIndicatorStyle : public QProxyStyle
 {
 public:
+	// baseKey names the style to wrap (a QStyleFactory key); empty wraps the
+	// platform's default.
+	explicit MenuIndicatorStyle(const QString &baseKey = QString());
+
+	// Makes this the application style, wrapping the platform's own style --
+	// except on Windows 10 while the desktop is dark, where Fusion is wrapped
+	// instead: Windows 10's native style ("windowsvista") cannot draw dark and
+	// forces the light palette onto every widget, so View/Theme/Follow System
+	// would darken only the panes BASIC-256 colours itself. Call once before the
+	// first menu is built, and again whenever the colour scheme changes; it does
+	// nothing when the right base style is already in place.
+	static void install();
+
 	void drawControl(ControlElement element, const QStyleOption *option,
 					 QPainter *painter, const QWidget *widget) const override;
 	void drawItemText(QPainter *painter, const QRect &rect, int flags, const QPalette &pal,
