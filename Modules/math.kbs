@@ -1,23 +1,36 @@
+#*********************************************************************************************
 # math.kbs -- standard math helpers for BASIC-256.
 #
-# Pull these functions into a program with a single line:
-#
-#     include "math.kbs"
-#
-# The IDE ships this file in its Modules folder and searches there, so the
-# bare name works from any program, wherever that program is saved. Other
-# module files can be dropped next to this one and included the same way.
-#
-# Everything here builds on the language's own math built-ins (abs, atan,
-# sqrt, pi, int, ...); it only adds what is not already built in.
-
-# --- reductions over an array -----------------------------------------------
-# These take one array argument (a variable or a {...} literal), so they are
-# named with an arr suffix; plain min and max further down work on two
-# scalars, as in most languages.
-
-# sumarr(a) -- total of every element of array a.
-function sumarr(a)
+#****Array Helpers
+# ma_sumarr(a) -- total of every element of array a.
+# ma_minarr(a) -- smallest element of array a.
+# ma_maxarr(a) -- largest element of array a.
+# ma_avgarr(a) -- arithmetic mean of array a.
+#****Scalar Helpers
+# ma_hypot(a, b) 		-- length of the hypotenuse, sqrt(a*a + b*b).
+# ma_clamp(x, lo, hi) 	-- x constrained to the range [lo, hi].
+# ma_fmod(a, b) 		-- floating-point remainder of a / b. 
+# 						   Unlike the integer mod operator this keeps the fractional part
+#               		   The result has the sign of a.
+# ma_atan2(y, x) 		-- angle in radians of the point (x, y), in the range (-pi, pi].
+# 						   Note the argument order is (y, x).
+# ma_sign(x) 			-- -1, 0, or 1 as x is negative, zero, or positive.
+# ma_min(a, b) 		-- smaller of two values.
+# ma_max(a, b) 		-- larger of two values.
+# ma_lerp(a, b, t) 	-- linear interpolation: a at t = 0, b at t = 1.
+# ma_map(x, a1, a2, b1, b2) -- x remapped from the range a1..a2 to b1..b2.
+# ma_wrap(x, lo, hi) 	-- x wrapped cyclically into the range lo <= x < hi,
+# 						   e.g. ma_wrap(angle, 0, 2 * pi). Companion to ma_clamp.
+# ma_dist(x1, y1, x2, y2) -- distance between the points (x1, y1) and (x2, y2).
+# ma_cbrt(x) 			-- cube root, defined for negative x too. (Plain x ^ (1/3) is not:
+# 						a negative number cannot be raised to a fractional power.)
+#**** Random Numbers 
+# ma_randint(lo, hi) 	-- random integer from lo to hi inclusive.
+# ma_gaussian(mean, sd) -- normally distributed random number with the given mean and 
+# 						   standard deviation (Box-Muller transform)
+#*********************************************************************************************
+# ma_sumarr(a) -- total of every element of array a.
+function ma_sumarr(a)
    t = 0
    foreach v in a
       t += v
@@ -25,8 +38,8 @@ function sumarr(a)
    return t
 end function
 
-# minarr(a) -- smallest element of array a.
-function minarr(a)
+# ma_minarr(a) -- smallest element of array a.
+function ma_minarr(a)
    t = a[getarraybase()]
    foreach v in a
       if v < t then t = v
@@ -34,8 +47,8 @@ function minarr(a)
    return t
 end function
 
-# maxarr(a) -- largest element of array a.
-function maxarr(a)
+# ma_maxarr(a) -- largest element of array a.
+function ma_maxarr(a)
    t = a[getarraybase()]
    foreach v in a
       if v > t then t = v
@@ -43,34 +56,34 @@ function maxarr(a)
    return t
 end function
 
-# avgarr(a) -- arithmetic mean of array a.
-function avgarr(a)
-   return sumarr(a) / length(a)
+# ma_avgarr(a) -- arithmetic mean of array a.
+function ma_avgarr(a)
+   return ma_sumarr(a) / length(a)
 end function
 
 # --- scalar helpers ----------------------------------------------------------
 
-# hypot(a, b) -- length of the hypotenuse, sqrt(a*a + b*b).
-function hypot(a, b)
+# ma_hypot(a, b) -- length of the hypotenuse, sqrt(a*a + b*b).
+function ma_hypot(a, b)
    return sqrt(a * a + b * b)
 end function
 
-# clamp(x, lo, hi) -- x constrained to the range [lo, hi].
-function clamp(x, lo, hi)
+# ma_clamp(x, lo, hi) -- x constrained to the range [lo, hi].
+function ma_clamp(x, lo, hi)
    if x < lo then return lo
    if x > hi then return hi
    return x
 end function
 
-# fmod(a, b) -- floating-point remainder of a / b. Unlike the integer `mod`
+# ma_fmod(a, b) -- floating-point remainder of a / b. Unlike the integer `mod`
 # operator this keeps the fractional part; the result has the sign of a.
-function fmod(a, b)
+function ma_fmod(a, b)
    return a - b * int(a / b)
 end function
 
-# atan2(y, x) -- angle in radians of the point (x, y), in the range (-pi, pi].
+# ma_atan2(y, x) -- angle in radians of the point (x, y), in the range (-pi, pi].
 # Note the argument order is (y, x), matching the usual math / C convention.
-function atan2(y, x)
+function ma_atan2(y, x)
    if x > 0 then return atan(y / x)
    if x < 0 and y >= 0 then return atan(y / x) + pi
    if x < 0 and y < 0 then return atan(y / x) - pi
@@ -79,71 +92,99 @@ function atan2(y, x)
    return 0
 end function
 
-# sign(x) -- -1, 0, or 1 as x is negative, zero, or positive.
-function sign(x)
+# ma_sign(x) -- -1, 0, or 1 as x is negative, zero, or positive.
+function ma_sign(x)
    if x > 0 then return 1
    if x < 0 then return -1
    return 0
 end function
 
-# min(a, b) -- smaller of two values.
-function min(a, b)
+# ma_min(a, b) -- smaller of two values.
+function ma_min(a, b)
    if a < b then return a
    return b
 end function
 
-# max(a, b) -- larger of two values.
-function max(a, b)
+# ma_max(a, b) -- larger of two values.
+function ma_max(a, b)
    if a > b then return a
    return b
 end function
 
-# lerp(a, b, t) -- linear interpolation: a at t = 0, b at t = 1.
-function lerp(a, b, t)
+# ma_lerp(a, b, t) -- linear interpolation: a at t = 0, b at t = 1.
+function ma_lerp(a, b, t)
    return a + (b - a) * t
 end function
 
-# remap(x, a1, a2, b1, b2) -- x remapped from the range a1..a2 to b1..b2.
-# (map would be the usual name, but map is a reserved word in BASIC-256.)
-function remap(x, a1, a2, b1, b2)
+# ma_map(x, a1, a2, b1, b2) -- x remapped from the range a1..a2 to b1..b2.
+function ma_map(x, a1, a2, b1, b2)
    return b1 + (x - a1) * (b2 - b1) / (a2 - a1)
 end function
 
-# wrap(x, lo, hi) -- x wrapped cyclically into the range lo <= x < hi,
-# e.g. wrap(angle, 0, 2 * pi). Companion to clamp.
-function wrap(x, lo, hi)
+# ma_wrap(x, lo, hi) -- x wrapped cyclically into the range lo <= x < hi,
+# e.g. ma_wrap(angle, 0, 2 * pi). Companion to ma_clamp.
+function ma_wrap(x, lo, hi)
    return x - (hi - lo) * floor((x - lo) / (hi - lo))
 end function
 
-# dist(x1, y1, x2, y2) -- distance between the points (x1, y1) and (x2, y2).
-function dist(x1, y1, x2, y2)
-   return hypot(x2 - x1, y2 - y1)
+# ma_dist(x1, y1, x2, y2) -- distance between the points (x1, y1) and (x2, y2).
+function ma_dist(x1, y1, x2, y2)
+   return ma_hypot(x2 - x1, y2 - y1)
 end function
 
-# fround(x, n) -- x rounded to n decimal places. fround is to round what
-# fmod is to the integer mod operator: the floating-point version.
-function fround(x, n)
-   s = 10 ^ n
-   return round(x * s) / s
-end function
-
-# cbrt(x) -- cube root, defined for negative x too. (Plain x ^ (1/3) is not:
+# ma_cbrt(x) -- cube root, defined for negative x too. (Plain x ^ (1/3) is not:
 # a negative number cannot be raised to a fractional power.)
-function cbrt(x)
+function ma_cbrt(x)
    if x < 0 then return -((-x) ^ (1 / 3))
    return x ^ (1 / 3)
 end function
 
 # --- random numbers -----------------------------------------------------------
 
-# randint(lo, hi) -- random integer from lo to hi inclusive.
-function randint(lo, hi)
+# ma_randint(lo, hi) -- random integer from lo to hi inclusive.
+function ma_randint(lo, hi)
    return lo + int(rand * (hi - lo + 1))
 end function
 
-# gaussian(mean, sd) -- normally distributed random number with the given
+# ma_gaussian(mean, sd) -- normally distributed random number with the given
 # mean and standard deviation (Box-Muller transform). 1 - rand lies in
 # (0, 1], so log is never asked for log(0).
-function gaussian(mean, sd)
+function ma_gaussian(mean, sd)
    return mean + sd * sqrt(-2 * log(1 - rand)) * cos(2 * pi * rand)
 end function
+#******************************************************************
+# ma_help - print out all mathematical functions in math.kbs
+#******************************************************************
+subroutine ma_help()
+print " Array Helpers"
+print " *************"
+print " ma_sumarr(a) -- total of every element of array a."
+print " ma_minarr(a) -- smallest element of array a."
+print " ma_maxarr(a) -- largest element of array a."
+print " ma_avgarr(a) -- arithmetic mean of array a."
+print ""
+print " Scalar Helpers"
+print " **************"
+print " ma_hypot(a, b) 		-- length of the hypotenuse, sqrt(a*a + b*b)."
+print " ma_clamp(x, lo, hi)	 	-- x constrained to the range [lo, hi]."
+print " ma_fmod(a, b) 			-- floating-point remainder of a / b. Unlike the integer mod operator "
+print "               		   	   this keeps  the fractional part. The result has the sign of a."
+print " ma_atan2(y, x) 		-- angle in radians of the point (x, y), in the range (-pi, pi]."
+print " 				   Note the argument order is (y, x)."
+print " ma_sign(x) 			-- -1, 0, or 1 as x is negative, zero, or positive."
+print " ma_min(a, b) 			-- smaller of two values."
+print " ma_max(a, b) 			-- larger of two values."
+print " ma_lerp(a, b, t) 		-- linear interpolation: a at t = 0, b at t = 1."
+print " ma_map(x, a1, a2, b1, b2) 	-- x remapped from the range a1..a2 to b1..b2."
+print " ma_wrap(x, lo, hi) 		-- x wrapped cyclically into the range lo <= x < hi,"
+print " 				   e.g. ma_wrap(angle, 0, 2 * pi). Companion to ma_clamp."
+print " ma_dist(x1, y1, x2, y2) 	-- distance between the points (x1, y1) and (x2, y2)."
+print " ma_cbrt(x) 			-- cube root, defined for negative x too. (Plain x ^ (1/3) is not:"
+print " 				   a negative number cannot be raised to a fractional power.)"
+print ""
+print " Random Numbers "
+print " **************"
+print " ma_randint(lo, hi) 	-- random integer from lo to hi inclusive."
+print " ma_gaussian(mean, sd)  -- normally distributed random number with the given mean and "
+print " 			   standard deviation (Box-Muller transform)"
+end subroutine
