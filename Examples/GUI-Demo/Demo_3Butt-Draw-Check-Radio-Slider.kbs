@@ -1,0 +1,250 @@
+#*********************************************************************
+# Demo combining several elements from the toolkit.kbs module:
+# buttons, drawing fields, group boxes, checkboxes, radio buttons and a slider.
+# Three buttons determine what color a big drawing element will be
+# and what color name will appear in the small drawing element.
+# The checkboxes copy that color into a small or large square below,
+# the radio buttons change a message and the slider picks an HSV color.
+# Only the button, drawing, radio button and slider elements are described here;
+# call tk_help() for the usage of every element.
+# tk_button(x, y, w, h, caption$, state)
+#   state 0 = raised (normal)
+#         1 = sunken (held down)
+#         2 = click animation (sunken, short pause, raised)
+#         3 = disabled (raised, embossed grey caption)
+#
+# tk_buttonhit(x, y, w, h, px, py) -> true when (px,py) is on the button
+#
+# tk_drawing(x, y, w, h, nx, ny, gapx, gapy, fill)
+#   draws one recessed field, or a grid of nx by ny fields, in the
+#   Win32 classic "sunken client edge" style
+#   x, y       : top-left corner of the first field's interior
+#   w, h       : size of each field's interior (what you draw in)
+#                a 2px sunken border is added on the outside
+#   nx, ny     : number of fields across and down (1, 1 = single field)
+#   gapx, gapy : empty space between the borders of neighbouring fields
+#   fill       : interior colour, e.g. white, black, rgb(255,255,224)
+#
+#   interior of field (i, j), counting from 0:
+#     x + i * (w + 4 + gapx),  y + j * (h + 4 + gapy)
+#
+# tk_drawhit(x, y, w, h, nx, ny, gapx, gapy, px, py)
+#   -> index (j * nx + i) of the field interior containing (px,py),
+#      or -1 when (px,py) is not inside any field
+#
+# tk_radio(x, y, caption$, state)
+#   draws ONE Win32 classic style radio button with its label
+#   x, y  : top-left corner of the 12x12 circle
+#   state 0 = not selected
+#         1 = selected
+#         2 = disabled, not selected
+#         3 = disabled, selected
+# tk_radiohit(x, y, caption$, px, py) -> true when (px,py) is on
+#   the circle or on its label (Windows selects on both)
+#
+# tk_slider(x, y, length, orient, value, maxval, bg)
+#   draws a Win32 classic style slider (trackbar): sunken track
+#   plus a raised thumb at the position of value
+#   x, y    : start of the track, on its centre line
+#             (left end for horizontal, top end for vertical)
+#   length  : track length in pixels
+#   orient  : 0 = vertical (0 at the top), 1 = horizontal (0 at the left)
+#   value   : current value, 0 .. maxval (clamped)
+#   maxval  : largest value; length = maxval + 1 gives 1 pixel per step
+#   bg      : background colour, used to erase the old thumb
+#   The slider occupies 21 pixels across the track and length + 10
+#   along it (5 pixels beyond each end for the thumb).
+#
+# tk_sliderhit(x, y, length, orient, px, py)
+#   -> true when (px,py) is anywhere on the slider
+# tk_sliderval(x, y, length, orient, maxval, px, py)
+#   -> value for mouse position (px,py), clamped to 0 .. maxval
+#*********************************************************************
+include "toolkit.kbs"
+# basic screen setup
+#*******************
+fastgraphics
+graphsize 800,800
+clg grey
+col = rgb(255,255,255)
+# button setup
+#*************
+# button labels (mandatory)
+labels_button = {"Green", "Red", "Blue"}
+# draw the buttons
+for i = 0 to 2
+	call tk_button(50,50+i*40,100, 20,labels_button[i],0)
+next i	
+# draw the big area to be colored	
+call tk_drawing(180,50,100,100,1,1,0,0,white)
+# draw the small area where the color is placed	
+call tk_drawing(350,90,100,26,1,1,0,0,white)
+color black
+font "Tahoma", 12, 50
+posx= 400 - (textwidth("white")/2)
+text (posx,95,"white")
+# put buttons and big area in a grouper box
+call tk_grouper(30,30,290,145,"")
+# set checkbox labels & checkbox state
+labels_check  = {"Mirror", "Double"}
+state_check  = {0,2}	# "Double" starts disabled until "mirror" is ticked
+# draw 2 checkboxes
+call tk_checkbox(50,200,labels_check[0],0)
+call tk_checkbox(50,230,labels_check[1],2)
+# horizontal line for next element
+call tk_grouper(30,450,740,0,"Radio buttons")
+# draw 4 radio buttons and set the selected one with its message
+radio$ = {"radio button 1", "radio button 2", "radio button 3", "radio button 4"}
+radion = 4 : radiox = 50 : radioy = 480 : radiostep = 25
+radiosel = 0
+for i = 0 to radion - 1
+	s = 0
+	if i = radiosel then s = 1
+	call tk_radio(radiox, radioy + i * radiostep, radio$[i], s)
+next i
+color black
+font "Tahoma", 12, 50
+text (200,515,"radio button 1 is selected"):refresh	
+# horizontal line for next element
+call tk_grouper(30,620,740,0,"HSV Slider element")
+# draw a slider to show all HSV colors
+call tk_slider(50, 700, 700, 1, 0, 0, grey)
+color hsv(0,100,100)
+rect 50,720,700,40
+color black
+text 300, 650, "HSV color:"
+call tk_drawing(400,650,70,20,1,1,0,0,white)
+color black
+font "Tahoma", 12, 50
+text (425,650,"0")
+refresh
+while true
+if clickb=1 then
+  clickclear
+  cx = mousex
+  cy = mousey
+  begin case
+  	case tk_buttonhit(50, 50, 100, 20, cx,cy) #clicked in green button
+		call tk_button(50,50,100, 20,labels_button[0],2)
+		call tk_drawing(350,90,100,26,1,1,0,0,white)
+		color black
+		font "Tahoma", 12, 50
+		posx= 400 - (textwidth("green")/2)
+		text (posx,95,"green")
+		col = rgb(0,255,0): color col: rect 180,50,100,100:refresh
+		if state_check[0] = 1 then color col: rect 180,200,100,100:refresh
+		if state_check[1] = 1 then color col: rect 180,200,200,200:refresh
+  	case tk_buttonhit(50, 90, 100, 20, cx,cy) #clicked in red button
+		call tk_button(50,90,100, 20,labels_button[1],2)
+		call tk_drawing(350,90,100,26,1,1,0,0,white)
+		color black
+		font "Tahoma", 12, 50
+		posx= 400 - (textwidth("red")/2)
+		text (posx,95,"red")
+		col = rgb(255,0,0): color col: rect 180,50,100,100:refresh
+		if state_check[0] = 1 then color col: rect 180,200,100,100:refresh
+		if state_check[1] = 1 then color col: rect 180,200,200,200:refresh
+  	case tk_buttonhit(50, 130, 100, 20, cx,cy) #clicked in blue button
+		call tk_button(50,130,100, 20,labels_button[2],2)
+		call tk_drawing(350,90,100,26,1,1,0,0,white)
+		color black
+		font "Tahoma", 12, 50
+		posx= 400 - (textwidth("blue")/2)
+		text (posx,95,"blue")
+		col = rgb(0,0,255): color col: rect 180,50,100,100:refresh
+		if state_check[0] = 1 then color col: rect 180,200,100,100:refresh
+		if state_check[1] = 1 then color col: rect 180,200,200,200:refresh
+	case tk_checkhit(50,200,labels_check[0],cx,cy)	#clicked in mirror checkbox
+			if state_check[0]=0 then 	# if mirror checkbox off, set check on
+				state_check[0]= 1: call tk_checkbox(50,200,labels_check[0],state_check[0])			
+				state_check[1]= 0: call tk_checkbox(50,230,labels_check[1],state_check[1]) #enable double checkbox
+				color col 
+				if state_check[1] = 0 then rect 180,200,100,100:refresh		# if double checkbox off, small colored square
+				if state_check[1] = 1 then rect 180,200,200,200:refresh		# if double checkbox on, large colored square
+			else	
+				if state_check[0]=1 then 	# if mirror checkbox on, set mirror checkbox off
+					state_check[0]= 0: call tk_checkbox(50,200,labels_check[0],state_check[0])
+					state_check[1]=0: call tk_checkbox(50,230,labels_check[1],2):state_check[1]=2
+					color grey					
+					rect 180,200,200,200:refresh	# remove small or large square
+				endif
+			endif		
+	case tk_checkhit(50,230,labels_check[1],cx,cy)	# clicked in double checkbox, only active if mirror checkbox is	
+			if state_check[1]=1 then # if double checkbox already ticked, big square present
+				state_check[1]= 0: call tk_checkbox(50,230,labels_check[1],0) # put double checkbox off
+				color grey: rect 180,200,200,200: refresh
+				if state_check[0] = 1 then color col: rect 180,200,100,100:refresh
+			else
+				if state_check[1]=0 then # if double checkbox not yet ticked
+					state_check[1]= 1: call tk_checkbox(50,230,labels_check[1],1) # put double checkbox on
+					if state_check[0] = 1 then	#mirror is on
+						color col: rect 180,200,200,200: refresh
+					endif
+				endif
+			endif
+	case tk_radiohit(radiox, radioy, radio$[0], cx, cy)
+		color grey
+		rect 199,510,500,100
+		color black
+		font "Tahoma", 12, 50
+		text (200,515,"radio button 1 is selected"):refresh	
+		for i = 0 to radion - 1
+			if i = radiosel then call tk_radio(radiox, radioy + i*radiostep, radio$[i], 0)
+		next i
+		call tk_radio(radiox, radioy , radio$[0], 1):refresh
+		radiosel = 0
+	case tk_radiohit(radiox, radioy + radiostep, radio$[1], cx, cy)
+		color grey
+		rect 199,510,500,100
+		color black
+		font "Times New Roman", 12, 100
+		text (200,515,"now radio button 2 is selected"):refresh	
+		for i = 0 to radion - 1
+			if i = radiosel then call tk_radio(radiox, radioy + i * radiostep, radio$[i], 0)
+		next i
+		radiosel = 1
+		call tk_radio(radiox, radioy + radiostep , radio$[1], 1):refresh
+	case tk_radiohit(radiox, radioy + 2*radiostep, radio$[2], cx, cy)
+		color grey
+		rect 199,510,500,100
+		color black
+		font "Courier", 14, 50
+		text (200,515,"this time, radio button 3 is selected"):refresh	
+		for i = 0 to radion - 1
+			if i = radiosel then call tk_radio(radiox, radioy + i * radiostep, radio$[i], 0)
+		next i
+		radiosel = 2
+		call tk_radio(radiox, radioy + 2 * radiostep , radio$[2], 1):refresh
+	case tk_radiohit(radiox, radioy + 3*radiostep, radio$[3], cx, cy)
+		color grey
+		rect 199,510,500,100
+		color black
+		font "Tahoma", 12, 50
+		text (200,515,"and now, radio button 4 is selected"):refresh				
+		for i = 0 to radion - 1
+			if i = radiosel then call tk_radio(radiox, radioy + i * radiostep, radio$[i], 0)
+		next i
+		radiosel = 3
+		call tk_radio(radiox, radioy + 3 * radiostep , radio$[3], 1):refresh
+	case tk_sliderhit(50, 700, 700, 1, cx, cy)
+		color grey
+		rect 100,710,600,90
+		while mouseb=1 
+			v =  tk_sliderval(50, 700, 700, 1, 350, mousex, mousey)
+			call tk_drawing(400,650,70,20,1,1,0,0,white)
+			color black
+			font "Tahoma", 12, 50
+			text (425,650,v)
+			call tk_slider(50, 700, 700, 1, v, 350, grey)
+
+			color hsv(v,100,100)
+			rect 50,720,700,40
+			refresh
+			pause 0.01
+		end while
+	end case
+endif 
+pause 0.1
+end while 
+refresh  	  
+end

@@ -1,0 +1,31 @@
+#*********************************************************************
+# Simple demo with grouper elements from the toolkit.kbs module
+# Grouper groups similar elements together (eg button, checkboxes,...)
+# Grouper elements can also consist of single lines, horizontal and vertical
+#
+# tk_grouper - draw a group box
+#   x, y     : top-left corner of the frame
+#   w, h     : total size of the frame in pixels
+#              h = 0 -> horizontal separator, w pixels long
+#              w = 0 -> vertical separator, h pixels long
+#   caption$ : label on the top-left edge ("" for none)
+#              (also allowed on a horizontal separator, ignored on a
+#              vertical one)
+#*********************************************************************
+include "toolkit.kbs"
+# basic screen setup
+#*******************
+graphsize 500, 320
+fastgraphics
+color rgb(192,192,192)
+rect 0, 0, graphwidth, graphheight
+
+call tk_grouper(40, 80, 420, 200, "Test")
+call tk_grouper(60, 110, 180, 150, "Options with a longer caption")
+call tk_grouper(260, 110, 180, 150, "")
+
+# separators
+call tk_grouper(40, 30, 420, 0, "Horizontal separator")
+call tk_grouper(40, 300, 420, 0, "")
+call tk_grouper(350, 125, 0, 120, "")
+end

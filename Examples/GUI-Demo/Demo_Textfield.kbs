@@ -1,0 +1,122 @@
+#*********************************************************************
+# Simple demo with GUI textfield element from the toolkit.kbs module
+# Three fields: one empty, one pre-filled, one disabled.
+# tk_textfield(x, y, w, h, text$, caret, state)
+#   draws a Win32 classic style single-line edit field
+#   x, y, w, h : outer rectangle (2px sunken border included)
+#   text$      : the field's contents
+#   caret      : caret position as a character index, 0 .. length(text$)
+#                (0 = before the first character)
+#   state 0 = no focus (no caret)
+#         1 = focused, caret visible
+#         2 = focused, caret hidden (use 1/2 alternately to blink)
+#         3 = disabled
+#   Text that is wider than the field scrolls so the caret stays visible.
+#
+# tk_texthit(x, y, w, h, px, py)
+#   -> true when (px,py) is inside the field: give it the focus
+# tk_textcaretat(x, y, w, h, text$, caret, px)
+#   -> caret index closest to mouse x position px (click to place caret)
+# tk_textedit$(text$, caret, k)
+#   -> text$ after key code k (from key()) has been applied
+# tk_textcaret(text$, caret, k)
+#   -> caret after key code k has been applied
+#   Call tk_textcaret BEFORE you store the result of tk_textedit$,
+#   both must see the text as it was before the key.
+#   Handled keys: printable characters (Shift selects upper case),
+#   Backspace, Delete, Left, Right, Home, End.
+#*********************************************************************
+include "toolkit.kbs"
+# basic screen setup
+#*******************
+graphsize 300, 200
+fastgraphics
+color rgb(192,192,192)
+rect 0, 0, graphwidth, graphheight
+
+nf = 3
+fx = 90 : fw = 180 : fh = 21
+fy = {40, 80, 120}
+labels$ = {"Name:", "City:", "Read only:"}
+values$ = {"", "Brussels", "can't touch this"}
+dim car(3)
+for i = 0 to nf - 1
+	car[i] = length(values$[i])
+next i
+editable = {1, 1, 0}
+
+color black
+font "Tahoma", 9, 50
+for i = 0 to nf - 1
+	text 20, fy[i] + 4, labels$[i]
+	s = 0
+	if not editable[i] then s = 3
+	call tk_textfield(fx, fy[i], fw, fh, values$[i], car[i], s)
+next i
+color black
+text 20, 165, "Click a field, type. Tab = next field, Enter = done"
+refresh
+
+focus = -1
+blink = 1
+tick = 0
+k = key     # flush any key pressed before we start
+
+while true
+	# mouse: focus a field and place the caret
+	if clickb then
+		px = clickx
+		py = clicky
+		clickclear
+		newf = -1
+		for i = 0 to nf - 1
+			if editable[i] then
+				if tk_texthit(fx, fy[i], fw, fh, px, py) then newf = i
+			end if
+		next i
+		if focus >= 0 and focus <> newf then call tk_textfield(fx, fy[focus], fw, fh, values$[focus], car[focus], 0)
+		focus = newf
+		if focus >= 0 then
+			car[focus] = tk_textcaretat(fx, fy[focus], fw, fh, values$[focus], car[focus], px)
+			blink = 1 : tick = 0
+			call tk_textfield(fx, fy[focus], fw, fh, values$[focus], car[focus], 1)
+		end if
+	end if
+
+	# keyboard: edit the focused field
+	k = key
+	if k <> 0 and focus >= 0 then
+		if k = 16777217 then
+			# Tab: move focus to the next editable field
+			call tk_textfield(fx, fy[focus], fw, fh, values$[focus], car[focus], 0)
+			do
+				focus = (focus + 1) % nf
+			until editable[focus]
+			car[focus] = length(values$[focus])
+		else
+			if k = 16777220 or k = 16777221 then
+				# Enter: leave the field
+				call tk_textfield(fx, fy[focus], fw, fh, values$[focus], car[focus], 0)
+				focus = -1
+			else
+				nc = tk_textcaret(values$[focus], car[focus], k)
+				values$[focus] = tk_textedit$(values$[focus], car[focus], k)
+				car[focus] = nc
+			end if
+		end if
+		if focus >= 0 then
+			blink = 1 : tick = 0
+			call tk_textfield(fx, fy[focus], fw, fh, values$[focus], car[focus], 1)
+		end if
+	end if
+
+	# blink the caret every half second
+	tick = tick + 0.02
+	if tick >= 0.5 and focus >= 0 then
+		tick = 0
+		blink = 3 - blink
+		call tk_textfield(fx, fy[focus], fw, fh, values$[focus], car[focus], blink)
+	end if
+	pause 0.02
+end while
+end

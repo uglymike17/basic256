@@ -1,0 +1,105 @@
+# Simple colour mixer with slider elements from the toolkit.kbs module
+# -----------------------------------------------------------------
+# tk_slider(x, y, len, orient, value, maxval, bg)
+#   draws a slider (trackbar): sunken track
+#   plus a raised thumb at the position of value
+#   x, y    : start of the track, on its centre line
+#             (left end for horizontal, top end for vertical)
+#   len     : track length in pixels
+#   orient  : 0 = vertical (0 at the top), 1 = horizontal (0 at the left)
+#   value   : current value, 0 .. maxval (clamped)
+#   maxval  : largest value; len = maxval + 1 gives 1 pixel per step
+#   bg      : background colour, used to erase the old thumb
+#   The slider occupies 21 pixels across the track and len + 10
+#   along it (5 pixels beyond each end for the thumb).
+#
+# tk_sliderhit(x, y, len, orient, px, py)
+#   -> true when (px,py) is anywhere on the slider
+# tk_sliderval(x, y, len, orient, maxval, px, py)
+#   -> value for mouse position (px,py), clamped to 0 .. maxval
+# -----------------------------------------------------------------
+include "toolkit.kbs"
+graphsize 330, 330
+fastgraphics
+bg = rgb(192,192,192)
+color bg
+rect 0, 0, graphwidth, graphheight
+
+# slider positions; 256 pixels long so every value 0..255 has a pixel
+rx = 20 : ry = 50 : rlen = 256
+gx = 305 : gy = 50 : glen = 256
+bx = 40 : by = 25 : blen = 256
+rood = 0 : groen = 0 : blauw = 0
+
+call tk_slider(rx, ry, rlen, 0, rood, 255, bg)
+call tk_slider(gx, gy, glen, 0, groen, 255, bg)
+call tk_slider(bx, by, blen, 1, blauw, 255, bg)
+
+# labels and preview
+font "Tahoma", 14, 75
+color red
+text 40, 165, "R"
+color blue
+text 165, 40, "B"
+color green
+text 275, 165, "G"
+font "Tahoma", 12, 75
+color black
+text 85, 230, "Simple Color Mixer"
+color darkgrey
+rect 135, 135, 70, 70
+gosub showcolor
+
+while true
+	if mouseb then
+		# decide once, at the moment of pressing, which slider is dragged
+		active = 0
+		if tk_sliderhit(rx, ry, rlen, 0, mousex, mousey) then active = 1
+		if tk_sliderhit(gx, gy, glen, 0, mousex, mousey) then active = 2
+		if tk_sliderhit(bx, by, blen, 1, mousex, mousey) then active = 3
+
+		while mouseb and active > 0
+			if active = 1 then
+				v = tk_sliderval(rx, ry, rlen, 0, 255, mousex, mousey)
+				if v <> rood then
+					rood = v
+					call tk_slider(rx, ry, rlen, 0, rood, 255, bg)
+					gosub showcolor
+				end if
+			end if
+			if active = 2 then
+				v = tk_sliderval(gx, gy, glen, 0, 255, mousex, mousey)
+				if v <> groen then
+					groen = v
+					call tk_slider(gx, gy, glen, 0, groen, 255, bg)
+					gosub showcolor
+				end if
+			end if
+			if active = 3 then
+				v = tk_sliderval(bx, by, blen, 1, 255, mousex, mousey)
+				if v <> blauw then
+					blauw = v
+					call tk_slider(bx, by, blen, 1, blauw, 255, bg)
+					gosub showcolor
+				end if
+			end if
+			pause 0.01
+		end while
+	end if
+	clickclear
+	pause 0.01
+end while
+end
+
+showcolor:
+	color rgb(rood, groen, blauw)
+	rect 140, 140, 60, 60
+	color bg
+	rect 128, 66, 110, 50
+	color black
+	font "Tahoma", 10, 50
+	text 130, 70, "R set to: " + rood
+	text 130, 85, "G set to: " + groen
+	text 130, 100, "B set to: " + blauw
+	refresh
+	return

@@ -1,0 +1,64 @@
+#*********************************************************************
+# Simple demo with tabbed interface element from the toolkit.kbs module
+# tk_drawtabs(x, y, w, h, captions$, active, pageh)
+#   draws a Win32 classic style tab control
+#   x, y      : top-left corner of the tab strip
+#   w, h      : width of the control and height of the tab strip
+#   captions$ : all tab captions in one string, separated by "|"
+#               e.g. "General|Colors|Advanced"  (no global array needed)
+#   active    : index of the selected tab, counting from 0
+#   pageh     : height of the page below the tabs
+#               > 0  draws (and clears) a raised page, w x pageh
+#               0    draws only the tab strip
+#   Tabs share the width equally. Captions are centred and the font
+#   shrinks (down to 6pt) until the longest caption fits.
+#   The strip is drawn on the Win32 button face colour rgb(192,192,192).
+#
+# tk_tabhit(x, y, w, h, captions$, px, py)
+#   -> index of the tab under (px,py), or -1 when not on a tab
+#*********************************************************************
+include "toolkit.kbs"
+# basic screen setup
+#*******************
+graphsize 300, 300
+fastgraphics
+color rgb(192,192,192)
+rect 0, 0, graphwidth, graphheight
+# tab initialisation
+#*******************
+tx = 10 : ty = 10 : tw = 280 : th = 22 : pageh = 260
+tabs$ = "Tab 1|Tab 2|Tab 3|Tab 4|Last tab"
+content$ = {"This is tab 1", "..and this is tab 2", "You are now on tab 3", "Yes, tab 4 is here", "This is the last tab"}
+active = 0
+# show initial screen
+#********************
+gosub showtab
+clickclear
+# do forever
+#***********
+while true
+	if clickb then
+		t = tk_tabhit(tx, ty, tw, th, tabs$, clickx, clicky)
+		clickclear
+		if t >= 0 and t <> active then
+			active = t
+			gosub showtab
+		end if
+	end if
+	pause 0.02
+end while
+end
+
+# paint the screen according to the active tab
+#*********************************************
+showtab:
+	# redrawing with pageh > 0 also clears the old page content
+	call tk_drawtabs(tx, ty, tw, th, tabs$, active, pageh)
+	#here, we just put a simple sentence for each tab. 
+	#You can of course do a gosub for each active tab for more functionality
+	color black
+	font "Tahoma", 14, 50
+	m$ = content$[active]
+	text tx + int((tw - textwidth(m$)) / 2), ty + th + 100, m$
+	refresh
+return

@@ -1,0 +1,56 @@
+#*********************************************************************
+# Simple demo for using the GUI buttons from the toolkit.kbs module
+#
+# tk_button(x, y, w, h, caption$, state)
+#   state 0 = raised (normal)
+#         1 = sunken (held down)
+#         2 = click animation (sunken, short pause, raised)
+#         3 = disabled (raised, embossed grey caption)
+# tk_buttonhit(x, y, w, h, px, py) -> true when (px,py) is on the button
+#*********************************************************************
+include "toolkit.kbs"
+# basic screen setup
+#*******************
+graphsize 300,300
+fastgraphics
+clg grey
+# button setup
+#*************
+# button labels (mandatory)
+labels_button = {"Green", "Red", "Blue"}
+# button variables (optional, but clarifying)
+button_start_x = 50
+button_start_y = 100
+button_width = 70
+button_height = 20
+button_spacing = 40
+# initial draw
+#*************
+# draw the buttons raised (unpressed)
+for i = 0 to 2
+	call tk_button(button_start_x,button_start_y+i*button_spacing,button_width, button_height,labels_button[i],0)
+next i	
+refresh
+# forever loop
+#*************
+while true
+if clickb=1 then
+  clickclear
+  cx = mousex
+  cy = mousey
+  begin case
+  	case tk_buttonhit(button_start_x, button_start_y, button_width, button_height, cx,cy) #clicked in green button
+		call tk_button(button_start_x,button_start_y,button_width, button_height,labels_button[0],2) # do click animation
+		col = rgb(0,255,0): color col: rect 160,100,100,100 # draw rectangle in correct color
+  	case tk_buttonhit(button_start_x, button_start_y + button_spacing, button_width, button_height, cx,cy) #clicked in red button
+		call tk_button(button_start_x,button_start_y + button_spacing,button_width, button_height,labels_button[1],2)
+		col = rgb(255,0,0): color col: rect 160,100,100,100 # draw rectangle in correct color
+  	case tk_buttonhit(button_start_x, button_start_y + 2*button_spacing, button_width, button_height, cx,cy) #clicked in blue button
+		call tk_button(button_start_x,button_start_y + 2*button_spacing,button_width, button_height,labels_button[2],2)
+		col = rgb(0,0,255): color col: rect 160,100,100,100 # draw rectangle in correct color
+  end case
+  refresh			
+endif 
+pause 0.1
+end while  	  
+end

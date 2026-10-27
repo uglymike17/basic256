@@ -1,0 +1,92 @@
+#*********************************************************************
+# Simple demo for using the GUI spinner button from the toolkit.kbs module
+#
+# tk_spinner(x, y, w, h, caption$, state)
+#   x, y, w, h : outer rectangle of the whole spin box
+#   caption$   : the text to show; you format it yourself, so the
+#                same routine serves numbers, months, names, ...
+#   state 0 = normal
+#         1 = up button pressed
+#         2 = down button pressed
+#         3 = disabled
+#
+# tk_spinhit(x, y, w, h, px, py)
+#   ->  1 when (px,py) is on the up button
+#   -> -1 when (px,py) is on the down button
+#   ->  0 otherwise
+#   (the result is the step direction: value = value + tk_spinhit(...))
+#*********************************************************************
+include "toolkit.kbs"
+# basic screen setup
+#*******************
+graphsize 300, 200
+fastgraphics
+clg grey
+# spinner setup
+#****************
+# spinner month by name
+months$ = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"}
+# daycount spinner sizing
+dx = 40 : dy = 80 : dw = 50 : dh = 26
+daycount = 1
+# monthcount spinner sizing
+mx = 110 : my = 80 : mw = 110 : mh = 26
+monthcount = 4
+# a disabled spinner, just to show the look
+yx = 230 : yy = 80 : yw = 56 : yh = 26
+
+color black
+font "Tahoma", 9, 50
+text dx, dy - 18, "day"
+text mx, my - 18, "month"
+text yx, yy - 18, "year"
+call tk_spinner(dx, dy, dw, dh, string(daycount), 0)
+call tk_spinner(mx, my, mw, mh, months$[monthcount], 0)
+call tk_spinner(yx, yy, yw, yh, "2026", 3)
+
+while true
+	if mouseb then
+		which = 0
+		updown = tk_spinhit(dx, dy, dw, dh, mousex, mousey)
+		if updown <> 0 then which = 1
+		if which = 0 then
+			updown = tk_spinhit(mx, my, mw, mh, mousex, mousey)
+			if updown <> 0 then which = 2
+		end if
+
+		pstate = 2
+		if updown = 1 then pstate = 1
+
+		# step once, then auto-repeat while the button is held down
+		delay = 0.4
+		while mouseb and which > 0
+			if which = 1 then
+				daycount = daycount + updown 
+				if daycount > 31 then daycount = 1
+				if daycount < 1 then daycount = 31
+				call tk_spinner(dx, dy, dw, dh, string(daycount), pstate)
+			else
+				monthcount = monthcount + updown 
+				if monthcount > 11 then monthcount = 0
+				if monthcount < 0 then monthcount = 11
+				call tk_spinner(mx, my, mw, mh, months$[monthcount], pstate)
+			end if
+			t = 0
+			while mouseb and t < delay
+				pause 0.01
+				t = t + 0.01
+			end while
+			delay = 0.08
+		end while
+
+		# release: redraw with the buttons up
+		if which = 1 then call tk_spinner(dx, dy, dw, dh, string(daycount), 0)
+		if which = 2 then call tk_spinner(mx, my, mw, mh, months$[monthcount], 0)
+		while mouseb
+			pause 0.01
+		end while
+	end if
+	clickclear
+	pause 0.01
+end while
+end

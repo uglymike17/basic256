@@ -30,6 +30,14 @@
         <file>Fun/PongWars2.kbs</file>
         <file>Fun/SpecialEffect.kbs</file>
         <file>Fun/Warpfactor_Starfield.kbs</file>
+        <file>GUI-Demo/Demo_1Button.kbs</file>
+        <file>GUI-Demo/Demo_2Button-Drawing.kbs</file>
+        <file>GUI-Demo/Demo_3Butt-Draw-Check-Radio-Slider.kbs</file>
+        <file>GUI-Demo/Demo_Grouper.kbs</file>
+        <file>GUI-Demo/Demo_Slider.kbs</file>
+        <file>GUI-Demo/Demo_Spinner.kbs</file>
+        <file>GUI-Demo/Demo_Tabs.kbs</file>
+        <file>GUI-Demo/Demo_Textfield.kbs</file>
         <file>Games/ClaudeAI-neonsnake.kbs</file>
         <file>Games/FlappyBall.kbs</file>
         <file>Games/FlappyBall2.kbs</file>

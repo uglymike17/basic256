@@ -1,0 +1,107 @@
+#*********************************************************************
+# Simple demo with GUI buttons & drawing elements from the toolkit.kbs module
+# Three buttons determine what color a big drawing element will be 
+# and what color name will appear in the small drawing element
+# tk_button(x, y, w, h, caption$, state)
+#   state 0 = raised (normal)
+#         1 = sunken (held down)
+#         2 = click animation (sunken, short pause, raised)
+#         3 = disabled (raised, embossed grey caption)
+#
+# tk_buttonhit(x, y, w, h, px, py) -> true when (px,py) is on the button
+#
+# tk_drawing(x, y, w, h, nx, ny, gapx, gapy, fill)
+#   draws one recessed field, or a grid of nx by ny fields, in the
+#   Win32 classic "sunken client edge" style
+#   x, y       : top-left corner of the first field's interior
+#   w, h       : size of each field's interior (what you draw in)
+#                a 2px sunken border is added on the outside
+#   nx, ny     : number of fields across and down (1, 1 = single field)
+#   gapx, gapy : empty space between the borders of neighbouring fields
+#   fill       : interior colour, e.g. white, black, rgb(255,255,224)
+#
+#   interior of field (i, j), counting from 0:
+#     x + i * (w + 4 + gapx),  y + j * (h + 4 + gapy)
+#
+# tk_drawhit(x, y, w, h, nx, ny, gapx, gapy, px, py)
+#   -> index (j * nx + i) of the field interior containing (px,py),
+#      or -1 when (px,py) is not inside any field
+#*********************************************************************
+include "toolkit.kbs"
+# basic screen setup
+#*******************
+graphsize 500,300
+fastgraphics
+clg grey
+# button setup
+#*************
+# button labels (mandatory)
+labels_button = {"Green", "Red", "Blue"}
+# button variables (optional, but clarifying)
+button_start_x = 50
+button_start_y = 100
+button_width = 70
+button_height = 20
+button_spacing = 40
+# initial draw
+#*************
+# draw the buttons raised (unpressed)
+for i = 0 to 2
+	call tk_button(button_start_x,button_start_y+i*button_spacing,button_width, button_height,labels_button[i],0)
+next i	
+# drawing setup
+bigdraw_start_x = 160
+bigdraw_start_y = 100
+bigdraw_width = 100
+bigdraw_height = 100
+smalldraw_start_x = 300 
+smalldraw_start_y = 140 
+smalldraw_width = 100
+smalldraw_height = 26
+# draw the big area to be colored	
+call tk_drawing(bigdraw_start_x,bigdraw_start_y,bigdraw_width,bigdraw_height,1,1,0,0,black)
+# draw the small area where the color is placed	
+call tk_drawing(smalldraw_start_x,smalldraw_start_y,smalldraw_width,smalldraw_height,1,1,0,0,white)
+color black
+font "Tahoma", 12, 50
+posx= 350 - (textwidth("black")/2)
+text (posx,145,"black")
+refresh
+while true
+# when button is clicked, we use a begin case...end case statement to find to activated element
+# in the case, we define what needs to happen. Everything is inline but you can use subroutines to keep things clear
+if clickb=1 then
+  clickclear
+  cx = mousex
+  cy = mousey
+  begin case
+  	case tk_buttonhit(button_start_x, button_start_y, button_width, button_height, cx,cy) #clicked in green button
+		call tk_button(button_start_x,button_start_y,button_width, button_height,labels_button[0],2) # do click animation
+		call tk_drawing(smalldraw_start_x,smalldraw_start_y,smalldraw_width,smalldraw_height,1,1,0,0,white)
+		color black
+		font "Tahoma", 12, 50
+		posx= 350 - (textwidth("green")/2)
+		text (posx,145,"green")
+		col = rgb(0,255,0): color col: rect bigdraw_start_x,bigdraw_start_y,bigdraw_width,bigdraw_height:refresh
+  	case tk_buttonhit(button_start_x, button_start_y + button_spacing, button_width, button_height, cx,cy) #clicked in red button
+		call tk_button(button_start_x,button_start_y + button_spacing,button_width, button_height,labels_button[1],2)
+		call tk_drawing(smalldraw_start_x,smalldraw_start_y,smalldraw_width,smalldraw_height,1,1,0,0,white)
+		color black
+		font "Tahoma", 12, 50
+		posx= 350 - (textwidth("red")/2)
+		text (posx,145,"red")
+		col = rgb(255,0,0): color col: rect bigdraw_start_x,bigdraw_start_y,bigdraw_width,bigdraw_height:refresh
+  	case tk_buttonhit(button_start_x, button_start_y + 2*button_spacing, button_width, button_height, cx,cy) #clicked in blue button
+		call tk_button(button_start_x,button_start_y + 2*button_spacing,button_width, button_height,labels_button[2],2)
+		call tk_drawing(smalldraw_start_x,smalldraw_start_y,smalldraw_width,smalldraw_height,1,1,0,0,white)
+		color black
+		font "Tahoma", 12, 50
+		posx= 350 - (textwidth("blue")/2)
+		text (posx,145,"blue")
+		col = rgb(0,0,255): color col: rect bigdraw_start_x,bigdraw_start_y,bigdraw_width,bigdraw_height:refresh
+	end case
+endif 
+pause 0.1
+end while 
+refresh  	  
+end
