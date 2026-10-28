@@ -1,0 +1,1534 @@
+# **************************************************
+# tk_ GUI element demo program                     *
+# Quick overview of the Basic256 toolkit module    *
+# Here, the (tk_) routines are appended at the end.*
+# It only has minimal functionality of course      *
+# **************************************************
+
+graphsize 500,300
+fastgraphics
+Editvisible(0)
+Outputvisible(0)
+
+face = rgb(192,192,192)
+color face
+rect 0, 0, 500, 300
+
+# tab control (tk_drawtabs also draws the page frame below the strip)
+tabcap$ = "Intro|Button|Check|Radio|Slide|Draw|Spin"
+tabx = 10 : taby = 10 : tabw = 480 : tabh = 22 : pageh = 264
+
+# Intro tab
+dim intro$(8)
+intro$ = {"This demo program shows the Basic256  toolkit module", "(tk_) GUI elements: buttons, checkboxes, radio buttons, a", "slider, drawing fields, spin boxes and the tab control itself.", "The grouper element (the frame around this text) does not", "have its own tab as its concept is fairly straightforward.", "Functionality is of course limited, seeing the aim of this", "program is to demo the GUI look and feel and nothing else.", "Feedback and ideas for improvement are very welcome."}
+
+# Button tab: a small one-armed bandit
+dim bandit(3)
+reelcol = white
+
+# Check tab
+dim check_label$(5)
+dim check_state(5)
+check_label$ = {"fat", "hairy", "smelly", "lazy", "old"}
+check_state = {0, 0, 0, 0, 0}
+
+# Radio tab (-1 = nothing selected)
+dim radio$(5)
+radio$ = {"Normal", "Happy!", "Angry!", "Sad...", "Actually, not all that good"}
+radio_sel = -1
+
+# Slide tab
+slide_val = 0
+
+# Draw tab (Lissajous figure)
+lj_a = 27 : lj_b = 29 : lj_iter = 300
+lj_step = 2 * pi / 300
+lj_t = 0 : lj_x = 0 : lj_y = 0
+
+# Spin tab
+dim month_name$(12)
+month_name$ = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"}
+dim month_len(12)
+month_len = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
+sp_day = 1 : sp_month = 0
+
+curtab = 0
+gosub DrawPage
+
+# main event loop: one loop for all tabs
+while true
+	if clickb <> 0 then
+		px = clickx
+		py = clicky
+		clickclear
+		t = tk_tabhit(tabx, taby, tabw, tabh, tabcap$, px, py)
+		if t >= 0 then
+			if t <> curtab then
+				curtab = t
+				gosub DrawPage
+			end if
+		else
+			gosub HandleClick
+		end if
+	end if
+	# the Draw tab animates while it is shown
+	if curtab = 5 then gosub DrawStep
+	pause 0.01
+end while
+
+#*********************************
+# page dispatch
+#*********************************
+DrawPage:
+	call tk_drawtabs(tabx, taby, tabw, tabh, tabcap$, curtab, pageh)
+	if curtab = 0 then gosub PageIntro
+	if curtab = 1 then gosub PageButtons
+	if curtab = 2 then gosub PageCheck
+	if curtab = 3 then gosub PageRadio
+	if curtab = 4 then gosub DrawSlide
+	if curtab = 5 then gosub PageDraw
+	if curtab = 6 then gosub PageSpin
+	refresh
+return
+
+HandleClick:
+	if curtab = 1 then gosub ClickButtons
+	if curtab = 2 then gosub ClickCheck
+	if curtab = 3 then gosub ClickRadio
+	if curtab = 4 then gosub ClickSlide
+	if curtab = 6 then gosub ClickSpin
+return
+
+#*********************************
+# Intro
+#*********************************
+PageIntro:
+	color black
+	font "Arial", 14, 75
+	title$ = "BASIC256 Toolkit Demo"
+	text 250 - textwidth(title$) / 2, 45, title$
+	call tk_grouper(40, 80, 420, 200, "")
+	color black
+	font "Tahoma", 10, 50
+	for j = 0 to 7
+		text 60, 92 + j * 22, intro$[j]
+	next j
+return
+
+#*********************************
+# Button
+#*********************************
+PageButtons:
+	call tk_button(160, 55, 180, 30, "Change background color", 0)
+	# three reels: interiors at x = 115, 235, 355 (step 50 + 4 + 66 = 120)
+	call tk_drawing(115, 130, 50, 50, 3, 1, 66, 0, reelcol)
+	for j = 0 to 2
+		bandit[j] = -1 - j
+		call tk_button(100 + j * 120, 200, 80, 30, "Spin!", 0)
+	next j
+return
+
+ClickButtons:
+	if tk_buttonhit(160, 55, 180, 30, px, py) then
+		call tk_button(160, 55, 180, 30, "Change background color", 2)
+		reelcol = rgb(int(rand * 256), int(rand * 256), int(rand * 256))
+		for j = 0 to 2
+			rk = j
+			gosub DrawReel
+		next j
+		refresh
+	end if
+	for j = 0 to 2
+		if tk_buttonhit(100 + j * 120, 200, 80, 30, px, py) then
+			reel = j
+			gosub SpinReel
+		end if
+	next j
+return
+
+SpinReel:
+	call tk_button(100 + reel * 120, 200, 80, 30, "Spin!", 2)
+	# remove an old "You won" message
+	color face
+	rect 150, 240, 300, 45
+	# reels to the right of this one are reset
+	m = reel + 1
+	while m <= 2
+		bandit[m] = -1 - m
+		rk = m
+		gosub DrawReel
+		m = m + 1
+	end while
+	spins = int(rand * 10) + 10
+	spinstart = int(rand * 10)
+	delay = 0
+	rk = reel
+	for sj = 1 to spins
+		bandit[reel] = (spinstart + sj) % 3
+		gosub DrawReel
+		refresh
+		delay = delay + sj / 200
+		pause delay
+	next sj
+	if bandit[0] = bandit[1] and bandit[1] = bandit[2] then
+		color black
+		font "Tahoma", 20, 75
+		text 200, 248, "You won!!"
+	end if
+	refresh
+return
+
+# draw reel rk with its digit (no digit when bandit[rk] < 0)
+DrawReel:
+	color reelcol
+	rect 115 + rk * 120, 130, 50, 50
+	if bandit[rk] >= 0 then
+		color black
+		font "Tahoma", 24, 75
+		d$ = string(bandit[rk])
+		text 115 + rk * 120 + int((50 - textwidth(d$)) / 2), 130 + int((50 - textheight()) / 2), d$
+	end if
+return
+
+#*********************************
+# Check
+#*********************************
+PageCheck:
+	call tk_grouper(40, 80, 150, 150, "Traits")
+	gosub DrawChecks
+	call tk_button(250, 80, 110, 26, "What am I?", 0)
+return
+
+DrawChecks:
+	color face
+	rect 45, 92, 130, 132
+	for j = 0 to 4
+		call tk_checkbox(60, 100 + j * 25, check_label$[j], check_state[j])
+	next j
+return
+
+ClickCheck:
+	for i = 0 to 4
+		if tk_checkhit(60, 100 + i * 25, check_label$[i], px, py) then
+			check_state[i] = 1 - check_state[i]
+			gosub DrawChecks
+		end if
+	next i
+	if tk_buttonhit(250, 80, 110, 26, px, py) then
+		call tk_button(250, 80, 110, 26, "What am I?", 2)
+		whatami$ = "You're a "
+		quality = 0
+		for i = 0 to 4
+			if check_state[i] = 1 then
+				if quality > 0 then whatami$ = whatami$ + ", "
+				whatami$ = whatami$ + check_label$[i]
+				quality = quality + 1
+			end if
+		next i
+		if quality = 0 then whatami$ = whatami$ + "gentleman!"
+		if quality = 1 then whatami$ = whatami$ + " person!"
+		if quality = 2 then whatami$ = whatami$ + " slob!!"
+		if quality = 3 then whatami$ = whatami$ + " bum!!"
+		if quality = 4 then whatami$ = whatami$ + " bastard!!"
+		if quality = 5 then whatami$ = "Hey! You're just like me!!!"
+		color face
+		rect 205, 125, 280, 40
+		color black
+		# shrink the font until the answer fits the page
+		fs = 10
+		font "Tahoma", fs, 75
+		while fs > 6 and textwidth(whatami$) > 275
+			fs = fs - 1
+			font "Tahoma", fs, 75
+		end while
+		text 210, 135, whatami$
+		refresh
+	end if
+return
+
+#*********************************
+# Radio
+#*********************************
+PageRadio:
+	call tk_grouper(50, 70, 220, 150, "How are you today?")
+	gosub DrawRadios
+	gosub DrawFace
+	color black
+	font "Tahoma", 9, 50
+	text 30, 250, "* This only works correctly if the Wingdings TTF font is installed."
+	text 30, 266, "   Otherwise you just get the letters K, J, M, L and N."
+return
+
+DrawRadios:
+	color face
+	rect 55, 85, 210, 130
+	for j = 0 to 4
+		rs = 0
+		if j = radio_sel then rs = 1
+		call tk_radio(64, 94 + j * 25, radio$[j], rs)
+	next j
+return
+
+DrawFace:
+	color face
+	rect 300, 60, 185, 175
+	if radio_sel >= 0 then
+		color yellow
+		if radio_sel = 2 or radio_sel = 4 then color black
+		font "Wingdings", 75, 50
+		text 330, 80, mid("KJMLN", radio_sel + 1, 1)
+	end if
+	refresh
+return
+
+ClickRadio:
+	for i = 0 to 4
+		if tk_radiohit(64, 94 + i * 25, radio$[i], px, py) then
+			radio_sel = i
+			gosub DrawRadios
+			gosub DrawFace
+		end if
+	next i
+return
+
+#*********************************
+# Slide
+#*********************************
+DrawSlide:
+	call tk_slider(100, 60, 301, 1, slide_val, 300, face)
+	color face
+	rect 15, 75, 470, 215
+	tsize = int(slide_val / 5)
+	if tsize < 1 then tsize = 1
+	color black
+	font "Snap ITC", tsize, 50
+	text 240 - slide_val / 1.5, 180 - slide_val / 6, "Wheeee !"
+	refresh
+return
+
+ClickSlide:
+	if tk_sliderhit(100, 60, 301, 1, px, py) then
+		# follow the mouse until the button is released
+		do
+			v = tk_sliderval(100, 60, 301, 1, 300, mousex, mousey)
+			if v <> slide_val then
+				slide_val = v
+				gosub DrawSlide
+			end if
+			pause 0.01
+		until mouseb = 0
+		clickclear
+	end if
+return
+
+#*********************************
+# Draw
+#*********************************
+PageDraw:
+	color black
+	font "Arial", 12, 75
+	text 320, 45, "Lissajous figure"
+	font "Tahoma", 10, 50
+	lh = int((20 - textheight()) / 2)
+	text 290, 100 + lh, "X-pos:"
+	text 290, 148 + lh, "Y-pos:"
+	text 280, 196 + lh, "A value:"
+	text 280, 244 + lh, "B value:"
+	# four value fields at y = 100, 148, 196, 244 (step 20 + 4 + 24 = 48)
+	call tk_drawing(350, 100, 60, 20, 1, 4, 0, 24, white)
+	gosub LissajousStart
+return
+
+LissajousStart:
+	call tk_drawing(50, 60, 200, 200, 1, 1, 0, 0, black)
+	call fieldtext(350, 196, 60, 20, string(lj_a))
+	call fieldtext(350, 244, 60, 20, string(lj_b))
+	lj_t = 0
+	refresh
+return
+
+# draw the next 20 segments of the figure
+DrawStep:
+	if lj_t > lj_iter then gosub LissajousNew
+	color yellow
+	seg = 0
+	while seg < 20 and lj_t <= lj_iter
+		lj_xold = lj_x
+		lj_yold = lj_y
+		lj_x = (sin(lj_t) + 1) * 99.5 + 50
+		lj_y = (cos(lj_t * lj_b / lj_a) + 1) * 99.5 + 60
+		if lj_t > 0 then line lj_xold, lj_yold, lj_x, lj_y
+		lj_t = lj_t + lj_step
+		seg = seg + 1
+	end while
+	call fieldtext(350, 100, 60, 20, string(int(lj_x) - 50))
+	call fieldtext(350, 148, 60, 20, string(int(lj_y) - 60))
+	refresh
+return
+
+# pick a new figure; simple figures get fewer turns
+LissajousNew:
+	lj_a = int(rand * 20) + 1
+	lj_b = int(rand * 20) + 1
+	if lj_a % lj_b = 0 or lj_b % lj_a = 0 then
+		lj_iter = 60
+	else
+		if lj_a % 2 = 0 and lj_b % 2 = 0 then
+			lj_iter = 80
+		else
+			if lj_a + lj_b < 10 then
+				lj_iter = 100
+			else
+				if lj_a + lj_b < 20 and abs(lj_a - lj_b) < 7 then
+					lj_iter = 140
+				else
+					lj_iter = 200
+				end if
+			end if
+		end if
+	end if
+	gosub LissajousStart
+return
+
+#*********************************
+# Spin
+#*********************************
+PageSpin:
+	color black
+	font "Tahoma", 10, 50
+	text 50, 50, "Please enter your birthday and press 'Done!'"
+	font "Tahoma", 9, 50
+	text 120, 82, "Day"
+	text 190, 82, "Month"
+	call tk_spinner(120, 100, 50, 22, string(sp_day), 0)
+	call tk_spinner(190, 100, 110, 22, month_name$[sp_month], 0)
+	call tk_button(330, 99, 60, 24, "Done!", 0)
+return
+
+ClickSpin:
+	# day spinner
+	sh = tk_spinhit(120, 100, 50, 22, px, py)
+	if sh <> 0 then
+		sp_day = sp_day + sh
+		if sp_day < 1 then sp_day = 1
+		if sp_day > month_len[sp_month] then sp_day = month_len[sp_month]
+		sst = 1
+		if sh < 0 then sst = 2
+		call tk_spinner(120, 100, 50, 22, string(sp_day), sst)
+		pause 0.1
+		call tk_spinner(120, 100, 50, 22, string(sp_day), 0)
+	end if
+	# month spinner
+	sh = tk_spinhit(190, 100, 110, 22, px, py)
+	if sh <> 0 then
+		sp_month = sp_month + sh
+		if sp_month < 0 then sp_month = 0
+		if sp_month > 11 then sp_month = 11
+		sst = 1
+		if sh < 0 then sst = 2
+		call tk_spinner(190, 100, 110, 22, month_name$[sp_month], sst)
+		# keep the day valid for the new month
+		if sp_day > month_len[sp_month] then
+			sp_day = month_len[sp_month]
+			call tk_spinner(120, 100, 50, 22, string(sp_day), 0)
+		end if
+		pause 0.1
+		call tk_spinner(190, 100, 110, 22, month_name$[sp_month], 0)
+	end if
+	# Done button
+	if tk_buttonhit(330, 99, 60, 24, px, py) then
+		call tk_button(330, 99, 60, 24, "Done!", 2)
+		gosub ShowBirthday
+	end if
+return
+
+ShowBirthday:
+	# day of the year for today and for the birthday
+	# (month is 0-based, day is 1-based)
+	nowday = day
+	i = 0
+	while i < month
+		nowday = nowday + month_len[i]
+		i = i + 1
+	end while
+	birth = sp_day
+	i = 0
+	while i < sp_month
+		birth = birth + month_len[i]
+		i = i + 1
+	end while
+	diff = birth - nowday
+	if diff < 0 then diff = diff + 365
+	if diff = 0 then
+		msg$ = "Happy birthday !!"
+	else
+		if diff = 1 then
+			msg$ = "Only 1 day to go till your birthday!"
+		else
+			msg$ = "Still " + string(diff) + " days to go till your birthday!"
+		end if
+	end if
+	color face
+	rect 20, 140, 460, 80
+	color black
+	font "Tahoma", 16, 50
+	text 250 - textwidth(msg$) / 2, 165, msg$
+	refresh
+return
+
+#*********************************
+# fieldtext - write txt$ into a white field interior
+#*********************************
+subroutine fieldtext(fx, fy, fw, fh, txt$)
+	color white
+	rect fx, fy, fw, fh
+	color black
+	font "Tahoma", 10, 50
+	text fx + 4, fy + int((fh - textheight()) / 2), txt$
+end subroutine
+
+#*********************************************************************
+# Basic256 Classic Style ToolKit elements
+#	tk_button - draw a push button
+#		tk_buttonhit - hit test for a button rectangle
+#	tk_checkbox - draw a checkbox with label
+#       tk_checkhit - hit test for a checkbox & label
+#	tk_drawing - draw one recessed field, or a grid of nx by ny fields
+#       tk_drawhit - which field interior contains (px,py)? -1 = none
+#   tk_drawtabs - draw a tab control
+#       tk_tabhit - index of the tab under mouse, -1 when none
+#	tk_grouper - draw a group box
+#	    tk_outline - grouper helper function
+#	tk_radio - draw a radio button
+#       tk_radiohit - hit test for a radio button & label
+#   tk_slider - draw a slider
+#       tk_sliderhit - true when mouse is on the slider area
+#       tk_sliderval - slider value for mouse position
+#   tk_spinner - draw a spinner box
+#       tk_spinhit - 1 = up button, -1 = down button, 0 = elsewhere
+#   tk_textfield - draw an edit field
+#       tk_texthit(x, y, w, h, px, py) - true when (px,py) is inside the field: give it the focus
+#       tk_textcaretat(x, y, w, h, text$, caret, px) - caret index closest to mouse x position px (click to place caret)
+#       tk_textedit$(text$, caret, k) - text$ after key code k (from key()) has been applied
+#       tk_textcaret(text$, caret, k) - caret after key code k has been applied
+#         Call tk_textcaret BEFORE you store the result of tk_textedit$,
+#         both must see the text as it was before the key.
+#         Handled keys: printable characters (Shift selects upper case),
+#         Backspace, Delete, Left, Right, Home, End.
+#	tk_help - prints usage of each element
+#*********************************************************************
+# tk_button - draw a push button
+#*********************************************************************
+subroutine tk_button(x, y, w, h, caption$, state)
+	face = rgb(192,192,192)
+	light = rgb(223,223,223)
+	shadow = rgb(128,128,128)
+	# bevel thickness depends on the button size
+	small = h
+	if w < small then small = w
+	if small < 17 then
+		b = 1
+	else
+		if small < 25 then
+			b = 2
+		else
+			b = 4
+		end if
+	end if
+	# pick the largest font (max 12pt) that fits inside the face
+	fsize = int(h * 0.3)
+	if fsize > 12 then fsize = 12
+	if fsize < 6 then fsize = 6
+	font "Tahoma", fsize, 50
+	while fsize > 6 and (textwidth(caption$) > w - 2*b - 4 or textheight() > h - 2*b)
+		fsize = fsize - 1
+		font "Tahoma", fsize, 50
+	end while
+	cx = x + int((w - textwidth(caption$)) / 2)
+	cy = y + int((h - textheight()) / 2)
+	# state 2 draws twice: sunken, pause, raised
+	passes = 1
+	if state = 2 then passes = 2
+	for p = 1 to passes
+		s = state
+		if state = 2 then
+			if p = 1 then s = 1 else s = 0
+		end if
+		# bevel: one layer for tiny buttons, two layers otherwise
+		layers = 2
+		if b = 1 then layers = 1
+		for k = 1 to layers
+			if layers = 1 then
+				off = 0 : t = 1
+				if s = 1 then
+					tl = shadow : br = white
+				else
+					tl = white : br = shadow
+				end if
+			else
+				if k = 1 then
+					off = 0 : t = b / 2
+					if s = 1 then
+						tl = black : br = white
+					else
+						tl = white : br = black
+					end if
+				else
+					off = b / 2 : t = b - b / 2
+					if s = 1 then
+						tl = shadow : br = light
+					else
+						tl = light : br = shadow
+					end if
+				end if
+			end if
+			bx = x + off : by = y + off
+			bw = w - 2*off : bh = h - 2*off
+			color br
+			rect bx, by, bw, bh
+			color tl
+			poly {bx, by, bx + bw, by, bx + bw - t, by + t, bx + t, by + t, bx + t, by + bh - t, bx, by + bh}
+		next k
+		# button face
+		color face
+		rect x + b, y + b, w - 2*b, h - 2*b
+		# caption; a pressed button shifts it 1px down-right
+		tx = cx : ty = cy
+		if s = 1 then
+			tx = tx + 1
+			ty = ty + 1
+		end if
+		if s = 3 then
+			color white
+			text tx + 1, ty + 1, caption$
+			color shadow
+			text tx, ty, caption$
+		else
+			color black
+			text tx, ty, caption$
+		end if
+		refresh
+		if p < passes then pause 0.15
+	next p
+end subroutine
+#*****************************************************************
+# tk_buttonhit - hit test for a button rectangle
+#*****************************************************************
+function tk_buttonhit(x, y, w, h, px, py)
+	return px >= x and px < x + w and py >= y and py < y + h
+end function
+
+#*********************************************************************
+# tk_grouper - draw a group box
+#*********************************************************************
+subroutine tk_grouper(x, y, w, h, caption$)
+	shadow = rgb(128,128,128)
+	# sample the background where the caption will go, before drawing over it
+	backgr = pixel(x + 8, y)
+	if w = 0 then
+		# vertical separator: grey line with a white line to its right
+		color shadow
+		line x, y, x, y + h - 1
+		color white
+		line x + 1, y, x + 1, y + h - 1
+		refresh
+		return
+	end if
+	if h = 0 then
+		# horizontal separator: grey line with a white line below it
+		color shadow
+		line x, y, x + w - 1, y
+		color white
+		line x, y + 1, x + w - 1, y + 1
+	else
+		# etched groove: white outline offset by 1, grey outline on top of it
+		color white
+		call tk_outline(x + 1, y + 1, x + w - 1, y + h - 1)
+		color shadow
+		call tk_outline(x, y, x + w - 2, y + h - 2)
+	end if
+	if caption$ <> "" then
+		font "Tahoma", 9, 50
+		tw = textwidth(caption$)
+		th = textheight()
+		# do not let the caption run past the right edge of the frame
+		if tw > w - 20 then tw = w - 20
+		# blank the frame behind the caption, centred on the top line
+		ty = y - int(th / 2)
+		color backgr
+		rect x + 6, ty, tw + 4, th
+		color black
+		text x + 8, ty, caption$
+	end if
+	refresh
+end subroutine
+#*********************************************************************
+# tk_outline - 1px unfilled rectangle from (x1,y1) to (x2,y2)
+#*********************************************************************
+subroutine tk_outline(x1, y1, x2, y2)
+	line x1, y1, x2, y1
+	line x2, y1, x2, y2
+	line x2, y2, x1, y2
+	line x1, y2, x1, y1
+end subroutine
+#*********************************************************************
+# tk_checkbox - draw a checkbox with label
+#*********************************************************************
+subroutine tk_checkbox(x, y, caption$, state)
+	face = rgb(192,192,192)
+	light = rgb(223,223,223)
+	shadow = rgb(128,128,128)
+	# box interior: white when enabled, button face when disabled
+	if state >= 2 then
+		color face
+	else
+		color white
+	end if
+	rect x, y, 13, 13
+	# sunken two-layer bevel
+	color shadow
+	line x, y, x + 11, y
+	line x, y, x, y + 11
+	color black
+	line x + 1, y + 1, x + 10, y + 1
+	line x + 1, y + 1, x + 1, y + 10
+	color light
+	line x + 1, y + 11, x + 11, y + 11
+	line x + 11, y + 1, x + 11, y + 11
+	color white
+	line x, y + 12, x + 12, y + 12
+	line x + 12, y, x + 12, y + 12
+	# check mark: 3px thick stroke inside the 9x9 interior
+	if state = 1 or state = 3 then
+		if state = 3 then
+			color shadow
+		else
+			color black
+		end if
+		for d = 0 to 2
+			line x + 3, y + 5 + d, x + 5, y + 7 + d
+			line x + 5, y + 7 + d, x + 9, y + 3 + d
+		next d
+	end if
+	# label, vertically centered on the box
+	if caption$ <> "" then
+		font "Tahoma", 9, 50
+		tx = x + 18
+		ty = y + int((13 - textheight()) / 2)
+		if state >= 2 then
+			color white
+			text tx + 1, ty + 1, caption$
+			color shadow
+		else
+			color black
+		end if
+		text tx, ty, caption$
+	end if
+	refresh
+end subroutine
+#*********************************************************************
+# tk_checkhit - true when (px,py) is on the checkbox or its label
+#*********************************************************************
+function tk_checkhit(x, y, caption$, px, py)
+	font "Tahoma", 9, 50
+	w = 18 + textwidth(caption$)
+	h = 13
+	if textheight() > h then
+		y = y - int((textheight() - h) / 2)
+		h = textheight()
+	end if
+	return px >= x and px < x + w and py >= y and py < y + h
+end function
+#*********************************************************************
+# tk_drawing - draw one recessed field, or a grid of nx by ny fields
+#*********************************************************************
+subroutine tk_drawing(x, y, w, h, nx, ny, gapx, gapy, fillcoll)
+	light = rgb(223,223,223)
+	shadow = rgb(128,128,128)
+	if nx < 1 then nx = 1
+	if ny < 1 then ny = 1
+	stepx = w + 4 + gapx
+	stepy = h + 4 + gapy
+	fw = w + 4
+	fh = h + 4
+	for i = 0 to nx - 1
+		for j = 0 to ny - 1
+			# outer top-left corner of this field's border
+			fx = x + i * stepx - 2
+			fy = y + j * stepy - 2
+			# outer layer: grey top/left, white bottom/right
+			color white
+			rect fx, fy, fw, fh
+			color shadow
+			line fx, fy, fx + fw - 2, fy
+			line fx, fy, fx, fy + fh - 2
+			# inner layer: black top/left, light grey bottom/right
+			color light
+			rect fx + 1, fy + 1, fw - 2, fh - 2
+			color black
+			line fx + 1, fy + 1, fx + fw - 3, fy + 1
+			line fx + 1, fy + 1, fx + 1, fy + fh - 3
+			# interior
+			color fillcoll
+			rect fx + 2, fy + 2, w, h
+		next j
+	next i
+	refresh
+end subroutine
+#*****************************************************************
+# tk_drawhit - which field interior contains (px,py)? -1 = none
+#*****************************************************************
+function tk_drawhit(x, y, w, h, nx, ny, gapx, gapy, px, py)
+	if px < x or py < y then return -1
+	stepx = w + 4 + gapx
+	stepy = h + 4 + gapy
+	i = int((px - x) / stepx)
+	j = int((py - y) / stepy)
+	if i >= nx or j >= ny then return -1
+	if px - x - i * stepx >= w then return -1
+	if py - y - j * stepy >= h then return -1
+	return j * nx + i
+end function
+#*****************************************************************
+# tk_radio - draw a radio button
+#*****************************************************************
+subroutine tk_radio(x, y, caption$, state)
+	face = rgb(192,192,192)
+	light = rgb(223,223,223)
+	shadow = rgb(128,128,128)
+	cx = x + 6
+	cy = y + 6
+
+	# sunken two-layer ring, built from offset circles:
+	# outer: grey top-left, white bottom-right
+	color white
+	circle cx, cy, 6
+	color shadow
+	circle cx - 1, cy - 1, 5
+	# inner: black top-left, light grey bottom-right
+	color light
+	circle cx, cy, 5
+	color black
+	circle cx - 1, cy - 1, 4
+	# interior: white when enabled, button face when disabled
+	if state >= 2 then
+		color face
+	else
+		color white
+	end if
+	circle cx, cy, 4
+
+	# selection dot
+	if state = 1 or state = 3 then
+		if state = 3 then
+			color shadow
+		else
+			color black
+		end if
+		circle cx, cy, 2
+	end if
+
+	# label, vertically centred on the circle
+	# (x + 18 lines it up with tk_checkbox labels in the same column)
+	if caption$ <> "" then
+		font "Tahoma", 9, 50
+		tx = x + 18
+		ty = y + int((12 - textheight()) / 2)
+		if state >= 2 then
+			color white
+			text tx + 1, ty + 1, caption$
+			color shadow
+		else
+			color black
+		end if
+		text tx, ty, caption$
+	end if
+	refresh
+end subroutine
+#*****************************************************************
+# tk_radiohit - true when (px,py) is on the radio button or label
+#*****************************************************************
+function tk_radiohit(x, y, caption$, px, py)
+	font "Tahoma", 9, 50
+	w = 18 + textwidth(caption$)
+	h = 12
+	if textheight() > h then
+		y = y - int((textheight() - h) / 2)
+		h = textheight()
+	end if
+	return px >= x and px < x + w and py >= y and py < y + h
+end function
+
+#*****************************************************************
+# tk_slider - draw a slider
+#*****************************************************************
+subroutine tk_slider(x, y, len, orient, value, maxval, bg)
+	face = rgb(192,192,192)
+	light = rgb(223,223,223)
+	shadow = rgb(128,128,128)
+
+	if len < 2 then len = 2
+	if value < 0 then value = 0
+	if value > maxval then value = maxval
+	pos = 0
+	if maxval > 0 then pos = int(value * (len - 1) / maxval + 0.5)
+
+	if orient = 1 then
+		# horizontal
+		ax = x - 5 : ay = y - 10 : aw = len + 10 : ah = 21
+		kx = x : ky = y - 2 : kw = len : kh = 4
+		hx = x + pos - 5 : hy = y - 10 : hw = 11 : hh = 21
+	else
+		# vertical
+		ax = x - 10 : ay = y - 5 : aw = 21 : ah = len + 10
+		kx = x - 2 : ky = y : kw = 4 : kh = len
+		hx = x - 10 : hy = y + pos - 5 : hw = 21 : hh = 11
+	end if
+
+	# erase the whole slider area (removes the old thumb)
+	color bg
+	rect ax, ay, aw, ah
+
+	# sunken track: grey/black top-left, light/white bottom-right
+	color white
+	rect kx, ky, kw, kh
+	color shadow
+	line kx, ky, kx + kw - 2, ky
+	line kx, ky, kx, ky + kh - 2
+	color light
+	rect kx + 1, ky + 1, kw - 2, kh - 2
+	color black
+	line kx + 1, ky + 1, kx + kw - 3, ky + 1
+	line kx + 1, ky + 1, kx + 1, ky + kh - 3
+
+	# raised thumb: white/light top-left, grey/black bottom-right
+	color black
+	rect hx, hy, hw, hh
+	color white
+	line hx, hy, hx + hw - 2, hy
+	line hx, hy, hx, hy + hh - 2
+	color shadow
+	rect hx + 1, hy + 1, hw - 2, hh - 2
+	color light
+	line hx + 1, hy + 1, hx + hw - 3, hy + 1
+	line hx + 1, hy + 1, hx + 1, hy + hh - 3
+	color face
+	rect hx + 2, hy + 2, hw - 4, hh - 4
+
+	refresh
+end subroutine
+
+#*****************************************************************
+# tk_sliderhit - true when (px,py) is on the slider area
+#*****************************************************************
+function tk_sliderhit(x, y, len, orient, px, py)
+	if orient = 1 then
+		return px >= x - 5 and px < x + len + 5 and py >= y - 10 and py <= y + 10
+	end if
+	return px >= x - 10 and px <= x + 10 and py >= y - 5 and py < y + len + 5
+end function
+
+#*****************************************************************
+# tk_sliderval - slider value for mouse position (px,py)
+#*****************************************************************
+function tk_sliderval(x, y, len, orient, maxval, px, py)
+	if orient = 1 then
+		p = px - x
+	else
+		p = py - y
+	end if
+	if p < 0 then p = 0
+	if p > len - 1 then p = len - 1
+	if len < 2 then return 0
+	return int(p * maxval / (len - 1) + 0.5)
+end function
+#*****************************************************************
+# tk_spinner - draw a spin box
+#*****************************************************************
+subroutine tk_spinner(x, y, w, h, caption$, state)
+	face = rgb(192,192,192)
+	light = rgb(223,223,223)
+	shadow = rgb(128,128,128)
+
+	# sunken 2px field border
+	color white
+	rect x, y, w, h
+	color shadow
+	line x, y, x + w - 2, y
+	line x, y, x, y + h - 2
+	color light
+	rect x + 1, y + 1, w - 2, h - 2
+	color black
+	line x + 1, y + 1, x + w - 3, y + 1
+	line x + 1, y + 1, x + 1, y + h - 3
+
+	# field interior
+	if state = 3 then
+		color face
+	else
+		color white
+	end if
+	rect x + 2, y + 2, w - 4, h - 4
+
+	# geometry of the two arrow buttons (must match tk_spinhit)
+	bw = 16
+	if h < 18 then bw = 12
+	bx = x + w - 2 - bw
+	ih = h - 4
+	uh = int(ih / 2)
+
+	for k = 1 to 2
+		if k = 1 then
+			by = y + 2 : bh = uh
+		else
+			by = y + 2 + uh : bh = ih - uh
+		end if
+		pressed = (k = 1 and state = 1) or (k = 2 and state = 2)
+
+		if pressed then
+			# flat sunken: grey frame, face inside
+			color shadow
+			rect bx, by, bw, bh
+			color face
+			rect bx + 1, by + 1, bw - 2, bh - 2
+		else
+			# raised: white/light top-left, grey/black bottom-right
+			color black
+			rect bx, by, bw, bh
+			color white
+			line bx, by, bx + bw - 2, by
+			line bx, by, bx, by + bh - 2
+			color shadow
+			rect bx + 1, by + 1, bw - 2, bh - 2
+			color light
+			line bx + 1, by + 1, bx + bw - 3, by + 1
+			line bx + 1, by + 1, bx + 1, by + bh - 3
+			color face
+			rect bx + 2, by + 2, bw - 4, bh - 4
+		end if
+
+		# arrow: 7x4 triangle, 5x3 on small buttons, centred
+		aw = 7 : ah = 4
+		if bh < 9 then
+			aw = 5 : ah = 3
+		end if
+		ax = bx + int(bw / 2)
+		ay = by + int((bh - ah) / 2)
+		if pressed then
+			ax = ax + 1
+			ay = ay + 1
+		end if
+		half = int(aw / 2)
+		# disabled arrows get a white emboss first (pass 1)
+		estart = 2
+		if state = 3 then estart = 1
+		for e = estart to 2
+			ox = 0
+			if e = 1 then
+				color white
+				ox = 1
+			else
+				if state = 3 then
+					color shadow
+				else
+					color black
+				end if
+			end if
+			if k = 1 then
+				poly {ax - half + ox, ay + ah - 1 + ox, ax + half + ox, ay + ah - 1 + ox, ax + ox, ay + ox}
+			else
+				poly {ax - half + ox, ay + ox, ax + half + ox, ay + ox, ax + ox, ay + ah - 1 + ox}
+			end if
+		next e
+	next k
+
+	# caption: largest font (max 12pt) that fits the text area
+	tw = w - 4 - bw - 6
+	fsize = int(h * 0.45)
+	if fsize > 12 then fsize = 12
+	if fsize < 6 then fsize = 6
+	font "Tahoma", fsize, 50
+	while fsize > 6 and (textwidth(caption$) > tw or textheight() > ih)
+		fsize = fsize - 1
+		font "Tahoma", fsize, 50
+	end while
+	tx = x + 5
+	ty = y + int((h - textheight()) / 2)
+	if state = 3 then
+		color shadow
+	else
+		color black
+	end if
+	text tx, ty, caption$
+	refresh
+end subroutine
+
+#*****************************************************************
+# tk_spinhit - 1 = up button, -1 = down button, 0 = elsewhere
+#*****************************************************************
+function tk_spinhit(x, y, w, h, px, py)
+	bw = 16
+	if h < 18 then bw = 12
+	bx = x + w - 2 - bw
+	uh = int((h - 4) / 2)
+	if px < bx or px >= bx + bw then return 0
+	if py >= y + 2 and py < y + 2 + uh then return 1
+	if py >= y + 2 + uh and py < y + h - 2 then return -1
+	return 0
+end function
+
+#*****************************************************************
+# tk_drawtabs - draw a tab control
+#*****************************************************************
+subroutine tk_drawtabs(x, y, w, h, captions$, active, pageh)
+	face = rgb(192,192,192)
+	shadow = rgb(128,128,128)
+
+	# split captions$ on "|" into a local array
+	n = 1
+	for c = 1 to length(captions$)
+		if mid(captions$, c, 1) = "|" then n = n + 1
+	next c
+	dim cap$(n)
+	k = 0
+	cap$[0] = ""
+	for c = 1 to length(captions$)
+		ch$ = mid(captions$, c, 1)
+		if ch$ = "|" then
+			k = k + 1
+			cap$[k] = ""
+		else
+			cap$[k] = cap$[k] + ch$
+		end if
+	next c
+
+	if active < 0 then active = 0
+	if active > n - 1 then active = n - 1
+
+	# one font size that makes every caption fit its tab
+	fsize = int(h * 0.42)
+	if fsize > 12 then fsize = 12
+	if fsize < 6 then fsize = 6
+	fits = false
+	while not fits
+		font "Tahoma", fsize, 50
+		maxw = 0
+		for i = 0 to n - 1
+			if textwidth(cap$[i]) > maxw then maxw = textwidth(cap$[i])
+		next i
+		if (maxw <= int(w / n) - 8 and textheight() <= h - 4) or fsize <= 6 then
+			fits = true
+		else
+			fsize = fsize - 1
+		end if
+	end while
+
+	# erase the strip
+	color face
+	rect x, y, w, h
+
+	# inactive tabs: 2px lower than the active one
+	for i = 0 to n - 1
+		if i <> active then
+			lx = x + int(i * w / n)
+			rx = x + int((i + 1) * w / n) - 1
+			ty = y + 2
+			by = y + h - 1
+			color white
+			line lx, ty + 2, lx, by
+			plot lx + 1, ty + 1
+			line lx + 2, ty, rx - 2, ty
+			color shadow
+			line rx - 1, ty + 2, rx - 1, by
+			color black
+			plot rx - 1, ty + 1
+			line rx, ty + 2, rx, by
+			color black
+			text lx + int((rx - lx + 1 - textwidth(cap$[i])) / 2), ty + int((h - 2 - textheight()) / 2), cap$[i]
+		end if
+	next i
+
+	# white baseline = top edge of the page
+	color white
+	line x, y + h - 1, x + w - 1, y + h - 1
+
+	# active tab: full height, 2px wider on each side, open at the bottom
+	lx = x + int(active * w / n) - 2
+	rx = x + int((active + 1) * w / n) + 1
+	if lx < x then lx = x
+	if rx > x + w - 1 then rx = x + w - 1
+	by = y + h - 1
+	color face
+	rect lx, y, rx - lx + 1, h
+	color white
+	line lx, y + 2, lx, by
+	plot lx + 1, y + 1
+	line lx + 2, y, rx - 2, y
+	color shadow
+	line rx - 1, y + 2, rx - 1, by
+	color black
+	plot rx - 1, y + 1
+	line rx, y + 2, rx, by
+	color black
+	text lx + int((rx - lx + 1 - textwidth(cap$[active])) / 2), y + int((h - textheight()) / 2), cap$[active]
+
+	# page: raised frame below the strip, open where the active tab is
+	if pageh > 0 then
+		py = y + h
+		color face
+		rect x, py, w, pageh
+		color white
+		line x, py - 1, x, py + pageh - 2
+		color shadow
+		line x + 1, py + pageh - 2, x + w - 2, py + pageh - 2
+		line x + w - 2, py - 1, x + w - 2, py + pageh - 2
+		color black
+		line x, py + pageh - 1, x + w - 1, py + pageh - 1
+		line x + w - 1, py - 1, x + w - 1, py + pageh - 1
+	end if
+	refresh
+end subroutine
+
+#*****************************************************************
+# tk_tabhit - index of the tab under (px,py), -1 when none
+#*****************************************************************
+function tk_tabhit(x, y, w, h, captions$, px, py)
+	if px < x or px >= x + w or py < y or py >= y + h then return -1
+	n = 1
+	for c = 1 to length(captions$)
+		if mid(captions$, c, 1) = "|" then n = n + 1
+	next c
+	i = int((px - x) * n / w)
+	if i > n - 1 then i = n - 1
+	return i
+end function
+
+#*****************************************************************
+# tk_textfield - draw an edit field
+#*****************************************************************
+subroutine tk_textfield(x, y, w, h, text$, caret, state)
+	face = rgb(192,192,192)
+	light = rgb(223,223,223)
+	shadow = rgb(128,128,128)
+
+	# sunken 2px border
+	color white
+	rect x, y, w, h
+	color shadow
+	line x, y, x + w - 2, y
+	line x, y, x, y + h - 2
+	color light
+	rect x + 1, y + 1, w - 2, h - 2
+	color black
+	line x + 1, y + 1, x + w - 3, y + 1
+	line x + 1, y + 1, x + 1, y + h - 3
+
+	# interior
+	if state = 3 then
+		color face
+	else
+		color white
+	end if
+	rect x + 2, y + 2, w - 4, h - 4
+
+	# font from field height (same rule as tk_textcaretat)
+	fsize = int(h * 0.42)
+	if fsize > 12 then fsize = 12
+	if fsize < 6 then fsize = 6
+	font "Tahoma", fsize, 50
+
+	n = length(text$)
+	if caret < 0 then caret = 0
+	if caret > n then caret = n
+	avail = w - 8
+	tx = x + 4
+	ty = y + int((h - textheight()) / 2)
+
+	# first visible character: scroll right until the caret fits
+	s = 0
+	while s < caret and textwidth(mid(text$, s + 1, caret - s)) > avail
+		s = s + 1
+	end while
+	# last visible character: as many as fit after s
+	e = s
+	while e < n and textwidth(mid(text$, s + 1, e - s + 1)) <= avail
+		e = e + 1
+	end while
+
+	if state = 3 then
+		color shadow
+	else
+		color black
+	end if
+	if e > s then text tx, ty, mid(text$, s + 1, e - s)
+
+	# caret: 1px vertical bar
+	if state = 1 then
+		cx = tx
+		if caret > s then cx = tx + textwidth(mid(text$, s + 1, caret - s))
+		color black
+		line cx, ty, cx, ty + textheight() - 1
+	end if
+	refresh
+end subroutine
+
+#*****************************************************************
+# tk_texthit - true when (px,py) is inside the field
+#*****************************************************************
+function tk_texthit(x, y, w, h, px, py)
+	return px >= x and px < x + w and py >= y and py < y + h
+end function
+
+#*****************************************************************
+# tk_textcaretat - caret index closest to mouse x position px
+#   caret is the current caret: it decides how the text is scrolled
+#*****************************************************************
+function tk_textcaretat(x, y, w, h, text$, caret, px)
+	fsize = int(h * 0.42)
+	if fsize > 12 then fsize = 12
+	if fsize < 6 then fsize = 6
+	font "Tahoma", fsize, 50
+
+	n = length(text$)
+	if caret < 0 then caret = 0
+	if caret > n then caret = n
+	avail = w - 8
+	tx = x + 4
+	s = 0
+	while s < caret and textwidth(mid(text$, s + 1, caret - s)) > avail
+		s = s + 1
+	end while
+	e = s
+	while e < n and textwidth(mid(text$, s + 1, e - s + 1)) <= avail
+		e = e + 1
+	end while
+
+	# pick the gap whose position is nearest to px
+	best = s
+	for i = s + 1 to e
+		gap = tx + textwidth(mid(text$, s + 1, i - s))
+		half = textwidth(mid(text$, i, 1)) / 2
+		if px >= gap - half then best = i
+	next i
+	return best
+end function
+
+#*****************************************************************
+# tk_textedit$ - text after applying key code k at the caret
+#*****************************************************************
+function tk_textedit$(text$, caret, k)
+	n = length(text$)
+	if caret < 0 then caret = 0
+	if caret > n then caret = n
+	# Backspace: remove the character before the caret
+	if k = 16777219 then
+		if caret = 0 then return text$
+		return left(text$, caret - 1) + right(text$, n - caret)
+	end if
+	# Delete: remove the character after the caret
+	if k = 16777223 then
+		if caret = n then return text$
+		return left(text$, caret) + right(text$, n - caret - 1)
+	end if
+	# printable character: insert at the caret
+	if k >= 32 and k < 16777216 then
+		c = k
+		# key() reports letters as upper case; Shift decides the case
+		if (c >= 65 and c <= 90) or (c >= 192 and c <= 222 and c <> 215) then
+			if not keypressed(16777248) then c = c + 32
+		end if
+		return left(text$, caret) + chr(c) + right(text$, n - caret)
+	end if
+	# anything else (arrows, Home, End, ...) leaves the text alone
+	return text$
+end function
+
+#*****************************************************************
+# tk_textcaret - caret after applying key code k
+#*****************************************************************
+function tk_textcaret(text$, caret, k)
+	n = length(text$)
+	if caret < 0 then caret = 0
+	if caret > n then caret = n
+	if k = 16777219 then
+		# Backspace
+		if caret > 0 then caret = caret - 1
+	else
+		if k = 16777234 then
+			# Left
+			if caret > 0 then caret = caret - 1
+		else
+			if k = 16777236 then
+				# Right
+				if caret < n then caret = caret + 1
+			else
+				if k = 16777232 then
+					# Home
+					caret = 0
+				else
+					if k = 16777233 then
+						# End
+						caret = n
+					else
+						# printable character: caret moves past it
+						# (Delete and other keys leave it in place)
+						if k >= 32 and k < 16777216 then caret = caret + 1
+					end if
+				end if
+			end if
+		end if
+	end if
+	return caret
+end function
+
+#******************************************************************
+# tk_help - print out all usages of the different tk_ GUI elements
+#******************************************************************
+subroutine tk_help()
+    print " tk_button(x, y, w, h, caption$, state)"
+    print "   state 0 = raised (normal)"
+    print "         1 = sunken (held down)"
+    print "         2 = click animation (sunken, short pause, raised)"
+    print "         3 = disabled (raised, embossed grey caption)"
+    print " tk_buttonhit(x, y, w, h, px, py) -> true when (px,py) is on the button"
+    print ""
+    print "*******************************************************************"
+    print " tk_checkbox(x, y, caption$, state)"
+    print "   draws a checkbox with its label"
+    print "   x, y  : top-left corner of the 13x13 box"
+    print "   state 0 = unchecked"
+    print "         1 = checked"
+    print "         2 = disabled, unchecked"
+    print "         3 = disabled, checked"
+    print "   You are responsible for the placing of the checkbox(es)"
+    print ""
+    print " tk_checkhit(x, y, caption$, px, py) -> true when (px,py) is on"
+    print "   the box or on its label (Windows toggles on both)"
+    print ""
+    print "*******************************************************************"
+    print " tk_drawing(x, y, w, h, nx, ny, gapx, gapy, fillcol)"
+    print "   draws one recessed field, or a grid of nx by ny fields"
+    print "   x, y       : top-left corner of the first field's interior"
+    print "   w, h       : size of each field's interior (what you draw in)"
+    print "                a 2px sunken border is added on the outside"
+    print "   nx, ny     : number of fields across and down (1, 1 = single field)"
+    print "   gapx, gapy : empty space between the borders of neighbouring fields"
+    print "   fillcol    : interior colour, e.g. white, black, rgb(255,255,224)"
+    print ""
+    print "   interior of field (i, j), counting from 0:"
+    print "     x + i * (w + 4 + gapx),  y + j * (h + 4 + gapy)"
+    print ""
+    print " tk_drawhit(x, y, w, h, nx, ny, gapx, gapy, px, py)"
+    print "   -> index (j * nx + i) of the field interior containing (px,py),"
+    print "      or -1 when (px,py) is not inside any field"
+    print ""
+    print "*******************************************************************"
+    print " tk_drawtabs(x, y, w, h, captions$, active, pageh)"
+    print "    draws a tab control"
+    print "    x, y      : top-left corner of the tab strip"
+    print "    w, h      : width of the control and height of the tab strip"
+    print '    captions$ : all tab captions in one string, separated by "|"'
+    print '                e.g. "General|Colors|Advanced"  (no global array needed)'
+    print "    active    : index of the selected tab, counting from 0"
+    print "    pageh     : height of the page below the tabs"
+    print "                > 0  draws (and clears) a raised page, w x pageh"
+    print "                0    draws only the tab strip"
+    print "    Tabs share the width equally. Captions are centred and the font"
+    print "    shrinks (down to 6pt) until the longest caption fits."
+    print "    The strip is drawn on the button face colour rgb(192,192,192)."
+    print ""
+    print "  tk_tabhit(x, y, w, h, captions$, px, py)"
+    print "    -> index of the tab under (px,py), or -1 when not on a tab"
+    print ""
+    print "*******************************************************************"
+    print " tk_grouper(x, y, w, h, caption$) "
+    print "	  draws a group box"
+    print "   x, y     : top-left corner of the frame"
+    print "   w, h     : total size of the frame in pixels"
+    print "              h = 0 -> horizontal separator, w pixels long"
+    print "              w = 0 -> vertical separator, h pixels long"
+    print '   caption$ : label on the top-left edge ("" for none)'
+    print "              (also allowed on a horizontal separator, ignored on a"
+    print "              vertical one)"
+    print ""
+    print "   tk_outline(x1, y1, x2, y2) - 1px unfilled rectangle from (x1,y1) to (x2,y2)"
+    print ""
+    print "*****************************************************************"
+    print " tk_radio(x, y, caption$, state)"
+    print "   draws a radio button with its label"
+    print "   x, y  : top-left corner of the 12x12 circle"
+    print "   state 0 = not selected"
+    print "         1 = selected"
+    print "         2 = disabled, not selected"
+    print "         3 = disabled, selected"
+    print " tk_radiohit(x, y, caption$, px, py) -> true when (px,py) is on"
+    print "   the circle or on its label (Windows selects on both)"
+    print ""
+    print " A radio group is just a loop in your program: keep the captions"
+    print " in an array and the selected index (-1 = none) in a variable."
+    print " No global arrays are needed."
+    print ""
+    print "*****************************************************************"
+    print " tk_slider(x, y, len, orient, value, maxval, bg)"
+    print "   draws a slider (trackbar): sunken track"
+    print "   plus a raised thumb at the position of value"
+    print "   x, y    : start of the track, on its centre line"
+    print "             (left end for horizontal, top end for vertical)"
+    print "   len     : track length in pixels"
+    print "   orient  : 0 = vertical (0 at the top), 1 = horizontal (0 at the left)"
+    print "   value   : current value, 0 .. maxval (clamped)"
+    print "   maxval  : largest value; len = maxval + 1 gives 1 pixel per step"
+    print "   bg      : background colour, used to erase the old thumb"
+    print "   The slider occupies 21 pixels across the track and length + 10"
+    print "   along it (5 pixels beyond each end for the thumb)."
+    print ""
+    print " tk_sliderhit(x, y, len, orient, px, py)"
+    print "   -> true when (px,py) is anywhere on the slider"
+    print " tk_sliderval(x, y, len, orient, maxval, px, py)"
+    print "   -> value for mouse position (px,py), clamped to 0 .. maxval"
+    print ""
+    print "*****************************************************************"
+    print " tk_spinner(x, y, w, h, caption$, state)"
+    print "   draws a spin box: a sunken text field with"
+    print "   up/down arrow buttons inside its right edge"
+    print "   x, y, w, h : outer rectangle of the whole spin box"
+    print "   caption$   : the text to show; you format it yourself, so the"
+    print "                same routine serves numbers, months, names, ..."
+    print "   state 0 = normal"
+    print "         1 = up button pressed"
+    print "         2 = down button pressed"
+    print "         3 = disabled"
+    print ""
+    print " tk_spinhit(x, y, w, h, px, py)"
+    print "   ->  1 when (px,py) is on the up button"
+    print "   -> -1 when (px,py) is on the down button"
+    print "   ->  0 otherwise"
+    print "   (the result is the step direction: value = value + tk_spinhit(...))"
+    print ""
+    print "*****************************************************************"  
+    print " tk_textfield(x, y, w, h, text$, caret, state)"
+    print "    draws a single-line edit field"
+    print "    x, y, w, h : outer rectangle (2px sunken border included)"
+    print "    text$      : the field's contents"
+    print "    caret      : caret position as a character index, 0 .. length(text$)"
+    print "                 (0 = before the first character)"
+    print "    state 0 = no focus (no caret)"
+    print "          1 = focused, caret visible"
+    print "          2 = focused, caret hidden (use 1/2 alternately to blink)"
+    print "          3 = disabled"
+    print "    Text that is wider than the field scrolls so the caret stays visible."
+    print ""
+    print "  tk_texthit(x, y, w, h, px, py)"
+    print "    -> true when (px,py) is inside the field: give it the focus"
+    print "  tk_textcaretat(x, y, w, h, text$, caret, px)"
+    print "    -> caret index closest to mouse x position px (click to place caret)"
+    print "       caret is the current caret: it decides how the text is scrolled"
+    print "  tk_textedit$(text$, caret, k)"
+    print "    -> text$ after key code k (from key()) has been applied"
+    print "  tk_textcaret(text$, caret, k)"
+    print "    -> caret after key code k has been applied"
+    print "    Call tk_textcaret BEFORE you store the result of tk_textedit$,"
+    print "    both must see the text as it was before the key."
+    print "    Handled keys: printable characters (Shift selects upper case),"
+    print "    Backspace, Delete, Left, Right, Home, End."
+end subroutine    

@@ -4,13 +4,13 @@
         <file>Console/GreenVsBlue.kbs</file>
         <file>Console/FormTemplate.kbs</file>
         <file>Demo/BasicPaint.kbs</file>
-        <file>Demo/BTK2_Toolkit_demo.kbs</file>
         <file>Demo/BubbleUniverse_variations.kbs</file>
         <file>Demo/Critters.kbs</file>
         <file>Demo/FieldLines.kbs</file>
         <file>Demo/Life_GUI.kbs</file>
         <file>Demo/Quiverbloom.kbs</file>
         <file>Demo/SlimeMoldSimulation_GUI.kbs</file>
+        <file>Demo/tk_gui_demo.kbs</file>
         <file>FallingSand/falling_sand_part0.kbs</file>
         <file>FallingSand/falling_sand_part1.kbs</file>
         <file>FallingSand/falling_sand_part2.kbs</file>
