@@ -1,0 +1,51 @@
+# Matrix Rain Effect in BASIC-256 v2.3.1
+fastgraphics
+
+width = 900
+height = 500
+graphsize width,height
+Editvisible 0
+outputvisible 0
+colwidth = 10
+cols = int(width / colwidth)
+
+dim drops[cols]
+for i = 0 to cols - 1
+    drops[i] = int(rand * 80) - 80
+next i
+
+chars$ = "456AZE%*/"
+
+while true
+	framerate 30
+    # Exit program on any keypress
+    if key <> 0 then end
+
+    # Fade effect: draw a semi-transparent black rectangle over the screen
+    color Rgb(0, 0, 0, 35)
+    rect 0, 0, width, height
+
+    # Draw falling characters
+    color Rgb(0, 255, 0)
+    for i = 0 to cols - 1
+        # Pick a random character from the string
+        r_idx = int(rand * length(chars$)) + 1
+        c$ = mid(chars$, r_idx, 1)
+        
+        x = i * colwidth
+        y = drops[i] * colwidth
+        
+        if y >= -30 and y <= height + 30 then
+            text x, y, c$
+        end if
+        
+        # Reset drop or increment position
+        if (y > height) and (rand > 0.97) then
+            drops[i] = 0
+        else
+            drops[i] = drops[i] + 1
+        end if
+    next i
+
+    refresh
+end while

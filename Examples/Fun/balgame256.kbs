@@ -1,0 +1,199 @@
+# BALGAME - BASIC256 port of a TIC-80 Lua game by Uras SARI
+# *********************************************************
+global Scale, ball_posx, ball_posy, ball_velx, ball_vely, ball_color, nbr_balls, MAXB
+#Make the play area bigger or smaller with Scale
+Scale = 3
+graphsize 240 * Scale, 136 * Scale
+fastgraphics
+# balls as parallel arrays, nbr_balls = number in play
+MAXB = 10
+nbr_balls = 0
+dim ball_posx(MAXB)
+dim ball_posy(MAXB)
+dim ball_velx(MAXB)
+dim ball_vely(MAXB)
+dim ball_color(MAXB)
+# helper functions & subroutines
+function randrange(a, b)
+   randrange = a + int(rand * (b - a + 1))
+end function
+subroutine addball()
+   if nbr_balls < MAXB then
+      ball_posx[nbr_balls] = -5
+      ball_posy[nbr_balls] = 10
+      ball_velx[nbr_balls] = randrange(100, 200) / 100
+      ball_vely[nbr_balls] = randrange(-100, 1) / 100
+      ball_color[nbr_balls] = int(rand*20)*18
+      nbr_balls = nbr_balls + 1
+   end if
+end subroutine
+# remove ball i ball_posy moving the last ball into its slot
+subroutine removeball(i)
+   nbr_balls = nbr_balls - 1
+   ball_posx[i] = ball_posx[nbr_balls]
+   ball_posy[i] = ball_posy[nbr_balls]
+   ball_velx[i] = ball_velx[nbr_balls]
+   ball_vely[i] = ball_vely[nbr_balls]
+   ball_color[i] = ball_color[nbr_balls]
+end subroutine
+# SoundEffects
+subroutine sfx(note, ms)
+   soundplay (440 * 2 ^ ((note - 57) / 12), ms)
+end subroutine
+# drawing routines
+#******************
+subroutine heart(cx, cy, s, c)
+   color c
+   circle cx - s * 0.5, cy - s * 0.25, s * 0.55
+   circle cx + s * 0.5, cy - s * 0.25, s * 0.55
+   poly {cx - s * 1.03, cy - s * 0.05, cx + s * 1.03, cy - s * 0.05, cx, cy + s}
+end subroutine
+subroutine drawball(i)
+   cx = (ball_posx[i] + 4) * Scale
+   cy = (ball_posy[i] + 4) * Scale
+   if ball_color[i] < 50 then
+      # bonus ball: extra life
+      call heart(cx, cy, 4 * Scale, darkred)
+      color rgb(255, 255, 255, 140)
+      circle cx - 2 * Scale, cy - 1.5 * Scale, 0.8 * Scale
+   else
+      color rgb(244, 244, 244, 70)
+      circle cx, cy, 4.2 * Scale
+      color hsv(ball_color[i],60,80)
+      circle cx, cy, 3.6 * Scale
+      color rgb(255, 255, 255, 150)
+      circle cx - 1.2 * Scale, cy - 1.2 * Scale, 1 * Scale
+   end if
+end subroutine
+subroutine drawpaddle(px)
+   x = px * Scale
+   y = 120 * Scale
+   w = 24 * Scale
+   h = 6 * Scale
+   color blue
+   rect x + h / 2, y, w - h, h
+   circle x + h / 2, y + h / 2, h / 2
+   circle x + w - h / 2, y + h / 2, h / 2
+   color cyan
+   rect x + h / 2, y + Scale, w - h, Scale
+end subroutine
+subroutine drawtile(x, y, letter)
+   color red
+   rect x * Scale, (y + 1) * Scale, 16 * Scale, 16 * Scale
+   color orange
+   rect x * Scale, y * Scale, 16 * Scale, 15 * Scale
+   color black
+   font "Arial", 9 * Scale, 75
+   text (x + 3.5) * Scale, (y + 1) * Scale, letter
+end subroutine
+# game state at start
+#*********************
+t = 0
+px = 96
+waitc = 5
+Scene = 1
+Score = 0
+hi = 0
+newhi = false
+lives = 5
+call addball()
+clickclear
+# main draw loop
+#***************
+while true
+   framerate 60
+   color black
+   rect 0, 0, graphwidth, graphheight
+   if Scene = 0 then
+      px = mousex / Scale - 12
+      i = 0
+      while i < nbr_balls
+         ball_posx[i] = ball_posx[i] + ball_velx[i]
+         ball_posy[i] = ball_posy[i] + ball_vely[i]
+         gone = false
+         # paddle hit
+         if ball_posy[i] > 112 and ball_posy[i] < 120 and ball_posx[i] > px - 8 and ball_posx[i] < px + 24 then
+            call sfx(55, 120)
+            if ball_color[i] < 50 then
+               lives = lives + 1
+               call removeball(i)
+               call addball()
+               gone = true
+            else
+               ball_vely[i] = -ball_vely[i]
+               ball_posy[i] = 112
+            end if
+         end if
+         # dropped
+         if not gone and ball_posy[i] > 140 then
+            call sfx(50, 150)
+            call removeball(i)
+            if nbr_balls = 0 then call addball()
+            lives = lives - 1
+            if lives <= 0 then
+               Scene = 1
+               clickclear
+            end if
+            gone = true
+         end if
+         # made it across: Score
+         if not gone and ball_posx[i] > 240 then
+            call sfx(70, 100)
+            Score = Score + 1
+            call removeball(i)
+            call addball()
+            waitc = waitc - 1
+            if waitc <= 0 then
+               waitc = 5
+               if nbr_balls < 3 then call addball()
+            end if
+            gone = true
+         end if
+         if not gone then
+            ball_vely[i] = ball_vely[i] + 0.1
+            call drawball(i)
+            i = i + 1
+         end if
+      end while
+      call drawpaddle(px)
+      for i = 1 to lives
+         call heart((240 - i * 9 + 4) * Scale, 5 * Scale, 3 * Scale, darkred)
+      next i
+      font "Arial", 10 * Scale, 75
+      color darkgreen
+      text 2 * Scale, 1 * Scale, string(Score)
+      color green
+      text 1.5 * Scale, 0.5 * Scale, string(Score)
+   else
+      if hi < Score then
+         hi = Score
+         newhi = true
+      end if
+      for i = 1 to 7
+         x = 40 + i * 17
+         y = 50 - abs(sin((t + i * 16) / 24) * 16)
+         call drawtile(x, y, mid("BALGAME", i, 1))
+      next i
+      font "Arial", 5 * Scale, 50
+      color white
+      text 80 * Scale, 78 * Scale, "click to start"
+      color orange
+      text 80 * Scale, 86 * Scale, "high score: " + string(hi)
+      if newhi then
+         color Yellow
+         text 80 * Scale, 94 * Scale, "NEW HIGH SCORE!"
+      end if
+      if clickb <> 0 then
+         clickclear
+         nbr_balls = 0
+         call addball()
+         newhi = false
+         lives = 5
+         Score = 0
+         waitc = 5
+         Scene = 0
+      end if
+   end if
+   refresh
+   t = t + 1
+end while
