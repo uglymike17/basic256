@@ -94,6 +94,27 @@ The browser runs inside a sandbox, so some desktop features are unavailable:
 
 ## What's new
 
+### BASIC256 2.3.1
+
+#### 🎨 Graphics & Examples
+- **Toolkit Module:** New `Modules/toolkit.kbs` (`INCLUDE "toolkit.kbs"`) draws a classic-style interface on the graphics output: buttons, checkboxes, radio buttons, sliders, spin boxes, tabs, group boxes, drawing fields and editable text fields, each with a hit-test function for mouse clicks. `CALL tk_help()` lists them all.
+- **New Examples:** `Examples/GUI-Demo` shows each toolkit element at work, and a series of Falling Sand programs builds up the final program step by step. `Examples/Fun` adds `balgame256.kbs`, a ball-catching game played with the mouse, and `FallingLetters.kbs`, a falling-letters rain effect.
+- **Mouse Clicks:** `CLICKX`, `CLICKY` and double-clicks now work across a graphics window scaled up by `GRAPHSIZE` or zoomed from the View menu, reporting the graphics pixel under the pointer. A negative scale shows the whole picture turned round.
+
+#### ⚙️ Language
+- **`ARRAYADD` Added:** Appends to the end of an array — a value to a 1D array, a row to a 2D array (`ARRAYADD points, x, y`) — and turns an empty variable into an array, so tables can be built in a loop without `DIM`.
+- **Module Prefixes (breaking):** Every routine in the bundled modules now carries its module's prefix — `ma_` for `math.kbs`, `tu_` for `turtle.kbs`, `tk_` for `toolkit.kbs` — and each module has a help routine (`ma_help`, `tu_help`, `tk_help`). Programs from 2.3.0 must use the new names (e.g. `ma_hypot`, `tu_forward`).
+- **Number Range:** A whole-number literal too big for 64 bits is now reported as "Number too large" at compile time.
+
+#### 🖥️ IDE & Files
+- **Dark Theme:** *View/Theme/Follow System* turns the whole IDE dark when the OS is in dark mode — menus, toolbars, docks, dialogs and the Variable Watch window included. Windows 10 uses the Fusion style while dark.
+- **Save As:** Opens in the program's own folder with its name filled in. Examples are never overwritten — saving one asks for a new name, and the Examples folder cannot be chosen as a save location.
+- **Overwrite Warning:** New preference, *Warn when overwriting an existing file* (on by default). Untick it to let Save write straight back to the program's own file. The old *Automatically save program when it is successfully run* option has been removed.
+
+#### 📦 Platform
+- **Raspberry Pi:** The Pi archive now includes the `TestSuite` and the benchmark.
+- **Windows Installer:** The installer and uninstaller detect a running BASIC256 and offer Retry/Cancel instead of failing on `basic256.exe`.
+
 ### BASIC256 2.3.0
 
 #### 🔒 Security & Filesystem
@@ -116,7 +137,7 @@ The browser runs inside a sandbox, so some desktop features are unavailable:
 - **Syntax Improvements:** Fixed an issue where statements without arguments followed by a colon (e.g., `NEXT:`, `CLS:`) were misidentified as labels.
 
 #### 📦 Platform & Suite Updates
-- **Raspberry Pi:** Fixed missing SQLite driver error for `DBOPEN`. Added `TestSuite` and `Benchmark` to Pi archives.
+- **Raspberry Pi:** Fixed missing SQLite driver error for `DBOPEN`.
 - **Benchmarking & Examples:** Added `TestSuite/Benchmark` utility and a new SQLite console demo (`Examples/DataBase/GamesDB.kbs`). 
 
 #### 🌐 Homepage Enhancements
@@ -260,7 +281,7 @@ Additional examples can be found at [Manuel Santos' BASIC256 blog](https://basic
 
 ## Standard library
 
-BASIC256 includes 2 small standard libraries:
+BASIC256 includes 3 small standard libraries in the `Modules` folder. Every function and subroutine in a module starts with two letters and an underscore naming the module (`ma_`, `tu_`, `tk_`), which keeps its names apart from a program's own and from those of the other modules. Each module also has a help routine that prints what is in it.
 
 1. Modules/math.kbs
 
@@ -268,11 +289,12 @@ Use it with:
 
 ```basic
 include "math.kbs"
+call ma_help()
 ```
 
 It currently provides functions including:
 
-`minarr`, `maxarr`, `sumarr`, `avgarr`, `sign`, `min`, `max`, `lerp`, `hypot`, `atan2`, `clamp`, `remap`, `wrap`, `dist`, `fmod`, `fround`, `cbrt`, `randint` and `gaussian`.
+`ma_minarr`, `ma_maxarr`, `ma_sumarr`, `ma_avgarr`, `ma_sign`, `ma_min`, `ma_max`, `ma_lerp`, `ma_hypot`, `ma_atan2`, `ma_clamp`, `ma_map`, `ma_wrap`, `ma_dist`, `ma_fmod`, `ma_cbrt`, `ma_randint` and `ma_gaussian`.
 
 These are implemented as BASIC256 code rather than built-in language commands, keeping the language itself small while making common operations convenient.
 
@@ -282,12 +304,31 @@ Use it with:
 
 ```basic
 include "turtle.kbs"
+call tu_help()
 ```
 
 This provides turtle logic with following subroutines:  
 
-`t_reset`, `t_goto`, `t_home`, `t_forward`, `t_backward`, `t_right`, `t_left`, `t_setheading`, `t_penup`, `t_pendown`, `t_x`, `t_y`, `t_getheading`, `t_getpen`  
-and short-codes `t_fw`, `t_bw`, `t_pu`, `t_pd`, `t_r`, `t_l`
+`tu_reset`, `tu_goto`, `tu_home`, `tu_forward`, `tu_backward`, `tu_right`, `tu_left`, `tu_setheading`, `tu_penup`, `tu_pendown`, `tu_x`, `tu_y`, `tu_getheading`, `tu_getpen`  
+and short-codes `tu_fw`, `tu_bw`, `tu_pu`, `tu_pd`, `tu_r`, `tu_l`
+
+3. Modules/toolkit.kbs
+
+Use it with:
+
+```basic
+include "toolkit.kbs"
+call tk_help()
+```
+
+This draws a classic-style interface on the graphics output. Each element has a subroutine that draws it and a function that tells whether a mouse click landed on it; the program keeps the state and redraws an element when it changes:
+
+`tk_button` / `tk_buttonhit`, `tk_checkbox` / `tk_checkhit`, `tk_radio` / `tk_radiohit`, `tk_slider` / `tk_sliderhit` / `tk_sliderval`, `tk_spinner` / `tk_spinhit`, `tk_drawtabs` / `tk_tabhit`, `tk_grouper`, `tk_drawing` / `tk_drawhit`  
+and the text field `tk_textfield` / `tk_texthit`, with `tk_textcaretat`, `tk_textedit$` and `tk_textcaret` for clicking, typing and moving the caret.
+
+The programs in `Examples/GUI-Demo` show each element at work.
+
+> **Upgrading from 2.3.0:** the module prefixes are new in 2.3.1. A program that still calls the old names (`sumarr`, `hypot`, `t_forward`, ...) stops with an error; rename the calls to `ma_sumarr`, `ma_hypot`, `tu_forward` and so on. Two names change by more than the prefix: `remap` is now `ma_map`, and `fround` has been removed.
 
 ## Build from source
 
@@ -310,6 +351,7 @@ The major development steps have been:
 - **2.1.1** — significant performance improvements and Web persistence.
 - **2.2.0** — new language features, mathematics, graphics capabilities and further performance improvements.
 - **2.3.0** — safer system access and enhanced text-console capabilities.
+- **2.3.1** — the GUI toolkit module, prefixed module names, `ARRAYADD`, a dark IDE that follows the system theme, and safer saving.
 
 The original copyright notices have been retained.
 
