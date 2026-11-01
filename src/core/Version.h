@@ -23,17 +23,17 @@
 // is only the fallback for builds that don't go through CMake's derivation
 // (e.g. an IDE opening this header directly without a configure step).
 #ifndef VERSION
-#define VERSION "2.3"
+#define VERSION "2.3.1"
 #endif
 // What the language's version function returns, encoded as
 // major*1000000 + minor*10000 + patch*100 + sub, so 2.0.0.11 = 2000011 and
-// 2.3.0.0 = 2030000. Programs gate on it (TestSuite/testsuite.kbs decodes
+// 2.3.1.0 = 2030100. Programs gate on it (TestSuite/testsuite.kbs decodes
 // exactly this scheme), so keep it in step with VERSIONPRODUCT below.
 //
 // Unlike VERSION above, this does NOT follow the branch name: a program
-// asking version() on a 2.3 beta build should be told 2.3, so these two
+// asking version() on a 2.3.1 beta build should be told 2.3.1, so these two
 // are bumped by hand when a new patch line opens.
-#define VERSIONSIGNATURE  2030000
-#define VERSIONPRODUCT 2,3,0,0
+#define VERSIONSIGNATURE  2030100
+#define VERSIONPRODUCT 2,3,1,0
 
 #endif
