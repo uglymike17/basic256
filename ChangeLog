@@ -1,3 +1,14 @@
+2026-11-08 M. Vilain <uglymike17@gmail.com>
+	* DBINT, DBFLOAT, DBSTRING and DBNULL on a record set that was never opened give error 34, "Record set must be opened first", instead of closing BASIC256.
+	* READBYTE on a file number that is not open gives error 7, "File not open", instead of closing BASIC256.
+	* += on an element of a string array adds the text to the end, as it does on a plain variable: after a$[0] = "x" : a$[0] += "y", a$[0] is "xy".
+	* SOUNDHARMONICS given a two-column array, one harmonic and its amplitude on each row, uses every row.
+	* SOUNDWAVEFORM keeps the fractions in its array, so amplitudes such as 0.5 and, with true, fractional durations shape the wave as given. Note that a program that already used such values will sound different, as they used to be cut to whole numbers.
+	* A SOUNDWAVEFORM array of exactly SOUNDSAMPLERATE values plays at full volume.
+	* The toolkit.kbs module draws its captions in Tahoma on Windows and in BASIC256's default font on other systems and in the browser, at normal weight (400). The new function tk_fontname$() returns the font it uses, so a program can match it with font tk_fontname$(), 9, 400.
+	* tk_checkbox and tk_radio clear behind their label before drawing it, so a control drawn again, for example when it is ticked or disabled, keeps a clean label.
+	* The toolkit examples, Examples/GUI-Demo and Examples/Demo/tk_gui_demo.kbs, use tk_fontname$() for their own text and font weights on the 1 to 1000 scale.
+
 2026-10-10 M. Vilain <uglymike17@gmail.com>
 	* New ARRAYADD statement, which adds to the end of an array. arrayadd points, x, y adds the row x, y to a two dimensional array, which keeps its rows; the number of values has to match its columns (error 14 otherwise). A single value lengthens a one dimensional array, as in arrayadd names, "Bob". An array can be given instead of the values -- arrayadd points, {x, y} -- and a two dimensional one adds all of its rows. A variable with nothing in it yet becomes an array, so a table can be built up in a loop without a DIM. Adding to a map or a single value is error 84. Note that this makes arrayadd a reserved word.
 	* The Raspberry Pi archive now also comes with the TestSuite and the benchmark. The AppImages still leave them out due to being read-only and both of them writing scratch files into their own folder. 
