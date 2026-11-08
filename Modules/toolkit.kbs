@@ -27,6 +27,18 @@
 #         Handled keys: printable characters (Shift selects upper case),
 #         Backspace, Delete, Left, Right, Home, End.
 #	tk_help - prints usage of each element
+#	tk_fontname$ - font family every element uses for its captions
+#*********************************************************************
+# tk_fontname$ - font family for every caption
+# Tahoma is the classic Windows dialog font, but most Linux, Raspberry Pi
+# and browser systems don't have it. Elsewhere "" asks BASIC-256 for its
+# default family, which is always installed. Captions are measured with
+# textwidth, so a different font only changes how they look, not the layout.
+#*********************************************************************
+function tk_fontname$()
+	if ostype = ostype_windows then return "Tahoma"
+	return ""
+end function
 #*********************************************************************
 # tk_button - draw a push button
 #*********************************************************************
@@ -50,10 +62,10 @@ subroutine tk_button(x, y, w, h, caption$, state)
 	fsize = int(h * 0.3)
 	if fsize > 12 then fsize = 12
 	if fsize < 6 then fsize = 6
-	font "Tahoma", fsize, 50
+	font tk_fontname$(), fsize, 400
 	while fsize > 6 and (textwidth(caption$) > w - 2*b - 4 or textheight() > h - 2*b)
 		fsize = fsize - 1
-		font "Tahoma", fsize, 50
+		font tk_fontname$(), fsize, 400
 	end while
 	cx = x + int((w - textwidth(caption$)) / 2)
 	cy = y + int((h - textheight()) / 2)
@@ -159,7 +171,7 @@ subroutine tk_grouper(x, y, w, h, caption$)
 		call tk_outline(x, y, x + w - 2, y + h - 2)
 	end if
 	if caption$ <> "" then
-		font "Tahoma", 9, 50
+		font tk_fontname$(), 9, 400
 		tw = textwidth(caption$)
 		th = textheight()
 		# do not let the caption run past the right edge of the frame
@@ -223,9 +235,13 @@ subroutine tk_checkbox(x, y, caption$, state)
 	end if
 	# label, vertically centered on the box
 	if caption$ <> "" then
-		font "Tahoma", 9, 50
+		font tk_fontname$(), 9, 400
 		tx = x + 18
 		ty = y + int((13 - textheight()) / 2)
+		# clear the old label first, or every redraw makes it bolder:
+		# the gap between box and label is never drawn, so it shows the background
+		color pixel(x + 15, y + 6)
+		rect x + 13, ty, textwidth(caption$) + 6, textheight() + 1
 		if state >= 2 then
 			color white
 			text tx + 1, ty + 1, caption$
@@ -241,7 +257,7 @@ end subroutine
 # tk_checkhit - true when (px,py) is on the checkbox or its label
 #*********************************************************************
 function tk_checkhit(x, y, caption$, px, py)
-	font "Tahoma", 9, 50
+	font tk_fontname$(), 9, 400
 	w = 18 + textwidth(caption$)
 	h = 13
 	if textheight() > h then
@@ -253,7 +269,7 @@ end function
 #*********************************************************************
 # tk_drawing - draw one recessed field, or a grid of nx by ny fields
 #*********************************************************************
-subroutine tk_drawing(x, y, w, h, nx, ny, gapx, gapy, fillcoll)
+subroutine tk_drawing(x, y, w, h, nx, ny, gapx, gapy, fillcol)
 	light = rgb(223,223,223)
 	shadow = rgb(128,128,128)
 	if nx < 1 then nx = 1
@@ -280,7 +296,7 @@ subroutine tk_drawing(x, y, w, h, nx, ny, gapx, gapy, fillcoll)
 			line fx + 1, fy + 1, fx + fw - 3, fy + 1
 			line fx + 1, fy + 1, fx + 1, fy + fh - 3
 			# interior
-			color fillcoll
+			color fillcol
 			rect fx + 2, fy + 2, w, h
 		next j
 	next i
@@ -342,9 +358,13 @@ subroutine tk_radio(x, y, caption$, state)
 	# label, vertically centred on the circle
 	# (x + 18 lines it up with tk_checkbox labels in the same column)
 	if caption$ <> "" then
-		font "Tahoma", 9, 50
+		font tk_fontname$(), 9, 400
 		tx = x + 18
 		ty = y + int((12 - textheight()) / 2)
+		# clear the old label first, or every redraw makes it bolder:
+		# the gap between circle and label is never drawn, so it shows the background
+		color pixel(x + 15, y + 6)
+		rect x + 13, ty, textwidth(caption$) + 6, textheight() + 1
 		if state >= 2 then
 			color white
 			text tx + 1, ty + 1, caption$
@@ -360,7 +380,7 @@ end subroutine
 # tk_radiohit - true when (px,py) is on the radio button or label
 #*****************************************************************
 function tk_radiohit(x, y, caption$, px, py)
-	font "Tahoma", 9, 50
+	font tk_fontname$(), 9, 400
 	w = 18 + textwidth(caption$)
 	h = 12
 	if textheight() > h then
@@ -558,10 +578,10 @@ subroutine tk_spinner(x, y, w, h, caption$, state)
 	fsize = int(h * 0.45)
 	if fsize > 12 then fsize = 12
 	if fsize < 6 then fsize = 6
-	font "Tahoma", fsize, 50
+	font tk_fontname$(), fsize, 400
 	while fsize > 6 and (textwidth(caption$) > tw or textheight() > ih)
 		fsize = fsize - 1
-		font "Tahoma", fsize, 50
+		font tk_fontname$(), fsize, 400
 	end while
 	tx = x + 5
 	ty = y + int((h - textheight()) / 2)
@@ -622,7 +642,7 @@ subroutine tk_drawtabs(x, y, w, h, captions$, active, pageh)
 	if fsize < 6 then fsize = 6
 	fits = false
 	while not fits
-		font "Tahoma", fsize, 50
+		font tk_fontname$(), fsize, 400
 		maxw = 0
 		for i = 0 to n - 1
 			if textwidth(cap$[i]) > maxw then maxw = textwidth(cap$[i])
@@ -746,7 +766,7 @@ subroutine tk_textfield(x, y, w, h, text$, caret, state)
 	fsize = int(h * 0.42)
 	if fsize > 12 then fsize = 12
 	if fsize < 6 then fsize = 6
-	font "Tahoma", fsize, 50
+	font tk_fontname$(), fsize, 400
 
 	n = length(text$)
 	if caret < 0 then caret = 0
@@ -798,7 +818,7 @@ function tk_textcaretat(x, y, w, h, text$, caret, px)
 	fsize = int(h * 0.42)
 	if fsize > 12 then fsize = 12
 	if fsize < 6 then fsize = 6
-	font "Tahoma", fsize, 50
+	font tk_fontname$(), fsize, 400
 
 	n = length(text$)
 	if caret < 0 then caret = 0
@@ -896,6 +916,11 @@ end function
 # tk_help - print out all usages of the different tk_ GUI elements
 #******************************************************************
 subroutine tk_help()
+    print " tk_fontname$() -> the font family the captions use"
+    print '   "Tahoma" on Windows, "" (the BASIC-256 default family) elsewhere'
+    print '   e.g. font tk_fontname$(), 9, 400 to match the toolkit'
+    print ""
+    print "*******************************************************************"
     print " tk_button(x, y, w, h, caption$, state)"
     print "   state 0 = raised (normal)"
     print "         1 = sunken (held down)"

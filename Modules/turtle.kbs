@@ -46,9 +46,10 @@
 
 # --- state -------------------------------------------------------------------
 # Kept in globals rather than threaded through every call. They are spelled
-# tu_state_* so they cannot collide with the tu_x() and tu_y() readback functions
-# below: in BASIC-256 a function name and a variable name share one namespace,
-# so a global named tu_x would make the function tu_x() unreachable.
+# tu_state_* to keep them apart from the tu_x() and tu_y() readback functions
+# below. BASIC-256 itself would allow a global tu_x next to the function tu_x(),
+# but one name for two things is confusing to read, and the tu_ prefix keeps
+# every one of them clear of other modules' names and of the program's own.
 #
 # tu_state_ready is 0 until the turtle has been placed, and is set to 0 below
 # rather than left to take that value by default. An unassigned variable does
