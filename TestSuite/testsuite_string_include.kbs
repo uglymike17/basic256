@@ -101,3 +101,13 @@ call s("rjust 5",rjust(99,5),"   99")
 call s("rjust 5 X",rjust(99,5,"X"),"XXX99")
 call s("zfill 5 ",zfill(99,5),"00099")
 
+
+# += on a string array element appends, like it does on a variable
+dim sa$(2)
+sa$[0] = "x"
+sa$[0] += "y"
+call s("1-D array element += string", sa$[0], "xy")
+dim sb$(2,2)
+sb$[1,1] = "ab"
+sb$[1,1] += "cd"
+call s("2-D array element += string", sb$[1,1], "abcd")

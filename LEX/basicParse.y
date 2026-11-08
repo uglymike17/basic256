@@ -3340,6 +3340,7 @@ arrayelementassign:
 				addIntOp(OP_ARR_GET,varnumber[--nvarnumber]);
 				addOp(OP_STACKTOPTO2);
 				addOp(OP_STACKSWAP2);
+				addOp(OP_STACKSWAP);			// old value first, so "x" += "y" is "xy"
 				addOp(OP_ADD);
 				addIntOp(OP_ARR_SET, varnumber[nvarnumber]);
 			}
