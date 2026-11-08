@@ -250,7 +250,7 @@ void Interpreter::execSoundOp(int opcode) {
 						}
 					} else {
 						// data in mutiple columns
-						for(int row = 0; row < de->arrayRows(); row+=2) {
+						for(int row = 0; row < de->arrayRows(); row++) {
 							sound->harmonics(convert->getInt(de->arrayGetData(row,0)), convert->getFloat(de->arrayGetData(row,1)));			// DONT RELEASE
 						}
 					}
@@ -333,7 +333,7 @@ void Interpreter::execSoundOp(int opcode) {
 					while(columns>0){
 						columns--;
 						DataElement *av = e->arrayGetData(0, columns);
-						wave[columns]=convert->getInt(av);
+						wave[columns]=convert->getFloat(av);	// amplitudes are -1..1, durations fractional
 					}
 					if(!error->pending())
 						sound->customWaveform(wave, logic);

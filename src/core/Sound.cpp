@@ -1877,13 +1877,11 @@ void SoundSystem::customWaveform(std::vector<double> wave, bool logic){
 	//if user create a perfect wave...
 	if(size==sound_samplerate && !logic){
 		for(int i=0;i<sound_samplerate;i++){
-			if(wave[i]<-1.0){
-				waveformcustom[i]=-1.0;
-			}else if(wave[i]>1.0){
-				waveformcustom[i]=1.0;
-			}else{
-				waveformcustom[i]=wave[i];
-			}
+			// the table holds int16 samples, so scale -1..1 like the other waveforms
+			double v = wave[i];
+			if(v<-1.0) v=-1.0;
+			else if(v>1.0) v=1.0;
+			waveformcustom[i]=(int16_t) (SOUND_HALFWAVE * v);
 		}
 		currentwaveform = waveformcustom;
 		mustUpdateWaveformSample = true; //update waveform of the sound next time we generate one
