@@ -133,6 +133,9 @@ void Interpreter::execFileOp(int opcode) {
 			if (fn<0||fn>=NUMFILES) {
 				error->q(ERROR_FILENUMBER);
 				stack->pushInt(0);
+			} else if (filehandle[fn] == NULL) {
+				error->q(ERROR_FILENOTOPEN);
+				stack->pushInt(0);
 			} else {
 				char c = ' ';
 				filehandle[fn]->waitForReadyRead(FILEREADTIMEOUT);

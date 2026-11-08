@@ -213,7 +213,8 @@ void Interpreter::execDatabaseOp(int opcode) {
 					error->q(ERROR_DBSETNUMBER);
 				} else {
 #ifdef BASIC256_ENABLE_SQL
-					if (!dbSet[n][set]->isActive()) {
+					// no record set was ever opened on this set number: dbSet is NULL
+					if (!dbSet[n][set] || !dbSet[n][set]->isActive()) {
 						error->q(ERROR_DBNOTSET);
 					} else {
 						if (!dbSet[n][set]->isValid()) {

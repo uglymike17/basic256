@@ -74,3 +74,17 @@ catch
 end try
 dbclose
 kill "testsuite_extra.db"
+
+# reading a column from a set number that was never opened is an error, not a crash
+try
+   a = dbint(7, 7, 0)
+   call boolean("dbint on a never-opened set raises an error", false)
+catch
+   call n("dbint on a never-opened set raises ERROR_DBNOTSET", lasterror, error_dbnotset)
+end try
+try
+   a$ = dbstring(7, 7, "name")
+   call boolean("dbstring on a never-opened set raises an error", false)
+catch
+   call n("dbstring on a never-opened set raises ERROR_DBNOTSET", lasterror, error_dbnotset)
+end try

@@ -86,3 +86,11 @@ end while
 call n("bindata sum from 10", a, 32595)
 close
 kill b$
+
+# readbyte on a file number that was never opened is an error, not a crash
+try
+   a = readbyte(3)
+   call boolean("readbyte on an unopened file raises an error", false)
+catch
+   call n("readbyte on an unopened file raises ERROR_FILENOTOPEN", lasterror, error_filenotopen)
+end try
