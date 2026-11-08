@@ -80,7 +80,7 @@ call tk_drawing(180,50,100,100,1,1,0,0,white)
 # draw the small area where the color is placed	
 call tk_drawing(350,90,100,26,1,1,0,0,white)
 color black
-font "Tahoma", 12, 50
+font tk_fontname$(), 12, 400
 posx= 400 - (textwidth("white")/2)
 text (posx,95,"white")
 # put buttons and big area in a grouper box
@@ -103,7 +103,7 @@ for i = 0 to radion - 1
 	call tk_radio(radiox, radioy + i * radiostep, radio$[i], s)
 next i
 color black
-font "Tahoma", 12, 50
+font tk_fontname$(), 12, 400
 text (200,515,"radio button 1 is selected"):refresh	
 # horizontal line for next element
 call tk_grouper(30,620,740,0,"HSV Slider element")
@@ -115,7 +115,7 @@ color black
 text 300, 650, "HSV color:"
 call tk_drawing(400,650,70,20,1,1,0,0,white)
 color black
-font "Tahoma", 12, 50
+font tk_fontname$(), 12, 400
 text (425,650,"0")
 refresh
 while true
@@ -128,7 +128,7 @@ if clickb=1 then
 		call tk_button(50,50,100, 20,labels_button[0],2)
 		call tk_drawing(350,90,100,26,1,1,0,0,white)
 		color black
-		font "Tahoma", 12, 50
+		font tk_fontname$(), 12, 400
 		posx= 400 - (textwidth("green")/2)
 		text (posx,95,"green")
 		col = rgb(0,255,0): color col: rect 180,50,100,100:refresh
@@ -138,7 +138,7 @@ if clickb=1 then
 		call tk_button(50,90,100, 20,labels_button[1],2)
 		call tk_drawing(350,90,100,26,1,1,0,0,white)
 		color black
-		font "Tahoma", 12, 50
+		font tk_fontname$(), 12, 400
 		posx= 400 - (textwidth("red")/2)
 		text (posx,95,"red")
 		col = rgb(255,0,0): color col: rect 180,50,100,100:refresh
@@ -148,7 +148,7 @@ if clickb=1 then
 		call tk_button(50,130,100, 20,labels_button[2],2)
 		call tk_drawing(350,90,100,26,1,1,0,0,white)
 		color black
-		font "Tahoma", 12, 50
+		font tk_fontname$(), 12, 400
 		posx= 400 - (textwidth("blue")/2)
 		text (posx,95,"blue")
 		col = rgb(0,0,255): color col: rect 180,50,100,100:refresh
@@ -186,7 +186,7 @@ if clickb=1 then
 		color grey
 		rect 199,510,500,100
 		color black
-		font "Tahoma", 12, 50
+		font tk_fontname$(), 12, 400
 		text (200,515,"radio button 1 is selected"):refresh	
 		for i = 0 to radion - 1
 			if i = radiosel then call tk_radio(radiox, radioy + i*radiostep, radio$[i], 0)
@@ -197,7 +197,7 @@ if clickb=1 then
 		color grey
 		rect 199,510,500,100
 		color black
-		font "Times New Roman", 12, 100
+		font "Times New Roman", 12, 400
 		text (200,515,"now radio button 2 is selected"):refresh	
 		for i = 0 to radion - 1
 			if i = radiosel then call tk_radio(radiox, radioy + i * radiostep, radio$[i], 0)
@@ -208,7 +208,7 @@ if clickb=1 then
 		color grey
 		rect 199,510,500,100
 		color black
-		font "Courier", 14, 50
+		font "Courier", 14, 400
 		text (200,515,"this time, radio button 3 is selected"):refresh	
 		for i = 0 to radion - 1
 			if i = radiosel then call tk_radio(radiox, radioy + i * radiostep, radio$[i], 0)
@@ -219,7 +219,7 @@ if clickb=1 then
 		color grey
 		rect 199,510,500,100
 		color black
-		font "Tahoma", 12, 50
+		font tk_fontname$(), 12, 400
 		text (200,515,"and now, radio button 4 is selected"):refresh				
 		for i = 0 to radion - 1
 			if i = radiosel then call tk_radio(radiox, radioy + i * radiostep, radio$[i], 0)
@@ -233,7 +233,7 @@ if clickb=1 then
 			v =  tk_sliderval(50, 700, 700, 1, 350, mousex, mousey)
 			call tk_drawing(400,650,70,20,1,1,0,0,white)
 			color black
-			font "Tahoma", 12, 50
+			font tk_fontname$(), 12, 400
 			text (425,650,v)
 			call tk_slider(50, 700, 700, 1, v, 350, grey)
 

@@ -63,7 +63,7 @@ call tk_drawing(bigdraw_start_x,bigdraw_start_y,bigdraw_width,bigdraw_height,1,1
 # draw the small area where the color is placed	
 call tk_drawing(smalldraw_start_x,smalldraw_start_y,smalldraw_width,smalldraw_height,1,1,0,0,white)
 color black
-font "Tahoma", 12, 50
+font tk_fontname$(), 12, 400
 posx= 350 - (textwidth("black")/2)
 text (posx,145,"black")
 refresh
@@ -79,7 +79,7 @@ if clickb=1 then
 		call tk_button(button_start_x,button_start_y,button_width, button_height,labels_button[0],2) # do click animation
 		call tk_drawing(smalldraw_start_x,smalldraw_start_y,smalldraw_width,smalldraw_height,1,1,0,0,white)
 		color black
-		font "Tahoma", 12, 50
+		font tk_fontname$(), 12, 400
 		posx= 350 - (textwidth("green")/2)
 		text (posx,145,"green")
 		col = rgb(0,255,0): color col: rect bigdraw_start_x,bigdraw_start_y,bigdraw_width,bigdraw_height:refresh
@@ -87,7 +87,7 @@ if clickb=1 then
 		call tk_button(button_start_x,button_start_y + button_spacing,button_width, button_height,labels_button[1],2)
 		call tk_drawing(smalldraw_start_x,smalldraw_start_y,smalldraw_width,smalldraw_height,1,1,0,0,white)
 		color black
-		font "Tahoma", 12, 50
+		font tk_fontname$(), 12, 400
 		posx= 350 - (textwidth("red")/2)
 		text (posx,145,"red")
 		col = rgb(255,0,0): color col: rect bigdraw_start_x,bigdraw_start_y,bigdraw_width,bigdraw_height:refresh
@@ -95,7 +95,7 @@ if clickb=1 then
 		call tk_button(button_start_x,button_start_y + 2*button_spacing,button_width, button_height,labels_button[2],2)
 		call tk_drawing(smalldraw_start_x,smalldraw_start_y,smalldraw_width,smalldraw_height,1,1,0,0,white)
 		color black
-		font "Tahoma", 12, 50
+		font tk_fontname$(), 12, 400
 		posx= 350 - (textwidth("blue")/2)
 		text (posx,145,"blue")
 		col = rgb(0,0,255): color col: rect bigdraw_start_x,bigdraw_start_y,bigdraw_width,bigdraw_height:refresh

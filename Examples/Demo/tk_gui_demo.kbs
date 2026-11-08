@@ -104,12 +104,12 @@ return
 #*********************************
 PageIntro:
 	color black
-	font "Arial", 14, 75
+	font "Arial", 14, 700
 	title$ = "BASIC256 Toolkit Demo"
 	text 250 - textwidth(title$) / 2, 45, title$
 	call tk_grouper(40, 80, 420, 200, "")
 	color black
-	font "Tahoma", 10, 50
+	font tk_fontname$(), 10, 400
 	for j = 0 to 7
 		text 60, 92 + j * 22, intro$[j]
 	next j
@@ -172,7 +172,7 @@ SpinReel:
 	next sj
 	if bandit[0] = bandit[1] and bandit[1] = bandit[2] then
 		color black
-		font "Tahoma", 20, 75
+		font tk_fontname$(), 20, 700
 		text 200, 248, "You won!!"
 	end if
 	refresh
@@ -184,7 +184,7 @@ DrawReel:
 	rect 115 + rk * 120, 130, 50, 50
 	if bandit[rk] >= 0 then
 		color black
-		font "Tahoma", 24, 75
+		font tk_fontname$(), 24, 700
 		d$ = string(bandit[rk])
 		text 115 + rk * 120 + int((50 - textwidth(d$)) / 2), 130 + int((50 - textheight()) / 2), d$
 	end if
@@ -236,10 +236,10 @@ ClickCheck:
 		color black
 		# shrink the font until the answer fits the page
 		fs = 10
-		font "Tahoma", fs, 75
+		font tk_fontname$(), fs, 700
 		while fs > 6 and textwidth(whatami$) > 275
 			fs = fs - 1
-			font "Tahoma", fs, 75
+			font tk_fontname$(), fs, 700
 		end while
 		text 210, 135, whatami$
 		refresh
@@ -254,7 +254,7 @@ PageRadio:
 	gosub DrawRadios
 	gosub DrawFace
 	color black
-	font "Tahoma", 9, 50
+	font tk_fontname$(), 9, 400
 	text 30, 250, "* This only works correctly if the Wingdings TTF font is installed."
 	text 30, 266, "   Otherwise you just get the letters K, J, M, L and N."
 return
@@ -275,7 +275,7 @@ DrawFace:
 	if radio_sel >= 0 then
 		color yellow
 		if radio_sel = 2 or radio_sel = 4 then color black
-		font "Wingdings", 75, 50
+		font "Wingdings", 75, 400
 		text 330, 80, mid("KJMLN", radio_sel + 1, 1)
 	end if
 	refresh
@@ -301,7 +301,7 @@ DrawSlide:
 	tsize = int(slide_val / 5)
 	if tsize < 1 then tsize = 1
 	color black
-	font "Snap ITC", tsize, 50
+	font "Snap ITC", tsize, 400
 	text 240 - slide_val / 1.5, 180 - slide_val / 6, "Wheeee !"
 	refresh
 return
@@ -326,9 +326,9 @@ return
 #*********************************
 PageDraw:
 	color black
-	font "Arial", 12, 75
+	font "Arial", 12, 700
 	text 320, 45, "Lissajous figure"
-	font "Tahoma", 10, 50
+	font tk_fontname$(), 10, 400
 	lh = int((20 - textheight()) / 2)
 	text 290, 100 + lh, "X-pos:"
 	text 290, 148 + lh, "Y-pos:"
@@ -395,9 +395,9 @@ return
 #*********************************
 PageSpin:
 	color black
-	font "Tahoma", 10, 50
+	font tk_fontname$(), 10, 400
 	text 50, 50, "Please enter your birthday and press 'Done!'"
-	font "Tahoma", 9, 50
+	font tk_fontname$(), 9, 400
 	text 120, 82, "Day"
 	text 190, 82, "Month"
 	call tk_spinner(120, 100, 50, 22, string(sp_day), 0)
@@ -471,7 +471,7 @@ ShowBirthday:
 	color face
 	rect 20, 140, 460, 80
 	color black
-	font "Tahoma", 16, 50
+	font tk_fontname$(), 16, 400
 	text 250 - textwidth(msg$) / 2, 165, msg$
 	refresh
 return
@@ -483,7 +483,7 @@ subroutine fieldtext(fx, fy, fw, fh, txt$)
 	color white
 	rect fx, fy, fw, fh
 	color black
-	font "Tahoma", 10, 50
+	font tk_fontname$(), 10, 400
 	text fx + 4, fy + int((fh - textheight()) / 2), txt$
 end subroutine
 
@@ -516,6 +516,18 @@ end subroutine
 #         Handled keys: printable characters (Shift selects upper case),
 #         Backspace, Delete, Left, Right, Home, End.
 #	tk_help - prints usage of each element
+#	tk_fontname$ - font family every element uses for its captions
+#*********************************************************************
+# tk_fontname$ - font family for every caption
+# Tahoma is the classic Windows dialog font, but most Linux, Raspberry Pi
+# and browser systems don't have it. Elsewhere "" asks BASIC-256 for its
+# default family, which is always installed. Captions are measured with
+# textwidth, so a different font only changes how they look, not the layout.
+#*********************************************************************
+function tk_fontname$()
+	if ostype = ostype_windows then return "Tahoma"
+	return ""
+end function
 #*********************************************************************
 # tk_button - draw a push button
 #*********************************************************************
@@ -539,10 +551,10 @@ subroutine tk_button(x, y, w, h, caption$, state)
 	fsize = int(h * 0.3)
 	if fsize > 12 then fsize = 12
 	if fsize < 6 then fsize = 6
-	font "Tahoma", fsize, 50
+	font tk_fontname$(), fsize, 400
 	while fsize > 6 and (textwidth(caption$) > w - 2*b - 4 or textheight() > h - 2*b)
 		fsize = fsize - 1
-		font "Tahoma", fsize, 50
+		font tk_fontname$(), fsize, 400
 	end while
 	cx = x + int((w - textwidth(caption$)) / 2)
 	cy = y + int((h - textheight()) / 2)
@@ -648,7 +660,7 @@ subroutine tk_grouper(x, y, w, h, caption$)
 		call tk_outline(x, y, x + w - 2, y + h - 2)
 	end if
 	if caption$ <> "" then
-		font "Tahoma", 9, 50
+		font tk_fontname$(), 9, 400
 		tw = textwidth(caption$)
 		th = textheight()
 		# do not let the caption run past the right edge of the frame
@@ -712,7 +724,7 @@ subroutine tk_checkbox(x, y, caption$, state)
 	end if
 	# label, vertically centered on the box
 	if caption$ <> "" then
-		font "Tahoma", 9, 50
+		font tk_fontname$(), 9, 400
 		tx = x + 18
 		ty = y + int((13 - textheight()) / 2)
 		if state >= 2 then
@@ -730,7 +742,7 @@ end subroutine
 # tk_checkhit - true when (px,py) is on the checkbox or its label
 #*********************************************************************
 function tk_checkhit(x, y, caption$, px, py)
-	font "Tahoma", 9, 50
+	font tk_fontname$(), 9, 400
 	w = 18 + textwidth(caption$)
 	h = 13
 	if textheight() > h then
@@ -831,7 +843,7 @@ subroutine tk_radio(x, y, caption$, state)
 	# label, vertically centred on the circle
 	# (x + 18 lines it up with tk_checkbox labels in the same column)
 	if caption$ <> "" then
-		font "Tahoma", 9, 50
+		font tk_fontname$(), 9, 400
 		tx = x + 18
 		ty = y + int((12 - textheight()) / 2)
 		if state >= 2 then
@@ -849,7 +861,7 @@ end subroutine
 # tk_radiohit - true when (px,py) is on the radio button or label
 #*****************************************************************
 function tk_radiohit(x, y, caption$, px, py)
-	font "Tahoma", 9, 50
+	font tk_fontname$(), 9, 400
 	w = 18 + textwidth(caption$)
 	h = 12
 	if textheight() > h then
@@ -1047,10 +1059,10 @@ subroutine tk_spinner(x, y, w, h, caption$, state)
 	fsize = int(h * 0.45)
 	if fsize > 12 then fsize = 12
 	if fsize < 6 then fsize = 6
-	font "Tahoma", fsize, 50
+	font tk_fontname$(), fsize, 400
 	while fsize > 6 and (textwidth(caption$) > tw or textheight() > ih)
 		fsize = fsize - 1
-		font "Tahoma", fsize, 50
+		font tk_fontname$(), fsize, 400
 	end while
 	tx = x + 5
 	ty = y + int((h - textheight()) / 2)
@@ -1111,7 +1123,7 @@ subroutine tk_drawtabs(x, y, w, h, captions$, active, pageh)
 	if fsize < 6 then fsize = 6
 	fits = false
 	while not fits
-		font "Tahoma", fsize, 50
+		font tk_fontname$(), fsize, 400
 		maxw = 0
 		for i = 0 to n - 1
 			if textwidth(cap$[i]) > maxw then maxw = textwidth(cap$[i])
@@ -1235,7 +1247,7 @@ subroutine tk_textfield(x, y, w, h, text$, caret, state)
 	fsize = int(h * 0.42)
 	if fsize > 12 then fsize = 12
 	if fsize < 6 then fsize = 6
-	font "Tahoma", fsize, 50
+	font tk_fontname$(), fsize, 400
 
 	n = length(text$)
 	if caret < 0 then caret = 0
@@ -1287,7 +1299,7 @@ function tk_textcaretat(x, y, w, h, text$, caret, px)
 	fsize = int(h * 0.42)
 	if fsize > 12 then fsize = 12
 	if fsize < 6 then fsize = 6
-	font "Tahoma", fsize, 50
+	font tk_fontname$(), fsize, 400
 
 	n = length(text$)
 	if caret < 0 then caret = 0

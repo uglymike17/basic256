@@ -36,7 +36,7 @@ monthcount = 4
 yx = 230 : yy = 80 : yw = 56 : yh = 26
 
 color black
-font "Tahoma", 9, 50
+font tk_fontname$(), 9, 400
 text dx, dy - 18, "day"
 text mx, my - 18, "month"
 text yx, yy - 18, "year"

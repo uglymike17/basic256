@@ -46,7 +46,7 @@ next i
 editable = {1, 1, 0}
 
 color black
-font "Tahoma", 9, 50
+font tk_fontname$(), 9, 400
 for i = 0 to nf - 1
 	text 20, fy[i] + 4, labels$[i]
 	s = 0

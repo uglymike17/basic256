@@ -36,14 +36,14 @@ call tk_slider(gx, gy, glen, 0, groen, 255, bg)
 call tk_slider(bx, by, blen, 1, blauw, 255, bg)
 
 # labels and preview
-font "Tahoma", 14, 75
+font tk_fontname$(), 14, 700
 color red
 text 40, 165, "R"
 color blue
 text 165, 40, "B"
 color green
 text 275, 165, "G"
-font "Tahoma", 12, 75
+font tk_fontname$(), 12, 700
 color black
 text 85, 230, "Simple Color Mixer"
 color darkgrey
@@ -97,7 +97,7 @@ showcolor:
 	color bg
 	rect 128, 66, 110, 50
 	color black
-	font "Tahoma", 10, 50
+	font tk_fontname$(), 10, 400
 	text 130, 70, "R set to: " + rood
 	text 130, 85, "G set to: " + groen
 	text 130, 100, "B set to: " + blauw

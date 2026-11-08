@@ -57,7 +57,7 @@ showtab:
 	#here, we just put a simple sentence for each tab. 
 	#You can of course do a gosub for each active tab for more functionality
 	color black
-	font "Tahoma", 14, 50
+	font tk_fontname$(), 14, 400
 	m$ = content$[active]
 	text tx + int((tw - textwidth(m$)) / 2), ty + th + 100, m$
 	refresh
