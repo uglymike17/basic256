@@ -1,3 +1,7 @@
+2026-11-10 M. Vilain <uglymike17@gmail.com>
+	* ASSIGNED and IN answer a map key that does not exist with false, so a program can ask whether a key is there before reading it: if "pizza" in tally then ... and assigned(tally["pizza"]) no longer stop the program with "Map key has not been assigned a value". Reading a missing key still does.
+	* ISNUMERIC is true only for a number, or a string written as one. Strings with another character where a decimal point could go, such as "1,5", "1,500" or "1x5", are no longer counted as numbers; INT and FLOAT turn those into 0.
+
 2026-11-08 M. Vilain <uglymike17@gmail.com>
 	* DBINT, DBFLOAT, DBSTRING and DBNULL on a record set that was never opened give error 34, "Record set must be opened first", instead of closing BASIC256.
 	* READBYTE on a file number that is not open gives error 7, "File not open", instead of closing BASIC256.

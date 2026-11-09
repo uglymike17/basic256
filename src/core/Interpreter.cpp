@@ -2200,6 +2200,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 							QString key = convert->getString(col);
 							e = vdata->mapGetData(key);			// DONT RELEASE
 							stack->pushBool(DataElement::getType(e)!=T_UNASSIGNED);
+							// a missing key is the answer here, not an error
+							if (DataElement::getError()==ERROR_MAPKEY) DataElement::getError(true);
 							if (DataElement::getError()) {error->q(DataElement::getError(true),i);}
 						}
 						break;
@@ -3678,6 +3680,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					DataElement *map = stack->popDE();			// RELEASE
 					QString key = stack->popQString();
 					stack->pushBool(map->mapKey(key));
+					// a missing key is the answer here, not an error
+					if (DataElement::getError()==ERROR_MAPKEY) DataElement::getError(true);
 					delete map;
 				}
 				break;

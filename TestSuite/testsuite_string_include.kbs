@@ -111,3 +111,11 @@ dim sb$(2,2)
 sb$[1,1] = "ab"
 sb$[1,1] += "cd"
 call s("2-D array element += string", sb$[1,1], "abcd")
+
+# isnumeric: the decimal point in its pattern is a literal "." -- an unescaped
+# one matched any character, so "1,5" and "1x5" counted as numbers
+call n('isnumeric("3.25")', isnumeric("3.25"), true)
+call n('isnumeric("1,5")', isnumeric("1,5"), false)
+call n('isnumeric("1x5")', isnumeric("1x5"), false)
+call n('isnumeric("12abc")', isnumeric("12abc"), false)
+call n('isnumeric("")', isnumeric(""), false)

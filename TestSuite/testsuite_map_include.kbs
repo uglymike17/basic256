@@ -44,9 +44,11 @@ if not unattended then
 	call boolean("key x - not exist ? ", typeof(q['x'])=TYPE_UNASSIGNED)
 end if
 call boolean("key a - exist ? ", typeof(q['a'])<>TYPE_UNASSIGNED)
-if not unattended then
-	call boolean("key x - not assigned ", not assigned(q['x']))
-end if
+# ASSIGNED and IN answer a missing key without raising ERROR_MAPKEY, so
+# unlike reading q['x'] they also run under testsuite_ci.kbs
+call boolean("key x - not assigned ", not assigned(q['x']))
+call boolean("key x - not in q ", not ('x' in q))
+call boolean("key a - in q ", 'a' in q)
 call boolean("key a - assigned ", assigned(q['a']))
 
 
@@ -62,8 +64,9 @@ call s("in alpha order after delete ", total, "BB9999QQ198")
 call n("after unassign - map should have 5 items - length", length(q), 5)
 if not unattended then
 	call boolean("key a - not exist ? ", typeof(q['a'])=TYPE_UNASSIGNED)
-	call boolean("key a - not assigned ", not assigned(q['a']))
 end if
+call boolean("key a - not assigned after unassign ", not assigned(q['a']))
+call boolean("key a - not in q after unassign ", not ('a' in q))
 
 sq = serialize(q)
 ? sq
