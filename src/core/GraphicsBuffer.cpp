@@ -54,7 +54,7 @@ void GraphicsBuffer::resizeBuffers(int width, int height) {
         QImage old_image = image->copy(0,0,width,height);
         image->swap(old_image);
     }else{
-        image = new QImage(width, height, QImage::Format_ARGB32);
+        image = new QImage(width, height, QImage::Format_ARGB32_Premultiplied);
         image->fill(Qt::transparent);
     }
 
