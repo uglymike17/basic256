@@ -231,7 +231,7 @@ void Interpreter::execSpriteOp(int opcode) {
 						if(nr<4) s = sprites[n].s;
 					}
 					sprites.place(n, x, y, s, r, o);
-					if (!fastgraphics) waitForGraphics();
+					if (!fastgraphics) autoRefresh();
 				}
 			}
 		}
@@ -250,7 +250,7 @@ void Interpreter::execSpriteOp(int opcode) {
 					error->q(ERROR_SPRITENA);
 				} else if (sprites[n].visible != vis){
 					sprites[n].visible = vis;
-					if (!fastgraphics) waitForGraphics();
+					if (!fastgraphics) autoRefresh();
 				}
 			}
 		}

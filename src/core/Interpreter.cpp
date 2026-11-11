@@ -25,6 +25,7 @@ Interpreter::Interpreter(QLocale *applocale, GraphicsBuffer *appgraphics, BasicK
 	//yydebug = 1;
 	fastgraphics = false;
 	frameRateSet = false;
+	graphicsPending = false;
 	windowActive = false;
 	winX1 = winY1 = winX2 = winY2 = 0.0;
 	windowTransform.reset();
@@ -1206,6 +1207,8 @@ Interpreter::initialize() {
 	PenColorIsClear = false;
 	fastgraphics = false;
 	frameRateSet = false;
+	graphicsPending = false;
+	lastGraphicsUpdate = std::chrono::steady_clock::now();
 	// drop a stop signal left standing by the previous run so it cannot
 	// shorten this run's first PAUSE
 	sleeper->clearWake();
@@ -1463,6 +1466,10 @@ Interpreter::run() {
 	noiseSeed = (int64_t)time(NULL) ^ ((int64_t)QTime::currentTime().msec() * 911L);	// and the noise field, so an unseeded run differs like RAND does
 	runtimer.start(); // used by MSEC function
 	runLoop();			// run the opcodes
+	// show the last drawings of a program that ended (END, the end of the
+	// code or a fatal error). Not after Stop: the GUI thread may be blocked in
+	// i->wait() (closing the IDE) and would never answer the update.
+	if (status != R_STOPPING) flushGraphics();
 	debugMode = 0;
 	//qDebug() << "run - before cleanup()";
 	cleanup(); // cleanup the variables, databases, files, stack and everything
@@ -1484,7 +1491,27 @@ void Interpreter::runLoop() {
 	}
 }
 
+// one screen frame - drawings closer together than this share one update
+static const std::chrono::milliseconds GRAPHICS_FRAME(16);
+
+void Interpreter::autoRefresh() {
+	// Mark the screen changed and update it only if a frame has passed since
+	// the last update. Otherwise the opcode loop picks it up once the frame is
+	// up (see nextop in execByteCode), so a lone drawing is still shown at once.
+	graphicsPending = true;
+	if (std::chrono::steady_clock::now() - lastGraphicsUpdate >= GRAPHICS_FRAME) waitForGraphics();
+}
+
+void Interpreter::flushGraphics() {
+	// called before anything that can leave the program waiting (PAUSE,
+	// INPUT, a dialog, a blocking sound, a debugger step) and at the end of a
+	// run, so drawings from the last part-frame are not left unseen
+	if (graphicsPending) waitForGraphics();
+}
+
 void Interpreter::waitForGraphics() {
+	graphicsPending = false;
+	lastGraphicsUpdate = std::chrono::steady_clock::now();
 	// --silent: nothing is ever shown, so skip sprite compositing and the
 	// cross-thread screen-image update entirely rather than doing that work
 	// against a window nobody will ever see.
@@ -1581,6 +1608,9 @@ Interpreter::execByteCode() {
 	// full of nested loops and switches that "continue" would bind to instead.
 nextop:
 	if (status == R_STOPPING) return 0;
+
+	// a drawing is waiting to be shown - show it once a frame has passed
+	if (graphicsPending && std::chrono::steady_clock::now() - lastGraphicsUpdate >= GRAPHICS_FRAME) waitForGraphics();
 
 	// if errnum is set then handle the last thrown error
 	if (error->pending()) {
@@ -2339,6 +2369,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 							// edit needs to eventually have tabs for includes and tracing and debugging
 							// would go three dimensional - but not right now
 							emit(seekLine(currentLine));
+							flushGraphics();
 							if ((debugMode==1) || (debugMode==2 && debugBreakPoints->contains(currentLine-1))) {
 								// show step and runto options
 								mydebugmutex->lock();
@@ -2838,6 +2869,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_PAUSE: {
 					double val = stack->popDouble();
 					if (val > 0) {
+						flushGraphics();
 						sleeper->sleepSeconds(val);
 					}
 				}
@@ -2871,6 +2903,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 					} else {
 						// A deadline already past returns at once, which is how a small
 						// overrun is clawed back over the following frames.
+						flushGraphics();
 						sleeper->sleepUntil(frameDeadline);
 						frameDeadline += period;
 					}
@@ -4831,6 +4864,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_WAVPOS:
 				case OP_WAVSEEK:
 				case OP_WAVSTATE:
+					// these can hold the program until the sound or speech ends
+					if (opcode==OP_SOUND || opcode==OP_SOUNDWAIT || opcode==OP_SAY || opcode==OP_WAVWAIT) flushGraphics();
 					execSoundOp(opcode);
 					break;
 
@@ -4940,6 +4975,7 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_TEXTBACKGROUND:
 				case OP_TEXTSCREEN:
 				case OP_TEXTCHAR:
+					if (opcode==OP_INPUT) flushGraphics();	// waits for the user
 					execTextOutputOp(opcode);
 					break;
 
@@ -4992,6 +5028,8 @@ fprintf(stderr,"in foreach map %d\n", d->map->data.size());
 				case OP_GETCLIPBOARDSTRING:
 				case OP_SETCLIPBOARDIMAGE:
 				case OP_SETCLIPBOARDSTRING:
+					// dialogs wait for the user, SYSTEM for another program
+					if (opcode==OP_ALERT || opcode==OP_CONFIRM || opcode==OP_PROMPT || opcode==OP_SYSTEM) flushGraphics();
 					execSystemOp(opcode);
 					break;
 

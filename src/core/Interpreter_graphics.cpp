@@ -225,7 +225,7 @@ void Interpreter::execGraphicsOp(int opcode) {
 				} else {
 					painter->drawImage(x, y, tmp);
 				}
-				if (!fastgraphics && drawingOnScreen) waitForGraphics();
+				if (!fastgraphics && drawingOnScreen) autoRefresh();
 			} else {
 				error->q(ERROR_ARRAYEXPR);
 			}
@@ -255,7 +255,7 @@ void Interpreter::execGraphicsOp(int opcode) {
 
 			painter->drawLine(QLineF(x0val, y0val, x1val, y1val));
 
-			if (!fastgraphics && drawingOnScreen) waitForGraphics();
+			if (!fastgraphics && drawingOnScreen) autoRefresh();
 		}
 		break;
 
@@ -313,7 +313,7 @@ void Interpreter::execGraphicsOp(int opcode) {
 				painter->drawLine(QLineF(x0val, y0val, x0val + x1val, y0val));
 			}
 
-			if (!fastgraphics && drawingOnScreen) waitForGraphics();
+			if (!fastgraphics && drawingOnScreen) autoRefresh();
 		}
 		break;
 
@@ -371,7 +371,7 @@ void Interpreter::execGraphicsOp(int opcode) {
 				painter->drawLine(QLineF(x0val, y0val, x0val + x1val, y0val));
 			}
 
-			if (!fastgraphics && drawingOnScreen) waitForGraphics();
+			if (!fastgraphics && drawingOnScreen) autoRefresh();
 		}
 		break;
 
@@ -401,7 +401,7 @@ void Interpreter::execGraphicsOp(int opcode) {
 
 				painter->drawPolygon(*poly);
 
-				if (!fastgraphics && drawingOnScreen) waitForGraphics();
+				if (!fastgraphics && drawingOnScreen) autoRefresh();
 
 			}
 			delete e;
@@ -456,7 +456,7 @@ void Interpreter::execGraphicsOp(int opcode) {
 				//end painter update
 
 				painter->drawPolygon(*poly);
-				if (!fastgraphics && drawingOnScreen) waitForGraphics();
+				if (!fastgraphics && drawingOnScreen) autoRefresh();
 			}
 			delete e;
 		}
@@ -487,7 +487,7 @@ void Interpreter::execGraphicsOp(int opcode) {
 
 			painter->drawEllipse(QRectF(xval - rval, yval - rval, 2 * rval, 2 * rval));
 
-			if (!fastgraphics && drawingOnScreen) waitForGraphics();
+			if (!fastgraphics && drawingOnScreen) autoRefresh();
 		}
 		break;
 
@@ -517,7 +517,7 @@ void Interpreter::execGraphicsOp(int opcode) {
 
 			painter->drawEllipse(QRectF(xval, yval, wval, hval));
 
-			if (!fastgraphics && drawingOnScreen) waitForGraphics();
+			if (!fastgraphics && drawingOnScreen) autoRefresh();
 		}
 		break;
 
@@ -572,7 +572,7 @@ void Interpreter::execGraphicsOp(int opcode) {
 						painter->drawImage(QPointF(x - .5 * i.width(), y - .5 * i.height()), i);
 					}
 				}
-				if (!fastgraphics && drawingOnScreen) waitForGraphics();
+				if (!fastgraphics && drawingOnScreen) autoRefresh();
 			}
 		}
 		break;
@@ -614,7 +614,7 @@ void Interpreter::execGraphicsOp(int opcode) {
 				painter->drawText(QPointF(x0val, y0val+(QFontMetrics(painter->font()).ascent())), txt);
 			}
 
-			if (!fastgraphics && drawingOnScreen) waitForGraphics();
+			if (!fastgraphics && drawingOnScreen) autoRefresh();
 		}
 		break;
 
@@ -665,7 +665,7 @@ void Interpreter::execGraphicsOp(int opcode) {
 				painter->drawText(QRectF(x, y, w, h), flags|Qt::TextWordWrap|Qt::TextExpandTabs, txt);
 			}
 
-			if (!fastgraphics && drawingOnScreen) waitForGraphics();
+			if (!fastgraphics && drawingOnScreen) autoRefresh();
 		}
 		break;
 
@@ -726,7 +726,7 @@ void Interpreter::execGraphicsOp(int opcode) {
 				// to the image buffer).
 				if (guiState != GUISTATESILENT) {
 					graphics->image->fill(c);
-					if (!fastgraphics) waitForGraphics();
+					if (!fastgraphics) autoRefresh();
 				}
 			}
 #ifdef BASIC256_ENABLE_PRINTER
@@ -774,7 +774,7 @@ void Interpreter::execGraphicsOp(int opcode) {
 
 			painter->drawPoint(QPointF(twoval, oneval));
 
-			if (!fastgraphics && drawingOnScreen) waitForGraphics();
+			if (!fastgraphics && drawingOnScreen) autoRefresh();
 		}
 		break;
 
@@ -1064,7 +1064,7 @@ void Interpreter::execGraphicsOp(int opcode) {
 				painter->drawPie(QRectF(xval, yval, wval, hval), s, aw);
 			}
 
-			if (!fastgraphics && drawingOnScreen) waitForGraphics();
+			if (!fastgraphics && drawingOnScreen) autoRefresh();
 		}
 		break;
 
@@ -1502,7 +1502,7 @@ void Interpreter::execGraphicsOp(int opcode) {
 				break;
 			}
 
-			if (!fastgraphics && drawingOnScreen) waitForGraphics();
+			if (!fastgraphics && drawingOnScreen) autoRefresh();
 		}
 		break;
 
@@ -1578,7 +1578,7 @@ void Interpreter::execGraphicsOp(int opcode) {
 				error->q(ERROR_IMAGERESOURCE);
 			}
 
-			if (!fastgraphics && drawingOnScreen) waitForGraphics();
+			if (!fastgraphics && drawingOnScreen) autoRefresh();
 		}
 		break;
 
@@ -1643,7 +1643,7 @@ void Interpreter::execGraphicsOp(int opcode) {
 				error->q(ERROR_IMAGERESOURCE);
 			}
 
-			if (!fastgraphics && drawingOnScreen) waitForGraphics();
+			if (!fastgraphics && drawingOnScreen) autoRefresh();
 		}
 		break;
 

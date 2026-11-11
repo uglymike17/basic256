@@ -280,7 +280,9 @@ class Interpreter : public QThread
 		void registerSoundBytes(const QString &id, QByteArray *bytes);
 		//int optype(int op);
 		QString opname(int);
-		void waitForGraphics();
+		void waitForGraphics();		// push the screen to the GUI now and wait for it (REFRESH)
+		void autoRefresh();			// a drawing statement outside FASTGRAPHICS changed the screen
+		void flushGraphics();		// push the screen out if a drawing is still waiting to be shown
 		void printError();
 		void netSockClose(int);
 		void netSockCloseAll();
@@ -311,7 +313,15 @@ class Interpreter : public QThread
 		// FRAMERATE 0.
 		std::chrono::steady_clock::time_point frameDeadline;
 		bool frameRateSet;
-		QString inputString;        // input string from user
+		// Screen updates outside FASTGRAPHICS. A drawing statement only sets
+		// graphicsPending; the opcode loop pushes the screen out once
+		// GRAPHICS_FRAME has passed since lastGraphicsUpdate, and anything that
+		// can block (PAUSE, INPUT, END...) calls flushGraphics() first. Each
+		// update is a round trip to the GUI thread, so doing one per statement
+		// made drawing several times slower than the screen could show it.
+		bool graphicsPending;
+		std::chrono::steady_clock::time_point lastGraphicsUpdate;
+		QString inputString;       // input string from user
 		int inputType;				// data type to convert the input into
 		double double_random_max;
 		int64_t noiseSeed;			// seeds NOISE, set alongside srand by SEED
