@@ -977,7 +977,7 @@ Please check your printer settings.</source>
     </message>
     <message>
         <source>&amp;Text Window</source>
-        <translation>&amp;Окно ввода-вывода текста</translation>
+        <translation>Окно ввода-вывода &amp;текста</translation>
     </message>
     <message>
         <source>&amp;Graphics Window</source>
@@ -993,7 +993,7 @@ Please check your printer settings.</source>
     </message>
     <message>
         <source>&amp;Main</source>
-        <translation>&amp;Главная</translation>
+        <translation>Г&amp;лавная</translation>
     </message>
     <message>
         <source>&amp;Text Output</source>
@@ -1017,7 +1017,7 @@ Please check your printer settings.</source>
     </message>
     <message>
         <source>&amp;Stop</source>
-        <translation>Ст&amp;оп</translation>
+        <translation>&amp;Стоп</translation>
     </message>
     <message>
         <source>Save Compiled &amp;Byte Code</source>
@@ -1105,7 +1105,7 @@ Please check your printer settings.</source>
     </message>
     <message>
         <source>Graphics Window Grid &amp;Lines</source>
-        <translation type="unfinished"></translation>
+        <translation>&amp;Сетка окна графики</translation>
     </message>
     <message>
         <source>&lt;h2&gt;BASIC-256</source>
@@ -1154,6 +1154,142 @@ Please check your printer settings.</source>
     <message>
         <source>&lt;p&gt;&lt;i&gt;You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.&lt;/i&gt;&lt;/p&gt;</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Window</source>
+        <translation>&amp;Окно</translation>
+    </message>
+    <message>
+        <source>&amp;Open...</source>
+        <translation>&amp;Открыть...</translation>
+    </message>
+    <message>
+        <source>Open &amp;Example...</source>
+        <translation>Открыть п&amp;ример...</translation>
+    </message>
+    <message>
+        <source>Open &amp;Recent</source>
+        <translation>Не&amp;давние файлы</translation>
+    </message>
+    <message>
+        <source>&amp;Clear list</source>
+        <translation>&amp;Очистить список</translation>
+    </message>
+    <message>
+        <source>Save &amp;As...</source>
+        <translation>Сохранить &amp;как...</translation>
+    </message>
+    <message>
+        <source>Save All</source>
+        <translation>Сохранить все</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Закрыть</translation>
+    </message>
+    <message>
+        <source>Close All</source>
+        <translation>Закрыть все</translation>
+    </message>
+    <message>
+        <source>&amp;Print...</source>
+        <translation>&amp;Печать...</translation>
+    </message>
+    <message>
+        <source>&amp;Find...</source>
+        <translation>&amp;Найти...</translation>
+    </message>
+    <message>
+        <source>Find &amp;Next</source>
+        <translation>Найти дал&amp;ее</translation>
+    </message>
+    <message>
+        <source>&amp;Replace...</source>
+        <translation>&amp;Заменить...</translation>
+    </message>
+    <message>
+        <source>Preferences...</source>
+        <translation>На&amp;стройки...</translation>
+    </message>
+    <message>
+        <source>Clear</source>
+        <translation>Очистить</translation>
+    </message>
+    <message>
+        <source>Graphics Window &amp;Zoom</source>
+        <translation>&amp;Масштаб окна графики</translation>
+    </message>
+    <message>
+        <source>1:4 (quarter)</source>
+        <translation>1:4 (четверть)</translation>
+    </message>
+    <message>
+        <source>1:2 (half)</source>
+        <translation>1:2 (половина)</translation>
+    </message>
+    <message>
+        <source>1:1 (original)</source>
+        <translation>1:1 (оригинал)</translation>
+    </message>
+    <message>
+        <source>2:1 (double)</source>
+        <translation>2:1 (двойной)</translation>
+    </message>
+    <message>
+        <source>3:1 (triple)</source>
+        <translation>3:1 (тройной)</translation>
+    </message>
+    <message>
+        <source>4:1 (quadruple)</source>
+        <translation>4:1 (четверной)</translation>
+    </message>
+    <message>
+        <source>&amp;Font...</source>
+        <translation>&amp;Шрифт...</translation>
+    </message>
+    <message>
+        <source>&amp;Theme</source>
+        <translation>Т&amp;ема</translation>
+    </message>
+    <message>
+        <source>Follow &amp;System</source>
+        <translation>Как в с&amp;истеме</translation>
+    </message>
+    <message>
+        <source>&amp;Light</source>
+        <translation>&amp;Светлая</translation>
+    </message>
+    <message>
+        <source>&amp;Dark</source>
+        <translation>&amp;Тёмная</translation>
+    </message>
+    <message>
+        <source>Show &amp;Whitespace Characters</source>
+        <translation>Показывать п&amp;робелы</translation>
+    </message>
+    <message>
+        <source>W&amp;rap Long Lines</source>
+        <translation>Перенос &amp;длинных строк</translation>
+    </message>
+    <message>
+        <source>Run &amp;to</source>
+        <translation>Выполнить &amp;до</translation>
+    </message>
+    <message>
+        <source>&amp;Clear all breakpoints</source>
+        <translation>&amp;Удалить все точки останова</translation>
+    </message>
+    <message>
+        <source>&amp;Online help...</source>
+        <translation>Онлайн-&amp;справка...</translation>
+    </message>
+    <message>
+        <source>&amp;Check for update...</source>
+        <translation>Проверить &amp;обновления...</translation>
+    </message>
+    <message>
+        <source>&amp;About BASIC-256...</source>
+        <translation>О &amp;программе BASIC-256...</translation>
     </message>
 </context>
 <context>

@@ -1,5 +1,5 @@
 2026-11-12 M. Vilain <uglymike17@gmail.com>
-	* The menus are fully translated in Dutch, French, German and Spanish, including the newer items such as Save All, the Zoom submenu, Theme and Wrap Long Lines. Within each menu every item has its own underlined letter, so the Alt shortcuts no longer clash. A language is chosen with -l and its code, for example basic256 -l nl; the codes are de, en, es, fr, it, nl, pt and ru.
+	* The menus are fully translated in Dutch, French, German, Italian, Portuguese, Russian and Spanish, including the newer items such as Save All, the Zoom submenu, Theme and Wrap Long Lines. Within each menu every item has its own underlined letter, so the Alt shortcuts no longer clash. A language is chosen with -l and its code, for example basic256 -l nl; the codes are de, en, es, fr, it, nl, pt and ru.
 	* Returning from a function or subroutine frees its variables correctly.
 
 2026-11-11 M. Vilain <uglymike17@gmail.com>

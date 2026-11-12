@@ -1242,7 +1242,7 @@ Controllare le impostazione della stampante.</translation>
     <message>
         <location filename="../MainWindow.cpp" line="276"/>
         <source>Show &amp;Whitespace Characters</source>
-        <translation>Visualizza &amp;spazi</translation>
+        <translation>&amp;Visualizza spazi</translation>
     </message>
     <message>
         <location filename="../MainWindow.cpp" line="285"/>
@@ -1382,6 +1382,134 @@ Controllare le impostazione della stampante.</translation>
         <location filename="../MainWindow.cpp" line="504"/>
         <source>Please visit our web site at &lt;a href=&quot;http://www.basic256.org&quot;&gt;http://www.basic256.org&lt;/a&gt; for tutorials and documentation.</source>
         <translation>Visitate il nostro sito web &lt;a href=&quot;http://www.basic256.org&quot;&gt;http://www.basic256.org&lt;/a&gt; per tutorial e documentazione.</translation>
+    </message>
+    <message>
+        <source>&amp;Window</source>
+        <translation>Fi&amp;nestra</translation>
+    </message>
+    <message>
+        <source>&amp;Open...</source>
+        <translation>&amp;Apri...</translation>
+    </message>
+    <message>
+        <source>Open &amp;Example...</source>
+        <translation>Apri ese&amp;mpio...</translation>
+    </message>
+    <message>
+        <source>Open &amp;Recent</source>
+        <translation>Apri &amp;recenti</translation>
+    </message>
+    <message>
+        <source>&amp;Clear list</source>
+        <translation>&amp;Cancella elenco</translation>
+    </message>
+    <message>
+        <source>Save &amp;As...</source>
+        <translation>Salva &amp;con nome...</translation>
+    </message>
+    <message>
+        <source>Save All</source>
+        <translation>Salva tutto</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Chiudi</translation>
+    </message>
+    <message>
+        <source>Close All</source>
+        <translation>Chiudi tutto</translation>
+    </message>
+    <message>
+        <source>&amp;Print...</source>
+        <translation>S&amp;tampa...</translation>
+    </message>
+    <message>
+        <source>&amp;Find...</source>
+        <translation>T&amp;rova...</translation>
+    </message>
+    <message>
+        <source>Find &amp;Next</source>
+        <translation>Trova &amp;successivo</translation>
+    </message>
+    <message>
+        <source>&amp;Replace...</source>
+        <translation>S&amp;ostituisci...</translation>
+    </message>
+    <message>
+        <source>Preferences...</source>
+        <translation>Pre&amp;ferenze...</translation>
+    </message>
+    <message>
+        <source>Clear</source>
+        <translation>Cancella</translation>
+    </message>
+    <message>
+        <source>Graphics Window &amp;Zoom</source>
+        <translation>&amp;Zoom finestra grafica</translation>
+    </message>
+    <message>
+        <source>1:4 (quarter)</source>
+        <translation>1:4 (un quarto)</translation>
+    </message>
+    <message>
+        <source>1:2 (half)</source>
+        <translation>1:2 (metà)</translation>
+    </message>
+    <message>
+        <source>1:1 (original)</source>
+        <translation>1:1 (originale)</translation>
+    </message>
+    <message>
+        <source>2:1 (double)</source>
+        <translation>2:1 (doppio)</translation>
+    </message>
+    <message>
+        <source>3:1 (triple)</source>
+        <translation>3:1 (triplo)</translation>
+    </message>
+    <message>
+        <source>4:1 (quadruple)</source>
+        <translation>4:1 (quadruplo)</translation>
+    </message>
+    <message>
+        <source>&amp;Font...</source>
+        <translation>&amp;Carattere...</translation>
+    </message>
+    <message>
+        <source>&amp;Theme</source>
+        <translation>T&amp;ema</translation>
+    </message>
+    <message>
+        <source>Follow &amp;System</source>
+        <translation>Segui il &amp;sistema</translation>
+    </message>
+    <message>
+        <source>&amp;Light</source>
+        <translation>&amp;Chiaro</translation>
+    </message>
+    <message>
+        <source>&amp;Dark</source>
+        <translation>Sc&amp;uro</translation>
+    </message>
+    <message>
+        <source>W&amp;rap Long Lines</source>
+        <translation>&amp;A capo automatico</translation>
+    </message>
+    <message>
+        <source>&amp;Clear all breakpoints</source>
+        <translation>&amp;Rimuovi tutti i punti di interruzione</translation>
+    </message>
+    <message>
+        <source>&amp;Online help...</source>
+        <translation>Guida &amp;online...</translation>
+    </message>
+    <message>
+        <source>&amp;Check for update...</source>
+        <translation>&amp;Verifica aggiornamenti...</translation>
+    </message>
+    <message>
+        <source>&amp;About BASIC-256...</source>
+        <translation>&amp;Informazioni su BASIC-256...</translation>
     </message>
 </context>
 <context>
