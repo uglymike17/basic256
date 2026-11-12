@@ -1028,7 +1028,7 @@ Please check your printer settings.</source>
         <location filename="../MainWindow.cpp" line="347"/>
         <location filename="../MainWindow.cpp" line="357"/>
         <source>&amp;Help</source>
-        <translation>&amp;Aide</translation>
+        <translation>A&amp;ide</translation>
     </message>
     <message>
         <location filename="../MainWindow.cpp" line="350"/>
@@ -1068,6 +1068,142 @@ Please check your printer settings.</source>
         <location filename="../Interpreter.cpp" line="4577"/>
         <source>WARNING on line </source>
         <translation type="unfinished">AVERTISSEMENT à la ligne </translation>
+    </message>
+    <message>
+        <source>&amp;Window</source>
+        <translation>Fe&amp;nêtre</translation>
+    </message>
+    <message>
+        <source>&amp;Open...</source>
+        <translation>&amp;Ouvrir...</translation>
+    </message>
+    <message>
+        <source>Open &amp;Example...</source>
+        <translation>Ouvrir un e&amp;xemple...</translation>
+    </message>
+    <message>
+        <source>Open &amp;Recent</source>
+        <translation>Fichiers &amp;récents</translation>
+    </message>
+    <message>
+        <source>&amp;Clear list</source>
+        <translation>&amp;Effacer la liste</translation>
+    </message>
+    <message>
+        <source>Save &amp;As...</source>
+        <translation>Enregistrer &amp;sous...</translation>
+    </message>
+    <message>
+        <source>Save All</source>
+        <translation>Tout enregistrer</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Fermer</translation>
+    </message>
+    <message>
+        <source>Close All</source>
+        <translation>Tout fermer</translation>
+    </message>
+    <message>
+        <source>&amp;Print...</source>
+        <translation>&amp;Imprimer...</translation>
+    </message>
+    <message>
+        <source>&amp;Find...</source>
+        <translation>&amp;Rechercher...</translation>
+    </message>
+    <message>
+        <source>Find &amp;Next</source>
+        <translation>Rechercher le s&amp;uivant</translation>
+    </message>
+    <message>
+        <source>&amp;Replace...</source>
+        <translation>Rem&amp;placer...</translation>
+    </message>
+    <message>
+        <source>Preferences...</source>
+        <translation>Pré&amp;férences...</translation>
+    </message>
+    <message>
+        <source>Clear</source>
+        <translation>Effacer</translation>
+    </message>
+    <message>
+        <source>Graphics Window &amp;Zoom</source>
+        <translation>&amp;Zoom de la fenêtre graphique</translation>
+    </message>
+    <message>
+        <source>1:4 (quarter)</source>
+        <translation>1:4 (quart)</translation>
+    </message>
+    <message>
+        <source>1:2 (half)</source>
+        <translation>1:2 (moitié)</translation>
+    </message>
+    <message>
+        <source>1:1 (original)</source>
+        <translation>1:1 (original)</translation>
+    </message>
+    <message>
+        <source>2:1 (double)</source>
+        <translation>2:1 (double)</translation>
+    </message>
+    <message>
+        <source>3:1 (triple)</source>
+        <translation>3:1 (triple)</translation>
+    </message>
+    <message>
+        <source>4:1 (quadruple)</source>
+        <translation>4:1 (quadruple)</translation>
+    </message>
+    <message>
+        <source>&amp;Font...</source>
+        <translation>&amp;Police...</translation>
+    </message>
+    <message>
+        <source>&amp;Theme</source>
+        <translation>T&amp;hème</translation>
+    </message>
+    <message>
+        <source>Follow &amp;System</source>
+        <translation>Suivre le &amp;système</translation>
+    </message>
+    <message>
+        <source>&amp;Light</source>
+        <translation>&amp;Clair</translation>
+    </message>
+    <message>
+        <source>&amp;Dark</source>
+        <translation>S&amp;ombre</translation>
+    </message>
+    <message>
+        <source>Show &amp;Whitespace Characters</source>
+        <translation>Afficher les esp&amp;aces</translation>
+    </message>
+    <message>
+        <source>W&amp;rap Long Lines</source>
+        <translation>&amp;Retour à la ligne automatique</translation>
+    </message>
+    <message>
+        <source>Run &amp;to</source>
+        <translation>Exécuter &amp;jusqu&apos;à</translation>
+    </message>
+    <message>
+        <source>&amp;Clear all breakpoints</source>
+        <translation>Supprimer tous les points d&apos;&amp;arrêt</translation>
+    </message>
+    <message>
+        <source>&amp;Online help...</source>
+        <translation>Aide en &amp;ligne...</translation>
+    </message>
+    <message>
+        <source>&amp;Check for update...</source>
+        <translation>Rechercher des &amp;mises à jour...</translation>
+    </message>
+    <message>
+        <source>&amp;About BASIC-256...</source>
+        <translation>À &amp;propos de BASIC-256...</translation>
     </message>
 </context>
 <context>

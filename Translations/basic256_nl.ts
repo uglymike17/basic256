@@ -953,7 +953,7 @@ Check uw printer instelling.</translation>
     </message>
     <message>
         <source>&amp;View</source>
-        <translation>&amp;Bekijken</translation>
+        <translation>Be&amp;kijken</translation>
     </message>
     <message>
         <source>&amp;Text Window</source>
@@ -1085,7 +1085,7 @@ Check uw printer instelling.</translation>
     </message>
     <message>
         <source>Graphics Window Grid &amp;Lines</source>
-        <translation type="unfinished"></translation>
+        <translation>Raster&amp;lijnen grafisch venster</translation>
     </message>
     <message>
         <source>&lt;h2&gt;BASIC-256</source>
@@ -1134,6 +1134,142 @@ Check uw printer instelling.</translation>
     <message>
         <source>&lt;p&gt;&lt;i&gt;You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.&lt;/i&gt;&lt;/p&gt;</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Save &amp;As...</source>
+        <translation>Bewaren &amp;als...</translation>
+    </message>
+    <message>
+        <source>Save All</source>
+        <translation>Bewaar alles</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Sluit</translation>
+    </message>
+    <message>
+        <source>Close All</source>
+        <translation>Sluit alles</translation>
+    </message>
+    <message>
+        <source>&amp;Find...</source>
+        <translation>&amp;Vind...</translation>
+    </message>
+    <message>
+        <source>Find &amp;Next</source>
+        <translation>Vind vol&amp;gende</translation>
+    </message>
+    <message>
+        <source>&amp;Replace...</source>
+        <translation>Ve&amp;rvang...</translation>
+    </message>
+    <message>
+        <source>Preferences...</source>
+        <translation>Voork&amp;euren...</translation>
+    </message>
+    <message>
+        <source>Clear</source>
+        <translation>Wissen</translation>
+    </message>
+    <message>
+        <source>&amp;Theme</source>
+        <translation>&amp;Opmaak</translation>
+    </message>
+    <message>
+        <source>Follow &amp;System</source>
+        <translation>Volg &amp;Systeem</translation>
+    </message>
+    <message>
+        <source>&amp;Light</source>
+        <translation>&amp;Licht</translation>
+    </message>
+    <message>
+        <source>&amp;Dark</source>
+        <translation>&amp;Donker</translation>
+    </message>
+    <message>
+        <source>Show &amp;Whitespace Characters</source>
+        <translation>Toon White&amp;space</translation>
+    </message>
+    <message>
+        <source>W&amp;rap Long Lines</source>
+        <translation>&amp;Regelafbreking</translation>
+    </message>
+    <message>
+        <source>Run &amp;to</source>
+        <translation>Voer uit t&amp;ot</translation>
+    </message>
+    <message>
+        <source>&amp;Open...</source>
+        <translation>&amp;Openen...</translation>
+    </message>
+    <message>
+        <source>Open &amp;Example...</source>
+        <translation>&amp;Voorbeeld openen...</translation>
+    </message>
+    <message>
+        <source>Open &amp;Recent</source>
+        <translation>&amp;Recente bestanden</translation>
+    </message>
+    <message>
+        <source>&amp;Clear list</source>
+        <translation>&amp;Lijst wissen</translation>
+    </message>
+    <message>
+        <source>&amp;Print...</source>
+        <translation>Af&amp;drukken...</translation>
+    </message>
+    <message>
+        <source>Graphics Window &amp;Zoom</source>
+        <translation>&amp;Zoom grafisch venster</translation>
+    </message>
+    <message>
+        <source>1:4 (quarter)</source>
+        <translation>1:4 (kwart)</translation>
+    </message>
+    <message>
+        <source>1:2 (half)</source>
+        <translation>1:2 (half)</translation>
+    </message>
+    <message>
+        <source>1:1 (original)</source>
+        <translation>1:1 (origineel)</translation>
+    </message>
+    <message>
+        <source>2:1 (double)</source>
+        <translation>2:1 (dubbel)</translation>
+    </message>
+    <message>
+        <source>3:1 (triple)</source>
+        <translation>3:1 (driedubbel)</translation>
+    </message>
+    <message>
+        <source>4:1 (quadruple)</source>
+        <translation>4:1 (vierdubbel)</translation>
+    </message>
+    <message>
+        <source>&amp;Font...</source>
+        <translation>L&amp;ettertype...</translation>
+    </message>
+    <message>
+        <source>&amp;Clear all breakpoints</source>
+        <translation>&amp;Alle onderbrekingspunten wissen</translation>
+    </message>
+    <message>
+        <source>&amp;Window</source>
+        <translation>V&amp;enster</translation>
+    </message>
+    <message>
+        <source>&amp;Online help...</source>
+        <translation>&amp;Online hulp...</translation>
+    </message>
+    <message>
+        <source>&amp;Check for update...</source>
+        <translation>Controleer op &amp;updates...</translation>
+    </message>
+    <message>
+        <source>&amp;About BASIC-256...</source>
+        <translation>Over &amp;BASIC-256...</translation>
     </message>
 </context>
 <context>

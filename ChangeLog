@@ -1,3 +1,7 @@
+2026-11-12 M. Vilain <uglymike17@gmail.com>
+	* The menus are fully translated in Dutch, French, German and Spanish, including the newer items such as Save All, the Zoom submenu, Theme and Wrap Long Lines. Within each menu every item has its own underlined letter, so the Alt shortcuts no longer clash. A language is chosen with -l and its code, for example basic256 -l nl; the codes are de, en, es, fr, it, nl, pt and ru.
+	* Returning from a function or subroutine frees its variables correctly.
+
 2026-11-11 M. Vilain <uglymike17@gmail.com>
 	* Drawing without FASTGRAPHICS is much faster: the graphics window is updated at most once every 16 milliseconds, about once a screen frame, instead of after every statement, so 5000 RECT statements take about as long as they do with FASTGRAPHICS. A lone drawing still shows at once, and the window is always brought up to date when the program ends, PAUSEs, waits at FRAMERATE, INPUT, a dialog or a blocking sound, or stops at a debugger step. REFRESH still updates the window at once.
 	* The graphics window is kept in the format the screen uses, so it takes less work to show. Note that GETPIXEL and GETSLICE can read a partly transparent colour back very slightly different from the one drawn; solid colours read back exactly.

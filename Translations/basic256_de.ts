@@ -1061,7 +1061,7 @@
     <message>
         <location filename="../MainWindow.cpp" line="213"/>
         <source>Select &amp;All</source>
-        <translation>&amp;Alles auswählen</translation>
+        <translation>Alles a&amp;uswählen</translation>
     </message>
     <message>
         <location filename="../MainWindow.cpp" line="216"/>
@@ -1076,7 +1076,7 @@
     <message>
         <location filename="../MainWindow.cpp" line="222"/>
         <source>&amp;Beautify</source>
-        <translation>Quellcode &amp;formattieren</translation>
+        <translation>Quellcode &amp;formatieren</translation>
     </message>
     <message>
         <location filename="../MainWindow.cpp" line="224"/>
@@ -1091,7 +1091,7 @@
     <message>
         <location filename="../MainWindow.cpp" line="257"/>
         <source>&amp;Edit Window</source>
-        <translation type="unfinished"></translation>
+        <translation>&amp;Editorfenster</translation>
     </message>
     <message>
         <location filename="../MainWindow.cpp" line="258"/>
@@ -1116,7 +1116,7 @@
     <message>
         <location filename="../MainWindow.cpp" line="290"/>
         <source>Graphics Window Grid &amp;Lines</source>
-        <translation type="unfinished"></translation>
+        <translation>Gitter&amp;linien im Grafikfenster</translation>
     </message>
     <message>
         <location filename="../MainWindow.cpp" line="299"/>
@@ -1212,7 +1212,7 @@
         <location filename="../MainWindow.cpp" line="326"/>
         <location filename="../MainWindow.cpp" line="327"/>
         <source>&amp;Run</source>
-        <translation>&amp;Ausführen</translation>
+        <translation>A&amp;usführen</translation>
     </message>
     <message>
         <location filename="../MainWindow.cpp" line="330"/>
@@ -1345,6 +1345,142 @@ Bitte die Drucker-Einstellungen überprüfen.</translation>
         <location filename="../Interpreter.cpp" line="4577"/>
         <source>WARNING on line </source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Window</source>
+        <translation>&amp;Fenster</translation>
+    </message>
+    <message>
+        <source>&amp;Open...</source>
+        <translation>&amp;Öffnen...</translation>
+    </message>
+    <message>
+        <source>Open &amp;Example...</source>
+        <translation>Beispie&amp;l öffnen...</translation>
+    </message>
+    <message>
+        <source>Open &amp;Recent</source>
+        <translation>&amp;Zuletzt geöffnet</translation>
+    </message>
+    <message>
+        <source>&amp;Clear list</source>
+        <translation>&amp;Liste leeren</translation>
+    </message>
+    <message>
+        <source>Save &amp;As...</source>
+        <translation>Speichern &amp;unter...</translation>
+    </message>
+    <message>
+        <source>Save All</source>
+        <translation>Alle speichern</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Schließen</translation>
+    </message>
+    <message>
+        <source>Close All</source>
+        <translation>Alle schließen</translation>
+    </message>
+    <message>
+        <source>&amp;Print...</source>
+        <translation>&amp;Drucken...</translation>
+    </message>
+    <message>
+        <source>&amp;Find...</source>
+        <translation>&amp;Suchen...</translation>
+    </message>
+    <message>
+        <source>Find &amp;Next</source>
+        <translation>Wei&amp;tersuchen</translation>
+    </message>
+    <message>
+        <source>&amp;Replace...</source>
+        <translation>Erset&amp;zen...</translation>
+    </message>
+    <message>
+        <source>Preferences...</source>
+        <translation>Ei&amp;nstellungen...</translation>
+    </message>
+    <message>
+        <source>Clear</source>
+        <translation>Löschen</translation>
+    </message>
+    <message>
+        <source>Graphics Window &amp;Zoom</source>
+        <translation>&amp;Zoom des Grafikfensters</translation>
+    </message>
+    <message>
+        <source>1:4 (quarter)</source>
+        <translation>1:4 (Viertel)</translation>
+    </message>
+    <message>
+        <source>1:2 (half)</source>
+        <translation>1:2 (Hälfte)</translation>
+    </message>
+    <message>
+        <source>1:1 (original)</source>
+        <translation>1:1 (Original)</translation>
+    </message>
+    <message>
+        <source>2:1 (double)</source>
+        <translation>2:1 (doppelt)</translation>
+    </message>
+    <message>
+        <source>3:1 (triple)</source>
+        <translation>3:1 (dreifach)</translation>
+    </message>
+    <message>
+        <source>4:1 (quadruple)</source>
+        <translation>4:1 (vierfach)</translation>
+    </message>
+    <message>
+        <source>&amp;Font...</source>
+        <translation>&amp;Schriftart...</translation>
+    </message>
+    <message>
+        <source>&amp;Theme</source>
+        <translation>&amp;Farbschema</translation>
+    </message>
+    <message>
+        <source>Follow &amp;System</source>
+        <translation>&amp;System folgen</translation>
+    </message>
+    <message>
+        <source>&amp;Light</source>
+        <translation>&amp;Hell</translation>
+    </message>
+    <message>
+        <source>&amp;Dark</source>
+        <translation>&amp;Dunkel</translation>
+    </message>
+    <message>
+        <source>Show &amp;Whitespace Characters</source>
+        <translation>Leerzeichen &amp;anzeigen</translation>
+    </message>
+    <message>
+        <source>W&amp;rap Long Lines</source>
+        <translation>Zeilen&amp;umbruch</translation>
+    </message>
+    <message>
+        <source>Run &amp;to</source>
+        <translation>Ausführen &amp;bis</translation>
+    </message>
+    <message>
+        <source>&amp;Clear all breakpoints</source>
+        <translation>&amp;Alle Haltepunkte entfernen</translation>
+    </message>
+    <message>
+        <source>&amp;Online help...</source>
+        <translation>&amp;Online-Hilfe...</translation>
+    </message>
+    <message>
+        <source>&amp;Check for update...</source>
+        <translation>Nach &amp;Updates suchen...</translation>
+    </message>
+    <message>
+        <source>&amp;About BASIC-256...</source>
+        <translation>Ü&amp;ber BASIC-256...</translation>
     </message>
 </context>
 <context>
