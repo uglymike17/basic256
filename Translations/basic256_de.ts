@@ -860,7 +860,7 @@
     <message>
         <location filename="../PreferencesWin.cpp" line="34"/>
         <source>BASIC-256 Preferences and Settings</source>
-        <translation type="unfinished"></translation>
+        <translation>BASIC-256 Einstellungen</translation>
     </message>
     <message>
         <location filename="../PreferencesWin.cpp" line="39"/>
@@ -890,17 +890,397 @@
     <message>
         <location filename="../PreferencesWin.cpp" line="72"/>
         <source>Cancel</source>
-        <translation type="unfinished">Abbrechen</translation>
+        <translation>Abbrechen</translation>
     </message>
     <message>
         <location filename="../PreferencesWin.cpp" line="74"/>
         <source>Save</source>
-        <translation type="unfinished">Speichern</translation>
+        <translation>Speichern</translation>
     </message>
     <message>
         <location filename="../PreferencesWin.cpp" line="110"/>
         <source>Preferences and settings have been saved.</source>
-        <translation type="unfinished"></translation>
+        <translation>Die Einstellungen wurden gespeichert.</translation>
+    </message>
+    <message>
+        <source>Advanced Preferences Password:</source>
+        <translation>Passwort für erweiterte Einstellungen:</translation>
+    </message>
+    <message>
+        <source>Allow SYSTEM statement:</source>
+        <translation>SYSTEM-Anweisung erlauben:</translation>
+    </message>
+    <message>
+        <source>Do not allow</source>
+        <translation>Nicht erlauben</translation>
+    </message>
+    <message>
+        <source>Ask confirmation from user</source>
+        <translation>Benutzer um Bestätigung bitten</translation>
+    </message>
+    <message>
+        <source>Allow</source>
+        <translation>Erlauben</translation>
+    </message>
+    <message>
+        <source>Allow files outside the program&apos;s folder:</source>
+        <translation>Dateien außerhalb des Programmordners erlauben:</translation>
+    </message>
+    <message>
+        <source>NETLISTEN accepts connections from other machines</source>
+        <translation>NETLISTEN nimmt Verbindungen von anderen Rechnern an</translation>
+    </message>
+    <message>
+        <source>Allow PORTIN/PORTOUT statements:</source>
+        <translation>PORTIN/PORTOUT-Anweisungen erlauben:</translation>
+    </message>
+    <message>
+        <source>GETSETTING/SETSETTING access level:</source>
+        <translation>Zugriffsstufe für GETSETTING/SETSETTING:</translation>
+    </message>
+    <message>
+        <source>Get / set only owned settings</source>
+        <translation>Nur eigene Einstellungen lesen / schreiben</translation>
+    </message>
+    <message>
+        <source>Get any settings / set only owned settings</source>
+        <translation>Alle Einstellungen lesen / nur eigene schreiben</translation>
+    </message>
+    <message>
+        <source>Full access (get/set) to settings</source>
+        <translation>Voller Zugriff (lesen/schreiben) auf Einstellungen</translation>
+    </message>
+    <message>
+        <source>Allow programs to use persistent settings (SETSETTING statement)</source>
+        <translation>Programmen dauerhafte Einstellungen erlauben (SETSETTING-Anweisung)</translation>
+    </message>
+    <message>
+        <source>Browse persistent settings</source>
+        <translation>Dauerhafte Einstellungen anzeigen</translation>
+    </message>
+    <message>
+        <source>Clear all persistent settings</source>
+        <translation>Alle dauerhaften Einstellungen löschen</translation>
+    </message>
+    <message>
+        <source>Max number of settings for each program:</source>
+        <translation>Höchstzahl an Einstellungen je Programm:</translation>
+    </message>
+    <message>
+        <source>No limit</source>
+        <translation>Unbegrenzt</translation>
+    </message>
+    <message>
+        <source>Startup</source>
+        <translation>Programmstart</translation>
+    </message>
+    <message>
+        <source>Restore last windows position on start</source>
+        <translation>Letzte Fensterpositionen beim Start wiederherstellen</translation>
+    </message>
+    <message>
+        <source>Runtime handling of bad type conversions:</source>
+        <translation>Verhalten bei fehlerhafter Typumwandlung zur Laufzeit:</translation>
+    </message>
+    <message>
+        <source>Ignore</source>
+        <translation>Ignorieren</translation>
+    </message>
+    <message>
+        <source>Warn</source>
+        <translation>Warnen</translation>
+    </message>
+    <message>
+        <source>Error</source>
+        <translation>Fehler</translation>
+    </message>
+    <message>
+        <source>Runtime handling of unassigned variables:</source>
+        <translation>Verhalten bei nicht zugewiesenen Variablen zur Laufzeit:</translation>
+    </message>
+    <message>
+        <source>Warn when overwriting an existing file</source>
+        <translation>Warnen, wenn eine vorhandene Datei überschrieben wird</translation>
+    </message>
+    <message>
+        <source>Number of digits to print numbers:</source>
+        <translation>Anzahl der Stellen bei der Zahlenausgabe:</translation>
+    </message>
+    <message>
+        <source>Use localized decimal point on floating point numbers</source>
+        <translation>Landesübliches Dezimalzeichen für Gleitkommazahlen verwenden</translation>
+    </message>
+    <message>
+        <source>Always show decimal point on floating point numbers</source>
+        <translation>Dezimalzeichen bei Gleitkommazahlen immer anzeigen</translation>
+    </message>
+    <message>
+        <source>Debugging Speed:</source>
+        <translation>Debug-Geschwindigkeit:</translation>
+    </message>
+    <message>
+        <source>Fast</source>
+        <translation>Schnell</translation>
+    </message>
+    <message>
+        <source>Slow</source>
+        <translation>Langsam</translation>
+    </message>
+    <message>
+        <source>Volume:</source>
+        <translation>Lautstärke:</translation>
+    </message>
+    <message>
+        <source>Sound sample rate:</source>
+        <translation>Abtastrate:</translation>
+    </message>
+    <message>
+        <source>Min. period to normalize louder sounds:</source>
+        <translation>Mindestdauer zum Angleichen lauterer Töne:</translation>
+    </message>
+    <message>
+        <source>Period to restore volume after louder sound:</source>
+        <translation>Dauer bis zur Wiederherstellung der Lautstärke nach lauterem Ton:</translation>
+    </message>
+    <message>
+        <source>Printer:</source>
+        <translation>Drucker:</translation>
+    </message>
+    <message>
+        <source>PDF File Output</source>
+        <translation>Ausgabe in PDF-Datei</translation>
+    </message>
+    <message>
+        <source>Paper:</source>
+        <translation>Papier:</translation>
+    </message>
+    <message>
+        <source>PDF File Name:</source>
+        <translation>PDF-Dateiname:</translation>
+    </message>
+    <message>
+        <source>Printer Resolution:</source>
+        <translation>Druckauflösung:</translation>
+    </message>
+    <message>
+        <source>High</source>
+        <translation>Hoch</translation>
+    </message>
+    <message>
+        <source>Screen</source>
+        <translation>Bildschirm</translation>
+    </message>
+    <message>
+        <source>Orientation:</source>
+        <translation>Ausrichtung:</translation>
+    </message>
+    <message>
+        <source>Portrait</source>
+        <translation>Hochformat</translation>
+    </message>
+    <message>
+        <source>Landscape</source>
+        <translation>Querformat</translation>
+    </message>
+    <message>
+        <source>User</source>
+        <translation>Benutzer</translation>
+    </message>
+    <message>
+        <source>Sound</source>
+        <translation>Ton</translation>
+    </message>
+    <message>
+        <source>Printing</source>
+        <translation>Drucken</translation>
+    </message>
+    <message>
+        <source>Advanced</source>
+        <translation>Erweitert</translation>
+    </message>
+    <message>
+        <source>File name required for PDF output.</source>
+        <translation>Für die PDF-Ausgabe ist ein Dateiname nötig.</translation>
+    </message>
+    <message>
+        <source>digits</source>
+        <translation>Stellen</translation>
+    </message>
+    <message>
+        <source>pause</source>
+        <translation>Pause</translation>
+    </message>
+    <message>
+        <source>ms</source>
+        <translation>ms</translation>
+    </message>
+    <message>
+        <source>Delete persistent settings</source>
+        <translation>Dauerhafte Einstellungen löschen</translation>
+    </message>
+    <message>
+        <source>Do you really want to delete persistent settings for all programs?</source>
+        <translation>Wollen Sie die dauerhaften Einstellungen aller Programme wirklich löschen?</translation>
+    </message>
+    <message>
+        <source>50 keys</source>
+        <translation>50 Schlüssel</translation>
+    </message>
+    <message>
+        <source>100 keys</source>
+        <translation>100 Schlüssel</translation>
+    </message>
+    <message>
+        <source>200 keys</source>
+        <translation>200 Schlüssel</translation>
+    </message>
+    <message>
+        <source>44100 Hz</source>
+        <translation>44100 Hz</translation>
+    </message>
+    <message>
+        <source>32000 Hz</source>
+        <translation>32000 Hz</translation>
+    </message>
+    <message>
+        <source>22050 Hz</source>
+        <translation>22050 Hz</translation>
+    </message>
+    <message>
+        <source>16000 Hz</source>
+        <translation>16000 Hz</translation>
+    </message>
+    <message>
+        <source>11025 Hz</source>
+        <translation>11025 Hz</translation>
+    </message>
+    <message>
+        <source>8000 Hz</source>
+        <translation>8000 Hz</translation>
+    </message>
+    <message>
+        <source>4400 Hz</source>
+        <translation>4400 Hz</translation>
+    </message>
+    <message>
+        <source>A0 (841 x 1189 mm)</source>
+        <translation>A0 (841 x 1189 mm)</translation>
+    </message>
+    <message>
+        <source>A1 (594 x 841 mm)</source>
+        <translation>A1 (594 x 841 mm)</translation>
+    </message>
+    <message>
+        <source>A2 (420 x 594 mm)</source>
+        <translation>A2 (420 x 594 mm)</translation>
+    </message>
+    <message>
+        <source>A3 (297 x 420 mm)</source>
+        <translation>A3 (297 x 420 mm)</translation>
+    </message>
+    <message>
+        <source>A4 (210 x 297 mm, 8.26 x 11.69 inches)</source>
+        <translation>A4 (210 x 297 mm, 8,26 x 11,69 Zoll)</translation>
+    </message>
+    <message>
+        <source>A5 (148 x 210 mm)</source>
+        <translation>A5 (148 x 210 mm)</translation>
+    </message>
+    <message>
+        <source>A6 (105 x 148 mm)</source>
+        <translation>A6 (105 x 148 mm)</translation>
+    </message>
+    <message>
+        <source>A7 (74 x 105 mm)</source>
+        <translation>A7 (74 x 105 mm)</translation>
+    </message>
+    <message>
+        <source>A8 (52 x 74 mm)</source>
+        <translation>A8 (52 x 74 mm)</translation>
+    </message>
+    <message>
+        <source>A9 (37 x 52 mm)</source>
+        <translation>A9 (37 x 52 mm)</translation>
+    </message>
+    <message>
+        <source>B0 (1000 x 1414 mm)</source>
+        <translation>B0 (1000 x 1414 mm)</translation>
+    </message>
+    <message>
+        <source>B1 (707 x 1000 mm)</source>
+        <translation>B1 (707 x 1000 mm)</translation>
+    </message>
+    <message>
+        <source>B2 (500 x 707 mm)</source>
+        <translation>B2 (500 x 707 mm)</translation>
+    </message>
+    <message>
+        <source>B3 (353 x 500 mm)</source>
+        <translation>B3 (353 x 500 mm)</translation>
+    </message>
+    <message>
+        <source>B4 (250 x 353 mm)</source>
+        <translation>B4 (250 x 353 mm)</translation>
+    </message>
+    <message>
+        <source>B5 (176 x 250 mm, 6.93 x 9.84 inches)</source>
+        <translation>B5 (176 x 250 mm, 6,93 x 9,84 Zoll)</translation>
+    </message>
+    <message>
+        <source>B6 (125 x 176 mm)</source>
+        <translation>B6 (125 x 176 mm)</translation>
+    </message>
+    <message>
+        <source>B7 (88 x 125 mm)</source>
+        <translation>B7 (88 x 125 mm)</translation>
+    </message>
+    <message>
+        <source>B8 (62 x 88 mm)</source>
+        <translation>B8 (62 x 88 mm)</translation>
+    </message>
+    <message>
+        <source>B9 (33 x 62 mm)</source>
+        <translation>B9 (33 x 62 mm)</translation>
+    </message>
+    <message>
+        <source>B10 (31 x 44 mm)</source>
+        <translation>B10 (31 x 44 mm)</translation>
+    </message>
+    <message>
+        <source>#5 Envelope (163 x 229 mm)</source>
+        <translation>Umschlag #5 (163 x 229 mm)</translation>
+    </message>
+    <message>
+        <source>#10 Envelope (105 x 241 mm)</source>
+        <translation>Umschlag #10 (105 x 241 mm)</translation>
+    </message>
+    <message>
+        <source>DLE (110 x 220 mm)</source>
+        <translation>DLE (110 x 220 mm)</translation>
+    </message>
+    <message>
+        <source>Executive (7.5 x 10 inches, 190.5 x 254 mm)</source>
+        <translation>Executive (7,5 x 10 Zoll, 190,5 x 254 mm)</translation>
+    </message>
+    <message>
+        <source>Folio (210 x 330 mm)</source>
+        <translation>Folio (210 x 330 mm)</translation>
+    </message>
+    <message>
+        <source>Ledger (431.8 x 279.4 mm)</source>
+        <translation>Ledger (431,8 x 279,4 mm)</translation>
+    </message>
+    <message>
+        <source>Legal (8.5 x 14 inches, 215.9 x 355.6 mm)</source>
+        <translation>Legal (8,5 x 14 Zoll, 215,9 x 355,6 mm)</translation>
+    </message>
+    <message>
+        <source>Letter (8.5 x 11 inches, 215.9 x 279.4 mm)</source>
+        <translation>Letter (8,5 x 11 Zoll, 215,9 x 279,4 mm)</translation>
+    </message>
+    <message>
+        <source>Tabloid (279.4 x 431.8 mm)</source>
+        <translation>Tabloid (279,4 x 431,8 mm)</translation>
     </message>
 </context>
 <context>
@@ -1615,6 +1995,33 @@ Bitte die Drucker-Einstellungen überprüfen.</translation>
         <location filename="../VariableWin.cpp" line="111"/>
         <source>&lt;&gt;unassigned&gt;</source>
         <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SettingsBrowser</name>
+    <message>
+        <source>BASIC-256 Persistent settings</source>
+        <translation>BASIC-256 Dauerhafte Einstellungen</translation>
+    </message>
+    <message>
+        <source>Program/Key</source>
+        <translation>Programm/Schlüssel</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <translation>Wert</translation>
+    </message>
+    <message>
+        <source>Delete selected settings</source>
+        <translation>Ausgewählte Einstellungen löschen</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Abbrechen</translation>
+    </message>
+    <message>
+        <source>Do you really want to delete selected persistent settings?</source>
+        <translation>Wollen Sie die ausgewählten dauerhaften Einstellungen wirklich löschen?</translation>
     </message>
 </context>
 </TS>

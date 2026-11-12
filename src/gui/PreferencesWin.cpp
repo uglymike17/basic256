@@ -446,7 +446,7 @@ PreferencesWin::PreferencesWin (QWidget * parent, bool showAdvanced)
 		papercombo->addItem(tr("A5 (148 x 210 mm)"), QPageSize::A5);
 		papercombo->addItem(tr("A6 (105 x 148 mm)"), QPageSize::A6);
 		papercombo->addItem(tr("A7 (74 x 105 mm)"), QPageSize::A7);
-		papercombo->addItem(tr("A9 (52 x 74 mm)"), QPageSize::A8);
+		papercombo->addItem(tr("A8 (52 x 74 mm)"), QPageSize::A8);
 		papercombo->addItem(tr("A9 (37 x 52 mm)"), QPageSize::A9);
 		papercombo->addItem(tr("B0 (1000 x 1414 mm)"), QPageSize::B0);
 		papercombo->addItem(tr("B1 (707 x 1000 mm)"), QPageSize::B1);

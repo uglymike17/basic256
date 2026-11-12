@@ -778,6 +778,386 @@
         <source>Show runtime warning messages</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Advanced Preferences Password:</source>
+        <translation>Пароль расширенных настроек:</translation>
+    </message>
+    <message>
+        <source>Allow SYSTEM statement:</source>
+        <translation>Разрешить оператор SYSTEM:</translation>
+    </message>
+    <message>
+        <source>Do not allow</source>
+        <translation>Не разрешать</translation>
+    </message>
+    <message>
+        <source>Ask confirmation from user</source>
+        <translation>Спрашивать подтверждение у пользователя</translation>
+    </message>
+    <message>
+        <source>Allow</source>
+        <translation>Разрешать</translation>
+    </message>
+    <message>
+        <source>Allow files outside the program&apos;s folder:</source>
+        <translation>Разрешить файлы вне папки программы:</translation>
+    </message>
+    <message>
+        <source>NETLISTEN accepts connections from other machines</source>
+        <translation>NETLISTEN принимает подключения с других компьютеров</translation>
+    </message>
+    <message>
+        <source>Allow PORTIN/PORTOUT statements:</source>
+        <translation>Разрешить операторы PORTIN/PORTOUT:</translation>
+    </message>
+    <message>
+        <source>GETSETTING/SETSETTING access level:</source>
+        <translation>Уровень доступа GETSETTING/SETSETTING:</translation>
+    </message>
+    <message>
+        <source>Get / set only owned settings</source>
+        <translation>Чтение / запись только своих параметров</translation>
+    </message>
+    <message>
+        <source>Get any settings / set only owned settings</source>
+        <translation>Чтение любых параметров / запись только своих</translation>
+    </message>
+    <message>
+        <source>Full access (get/set) to settings</source>
+        <translation>Полный доступ (чтение/запись) к параметрам</translation>
+    </message>
+    <message>
+        <source>Allow programs to use persistent settings (SETSETTING statement)</source>
+        <translation>Разрешить программам сохранять параметры (оператор SETSETTING)</translation>
+    </message>
+    <message>
+        <source>Browse persistent settings</source>
+        <translation>Просмотр сохранённых параметров</translation>
+    </message>
+    <message>
+        <source>Clear all persistent settings</source>
+        <translation>Удалить все сохранённые параметры</translation>
+    </message>
+    <message>
+        <source>Max number of settings for each program:</source>
+        <translation>Максимум параметров на программу:</translation>
+    </message>
+    <message>
+        <source>No limit</source>
+        <translation>Без ограничений</translation>
+    </message>
+    <message>
+        <source>Startup</source>
+        <translation>Запуск</translation>
+    </message>
+    <message>
+        <source>Restore last windows position on start</source>
+        <translation>Восстанавливать положение окон при запуске</translation>
+    </message>
+    <message>
+        <source>Runtime handling of bad type conversions:</source>
+        <translation>Обработка ошибочных преобразований типов при выполнении:</translation>
+    </message>
+    <message>
+        <source>Ignore</source>
+        <translation>Игнорировать</translation>
+    </message>
+    <message>
+        <source>Warn</source>
+        <translation>Предупреждать</translation>
+    </message>
+    <message>
+        <source>Error</source>
+        <translation>Ошибка</translation>
+    </message>
+    <message>
+        <source>Runtime handling of unassigned variables:</source>
+        <translation>Обработка неприсвоенных переменных при выполнении:</translation>
+    </message>
+    <message>
+        <source>Warn when overwriting an existing file</source>
+        <translation>Предупреждать при перезаписи существующего файла</translation>
+    </message>
+    <message>
+        <source>Number of digits to print numbers:</source>
+        <translation>Количество цифр при выводе чисел:</translation>
+    </message>
+    <message>
+        <source>Use localized decimal point on floating point numbers</source>
+        <translation>Использовать местный десятичный разделитель</translation>
+    </message>
+    <message>
+        <source>Always show decimal point on floating point numbers</source>
+        <translation>Всегда показывать десятичный разделитель у дробных чисел</translation>
+    </message>
+    <message>
+        <source>Debugging Speed:</source>
+        <translation>Скорость отладки:</translation>
+    </message>
+    <message>
+        <source>Fast</source>
+        <translation>Быстро</translation>
+    </message>
+    <message>
+        <source>Slow</source>
+        <translation>Медленно</translation>
+    </message>
+    <message>
+        <source>Volume:</source>
+        <translation>Громкость:</translation>
+    </message>
+    <message>
+        <source>Sound sample rate:</source>
+        <translation>Частота дискретизации:</translation>
+    </message>
+    <message>
+        <source>Min. period to normalize louder sounds:</source>
+        <translation>Мин. период нормализации громких звуков:</translation>
+    </message>
+    <message>
+        <source>Period to restore volume after louder sound:</source>
+        <translation>Период восстановления громкости после громкого звука:</translation>
+    </message>
+    <message>
+        <source>Printer:</source>
+        <translation>Принтер:</translation>
+    </message>
+    <message>
+        <source>PDF File Output</source>
+        <translation>Вывод в PDF-файл</translation>
+    </message>
+    <message>
+        <source>Paper:</source>
+        <translation>Бумага:</translation>
+    </message>
+    <message>
+        <source>PDF File Name:</source>
+        <translation>Имя PDF-файла:</translation>
+    </message>
+    <message>
+        <source>Printer Resolution:</source>
+        <translation>Разрешение печати:</translation>
+    </message>
+    <message>
+        <source>High</source>
+        <translation>Высокое</translation>
+    </message>
+    <message>
+        <source>Screen</source>
+        <translation>Экранное</translation>
+    </message>
+    <message>
+        <source>Orientation:</source>
+        <translation>Ориентация:</translation>
+    </message>
+    <message>
+        <source>Portrait</source>
+        <translation>Книжная</translation>
+    </message>
+    <message>
+        <source>Landscape</source>
+        <translation>Альбомная</translation>
+    </message>
+    <message>
+        <source>User</source>
+        <translation>Пользователь</translation>
+    </message>
+    <message>
+        <source>Sound</source>
+        <translation>Звук</translation>
+    </message>
+    <message>
+        <source>Printing</source>
+        <translation>Печать</translation>
+    </message>
+    <message>
+        <source>Advanced</source>
+        <translation>Дополнительно</translation>
+    </message>
+    <message>
+        <source>File name required for PDF output.</source>
+        <translation>Для вывода в PDF нужно имя файла.</translation>
+    </message>
+    <message>
+        <source>digits</source>
+        <translation>цифр</translation>
+    </message>
+    <message>
+        <source>pause</source>
+        <translation>пауза</translation>
+    </message>
+    <message>
+        <source>ms</source>
+        <translation>мс</translation>
+    </message>
+    <message>
+        <source>Delete persistent settings</source>
+        <translation>Удалить сохранённые параметры</translation>
+    </message>
+    <message>
+        <source>Do you really want to delete persistent settings for all programs?</source>
+        <translation>Удалить сохранённые параметры всех программ?</translation>
+    </message>
+    <message>
+        <source>50 keys</source>
+        <translation>50 ключей</translation>
+    </message>
+    <message>
+        <source>100 keys</source>
+        <translation>100 ключей</translation>
+    </message>
+    <message>
+        <source>200 keys</source>
+        <translation>200 ключей</translation>
+    </message>
+    <message>
+        <source>44100 Hz</source>
+        <translation>44100 Гц</translation>
+    </message>
+    <message>
+        <source>32000 Hz</source>
+        <translation>32000 Гц</translation>
+    </message>
+    <message>
+        <source>22050 Hz</source>
+        <translation>22050 Гц</translation>
+    </message>
+    <message>
+        <source>16000 Hz</source>
+        <translation>16000 Гц</translation>
+    </message>
+    <message>
+        <source>11025 Hz</source>
+        <translation>11025 Гц</translation>
+    </message>
+    <message>
+        <source>8000 Hz</source>
+        <translation>8000 Гц</translation>
+    </message>
+    <message>
+        <source>4400 Hz</source>
+        <translation>4400 Гц</translation>
+    </message>
+    <message>
+        <source>A0 (841 x 1189 mm)</source>
+        <translation>A0 (841 x 1189 мм)</translation>
+    </message>
+    <message>
+        <source>A1 (594 x 841 mm)</source>
+        <translation>A1 (594 x 841 мм)</translation>
+    </message>
+    <message>
+        <source>A2 (420 x 594 mm)</source>
+        <translation>A2 (420 x 594 мм)</translation>
+    </message>
+    <message>
+        <source>A3 (297 x 420 mm)</source>
+        <translation>A3 (297 x 420 мм)</translation>
+    </message>
+    <message>
+        <source>A4 (210 x 297 mm, 8.26 x 11.69 inches)</source>
+        <translation>A4 (210 x 297 мм, 8,26 x 11,69 дюйма)</translation>
+    </message>
+    <message>
+        <source>A5 (148 x 210 mm)</source>
+        <translation>A5 (148 x 210 мм)</translation>
+    </message>
+    <message>
+        <source>A6 (105 x 148 mm)</source>
+        <translation>A6 (105 x 148 мм)</translation>
+    </message>
+    <message>
+        <source>A7 (74 x 105 mm)</source>
+        <translation>A7 (74 x 105 мм)</translation>
+    </message>
+    <message>
+        <source>A8 (52 x 74 mm)</source>
+        <translation>A8 (52 x 74 мм)</translation>
+    </message>
+    <message>
+        <source>A9 (37 x 52 mm)</source>
+        <translation>A9 (37 x 52 мм)</translation>
+    </message>
+    <message>
+        <source>B0 (1000 x 1414 mm)</source>
+        <translation>B0 (1000 x 1414 мм)</translation>
+    </message>
+    <message>
+        <source>B1 (707 x 1000 mm)</source>
+        <translation>B1 (707 x 1000 мм)</translation>
+    </message>
+    <message>
+        <source>B2 (500 x 707 mm)</source>
+        <translation>B2 (500 x 707 мм)</translation>
+    </message>
+    <message>
+        <source>B3 (353 x 500 mm)</source>
+        <translation>B3 (353 x 500 мм)</translation>
+    </message>
+    <message>
+        <source>B4 (250 x 353 mm)</source>
+        <translation>B4 (250 x 353 мм)</translation>
+    </message>
+    <message>
+        <source>B5 (176 x 250 mm, 6.93 x 9.84 inches)</source>
+        <translation>B5 (176 x 250 мм, 6,93 x 9,84 дюйма)</translation>
+    </message>
+    <message>
+        <source>B6 (125 x 176 mm)</source>
+        <translation>B6 (125 x 176 мм)</translation>
+    </message>
+    <message>
+        <source>B7 (88 x 125 mm)</source>
+        <translation>B7 (88 x 125 мм)</translation>
+    </message>
+    <message>
+        <source>B8 (62 x 88 mm)</source>
+        <translation>B8 (62 x 88 мм)</translation>
+    </message>
+    <message>
+        <source>B9 (33 x 62 mm)</source>
+        <translation>B9 (33 x 62 мм)</translation>
+    </message>
+    <message>
+        <source>B10 (31 x 44 mm)</source>
+        <translation>B10 (31 x 44 мм)</translation>
+    </message>
+    <message>
+        <source>#5 Envelope (163 x 229 mm)</source>
+        <translation>Конверт #5 (163 x 229 мм)</translation>
+    </message>
+    <message>
+        <source>#10 Envelope (105 x 241 mm)</source>
+        <translation>Конверт #10 (105 x 241 мм)</translation>
+    </message>
+    <message>
+        <source>DLE (110 x 220 mm)</source>
+        <translation>DLE (110 x 220 мм)</translation>
+    </message>
+    <message>
+        <source>Executive (7.5 x 10 inches, 190.5 x 254 mm)</source>
+        <translation>Executive (7,5 x 10 дюйма, 190,5 x 254 мм)</translation>
+    </message>
+    <message>
+        <source>Folio (210 x 330 mm)</source>
+        <translation>Folio (210 x 330 мм)</translation>
+    </message>
+    <message>
+        <source>Ledger (431.8 x 279.4 mm)</source>
+        <translation>Ledger (431,8 x 279,4 мм)</translation>
+    </message>
+    <message>
+        <source>Legal (8.5 x 14 inches, 215.9 x 355.6 mm)</source>
+        <translation>Legal (8,5 x 14 дюйма, 215,9 x 355,6 мм)</translation>
+    </message>
+    <message>
+        <source>Letter (8.5 x 11 inches, 215.9 x 279.4 mm)</source>
+        <translation>Letter (8,5 x 11 дюйма, 215,9 x 279,4 мм)</translation>
+    </message>
+    <message>
+        <source>Tabloid (279.4 x 431.8 mm)</source>
+        <translation>Tabloid (279,4 x 431,8 мм)</translation>
+    </message>
 </context>
 <context>
     <name>QObject</name>
@@ -1415,6 +1795,33 @@ Please check your printer settings.</source>
     <message>
         <source>&lt;&gt;unassigned&gt;</source>
         <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SettingsBrowser</name>
+    <message>
+        <source>BASIC-256 Persistent settings</source>
+        <translation>Сохранённые параметры BASIC-256</translation>
+    </message>
+    <message>
+        <source>Program/Key</source>
+        <translation>Программа/Ключ</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <translation>Значение</translation>
+    </message>
+    <message>
+        <source>Delete selected settings</source>
+        <translation>Удалить выбранные параметры</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Отмена</translation>
+    </message>
+    <message>
+        <source>Do you really want to delete selected persistent settings?</source>
+        <translation>Удалить выбранные сохранённые параметры?</translation>
     </message>
 </context>
 </TS>

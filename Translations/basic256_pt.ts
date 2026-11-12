@@ -707,6 +707,386 @@
         <source>Preferences and settings have been saved.</source>
         <translation>As preferências e configurações foram guardadas.</translation>
     </message>
+    <message>
+        <source>Advanced Preferences Password:</source>
+        <translation>Palavra-passe das preferências avançadas:</translation>
+    </message>
+    <message>
+        <source>Allow SYSTEM statement:</source>
+        <translation>Permitir a instrução SYSTEM:</translation>
+    </message>
+    <message>
+        <source>Do not allow</source>
+        <translation>Não permitir</translation>
+    </message>
+    <message>
+        <source>Ask confirmation from user</source>
+        <translation>Pedir confirmação ao utilizador</translation>
+    </message>
+    <message>
+        <source>Allow</source>
+        <translation>Permitir</translation>
+    </message>
+    <message>
+        <source>Allow files outside the program&apos;s folder:</source>
+        <translation>Permitir ficheiros fora da pasta do programa:</translation>
+    </message>
+    <message>
+        <source>NETLISTEN accepts connections from other machines</source>
+        <translation>NETLISTEN aceita ligações de outros computadores</translation>
+    </message>
+    <message>
+        <source>Allow PORTIN/PORTOUT statements:</source>
+        <translation>Permitir as instruções PORTIN/PORTOUT:</translation>
+    </message>
+    <message>
+        <source>GETSETTING/SETSETTING access level:</source>
+        <translation>Nível de acesso de GETSETTING/SETSETTING:</translation>
+    </message>
+    <message>
+        <source>Get / set only owned settings</source>
+        <translation>Ler / escrever apenas as definições próprias</translation>
+    </message>
+    <message>
+        <source>Get any settings / set only owned settings</source>
+        <translation>Ler todas as definições / escrever apenas as próprias</translation>
+    </message>
+    <message>
+        <source>Full access (get/set) to settings</source>
+        <translation>Acesso total (ler/escrever) às definições</translation>
+    </message>
+    <message>
+        <source>Allow programs to use persistent settings (SETSETTING statement)</source>
+        <translation>Permitir que os programas usem definições persistentes (instrução SETSETTING)</translation>
+    </message>
+    <message>
+        <source>Browse persistent settings</source>
+        <translation>Ver definições persistentes</translation>
+    </message>
+    <message>
+        <source>Clear all persistent settings</source>
+        <translation>Apagar todas as definições persistentes</translation>
+    </message>
+    <message>
+        <source>Max number of settings for each program:</source>
+        <translation>Número máximo de definições por programa:</translation>
+    </message>
+    <message>
+        <source>No limit</source>
+        <translation>Sem limite</translation>
+    </message>
+    <message>
+        <source>Startup</source>
+        <translation>Arranque</translation>
+    </message>
+    <message>
+        <source>Restore last windows position on start</source>
+        <translation>Restaurar a última posição das janelas ao arrancar</translation>
+    </message>
+    <message>
+        <source>Runtime handling of bad type conversions:</source>
+        <translation>Tratamento de conversões de tipo inválidas na execução:</translation>
+    </message>
+    <message>
+        <source>Ignore</source>
+        <translation>Ignorar</translation>
+    </message>
+    <message>
+        <source>Warn</source>
+        <translation>Avisar</translation>
+    </message>
+    <message>
+        <source>Error</source>
+        <translation>Erro</translation>
+    </message>
+    <message>
+        <source>Runtime handling of unassigned variables:</source>
+        <translation>Tratamento de variáveis não atribuídas na execução:</translation>
+    </message>
+    <message>
+        <source>Warn when overwriting an existing file</source>
+        <translation>Avisar ao substituir um ficheiro existente</translation>
+    </message>
+    <message>
+        <source>Number of digits to print numbers:</source>
+        <translation>Número de dígitos ao mostrar números:</translation>
+    </message>
+    <message>
+        <source>Use localized decimal point on floating point numbers</source>
+        <translation>Usar o separador decimal local nos números decimais</translation>
+    </message>
+    <message>
+        <source>Always show decimal point on floating point numbers</source>
+        <translation>Mostrar sempre o separador decimal nos números decimais</translation>
+    </message>
+    <message>
+        <source>Debugging Speed:</source>
+        <translation>Velocidade de depuração:</translation>
+    </message>
+    <message>
+        <source>Fast</source>
+        <translation>Rápido</translation>
+    </message>
+    <message>
+        <source>Slow</source>
+        <translation>Lento</translation>
+    </message>
+    <message>
+        <source>Volume:</source>
+        <translation>Volume:</translation>
+    </message>
+    <message>
+        <source>Sound sample rate:</source>
+        <translation>Frequência de amostragem:</translation>
+    </message>
+    <message>
+        <source>Min. period to normalize louder sounds:</source>
+        <translation>Período mínimo para normalizar sons mais altos:</translation>
+    </message>
+    <message>
+        <source>Period to restore volume after louder sound:</source>
+        <translation>Período para restaurar o volume após um som mais alto:</translation>
+    </message>
+    <message>
+        <source>Printer:</source>
+        <translation>Impressora:</translation>
+    </message>
+    <message>
+        <source>PDF File Output</source>
+        <translation>Saída para ficheiro PDF</translation>
+    </message>
+    <message>
+        <source>Paper:</source>
+        <translation>Papel:</translation>
+    </message>
+    <message>
+        <source>PDF File Name:</source>
+        <translation>Nome do ficheiro PDF:</translation>
+    </message>
+    <message>
+        <source>Printer Resolution:</source>
+        <translation>Resolução de impressão:</translation>
+    </message>
+    <message>
+        <source>High</source>
+        <translation>Alta</translation>
+    </message>
+    <message>
+        <source>Screen</source>
+        <translation>Ecrã</translation>
+    </message>
+    <message>
+        <source>Orientation:</source>
+        <translation>Orientação:</translation>
+    </message>
+    <message>
+        <source>Portrait</source>
+        <translation>Vertical</translation>
+    </message>
+    <message>
+        <source>Landscape</source>
+        <translation>Horizontal</translation>
+    </message>
+    <message>
+        <source>User</source>
+        <translation>Utilizador</translation>
+    </message>
+    <message>
+        <source>Sound</source>
+        <translation>Som</translation>
+    </message>
+    <message>
+        <source>Printing</source>
+        <translation>Impressão</translation>
+    </message>
+    <message>
+        <source>Advanced</source>
+        <translation>Avançado</translation>
+    </message>
+    <message>
+        <source>File name required for PDF output.</source>
+        <translation>A saída para PDF precisa de um nome de ficheiro.</translation>
+    </message>
+    <message>
+        <source>digits</source>
+        <translation>dígitos</translation>
+    </message>
+    <message>
+        <source>pause</source>
+        <translation>pausa</translation>
+    </message>
+    <message>
+        <source>ms</source>
+        <translation>ms</translation>
+    </message>
+    <message>
+        <source>Delete persistent settings</source>
+        <translation>Apagar definições persistentes</translation>
+    </message>
+    <message>
+        <source>Do you really want to delete persistent settings for all programs?</source>
+        <translation>Quer mesmo apagar as definições persistentes de todos os programas?</translation>
+    </message>
+    <message>
+        <source>50 keys</source>
+        <translation>50 chaves</translation>
+    </message>
+    <message>
+        <source>100 keys</source>
+        <translation>100 chaves</translation>
+    </message>
+    <message>
+        <source>200 keys</source>
+        <translation>200 chaves</translation>
+    </message>
+    <message>
+        <source>44100 Hz</source>
+        <translation>44100 Hz</translation>
+    </message>
+    <message>
+        <source>32000 Hz</source>
+        <translation>32000 Hz</translation>
+    </message>
+    <message>
+        <source>22050 Hz</source>
+        <translation>22050 Hz</translation>
+    </message>
+    <message>
+        <source>16000 Hz</source>
+        <translation>16000 Hz</translation>
+    </message>
+    <message>
+        <source>11025 Hz</source>
+        <translation>11025 Hz</translation>
+    </message>
+    <message>
+        <source>8000 Hz</source>
+        <translation>8000 Hz</translation>
+    </message>
+    <message>
+        <source>4400 Hz</source>
+        <translation>4400 Hz</translation>
+    </message>
+    <message>
+        <source>A0 (841 x 1189 mm)</source>
+        <translation>A0 (841 x 1189 mm)</translation>
+    </message>
+    <message>
+        <source>A1 (594 x 841 mm)</source>
+        <translation>A1 (594 x 841 mm)</translation>
+    </message>
+    <message>
+        <source>A2 (420 x 594 mm)</source>
+        <translation>A2 (420 x 594 mm)</translation>
+    </message>
+    <message>
+        <source>A3 (297 x 420 mm)</source>
+        <translation>A3 (297 x 420 mm)</translation>
+    </message>
+    <message>
+        <source>A4 (210 x 297 mm, 8.26 x 11.69 inches)</source>
+        <translation>A4 (210 x 297 mm, 8,26 x 11,69 polegadas)</translation>
+    </message>
+    <message>
+        <source>A5 (148 x 210 mm)</source>
+        <translation>A5 (148 x 210 mm)</translation>
+    </message>
+    <message>
+        <source>A6 (105 x 148 mm)</source>
+        <translation>A6 (105 x 148 mm)</translation>
+    </message>
+    <message>
+        <source>A7 (74 x 105 mm)</source>
+        <translation>A7 (74 x 105 mm)</translation>
+    </message>
+    <message>
+        <source>A8 (52 x 74 mm)</source>
+        <translation>A8 (52 x 74 mm)</translation>
+    </message>
+    <message>
+        <source>A9 (37 x 52 mm)</source>
+        <translation>A9 (37 x 52 mm)</translation>
+    </message>
+    <message>
+        <source>B0 (1000 x 1414 mm)</source>
+        <translation>B0 (1000 x 1414 mm)</translation>
+    </message>
+    <message>
+        <source>B1 (707 x 1000 mm)</source>
+        <translation>B1 (707 x 1000 mm)</translation>
+    </message>
+    <message>
+        <source>B2 (500 x 707 mm)</source>
+        <translation>B2 (500 x 707 mm)</translation>
+    </message>
+    <message>
+        <source>B3 (353 x 500 mm)</source>
+        <translation>B3 (353 x 500 mm)</translation>
+    </message>
+    <message>
+        <source>B4 (250 x 353 mm)</source>
+        <translation>B4 (250 x 353 mm)</translation>
+    </message>
+    <message>
+        <source>B5 (176 x 250 mm, 6.93 x 9.84 inches)</source>
+        <translation>B5 (176 x 250 mm, 6,93 x 9,84 polegadas)</translation>
+    </message>
+    <message>
+        <source>B6 (125 x 176 mm)</source>
+        <translation>B6 (125 x 176 mm)</translation>
+    </message>
+    <message>
+        <source>B7 (88 x 125 mm)</source>
+        <translation>B7 (88 x 125 mm)</translation>
+    </message>
+    <message>
+        <source>B8 (62 x 88 mm)</source>
+        <translation>B8 (62 x 88 mm)</translation>
+    </message>
+    <message>
+        <source>B9 (33 x 62 mm)</source>
+        <translation>B9 (33 x 62 mm)</translation>
+    </message>
+    <message>
+        <source>B10 (31 x 44 mm)</source>
+        <translation>B10 (31 x 44 mm)</translation>
+    </message>
+    <message>
+        <source>#5 Envelope (163 x 229 mm)</source>
+        <translation>Envelope #5 (163 x 229 mm)</translation>
+    </message>
+    <message>
+        <source>#10 Envelope (105 x 241 mm)</source>
+        <translation>Envelope #10 (105 x 241 mm)</translation>
+    </message>
+    <message>
+        <source>DLE (110 x 220 mm)</source>
+        <translation>DLE (110 x 220 mm)</translation>
+    </message>
+    <message>
+        <source>Executive (7.5 x 10 inches, 190.5 x 254 mm)</source>
+        <translation>Executive (7,5 x 10 polegadas, 190,5 x 254 mm)</translation>
+    </message>
+    <message>
+        <source>Folio (210 x 330 mm)</source>
+        <translation>Folio (210 x 330 mm)</translation>
+    </message>
+    <message>
+        <source>Ledger (431.8 x 279.4 mm)</source>
+        <translation>Ledger (431,8 x 279,4 mm)</translation>
+    </message>
+    <message>
+        <source>Legal (8.5 x 14 inches, 215.9 x 355.6 mm)</source>
+        <translation>Legal (8,5 x 14 polegadas, 215,9 x 355,6 mm)</translation>
+    </message>
+    <message>
+        <source>Letter (8.5 x 11 inches, 215.9 x 279.4 mm)</source>
+        <translation>Letter (8,5 x 11 polegadas, 215,9 x 279,4 mm)</translation>
+    </message>
+    <message>
+        <source>Tabloid (279.4 x 431.8 mm)</source>
+        <translation>Tabloid (279,4 x 431,8 mm)</translation>
+    </message>
 </context>
 <context>
     <name>QObject</name>
@@ -1336,6 +1716,33 @@ Por favor, veja a configuração da impressora.</translation>
         <location filename="../VariableWin.cpp" line="111"/>
         <source>&lt;&gt;unassigned&gt;</source>
         <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SettingsBrowser</name>
+    <message>
+        <source>BASIC-256 Persistent settings</source>
+        <translation>Definições persistentes do BASIC-256</translation>
+    </message>
+    <message>
+        <source>Program/Key</source>
+        <translation>Programa/Chave</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <translation>Valor</translation>
+    </message>
+    <message>
+        <source>Delete selected settings</source>
+        <translation>Apagar as definições selecionadas</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Cancelar</translation>
+    </message>
+    <message>
+        <source>Do you really want to delete selected persistent settings?</source>
+        <translation>Quer mesmo apagar as definições persistentes selecionadas?</translation>
     </message>
 </context>
 </TS>

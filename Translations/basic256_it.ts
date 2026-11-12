@@ -1025,6 +1025,294 @@
         <source>Preferences and settings have been saved.</source>
         <translation>Preferenze e opzioni salvate.</translation>
     </message>
+    <message>
+        <source>Allow SYSTEM statement:</source>
+        <translation>Consenti l&apos;istruzione SYSTEM:</translation>
+    </message>
+    <message>
+        <source>Do not allow</source>
+        <translation>Non consentire</translation>
+    </message>
+    <message>
+        <source>Ask confirmation from user</source>
+        <translation>Chiedi conferma all&apos;utente</translation>
+    </message>
+    <message>
+        <source>Allow</source>
+        <translation>Consenti</translation>
+    </message>
+    <message>
+        <source>Allow files outside the program&apos;s folder:</source>
+        <translation>Consenti file fuori dalla cartella del programma:</translation>
+    </message>
+    <message>
+        <source>NETLISTEN accepts connections from other machines</source>
+        <translation>NETLISTEN accetta connessioni da altri computer</translation>
+    </message>
+    <message>
+        <source>Allow PORTIN/PORTOUT statements:</source>
+        <translation>Consenti le istruzioni PORTIN/PORTOUT:</translation>
+    </message>
+    <message>
+        <source>GETSETTING/SETSETTING access level:</source>
+        <translation>Livello di accesso di GETSETTING/SETSETTING:</translation>
+    </message>
+    <message>
+        <source>Get / set only owned settings</source>
+        <translation>Leggi / scrivi solo le impostazioni proprie</translation>
+    </message>
+    <message>
+        <source>Get any settings / set only owned settings</source>
+        <translation>Leggi tutte le impostazioni / scrivi solo le proprie</translation>
+    </message>
+    <message>
+        <source>Full access (get/set) to settings</source>
+        <translation>Accesso completo (lettura/scrittura) alle impostazioni</translation>
+    </message>
+    <message>
+        <source>Allow programs to use persistent settings (SETSETTING statement)</source>
+        <translation>Consenti ai programmi di usare impostazioni persistenti (istruzione SETSETTING)</translation>
+    </message>
+    <message>
+        <source>Browse persistent settings</source>
+        <translation>Sfoglia impostazioni persistenti</translation>
+    </message>
+    <message>
+        <source>Clear all persistent settings</source>
+        <translation>Cancella tutte le impostazioni persistenti</translation>
+    </message>
+    <message>
+        <source>Max number of settings for each program:</source>
+        <translation>Numero massimo di impostazioni per programma:</translation>
+    </message>
+    <message>
+        <source>No limit</source>
+        <translation>Nessun limite</translation>
+    </message>
+    <message>
+        <source>Startup</source>
+        <translation>Avvio</translation>
+    </message>
+    <message>
+        <source>Restore last windows position on start</source>
+        <translation>Ripristina l&apos;ultima posizione delle finestre all&apos;avvio</translation>
+    </message>
+    <message>
+        <source>Runtime handling of unassigned variables:</source>
+        <translation>Gestione delle variabili non assegnate in esecuzione:</translation>
+    </message>
+    <message>
+        <source>Warn when overwriting an existing file</source>
+        <translation>Avvisa quando si sovrascrive un file esistente</translation>
+    </message>
+    <message>
+        <source>Number of digits to print numbers:</source>
+        <translation>Numero di cifre per stampare i numeri:</translation>
+    </message>
+    <message>
+        <source>Use localized decimal point on floating point numbers</source>
+        <translation>Usa il separatore decimale locale per i numeri in virgola mobile</translation>
+    </message>
+    <message>
+        <source>Always show decimal point on floating point numbers</source>
+        <translation>Mostra sempre il separatore decimale nei numeri in virgola mobile</translation>
+    </message>
+    <message>
+        <source>Volume:</source>
+        <translation>Volume:</translation>
+    </message>
+    <message>
+        <source>Sound sample rate:</source>
+        <translation>Frequenza di campionamento:</translation>
+    </message>
+    <message>
+        <source>Min. period to normalize louder sounds:</source>
+        <translation>Periodo minimo per normalizzare i suoni più forti:</translation>
+    </message>
+    <message>
+        <source>Period to restore volume after louder sound:</source>
+        <translation>Periodo per ripristinare il volume dopo un suono più forte:</translation>
+    </message>
+    <message>
+        <source>digits</source>
+        <translation>cifre</translation>
+    </message>
+    <message>
+        <source>pause</source>
+        <translation>pausa</translation>
+    </message>
+    <message>
+        <source>ms</source>
+        <translation>ms</translation>
+    </message>
+    <message>
+        <source>Delete persistent settings</source>
+        <translation>Cancella impostazioni persistenti</translation>
+    </message>
+    <message>
+        <source>Do you really want to delete persistent settings for all programs?</source>
+        <translation>Vuoi davvero cancellare le impostazioni persistenti di tutti i programmi?</translation>
+    </message>
+    <message>
+        <source>50 keys</source>
+        <translation>50 chiavi</translation>
+    </message>
+    <message>
+        <source>100 keys</source>
+        <translation>100 chiavi</translation>
+    </message>
+    <message>
+        <source>200 keys</source>
+        <translation>200 chiavi</translation>
+    </message>
+    <message>
+        <source>44100 Hz</source>
+        <translation>44100 Hz</translation>
+    </message>
+    <message>
+        <source>32000 Hz</source>
+        <translation>32000 Hz</translation>
+    </message>
+    <message>
+        <source>22050 Hz</source>
+        <translation>22050 Hz</translation>
+    </message>
+    <message>
+        <source>16000 Hz</source>
+        <translation>16000 Hz</translation>
+    </message>
+    <message>
+        <source>11025 Hz</source>
+        <translation>11025 Hz</translation>
+    </message>
+    <message>
+        <source>8000 Hz</source>
+        <translation>8000 Hz</translation>
+    </message>
+    <message>
+        <source>4400 Hz</source>
+        <translation>4400 Hz</translation>
+    </message>
+    <message>
+        <source>A0 (841 x 1189 mm)</source>
+        <translation>A0 (841 x 1189 mm)</translation>
+    </message>
+    <message>
+        <source>A1 (594 x 841 mm)</source>
+        <translation>A1 (594 x 841 mm)</translation>
+    </message>
+    <message>
+        <source>A2 (420 x 594 mm)</source>
+        <translation>A2 (420 x 594 mm)</translation>
+    </message>
+    <message>
+        <source>A3 (297 x 420 mm)</source>
+        <translation>A3 (297 x 420 mm)</translation>
+    </message>
+    <message>
+        <source>A4 (210 x 297 mm, 8.26 x 11.69 inches)</source>
+        <translation>A4 (210 x 297 mm, 8,26 x 11,69 pollici)</translation>
+    </message>
+    <message>
+        <source>A5 (148 x 210 mm)</source>
+        <translation>A5 (148 x 210 mm)</translation>
+    </message>
+    <message>
+        <source>A6 (105 x 148 mm)</source>
+        <translation>A6 (105 x 148 mm)</translation>
+    </message>
+    <message>
+        <source>A7 (74 x 105 mm)</source>
+        <translation>A7 (74 x 105 mm)</translation>
+    </message>
+    <message>
+        <source>A8 (52 x 74 mm)</source>
+        <translation>A8 (52 x 74 mm)</translation>
+    </message>
+    <message>
+        <source>A9 (37 x 52 mm)</source>
+        <translation>A9 (37 x 52 mm)</translation>
+    </message>
+    <message>
+        <source>B0 (1000 x 1414 mm)</source>
+        <translation>B0 (1000 x 1414 mm)</translation>
+    </message>
+    <message>
+        <source>B1 (707 x 1000 mm)</source>
+        <translation>B1 (707 x 1000 mm)</translation>
+    </message>
+    <message>
+        <source>B2 (500 x 707 mm)</source>
+        <translation>B2 (500 x 707 mm)</translation>
+    </message>
+    <message>
+        <source>B3 (353 x 500 mm)</source>
+        <translation>B3 (353 x 500 mm)</translation>
+    </message>
+    <message>
+        <source>B4 (250 x 353 mm)</source>
+        <translation>B4 (250 x 353 mm)</translation>
+    </message>
+    <message>
+        <source>B5 (176 x 250 mm, 6.93 x 9.84 inches)</source>
+        <translation>B5 (176 x 250 mm, 6,93 x 9,84 pollici)</translation>
+    </message>
+    <message>
+        <source>B6 (125 x 176 mm)</source>
+        <translation>B6 (125 x 176 mm)</translation>
+    </message>
+    <message>
+        <source>B7 (88 x 125 mm)</source>
+        <translation>B7 (88 x 125 mm)</translation>
+    </message>
+    <message>
+        <source>B8 (62 x 88 mm)</source>
+        <translation>B8 (62 x 88 mm)</translation>
+    </message>
+    <message>
+        <source>B9 (33 x 62 mm)</source>
+        <translation>B9 (33 x 62 mm)</translation>
+    </message>
+    <message>
+        <source>B10 (31 x 44 mm)</source>
+        <translation>B10 (31 x 44 mm)</translation>
+    </message>
+    <message>
+        <source>#5 Envelope (163 x 229 mm)</source>
+        <translation>Busta #5 (163 x 229 mm)</translation>
+    </message>
+    <message>
+        <source>#10 Envelope (105 x 241 mm)</source>
+        <translation>Busta #10 (105 x 241 mm)</translation>
+    </message>
+    <message>
+        <source>DLE (110 x 220 mm)</source>
+        <translation>DLE (110 x 220 mm)</translation>
+    </message>
+    <message>
+        <source>Executive (7.5 x 10 inches, 190.5 x 254 mm)</source>
+        <translation>Executive (7,5 x 10 pollici, 190,5 x 254 mm)</translation>
+    </message>
+    <message>
+        <source>Folio (210 x 330 mm)</source>
+        <translation>Folio (210 x 330 mm)</translation>
+    </message>
+    <message>
+        <source>Ledger (431.8 x 279.4 mm)</source>
+        <translation>Ledger (431,8 x 279,4 mm)</translation>
+    </message>
+    <message>
+        <source>Legal (8.5 x 14 inches, 215.9 x 355.6 mm)</source>
+        <translation>Legal (8,5 x 14 pollici, 215,9 x 355,6 mm)</translation>
+    </message>
+    <message>
+        <source>Letter (8.5 x 11 inches, 215.9 x 279.4 mm)</source>
+        <translation>Letter (8,5 x 11 pollici, 215,9 x 279,4 mm)</translation>
+    </message>
+    <message>
+        <source>Tabloid (279.4 x 431.8 mm)</source>
+        <translation>Tabloid (279,4 x 431,8 mm)</translation>
+    </message>
 </context>
 <context>
     <name>QObject</name>
@@ -1626,6 +1914,33 @@ Controllare le impostazione della stampante.</translation>
         <location filename="../VariableWin.cpp" line="103"/>
         <source>&lt;&gt;unassigned&gt;</source>
         <translation>&lt;&gt;non assegnato&gt;</translation>
+    </message>
+</context>
+<context>
+    <name>SettingsBrowser</name>
+    <message>
+        <source>BASIC-256 Persistent settings</source>
+        <translation>Impostazioni persistenti di BASIC-256</translation>
+    </message>
+    <message>
+        <source>Program/Key</source>
+        <translation>Programma/Chiave</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <translation>Valore</translation>
+    </message>
+    <message>
+        <source>Delete selected settings</source>
+        <translation>Cancella le impostazioni selezionate</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
+    </message>
+    <message>
+        <source>Do you really want to delete selected persistent settings?</source>
+        <translation>Vuoi davvero cancellare le impostazioni persistenti selezionate?</translation>
     </message>
 </context>
 </TS>

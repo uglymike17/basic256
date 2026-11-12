@@ -746,6 +746,386 @@
         <source>Show runtime warning messages</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Advanced Preferences Password:</source>
+        <translation>Wachtwoord voor geavanceerde voorkeuren:</translation>
+    </message>
+    <message>
+        <source>Allow SYSTEM statement:</source>
+        <translation>SYSTEM-opdracht toestaan:</translation>
+    </message>
+    <message>
+        <source>Do not allow</source>
+        <translation>Niet toestaan</translation>
+    </message>
+    <message>
+        <source>Ask confirmation from user</source>
+        <translation>Gebruiker om bevestiging vragen</translation>
+    </message>
+    <message>
+        <source>Allow</source>
+        <translation>Toestaan</translation>
+    </message>
+    <message>
+        <source>Allow files outside the program&apos;s folder:</source>
+        <translation>Bestanden buiten de programmamap toestaan:</translation>
+    </message>
+    <message>
+        <source>NETLISTEN accepts connections from other machines</source>
+        <translation>NETLISTEN accepteert verbindingen van andere computers</translation>
+    </message>
+    <message>
+        <source>Allow PORTIN/PORTOUT statements:</source>
+        <translation>PORTIN/PORTOUT-opdrachten toestaan:</translation>
+    </message>
+    <message>
+        <source>GETSETTING/SETSETTING access level:</source>
+        <translation>Toegangsniveau voor GETSETTING/SETSETTING:</translation>
+    </message>
+    <message>
+        <source>Get / set only owned settings</source>
+        <translation>Alleen eigen instellingen lezen / schrijven</translation>
+    </message>
+    <message>
+        <source>Get any settings / set only owned settings</source>
+        <translation>Alle instellingen lezen / alleen eigen schrijven</translation>
+    </message>
+    <message>
+        <source>Full access (get/set) to settings</source>
+        <translation>Volledige toegang (lezen/schrijven) tot instellingen</translation>
+    </message>
+    <message>
+        <source>Allow programs to use persistent settings (SETSETTING statement)</source>
+        <translation>Programma&apos;s blijvende instellingen laten gebruiken (SETSETTING-opdracht)</translation>
+    </message>
+    <message>
+        <source>Browse persistent settings</source>
+        <translation>Blijvende instellingen bekijken</translation>
+    </message>
+    <message>
+        <source>Clear all persistent settings</source>
+        <translation>Alle blijvende instellingen wissen</translation>
+    </message>
+    <message>
+        <source>Max number of settings for each program:</source>
+        <translation>Maximaal aantal instellingen per programma:</translation>
+    </message>
+    <message>
+        <source>No limit</source>
+        <translation>Geen limiet</translation>
+    </message>
+    <message>
+        <source>Startup</source>
+        <translation>Opstarten</translation>
+    </message>
+    <message>
+        <source>Restore last windows position on start</source>
+        <translation>Laatste vensterposities herstellen bij opstarten</translation>
+    </message>
+    <message>
+        <source>Runtime handling of bad type conversions:</source>
+        <translation>Afhandeling van foute typeconversies tijdens uitvoering:</translation>
+    </message>
+    <message>
+        <source>Ignore</source>
+        <translation>Negeren</translation>
+    </message>
+    <message>
+        <source>Warn</source>
+        <translation>Waarschuwen</translation>
+    </message>
+    <message>
+        <source>Error</source>
+        <translation>Fout</translation>
+    </message>
+    <message>
+        <source>Runtime handling of unassigned variables:</source>
+        <translation>Afhandeling van niet-toegewezen variabelen tijdens uitvoering:</translation>
+    </message>
+    <message>
+        <source>Warn when overwriting an existing file</source>
+        <translation>Waarschuwen bij overschrijven van een bestaand bestand</translation>
+    </message>
+    <message>
+        <source>Number of digits to print numbers:</source>
+        <translation>Aantal cijfers bij het afdrukken van getallen:</translation>
+    </message>
+    <message>
+        <source>Use localized decimal point on floating point numbers</source>
+        <translation>Plaatselijk decimaalteken gebruiken bij kommagetallen</translation>
+    </message>
+    <message>
+        <source>Always show decimal point on floating point numbers</source>
+        <translation>Decimaalteken bij kommagetallen altijd tonen</translation>
+    </message>
+    <message>
+        <source>Debugging Speed:</source>
+        <translation>Snelheid foutopsporing:</translation>
+    </message>
+    <message>
+        <source>Fast</source>
+        <translation>Snel</translation>
+    </message>
+    <message>
+        <source>Slow</source>
+        <translation>Traag</translation>
+    </message>
+    <message>
+        <source>Volume:</source>
+        <translation>Volume:</translation>
+    </message>
+    <message>
+        <source>Sound sample rate:</source>
+        <translation>Bemonsteringsfrequentie:</translation>
+    </message>
+    <message>
+        <source>Min. period to normalize louder sounds:</source>
+        <translation>Min. periode om luidere geluiden te normaliseren:</translation>
+    </message>
+    <message>
+        <source>Period to restore volume after louder sound:</source>
+        <translation>Periode om het volume te herstellen na een luider geluid:</translation>
+    </message>
+    <message>
+        <source>Printer:</source>
+        <translation>Printer:</translation>
+    </message>
+    <message>
+        <source>PDF File Output</source>
+        <translation>Uitvoer naar PDF-bestand</translation>
+    </message>
+    <message>
+        <source>Paper:</source>
+        <translation>Papier:</translation>
+    </message>
+    <message>
+        <source>PDF File Name:</source>
+        <translation>PDF-bestandsnaam:</translation>
+    </message>
+    <message>
+        <source>Printer Resolution:</source>
+        <translation>Printerresolutie:</translation>
+    </message>
+    <message>
+        <source>High</source>
+        <translation>Hoog</translation>
+    </message>
+    <message>
+        <source>Screen</source>
+        <translation>Scherm</translation>
+    </message>
+    <message>
+        <source>Orientation:</source>
+        <translation>Afdrukstand:</translation>
+    </message>
+    <message>
+        <source>Portrait</source>
+        <translation>Staand</translation>
+    </message>
+    <message>
+        <source>Landscape</source>
+        <translation>Liggend</translation>
+    </message>
+    <message>
+        <source>User</source>
+        <translation>Gebruiker</translation>
+    </message>
+    <message>
+        <source>Sound</source>
+        <translation>Geluid</translation>
+    </message>
+    <message>
+        <source>Printing</source>
+        <translation>Afdrukken</translation>
+    </message>
+    <message>
+        <source>Advanced</source>
+        <translation>Geavanceerd</translation>
+    </message>
+    <message>
+        <source>File name required for PDF output.</source>
+        <translation>Voor PDF-uitvoer is een bestandsnaam nodig.</translation>
+    </message>
+    <message>
+        <source>digits</source>
+        <translation>cijfers</translation>
+    </message>
+    <message>
+        <source>pause</source>
+        <translation>pauze</translation>
+    </message>
+    <message>
+        <source>ms</source>
+        <translation>ms</translation>
+    </message>
+    <message>
+        <source>Delete persistent settings</source>
+        <translation>Blijvende instellingen wissen</translation>
+    </message>
+    <message>
+        <source>Do you really want to delete persistent settings for all programs?</source>
+        <translation>Wilt u de blijvende instellingen van alle programma&apos;s echt wissen?</translation>
+    </message>
+    <message>
+        <source>50 keys</source>
+        <translation>50 sleutels</translation>
+    </message>
+    <message>
+        <source>100 keys</source>
+        <translation>100 sleutels</translation>
+    </message>
+    <message>
+        <source>200 keys</source>
+        <translation>200 sleutels</translation>
+    </message>
+    <message>
+        <source>44100 Hz</source>
+        <translation>44100 Hz</translation>
+    </message>
+    <message>
+        <source>32000 Hz</source>
+        <translation>32000 Hz</translation>
+    </message>
+    <message>
+        <source>22050 Hz</source>
+        <translation>22050 Hz</translation>
+    </message>
+    <message>
+        <source>16000 Hz</source>
+        <translation>16000 Hz</translation>
+    </message>
+    <message>
+        <source>11025 Hz</source>
+        <translation>11025 Hz</translation>
+    </message>
+    <message>
+        <source>8000 Hz</source>
+        <translation>8000 Hz</translation>
+    </message>
+    <message>
+        <source>4400 Hz</source>
+        <translation>4400 Hz</translation>
+    </message>
+    <message>
+        <source>A0 (841 x 1189 mm)</source>
+        <translation>A0 (841 x 1189 mm)</translation>
+    </message>
+    <message>
+        <source>A1 (594 x 841 mm)</source>
+        <translation>A1 (594 x 841 mm)</translation>
+    </message>
+    <message>
+        <source>A2 (420 x 594 mm)</source>
+        <translation>A2 (420 x 594 mm)</translation>
+    </message>
+    <message>
+        <source>A3 (297 x 420 mm)</source>
+        <translation>A3 (297 x 420 mm)</translation>
+    </message>
+    <message>
+        <source>A4 (210 x 297 mm, 8.26 x 11.69 inches)</source>
+        <translation>A4 (210 x 297 mm, 8,26 x 11,69 inch)</translation>
+    </message>
+    <message>
+        <source>A5 (148 x 210 mm)</source>
+        <translation>A5 (148 x 210 mm)</translation>
+    </message>
+    <message>
+        <source>A6 (105 x 148 mm)</source>
+        <translation>A6 (105 x 148 mm)</translation>
+    </message>
+    <message>
+        <source>A7 (74 x 105 mm)</source>
+        <translation>A7 (74 x 105 mm)</translation>
+    </message>
+    <message>
+        <source>A8 (52 x 74 mm)</source>
+        <translation>A8 (52 x 74 mm)</translation>
+    </message>
+    <message>
+        <source>A9 (37 x 52 mm)</source>
+        <translation>A9 (37 x 52 mm)</translation>
+    </message>
+    <message>
+        <source>B0 (1000 x 1414 mm)</source>
+        <translation>B0 (1000 x 1414 mm)</translation>
+    </message>
+    <message>
+        <source>B1 (707 x 1000 mm)</source>
+        <translation>B1 (707 x 1000 mm)</translation>
+    </message>
+    <message>
+        <source>B2 (500 x 707 mm)</source>
+        <translation>B2 (500 x 707 mm)</translation>
+    </message>
+    <message>
+        <source>B3 (353 x 500 mm)</source>
+        <translation>B3 (353 x 500 mm)</translation>
+    </message>
+    <message>
+        <source>B4 (250 x 353 mm)</source>
+        <translation>B4 (250 x 353 mm)</translation>
+    </message>
+    <message>
+        <source>B5 (176 x 250 mm, 6.93 x 9.84 inches)</source>
+        <translation>B5 (176 x 250 mm, 6,93 x 9,84 inch)</translation>
+    </message>
+    <message>
+        <source>B6 (125 x 176 mm)</source>
+        <translation>B6 (125 x 176 mm)</translation>
+    </message>
+    <message>
+        <source>B7 (88 x 125 mm)</source>
+        <translation>B7 (88 x 125 mm)</translation>
+    </message>
+    <message>
+        <source>B8 (62 x 88 mm)</source>
+        <translation>B8 (62 x 88 mm)</translation>
+    </message>
+    <message>
+        <source>B9 (33 x 62 mm)</source>
+        <translation>B9 (33 x 62 mm)</translation>
+    </message>
+    <message>
+        <source>B10 (31 x 44 mm)</source>
+        <translation>B10 (31 x 44 mm)</translation>
+    </message>
+    <message>
+        <source>#5 Envelope (163 x 229 mm)</source>
+        <translation>Envelop #5 (163 x 229 mm)</translation>
+    </message>
+    <message>
+        <source>#10 Envelope (105 x 241 mm)</source>
+        <translation>Envelop #10 (105 x 241 mm)</translation>
+    </message>
+    <message>
+        <source>DLE (110 x 220 mm)</source>
+        <translation>DLE (110 x 220 mm)</translation>
+    </message>
+    <message>
+        <source>Executive (7.5 x 10 inches, 190.5 x 254 mm)</source>
+        <translation>Executive (7,5 x 10 inch, 190,5 x 254 mm)</translation>
+    </message>
+    <message>
+        <source>Folio (210 x 330 mm)</source>
+        <translation>Folio (210 x 330 mm)</translation>
+    </message>
+    <message>
+        <source>Ledger (431.8 x 279.4 mm)</source>
+        <translation>Ledger (431,8 x 279,4 mm)</translation>
+    </message>
+    <message>
+        <source>Legal (8.5 x 14 inches, 215.9 x 355.6 mm)</source>
+        <translation>Legal (8,5 x 14 inch, 215,9 x 355,6 mm)</translation>
+    </message>
+    <message>
+        <source>Letter (8.5 x 11 inches, 215.9 x 279.4 mm)</source>
+        <translation>Letter (8,5 x 11 inch, 215,9 x 279,4 mm)</translation>
+    </message>
+    <message>
+        <source>Tabloid (279.4 x 431.8 mm)</source>
+        <translation>Tabloid (279,4 x 431,8 mm)</translation>
+    </message>
 </context>
 <context>
     <name>QObject</name>
@@ -1395,6 +1775,33 @@ Check uw printer instelling.</translation>
     <message>
         <source>&lt;&gt;unassigned&gt;</source>
         <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SettingsBrowser</name>
+    <message>
+        <source>BASIC-256 Persistent settings</source>
+        <translation>BASIC-256 Blijvende instellingen</translation>
+    </message>
+    <message>
+        <source>Program/Key</source>
+        <translation>Programma/Sleutel</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <translation>Waarde</translation>
+    </message>
+    <message>
+        <source>Delete selected settings</source>
+        <translation>Geselecteerde instellingen wissen</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Annuleren</translation>
+    </message>
+    <message>
+        <source>Do you really want to delete selected persistent settings?</source>
+        <translation>Wilt u de geselecteerde blijvende instellingen echt wissen?</translation>
     </message>
 </context>
 </TS>
