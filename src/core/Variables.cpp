@@ -96,7 +96,7 @@ void Variables::decreaserecurse() {
 		while(i-- > 0) {
 			if (varmap[recurselevel][i]) delete varmap[recurselevel][i];
 		}
-		delete varmap[recurselevel];
+		delete[] varmap[recurselevel];
 		// return back to prev variable context
 		recurselevel--;
 		varmap.resize(recurselevel+1);
