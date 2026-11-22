@@ -94,6 +94,27 @@ The browser runs inside a sandbox, so some desktop features are unavailable:
 
 ## What's new
 
+### BASIC256 2.3.2
+
+#### 🌐 Languages
+- **Hindi Added:** The whole IDE can now be shown in Hindi (`basic256 -l hi`, or automatically on a system set to Hindi) — menus, toolbars, output windows, Find/Replace, Preferences, the About box, permission prompts and every compile and run-time error message. Menu items keep their English Alt-key letter in brackets, so keyboard shortcuts are the same as in English.
+- **Translations Completed:** The menus, the Preferences window, the persistent settings browser and the About box are now fully translated in Dutch, French, German, Italian, Portuguese, Russian and Spanish, including newer items such as *Save All*, *Zoom*, *Theme* and *Wrap Long Lines*. Each menu item has its own Alt-key letter, so shortcuts no longer clash. Choose a language with `-l` and its code: `de`, `en`, `es`, `fr`, `hi`, `it`, `nl`, `pt` or `ru`.
+
+#### ⚡ Faster Graphics
+- **Screen Updates:** Without `FASTGRAPHICS`, the graphics window is now updated at most once per screen frame (every 16 ms) instead of after every statement, so 5000 `RECT` statements run about as fast as with `FASTGRAPHICS`. A single drawing still appears at once, and the window is always brought up to date at `PAUSE`, `INPUT`, `FRAMERATE`, dialogs, debugger steps and program end; `REFRESH` still updates immediately.
+- **Display Format:** The graphics window is kept in the format the screen uses, so it takes less work to show. A partly transparent colour may read back very slightly different with `GETPIXEL`/`GETSLICE`; solid colours read back exactly.
+
+#### 🐞 Fixes found while writing *A Guide to BASIC256*
+- **No More Crashes:** `DBINT`, `DBFLOAT`, `DBSTRING` and `DBNULL` on a record set that was never opened give error 34, and `READBYTE` on a file that is not open gives error 7, instead of closing BASIC256.
+- **Maps:** `ASSIGNED(m[key])` and `key IN m` answer false for a missing key instead of stopping the program, so a program can check before reading.
+- **`ISNUMERIC`:** True only for a number or a string written as one; strings such as `"1,5"` or `"1x5"` no longer count.
+- **String Arrays:** `a$[i] += "y"` now adds the text to the end, as it does on a plain variable.
+- **Sound:** `SOUNDWAVEFORM` keeps fractional amplitudes and durations, `SOUNDHARMONICS` uses every row of a two-column array, and a waveform of exactly `SOUNDSAMPLERATE` values plays at full volume.
+- **Toolkit Module:** Captions use Tahoma on Windows and BASIC256's default font elsewhere, at normal weight; the new `tk_fontname$()` returns that font. Checkbox and radio labels stay clean when redrawn.
+
+#### ⚙️ Core
+- **Memory Safety:** Returning from a function or subroutine now frees its variables correctly.
+
 ### BASIC256 2.3.1
 
 #### 🎨 Graphics & Examples
