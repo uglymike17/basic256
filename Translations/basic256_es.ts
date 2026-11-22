@@ -1412,7 +1412,7 @@ Por favor, comprueba la configuración de la impresora.</translation>
     <message>
         <location filename="../MainWindow.cpp" line="433"/>
         <source> Portable</source>
-        <translation type="unfinished"></translation>
+        <translation> Portátil</translation>
     </message>
     <message>
         <location filename="../MainWindow.cpp" line="438"/>
@@ -1582,6 +1582,38 @@ Por favor, comprueba la configuración de la impresora.</translation>
     <message>
         <source>&amp;About BASIC-256...</source>
         <translation>Acerca &amp;de BASIC-256...</translation>
+    </message>
+    <message>
+        <source>version </source>
+        <translation>versión </translation>
+    </message>
+    <message>
+        <source> - built with QT </source>
+        <translation> - compilado con Qt </translation>
+    </message>
+    <message>
+        <source>Locale Name: </source>
+        <translation>Configuración regional: </translation>
+    </message>
+    <message>
+        <source>Decimal Point: </source>
+        <translation>Separador decimal: </translation>
+    </message>
+    <message>
+        <source>Copyright &amp;copy; 2006-2026, The BASIC-256 Team</source>
+        <translation>Copyright &amp;copy; 2006-2026, el equipo de BASIC-256</translation>
+    </message>
+    <message>
+        <source>Please visit our website at &lt;a href=&quot;https://basic256.org&quot;&gt;https://basic256.org&lt;/a&gt;. For documentation, please visit &lt;a href=&quot;https://doc.basic256.org&quot;&gt;https://doc.basic256.org&lt;/a&gt;</source>
+        <translation>Visita nuestro sitio web en &lt;a href=&quot;https://basic256.org&quot;&gt;https://basic256.org&lt;/a&gt;. Para la documentación, visita &lt;a href=&quot;https://doc.basic256.org&quot;&gt;https://doc.basic256.org&lt;/a&gt;</translation>
+    </message>
+    <message>
+        <source>Please see the CONTRIBUTORS file for a list of developers and translators for this project.</source>
+        <translation>En el archivo CONTRIBUTORS puedes ver la lista de desarrolladores y traductores de este proyecto.</translation>
+    </message>
+    <message>
+        <source>This program is free software under the GNU General Public License, either version 3 of the License, or (at your option) any later version. You should have received a copy of the license along with this program; if not, see &lt;a href=&quot;https://www.gnu.org/licenses/&quot;&gt;https://www.gnu.org/licenses/&lt;/a&gt;.</source>
+        <translation>Este programa es software libre bajo la GNU General Public License, ya sea la versión 3 de la licencia o (a tu elección) cualquier versión posterior. Deberías haber recibido una copia de la licencia junto con este programa; si no es así, consulta &lt;a href=&quot;https://www.gnu.org/licenses/&quot;&gt;https://www.gnu.org/licenses/&lt;/a&gt;.</translation>
     </message>
 </context>
 <context>

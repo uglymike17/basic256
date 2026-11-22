@@ -1359,7 +1359,7 @@
     <message>
         <location filename="../MainWindow.cpp" line="438"/>
         <source>About BASIC-256</source>
-        <translation type="unfinished">Über BASIC-256</translation>
+        <translation>Über BASIC-256</translation>
     </message>
     <message>
         <location filename="../MainWindow.cpp" line="110"/>
@@ -1521,7 +1521,7 @@
     <message>
         <location filename="../MainWindow.cpp" line="433"/>
         <source> Portable</source>
-        <translation type="unfinished"></translation>
+        <translation> Portable</translation>
     </message>
     <message>
         <location filename="../MainWindow.cpp" line="439"/>
@@ -1861,6 +1861,38 @@ Bitte die Drucker-Einstellungen überprüfen.</translation>
     <message>
         <source>&amp;About BASIC-256...</source>
         <translation>Ü&amp;ber BASIC-256...</translation>
+    </message>
+    <message>
+        <source>version </source>
+        <translation>Version </translation>
+    </message>
+    <message>
+        <source> - built with QT </source>
+        <translation> - erstellt mit Qt </translation>
+    </message>
+    <message>
+        <source>Locale Name: </source>
+        <translation>Gebietsschema: </translation>
+    </message>
+    <message>
+        <source>Decimal Point: </source>
+        <translation>Dezimaltrennzeichen: </translation>
+    </message>
+    <message>
+        <source>Copyright &amp;copy; 2006-2026, The BASIC-256 Team</source>
+        <translation>Copyright &amp;copy; 2006-2026, das BASIC-256-Team</translation>
+    </message>
+    <message>
+        <source>Please visit our website at &lt;a href=&quot;https://basic256.org&quot;&gt;https://basic256.org&lt;/a&gt;. For documentation, please visit &lt;a href=&quot;https://doc.basic256.org&quot;&gt;https://doc.basic256.org&lt;/a&gt;</source>
+        <translation>Besuchen Sie unsere Website unter &lt;a href=&quot;https://basic256.org&quot;&gt;https://basic256.org&lt;/a&gt;. Die Dokumentation finden Sie unter &lt;a href=&quot;https://doc.basic256.org&quot;&gt;https://doc.basic256.org&lt;/a&gt;</translation>
+    </message>
+    <message>
+        <source>Please see the CONTRIBUTORS file for a list of developers and translators for this project.</source>
+        <translation>Eine Liste der Entwickler und Übersetzer dieses Projekts finden Sie in der Datei CONTRIBUTORS.</translation>
+    </message>
+    <message>
+        <source>This program is free software under the GNU General Public License, either version 3 of the License, or (at your option) any later version. You should have received a copy of the license along with this program; if not, see &lt;a href=&quot;https://www.gnu.org/licenses/&quot;&gt;https://www.gnu.org/licenses/&lt;/a&gt;.</source>
+        <translation>Dieses Programm ist freie Software unter der GNU General Public License, entweder Version 3 der Lizenz oder (nach Ihrer Wahl) jeder späteren Version. Sie sollten zusammen mit diesem Programm eine Kopie der Lizenz erhalten haben; falls nicht, siehe &lt;a href=&quot;https://www.gnu.org/licenses/&quot;&gt;https://www.gnu.org/licenses/&lt;/a&gt;.</translation>
     </message>
 </context>
 <context>

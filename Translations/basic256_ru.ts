@@ -1493,7 +1493,7 @@ Please check your printer settings.</source>
     </message>
     <message>
         <source> Portable</source>
-        <translation type="unfinished"></translation>
+        <translation> Portable</translation>
     </message>
     <message>
         <source>ERROR on line </source>
@@ -1670,6 +1670,38 @@ Please check your printer settings.</source>
     <message>
         <source>&amp;About BASIC-256...</source>
         <translation>О &amp;программе BASIC-256...</translation>
+    </message>
+    <message>
+        <source>version </source>
+        <translation>версия </translation>
+    </message>
+    <message>
+        <source> - built with QT </source>
+        <translation> - собрано с Qt </translation>
+    </message>
+    <message>
+        <source>Locale Name: </source>
+        <translation>Локаль: </translation>
+    </message>
+    <message>
+        <source>Decimal Point: </source>
+        <translation>Десятичный разделитель: </translation>
+    </message>
+    <message>
+        <source>Copyright &amp;copy; 2006-2026, The BASIC-256 Team</source>
+        <translation>Copyright &amp;copy; 2006-2026, команда BASIC-256</translation>
+    </message>
+    <message>
+        <source>Please visit our website at &lt;a href=&quot;https://basic256.org&quot;&gt;https://basic256.org&lt;/a&gt;. For documentation, please visit &lt;a href=&quot;https://doc.basic256.org&quot;&gt;https://doc.basic256.org&lt;/a&gt;</source>
+        <translation>Посетите наш сайт &lt;a href=&quot;https://basic256.org&quot;&gt;https://basic256.org&lt;/a&gt;. Документация доступна на &lt;a href=&quot;https://doc.basic256.org&quot;&gt;https://doc.basic256.org&lt;/a&gt;</translation>
+    </message>
+    <message>
+        <source>Please see the CONTRIBUTORS file for a list of developers and translators for this project.</source>
+        <translation>Список разработчиков и переводчиков проекта находится в файле CONTRIBUTORS.</translation>
+    </message>
+    <message>
+        <source>This program is free software under the GNU General Public License, either version 3 of the License, or (at your option) any later version. You should have received a copy of the license along with this program; if not, see &lt;a href=&quot;https://www.gnu.org/licenses/&quot;&gt;https://www.gnu.org/licenses/&lt;/a&gt;.</source>
+        <translation>Эта программа является свободным программным обеспечением и распространяется на условиях GNU General Public License версии 3 либо (по вашему выбору) любой более поздней версии. Вместе с этой программой вы должны были получить копию лицензии; если это не так, см. &lt;a href=&quot;https://www.gnu.org/licenses/&quot;&gt;https://www.gnu.org/licenses/&lt;/a&gt;.</translation>
     </message>
 </context>
 <context>

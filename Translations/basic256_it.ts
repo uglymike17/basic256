@@ -1799,6 +1799,26 @@ Controllare le impostazione della stampante.</translation>
         <source>&amp;About BASIC-256...</source>
         <translation>&amp;Informazioni su BASIC-256...</translation>
     </message>
+    <message>
+        <source>Locale Name: </source>
+        <translation>Impostazioni locali: </translation>
+    </message>
+    <message>
+        <source>Decimal Point: </source>
+        <translation>Separatore decimale: </translation>
+    </message>
+    <message>
+        <source>Copyright &amp;copy; 2006-2026, The BASIC-256 Team</source>
+        <translation>Copyright &amp;copy; 2006-2026, il Team di BASIC-256</translation>
+    </message>
+    <message>
+        <source>Please visit our website at &lt;a href=&quot;https://basic256.org&quot;&gt;https://basic256.org&lt;/a&gt;. For documentation, please visit &lt;a href=&quot;https://doc.basic256.org&quot;&gt;https://doc.basic256.org&lt;/a&gt;</source>
+        <translation>Il nostro sito web è &lt;a href=&quot;https://basic256.org&quot;&gt;https://basic256.org&lt;/a&gt;. La documentazione si trova su &lt;a href=&quot;https://doc.basic256.org&quot;&gt;https://doc.basic256.org&lt;/a&gt;</translation>
+    </message>
+    <message>
+        <source>This program is free software under the GNU General Public License, either version 3 of the License, or (at your option) any later version. You should have received a copy of the license along with this program; if not, see &lt;a href=&quot;https://www.gnu.org/licenses/&quot;&gt;https://www.gnu.org/licenses/&lt;/a&gt;.</source>
+        <translation>Questo programma è software libero distribuito secondo la GNU General Public License, versione 3 della licenza o (a propria scelta) qualsiasi versione successiva. Insieme a questo programma dovrebbe essere stata fornita una copia della licenza; in caso contrario, si veda &lt;a href=&quot;https://www.gnu.org/licenses/&quot;&gt;https://www.gnu.org/licenses/&lt;/a&gt;.</translation>
+    </message>
 </context>
 <context>
     <name>ReplaceWin</name>

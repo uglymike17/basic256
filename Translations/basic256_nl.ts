@@ -1473,7 +1473,7 @@ Check uw printer instelling.</translation>
     </message>
     <message>
         <source> Portable</source>
-        <translation type="unfinished"></translation>
+        <translation> Portable</translation>
     </message>
     <message>
         <source>ERROR on line </source>
@@ -1650,6 +1650,38 @@ Check uw printer instelling.</translation>
     <message>
         <source>&amp;About BASIC-256...</source>
         <translation>Over &amp;BASIC-256...</translation>
+    </message>
+    <message>
+        <source>version </source>
+        <translation>versie </translation>
+    </message>
+    <message>
+        <source> - built with QT </source>
+        <translation> - gebouwd met Qt </translation>
+    </message>
+    <message>
+        <source>Locale Name: </source>
+        <translation>Landinstelling: </translation>
+    </message>
+    <message>
+        <source>Decimal Point: </source>
+        <translation>Decimaalteken: </translation>
+    </message>
+    <message>
+        <source>Copyright &amp;copy; 2006-2026, The BASIC-256 Team</source>
+        <translation>Copyright &amp;copy; 2006-2026, het BASIC-256-team</translation>
+    </message>
+    <message>
+        <source>Please visit our website at &lt;a href=&quot;https://basic256.org&quot;&gt;https://basic256.org&lt;/a&gt;. For documentation, please visit &lt;a href=&quot;https://doc.basic256.org&quot;&gt;https://doc.basic256.org&lt;/a&gt;</source>
+        <translation>Bezoek onze website op &lt;a href=&quot;https://basic256.org&quot;&gt;https://basic256.org&lt;/a&gt;. Documentatie vindt u op &lt;a href=&quot;https://doc.basic256.org&quot;&gt;https://doc.basic256.org&lt;/a&gt;</translation>
+    </message>
+    <message>
+        <source>Please see the CONTRIBUTORS file for a list of developers and translators for this project.</source>
+        <translation>Zie het bestand CONTRIBUTORS voor een lijst van ontwikkelaars en vertalers van dit project.</translation>
+    </message>
+    <message>
+        <source>This program is free software under the GNU General Public License, either version 3 of the License, or (at your option) any later version. You should have received a copy of the license along with this program; if not, see &lt;a href=&quot;https://www.gnu.org/licenses/&quot;&gt;https://www.gnu.org/licenses/&lt;/a&gt;.</source>
+        <translation>Dit programma is vrije software onder de GNU General Public License, versie 3 van de licentie of (naar uw keuze) een latere versie. U hoort samen met dit programma een kopie van de licentie te hebben ontvangen; zo niet, zie &lt;a href=&quot;https://www.gnu.org/licenses/&quot;&gt;https://www.gnu.org/licenses/&lt;/a&gt;.</translation>
     </message>
 </context>
 <context>
