@@ -1,3 +1,6 @@
+2026-11-22 M. Vilain <uglymike17@gmail.com>
+	* The IDE can now be shown in Hindi, with basic256 -l hi, or on its own on a system set to Hindi. Everything in the IDE is translated: menus, toolbars, the Text Output, Graphics Output and Variable Watch windows, Find/Replace, Preferences, the persistent settings browser, the About box, the questions asked before a program may use SYSTEM, PORTIN/PORTOUT or a file outside its folder, and the compile and run-time error messages. Each menu item keeps its English underlined letter, shown in brackets after the Hindi text, so the Alt shortcuts are the same as in English.
+
 2026-11-12 M. Vilain <uglymike17@gmail.com>
 	* The menus are fully translated in Dutch, French, German, Italian, Portuguese, Russian and Spanish, including the newer items such as Save All, the Zoom submenu, Theme and Wrap Long Lines. Within each menu every item has its own underlined letter, so the Alt shortcuts no longer clash. A language is chosen with -l and its code, for example basic256 -l nl; the codes are de, en, es, fr, it, nl, pt and ru.
 	* The Preferences window, the persistent settings browser opened from it, and the Help/About box are translated into the same seven languages. The paper list in Preferences/Printing names the 52 x 74 mm size A8; it was shown as a second A9.

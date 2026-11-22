@@ -222,6 +222,7 @@ set(TS_FILES
     Translations/basic256_pt.ts
     Translations/basic256_nl.ts
     Translations/basic256_it.ts
+    Translations/basic256_hi.ts
 )
 
 # -------------------------------------------------------------------

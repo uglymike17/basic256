@@ -76,6 +76,7 @@
         <file>../Translations/basic256_nl.qm</file>
         <file>../Translations/basic256_pt.qm</file>
         <file>../Translations/basic256_ru.qm</file>
+        <file>../Translations/basic256_hi.qm</file>
     </qresource>
 
 </RCC>
